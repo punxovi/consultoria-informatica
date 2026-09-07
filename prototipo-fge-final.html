@@ -645,6 +645,51 @@
 @media(max-width:1000px){.f2-grid{grid-template-columns:repeat(2,1fr)}.f2-kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:767px){.f2-grid,.f2-form-grid{grid-template-columns:1fr}.f2-kpis{grid-template-columns:1fr 1fr}.f2-search{min-width:100%}.f2-toolbar{align-items:stretch}.f2-toolbar .btn{width:100%}}
 
+.quote-catalog-page{max-width:1280px;margin:0 auto;padding-bottom:40px;}
+.quote-hero{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:stretch;margin-bottom:18px;}
+.quote-hero-main{background:linear-gradient(135deg,var(--p800),var(--p600));color:#fff;border-radius:22px;padding:26px;box-shadow:var(--sh-md);position:relative;overflow:hidden;}
+.quote-hero-main::after{content:'';position:absolute;right:-80px;top:-80px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.10);}
+.quote-hero-kicker{font-size:11px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;color:rgba(255,255,255,.72);margin-bottom:8px;}
+.quote-hero-title{font-size:30px;font-weight:900;line-height:1.08;margin-bottom:10px;color:#fff;}
+.quote-hero-copy{font-size:14px;line-height:1.65;color:rgba(255,255,255,.86);max-width:660px;}
+.quote-hero-note{background:#fff;border:1px solid var(--border);border-radius:22px;padding:22px;box-shadow:var(--sh-sm);}
+.quote-hero-note h3{font-size:16px;font-weight:900;margin-bottom:8px;color:var(--text);}
+.quote-hero-note p{font-size:13px;color:var(--sub);line-height:1.6;}
+.quote-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;}
+.quote-step{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px;font-size:11px;font-weight:800;}
+.quote-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start;}
+.quote-panel{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:var(--sh-sm);padding:18px;}
+.quote-panel-title{font-size:15px;font-weight:900;color:var(--text);margin-bottom:12px;}
+.quote-filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.quote-country-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.quote-chip{height:36px;padding:0 13px;border-radius:999px;background:var(--p50);border:1px solid var(--border);color:var(--sub);font-size:12px;font-weight:800;}
+.quote-chip.active{background:var(--p600);border-color:var(--p600);color:#fff;}
+.org-feature{display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:center;background:var(--p50);border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:16px;}
+.org-mark{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--p200),#fff);display:flex;align-items:center;justify-content:center;color:var(--p600);}
+.org-feature h3{font-size:16px;font-weight:900;margin-bottom:3px;}
+.org-feature p{font-size:12px;color:var(--sub);line-height:1.5;}
+.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.product-card{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:#fff;box-shadow:var(--sh-sm);display:flex;flex-direction:column;}
+.product-photo{height:132px;background:linear-gradient(135deg,#f4f0ff,#e8f7f5);display:flex;align-items:center;justify-content:center;color:var(--p500);}
+.product-body{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1;}
+.product-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.product-name{font-size:14px;font-weight:900;line-height:1.25;color:var(--text);}
+.product-org{font-size:11px;color:var(--muted);margin-top:3px;}
+.product-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.product-tag{font-size:10px;font-weight:800;color:var(--p700);background:var(--p100);border-radius:999px;padding:4px 7px;}
+.product-specs{display:grid;gap:5px;font-size:11px;color:var(--sub);}
+.product-specs strong{color:var(--text);}
+.qty-row{display:grid;grid-template-columns:74px 1fr;gap:8px;align-items:center;margin-top:auto;}
+.qty-row input{height:40px;border:1px solid var(--border);border-radius:12px;padding:0 10px;font-weight:900;color:var(--text);}
+.quote-summary{position:sticky;top:76px;}
+.quote-summary-list{display:grid;gap:10px;margin:12px 0;}
+.summary-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-radius:14px;background:var(--p50);font-size:12px;}
+.summary-item strong{color:var(--text);}
+.contact-grid{display:grid;gap:10px;margin-top:12px;}
+.quote-disclaimer{font-size:11px;line-height:1.55;color:var(--sub);background:#fff8e5;border:1px solid rgba(255,192,76,.45);border-radius:14px;padding:11px;margin:12px 0;}
+@media(max-width:1100px){.quote-layout,.quote-hero{grid-template-columns:1fr}.quote-summary{position:static}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:700px){.quote-filter-grid,.product-grid,.quote-steps{grid-template-columns:1fr}.quote-hero-title{font-size:24px}.quote-hero-main,.quote-hero-note,.quote-panel{border-radius:16px;padding:16px}.org-feature{grid-template-columns:1fr}.product-photo{height:120px}}
+
 
 .d-bc-item.clickable{cursor:pointer;transition:color .15s ease,background .15s ease;}
 .d-bc-item.clickable:hover{color:var(--p600);text-decoration:underline;text-underline-offset:3px;}
@@ -1673,8 +1718,144 @@
 
 <!-- ===================== COTIZACIONES ===================== -->
 <section class="screen" id="screen-quotes-list" role="main"><div class="page-shell"><div class="desktop-main"><div class="desktop-topbar desktop-only"><div class="d-breadcrumbs"></div><div class="d-topbar-actions"><button class="btn btn-primary btn-sm" onclick="navigate('quote-create')">+ Nueva solicitud</button><div class="avatar" style="width:34px;height:34px;font-size:12px">MC</div></div></div><div class="desktop-content"><div class="f2-page"><div class="section-title">Solicitudes de presupuesto</div><div class="section-sub">Seguimiento de solicitudes y cotizaciones de las organizaciones.</div><div class="f2-filters"><button class="f2-filter active">Todas</button><button class="f2-filter">Solicitada</button><button class="f2-filter">En gestión</button><button class="f2-filter">Cotizada</button><button class="f2-filter">Cerrada</button><button class="f2-filter">Rechazada</button></div><div class="f2-section"><div class="f2-table-wrap"><table class="f2-table"><thead><tr><th>Organización</th><th>Solicitud</th><th>Fecha</th><th>Relacionado</th><th>Estado</th><th></th></tr></thead><tbody><tr><td><strong>Comedor Las Palmas</strong></td><td>Compra de equipamiento de cocina</td><td>02 sep. 2026</td><td>Plan Fortalecimiento 2026</td><td><span class="badge badge-amber">En gestión</span></td><td><button class="f2-mini-btn" onclick="navigate('quote-detail')">Ver</button></td></tr><tr><td><strong>Olla Popular Sur</strong></td><td>Insumos para alimentación</td><td>28 ago. 2026</td><td>Acción: Entrega mensual</td><td><span class="badge badge-blue">Cotizada</span></td><td><button class="f2-mini-btn" onclick="navigate('quote-detail')">Ver</button></td></tr><tr><td><strong>Red Alimentaria Norte</strong></td><td>Servicio de transporte</td><td>18 ago. 2026</td><td>—</td><td><span class="badge badge-green">Cerrada</span></td><td><button class="f2-mini-btn" onclick="navigate('quote-detail')">Ver</button></td></tr></tbody></table></div></div></div></div></div></section>
-<section class="screen" id="screen-quote-create" role="main"><div class="page-shell"><div class="desktop-main"><div class="desktop-topbar desktop-only"><div class="d-breadcrumbs"></div></div><div class="desktop-content"><div class="f2-page"><div class="section-title">Nueva solicitud de presupuesto</div><div class="section-sub">Puedes registrarla desde la ficha de una Organización.</div><div class="f2-section"><div class="f2-form-grid"><div class="form-group"><label class="form-label">Organización destinataria</label><select class="form-control"><option>Comedor Solidario Las Palmas</option><option>Olla Popular Sur</option></select></div><div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" value="2026-09-04"/></div><div class="form-group"><label class="form-label">Solicitante</label><input class="form-control" value="María Castillo"/></div><div class="form-group"><label class="form-label">Monto estimado de referencia <span style="color:var(--muted)">(opcional)</span></label><input class="form-control" placeholder="$ 0"/></div><div class="form-group"><label class="form-label">Plan relacionado <span style="color:var(--muted)">(opcional)</span></label><select class="form-control"><option>Fortalecimiento Comunitario 2026</option><option>Sin plan</option></select></div><div class="form-group"><label class="form-label">Acción relacionada <span style="color:var(--muted)">(opcional)</span></label><select class="form-control"><option>Taller comunitario</option><option>Sin acción</option></select></div><div class="form-group f2-full"><label class="form-label">Descripción de lo solicitado</label><textarea class="form-control" rows="5" placeholder="Describe el presupuesto o cotización que se necesita..."></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button class="btn btn-outline" onclick="goBack()">Cancelar</button><button class="btn btn-primary" onclick="navigate('quote-detail')">Registrar solicitud</button></div></div></div></div></div></section>
-<section class="screen" id="screen-quote-detail" role="main"><div class="page-shell"><div class="desktop-main"><div class="desktop-topbar desktop-only"><div class="d-breadcrumbs"></div></div><div class="desktop-content"><div class="f2-page"><div class="section-title">Compra de equipamiento de cocina</div><div class="section-sub">Solicitud · Comedor Solidario Las Palmas · 02 de septiembre de 2026</div><div class="f2-section"><div class="f2-form-grid"><div><div class="form-label">Organización</div><div>Comedor Solidario Las Palmas</div></div><div><div class="form-label">Solicitante</div><div>María Castillo</div></div><div><div class="form-label">Plan</div><div>Fortalecimiento Comunitario 2026</div></div><div><div class="form-label">Monto de referencia</div><div>$1.200.000 CLP</div></div><div class="f2-full"><div class="form-label">Descripción</div><div>Solicitud de presupuesto para equipamiento de cocina comunitaria.</div></div></div><div style="margin-top:18px"><span class="badge badge-amber">En gestión</span></div></div><div class="f2-section"><div style="display:flex;justify-content:space-between;align-items:center"><div class="f2-section-title" style="margin:0">Cotización recibida</div><button class="f2-mini-btn">Adjuntar cotización</button></div><div class="f2-upload" style="margin-top:12px"><svg width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg><div>Aún no se ha adjuntado una cotización.</div></div></div></div></div></div></section>
+<section class="screen" id="screen-quote-create" role="main"><div class="page-shell"><div class="desktop-main"><div class="desktop-topbar desktop-only"><div class="d-breadcrumbs"></div></div><div class="desktop-content"><div class="quote-catalog-page">
+  <div class="quote-hero">
+    <div class="quote-hero-main">
+      <div class="quote-hero-kicker">Catálogo público de economía circular</div>
+      <div class="quote-hero-title">Selecciona productos y solicita una cotización manual</div>
+      <p class="quote-hero-copy">Explora organizaciones de Chile, Argentina, Uruguay, Colombia, México y Perú. La fundación revisará tu solicitud y te contactará con precio, plazos, condiciones y forma de entrega.</p>
+      <div class="quote-steps">
+        <div class="quote-step">1. País</div>
+        <div class="quote-step">2. Organización</div>
+        <div class="quote-step">3. Productos</div>
+        <div class="quote-step">4. Contacto</div>
+      </div>
+    </div>
+    <div class="quote-hero-note">
+      <h3>Sin pago directo</h3>
+      <p>Este flujo no procesa compras ni pagos en línea. La solicitud queda registrada para que una persona de Fundación Gestionar Esperanzas prepare la cotización final.</p>
+      <div class="quote-disclaimer">Los valores no se muestran en esta etapa por diferencias de moneda, condiciones logísticas y particularidades tributarias entre países.</div>
+    </div>
+  </div>
+
+  <div class="quote-layout">
+    <main>
+      <section class="quote-panel">
+        <div class="quote-panel-title">Filtrar catálogo</div>
+        <div class="quote-country-row" aria-label="Países disponibles">
+          <button class="quote-chip active" type="button">Todos</button>
+          <button class="quote-chip" type="button">Chile</button>
+          <button class="quote-chip" type="button">Argentina</button>
+          <button class="quote-chip" type="button">Uruguay</button>
+          <button class="quote-chip" type="button">Colombia</button>
+          <button class="quote-chip" type="button">México</button>
+          <button class="quote-chip" type="button">Perú</button>
+        </div>
+        <div class="quote-filter-grid">
+          <div class="form-group"><label class="form-label">Organización</label><select class="form-control"><option>Todas las organizaciones</option><option>Comedor Solidario Las Palmas · Chile</option><option>Cooperativa Manos del Sur · Argentina</option><option>Red Circular Montevideo · Uruguay</option><option>Tejedoras de Esperanza · Colombia</option><option>Taller Raíces · México</option><option>Asociación Kawsay · Perú</option></select></div>
+          <div class="form-group"><label class="form-label">Material o terminación</label><select class="form-control"><option>Todos</option><option>Madera recuperada</option><option>Textil reciclado</option><option>Cerámica</option><option>Fibras naturales</option><option>Papel reutilizado</option></select></div>
+        </div>
+      </section>
+
+      <section class="quote-panel">
+        <div class="quote-panel-title">Organización destacada</div>
+        <div class="org-feature">
+          <div class="org-mark"><svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 21h18M4 10h16M6 10v11M18 10v11M8 6a4 4 0 0 1 8 0v4H8V6Z"/></svg></div>
+          <div><h3>Cooperativa Manos del Sur</h3><p>Argentina · Organización comunitaria dedicada a productos textiles elaborados con excedentes recuperados. Su catálogo combina oficio local, terminaciones artesanales y producción a pequeña escala.</p></div>
+        </div>
+      </section>
+
+      <section class="quote-panel">
+        <div class="quote-panel-title">Productos disponibles</div>
+        <div class="product-grid">
+          <article class="product-card">
+            <div class="product-photo"><svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M8 5a4 4 0 0 1 8 0M8 12h8"/></svg></div>
+            <div class="product-body"><div class="product-head"><div><div class="product-name">Bolso reutilizable tejido</div><div class="product-org">Argentina · Cooperativa Manos del Sur</div></div><span class="badge badge-primary">Textil</span></div><div class="product-tags"><span class="product-tag">Textil reciclado</span><span class="product-tag">Costura reforzada</span></div><div class="product-specs"><span><strong>Terminación:</strong> artesanal</span><span><strong>Características:</strong> asas largas, lavable, colores variables</span></div><div class="qty-row"><input type="number" min="0" value="20"/><button class="btn btn-outline btn-full">Agregar</button></div></div>
+          </article>
+          <article class="product-card">
+            <div class="product-photo"><svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3M7 11h10M7 15h6"/></svg></div>
+            <div class="product-body"><div class="product-head"><div><div class="product-name">Caja organizadora modular</div><div class="product-org">Chile · Comedor Solidario Las Palmas</div></div><span class="badge badge-cyan">Madera</span></div><div class="product-tags"><span class="product-tag">Madera recuperada</span><span class="product-tag">Barniz al agua</span></div><div class="product-specs"><span><strong>Terminación:</strong> pulida natural</span><span><strong>Características:</strong> apilable, formato escritorio, medidas variables</span></div><div class="qty-row"><input type="number" min="0" value="12"/><button class="btn btn-outline btn-full">Agregar</button></div></div>
+          </article>
+          <article class="product-card">
+            <div class="product-photo"><svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M6 3h12l-1 18H7L6 3Z"/><path d="M8 8h8M9 13h6"/></svg></div>
+            <div class="product-body"><div class="product-head"><div><div class="product-name">Macetero de fibras naturales</div><div class="product-org">Perú · Asociación Kawsay</div></div><span class="badge badge-lime">Fibra</span></div><div class="product-tags"><span class="product-tag">Junco</span><span class="product-tag">Tinte vegetal</span></div><div class="product-specs"><span><strong>Terminación:</strong> trenzado manual</span><span><strong>Características:</strong> liviano, interior protegido, pieza única</span></div><div class="qty-row"><input type="number" min="0" value="8"/><button class="btn btn-outline btn-full">Agregar</button></div></div>
+          </article>
+          <article class="product-card">
+            <div class="product-photo"><svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8"/></svg></div>
+            <div class="product-body"><div class="product-head"><div><div class="product-name">Set de posavasos</div><div class="product-org">Uruguay · Red Circular Montevideo</div></div><span class="badge badge-amber">Hogar</span></div><div class="product-tags"><span class="product-tag">Corcho recuperado</span><span class="product-tag">Sellado mate</span></div><div class="product-specs"><span><strong>Terminación:</strong> bordes redondeados</span><span><strong>Características:</strong> set de 6 unidades, bajo peso</span></div><div class="qty-row"><input type="number" min="0" value="30"/><button class="btn btn-outline btn-full">Agregar</button></div></div>
+          </article>
+          <article class="product-card">
+            <div class="product-photo"><svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+            <div class="product-body"><div class="product-head"><div><div class="product-name">Libreta artesanal</div><div class="product-org">México · Taller Raíces</div></div><span class="badge badge-primary">Papel</span></div><div class="product-tags"><span class="product-tag">Papel reutilizado</span><span class="product-tag">Tapa rígida</span></div><div class="product-specs"><span><strong>Terminación:</strong> encuadernación cosida</span><span><strong>Características:</strong> 80 hojas, portada variable</span></div><div class="qty-row"><input type="number" min="0" value="50"/><button class="btn btn-outline btn-full">Agregar</button></div></div>
+          </article>
+          <article class="product-card">
+            <div class="product-photo"><svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M7 4h10l2 7a7 7 0 1 1-14 0l2-7Z"/><path d="M9 9h6"/></svg></div>
+            <div class="product-body"><div class="product-head"><div><div class="product-name">Cuenco decorativo</div><div class="product-org">Colombia · Tejedoras de Esperanza</div></div><span class="badge badge-red">Cerámica</span></div><div class="product-tags"><span class="product-tag">Cerámica</span><span class="product-tag">Esmalte brillante</span></div><div class="product-specs"><span><strong>Terminación:</strong> pintado a mano</span><span><strong>Características:</strong> uso decorativo, patrones variables</span></div><div class="qty-row"><input type="number" min="0" value="10"/><button class="btn btn-outline btn-full">Agregar</button></div></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="quote-summary quote-panel">
+      <div class="quote-panel-title">Solicitud de cotización</div>
+      <div class="quote-summary-list">
+        <div class="summary-item"><span>Productos seleccionados</span><strong>6</strong></div>
+        <div class="summary-item"><span>Cantidad estimada</span><strong>130 unidades</strong></div>
+        <div class="summary-item"><span>Países involucrados</span><strong>6</strong></div>
+      </div>
+      <div class="quote-disclaimer">La fundación revisará disponibilidad, precios, plazos, condiciones y forma de entrega antes de contactarte.</div>
+      <div class="contact-grid">
+        <div class="form-group"><label class="form-label">Nombre y apellido</label><input class="form-control" placeholder="Nombre del solicitante"/></div>
+        <div class="form-group"><label class="form-label">Correo electrónico</label><input class="form-control" type="email" placeholder="contacto@empresa.cl"/></div>
+        <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" placeholder="+56 9 0000 0000"/></div>
+        <div class="form-group"><label class="form-label">Mensaje</label><textarea class="form-control" rows="4" placeholder="Indica fechas, destino, requisitos o antecedentes relevantes."></textarea></div>
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" style="margin-top:14px" onclick="navigate('quote-detail')">Enviar solicitud de cotización</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="goBack()">Volver al portal</button>
+    </aside>
+  </div>
+</div></div></div></section>
+<section class="screen" id="screen-quote-detail" role="main"><div class="page-shell"><div class="desktop-main"><div class="desktop-topbar desktop-only"><div class="d-breadcrumbs"></div></div><div class="desktop-content"><div class="quote-catalog-page">
+  <div class="quote-hero">
+    <div class="quote-hero-main">
+      <div class="quote-hero-kicker">Solicitud recibida</div>
+      <div class="quote-hero-title">Tu cotización será preparada manualmente</div>
+      <p class="quote-hero-copy">La fundación revisará disponibilidad con cada organización y contactará al cliente para informar precio, plazos, condiciones, forma de entrega y otros antecedentes relevantes.</p>
+    </div>
+    <div class="quote-hero-note">
+      <h3>Folio Q-2026-0912</h3>
+      <p>Estado actual: <strong style="color:var(--p600)">Solicitada</strong>. No se ha realizado ningún pago ni reserva automática de productos.</p>
+      <div class="quote-disclaimer">Una persona del equipo validará moneda, logística y condiciones antes de emitir la cotización final.</div>
+    </div>
+  </div>
+  <div class="quote-layout">
+    <main>
+      <section class="quote-panel">
+        <div class="quote-panel-title">Productos solicitados</div>
+        <div class="f2-table-wrap"><table class="f2-table"><thead><tr><th>Producto</th><th>País</th><th>Organización</th><th>Materiales</th><th>Cantidad</th></tr></thead><tbody>
+          <tr><td><strong>Bolso reutilizable tejido</strong><br><span style="color:var(--muted);font-size:11px">Costura reforzada · colores variables</span></td><td>Argentina</td><td>Cooperativa Manos del Sur</td><td>Textil reciclado</td><td>20</td></tr>
+          <tr><td><strong>Caja organizadora modular</strong><br><span style="color:var(--muted);font-size:11px">Pulida natural · apilable</span></td><td>Chile</td><td>Comedor Solidario Las Palmas</td><td>Madera recuperada</td><td>12</td></tr>
+          <tr><td><strong>Libreta artesanal</strong><br><span style="color:var(--muted);font-size:11px">Encuadernación cosida</span></td><td>México</td><td>Taller Raíces</td><td>Papel reutilizado</td><td>50</td></tr>
+        </tbody></table></div>
+      </section>
+      <section class="quote-panel">
+        <div class="quote-panel-title">Datos de contacto</div>
+        <div class="f2-form-grid"><div><div class="form-label">Cliente</div><div>Solicitante público</div></div><div><div class="form-label">Correo</div><div>contacto@empresa.cl</div></div><div><div class="form-label">Teléfono</div><div>+56 9 0000 0000</div></div><div><div class="form-label">Fecha de solicitud</div><div>07 sep. 2026</div></div><div class="f2-full"><div class="form-label">Mensaje</div><div>Solicita información de disponibilidad, plazos y condiciones para entrega regional.</div></div></div>
+      </section>
+    </main>
+    <aside class="quote-summary quote-panel">
+      <div class="quote-panel-title">Próximos pasos</div>
+      <div class="quote-summary-list">
+        <div class="summary-item"><span>1. Validación</span><strong>Fundación</strong></div>
+        <div class="summary-item"><span>2. Disponibilidad</span><strong>Organizaciones</strong></div>
+        <div class="summary-item"><span>3. Cotización</span><strong>Manual</strong></div>
+        <div class="summary-item"><span>4. Contacto</span><strong>Cliente</strong></div>
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="goBack()">Editar solicitud</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="navigate('login')">Volver al portal</button>
+    </aside>
+  </div>
+</div></div></div></section>
 
 
 <!-- FASE 3 · ADMINISTRACIÓN -->
