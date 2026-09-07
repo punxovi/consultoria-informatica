@@ -370,28 +370,93 @@
     padding:0 4px;border-radius:99px;font-size:9px;font-weight:900;background:var(--pink);color:#fff;}
 
   /* ======== LOGIN ======== */
-  #screen-login{display:none;min-height:100vh;background:linear-gradient(150deg,var(--p900) 0%,var(--p700) 45%,var(--p500) 100%);
-    position:relative;overflow:hidden;}
-  #screen-login.active{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:28px 20px;}
-  .login-bg-circle{position:absolute;border-radius:50%;pointer-events:none;}
-  .login-card{background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:var(--r-xl);
-    padding:38px 30px;width:100%;max-width:420px;box-shadow:var(--sh-xl);position:relative;z-index:1;
-    animation:slideUp .35s ease forwards;}
+  #screen-login{display:none;min-height:100vh;background:linear-gradient(135deg,#f7f8fd 0%,#edf2f8 100%);
+    position:relative;overflow:auto;padding:32px;}
+  #screen-login.active{display:grid;place-items:center;}
+  .portal-entry{width:min(1120px,100%);min-height:690px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    overflow:hidden;border-radius:28px;background:#fff;box-shadow:0 24px 70px rgba(49,28,91,.18);
+    border:1px solid rgba(255,255,255,.72);animation:slideUp .35s ease forwards;}
   @keyframes slideUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
-  .login-logo-wrap{display:flex;justify-content:center;margin-bottom:20px;}
-  .login-logo-wrap img{height:80px;width:auto;}
-  .login-heading{font-size:22px;font-weight:900;color:var(--text);text-align:center;}
-  .login-sub{font-size:13px;color:var(--sub);text-align:center;margin-top:5px;}
-  .login-divider{display:flex;align-items:center;gap:10px;margin:20px 0;}
-  .login-divider span{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
-  .login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border);}
-  .login-footer{font-size:10px;color:rgba(255,255,255,.32);text-align:center;margin-top:20px;position:relative;z-index:1;}
+  .portal-story,.portal-access{position:relative;min-height:690px;padding:clamp(48px,5vw,64px);}
+  .portal-story{color:#fff;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate;
+    background:linear-gradient(135deg,rgba(39,10,90,.95) 0%,rgba(94,53,177,.82) 48%,rgba(18,79,105,.78) 100%),
+    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=85") center/cover;}
+  .portal-story::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(20,6,54,.34));z-index:-1;}
+  .portal-brand{display:inline-flex;align-items:center;gap:12px;font-weight:900;line-height:1.1;text-transform:uppercase;letter-spacing:.02em;}
+  .portal-brand-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(10px);}
+  .portal-brand small{display:block;margin-top:2px;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;opacity:.86;}
+  .portal-copy{max-width:470px;padding-block:52px 34px;}
+  .portal-copy h1{font-size:clamp(42px,5vw,72px);line-height:1.04;color:#fff;font-weight:900;margin:0;}
+  .portal-line{width:40px;height:3px;border-radius:999px;background:#fff;margin:15px 0 20px;}
+  .portal-copy p{font-size:16px;line-height:1.75;color:rgba(255,255,255,.90);}
+  .portal-impact{display:flex;align-items:flex-start;gap:2rem;}
+  .portal-impact-item{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:12px;}
+  .portal-impact-item svg{color:#fff;stroke:currentColor;fill:none;flex-shrink:0;}
+  .portal-impact-item span{font-size:13px;font-weight:900;line-height:1.25;color:#fff;}
+  .portal-access{background:#fff;display:flex;align-items:center;justify-content:center;}
+  .portal-back{position:absolute;top:28px;right:32px;color:var(--sub);font-size:13px;font-weight:700;transition:color .18s;}
+  .portal-back:hover{color:var(--p600);}
+  .portal-login-box{width:min(390px,100%);}
+  .portal-login-box h2{font-size:clamp(34px,4vw,52px);line-height:1.05;font-weight:900;color:var(--text);margin:0 0 14px;}
+  .portal-sub{color:var(--sub);line-height:1.65;margin-bottom:34px;}
+  .portal-form{display:grid;gap:18px;}
+  .portal-field{display:grid;gap:8px;}
+  .portal-field label{color:#393244;font-size:13px;font-weight:800;}
+  .portal-input{position:relative;}
+  .portal-input .portal-leading{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+  .portal-input input{width:100%;min-height:54px;border:1.5px solid var(--border);border-radius:var(--r-md);
+    padding:0 16px 0 48px;color:var(--text);background:#fbfaff;outline:0;transition:border-color .18s,box-shadow .18s,background .18s;}
+  .portal-input input:focus{border-color:var(--p600);background:#fff;box-shadow:0 0 0 4px rgba(76,70,136,.12);}
+  .portal-input.has-toggle input{padding-right:52px;}
+  .portal-toggle{position:absolute;top:50%;right:8px;width:42px;height:42px;display:grid;place-items:center;
+    border-radius:12px;color:var(--p600);background:transparent;transform:translateY(-50%);transition:background .18s;}
+  .portal-toggle:hover{background:var(--p100);}
+  .portal-forgot{display:flex;justify-content:flex-end;margin-top:-4px;}
+  .portal-forgot button{min-height:auto;padding:0;color:var(--p600);font-size:13px;font-weight:800;background:transparent;}
+  .portal-btn{width:100%;min-height:56px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+    border-radius:var(--r-md);font-size:14px;font-weight:900;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;}
+  .portal-btn:hover{transform:translateY(-1px);}
+  .portal-btn:active{transform:translateY(0);}
+  .portal-btn-primary{color:#fff;background:linear-gradient(135deg,#5e35b1 0%,#47228d 100%);box-shadow:0 16px 30px rgba(94,53,177,.28);}
+  .portal-divider{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;color:var(--muted);
+    font-size:13px;font-weight:700;margin:22px 0 18px;}
+  .portal-divider::before,.portal-divider::after{content:'';height:1px;background:var(--border);}
+  .portal-actions{display:grid;gap:12px;}
+  .portal-btn-outline{background:#fff;color:var(--p600);border:1.5px solid var(--p600);}
+  .portal-btn-outline:hover{background:var(--p50);box-shadow:0 12px 24px rgba(76,70,136,.12);}
+  .portal-btn-soft{background:var(--p100);color:var(--p600);border:1.5px solid transparent;}
+  .portal-btn-soft:hover{background:#e6e3f6;}
+  body[data-access-mode="store"] .screen.active .shared-sidebar{display:none!important;}
+  body[data-access-mode="store"] .screen.active .page-shell{display:block;}
+  body[data-access-mode="store"] .screen.active .desktop-content{min-height:100vh;}
+  body[data-access-mode="store"] .bottom-nav,
+  body[data-access-mode="store"] .mobile-menu{display:none!important;}
+
+  @media(max-width:900px){
+    #screen-login{padding:18px;align-items:flex-start;}
+    .portal-entry{grid-template-columns:1fr;min-height:auto;}
+    .portal-story,.portal-access{min-height:auto;}
+    .portal-story{gap:36px;}
+    .portal-copy{padding-block:38px 14px;}
+    .portal-access{padding-top:82px;}
+  }
+
+  @media(max-width:620px){
+    #screen-login{padding:0;background:var(--surface);}
+    .portal-entry{width:100%;border-radius:0;box-shadow:none;}
+    .portal-story,.portal-access{padding:28px 20px;}
+    .portal-access{padding-top:76px;}
+    .portal-back{top:24px;right:20px;}
+    .portal-impact{flex-direction:column;gap:22px;}
+    .portal-impact-item{flex-direction:row;align-items:center;}
+  }
 
   /* ======== DESKTOP ======== */
   @media(min-width:768px){
     .mobile-only,.bottom-nav,.topbar{display:none!important;}
     .screen.active{display:flex!important;flex-direction:row;min-height:100vh;}
-    #screen-login.active{display:flex!important;flex-direction:column;align-items:center;justify-content:center;}
+    #screen-login.active{display:grid!important;place-items:center;}
 
     /* Sidebar */
     .sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--p800);
@@ -624,47 +689,89 @@
 
 <!-- ===================== LOGIN ===================== -->
 <section class="screen active" id="screen-login" role="main">
-  <div class="login-bg-circle" style="width:400px;height:400px;background:var(--cyan);opacity:.10;top:-120px;right:-120px;"></div>
-  <div class="login-bg-circle" style="width:300px;height:300px;background:var(--pink);opacity:.10;bottom:-80px;left:-80px;"></div>
-  <div class="login-bg-circle" style="width:180px;height:180px;background:var(--amber);opacity:.08;top:40%;right:10%;"></div>
+  <div class="portal-entry">
+    <section class="portal-story" aria-labelledby="portal-story-title">
+      <div class="portal-brand" aria-label="Fundación Gestionar Esperanzas">
+        <span class="portal-brand-mark" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M12 20c-4.5-2.7-8-5.8-8-9.6A4.35 4.35 0 0 1 8.4 6c1.5 0 2.7.7 3.6 1.8C12.9 6.7 14.1 6 15.6 6A4.35 4.35 0 0 1 20 10.4c0 3.8-3.5 6.9-8 9.6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M8.1 12h7.8M12 8.2v7.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span>FUNDACIÓN<small>Gestionar Esperanzas</small></span>
+      </div>
 
-  <div class="login-card">
-    <div class="login-logo-wrap">
-      <img src="Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas"/>
-    </div>
-    <h1 class="login-heading">Bienvenido al Sistema</h1>
-    <p class="login-sub">Ingresa tus credenciales para acceder</p>
-    <div style="display:flex;flex-direction:column;gap:14px;margin-top:22px;">
-      <div class="form-group">
-        <label class="form-label" for="email">Correo electrónico</label>
-        <div class="input-wrap">
-          <span class="inp-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg></span>
-          <input type="email" class="form-control" id="email" placeholder="coordinador@fge.cl" autocomplete="email"/>
+      <div class="portal-copy">
+        <h1 id="portal-story-title">Juntos transformamos realidades</h1>
+        <div class="portal-line" aria-hidden="true"></div>
+        <p>Impulsamos el desarrollo de comunidades más justas, solidarias y sostenibles en Latinoamérica a través de nuestra tienda de economía circular.</p>
+      </div>
+
+      <div class="portal-impact" aria-label="Impacto institucional">
+        <div class="portal-impact-item">
+          <svg width="30" height="30" viewBox="0 0 24 24"><path d="M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke-width="1.9"/><path d="M2.5 20c.8-4 3.1-6 6.5-6 1.2 0 2.3.3 3.1.8M21.5 20c-.8-4-3.1-6-6.5-6-1.2 0-2.3.3-3.1.8" stroke-width="1.9" stroke-linecap="round"/></svg>
+          <span>Comunidades más fuertes</span>
+        </div>
+        <div class="portal-impact-item">
+          <svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 3v18M6 8.5h8.5a3.5 3.5 0 1 1 0 7H5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Oportunidades reales</span>
+        </div>
+        <div class="portal-impact-item">
+          <svg width="30" height="30" viewBox="0 0 24 24"><path d="M7.5 7.5 5 5m0 0v5m0-5h5M16.5 16.5 19 19m0 0v-5m0 5h-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 14a7 7 0 0 0 12.2 3.8M19 10A7 7 0 0 0 6.8 6.2" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>Un futuro con esperanza</span>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="password">Contraseña</label>
-        <div class="input-wrap">
-          <span class="inp-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-          <input type="password" class="form-control" id="password" placeholder="••••••••" autocomplete="current-password"/>
+    </section>
+
+    <section class="portal-access" aria-labelledby="portal-login-title">
+      <a class="portal-back" href="#" onclick="alert('Volvería al sitio institucional.');return false;">&lt; Volver al sitio</a>
+
+      <div class="portal-login-box">
+        <h2 id="portal-login-title">Inicia sesión</h2>
+        <p class="portal-sub">Accede a la intranet de Fundación Gestionar Esperanzas.</p>
+
+        <form class="portal-form" onsubmit="event.preventDefault();setAccessMode('intranet');navigate('dashboard');">
+          <div class="portal-field">
+            <label for="email">Correo electrónico</label>
+            <div class="portal-input">
+              <svg class="portal-leading" width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M4 6.5h16v11H4v-11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m5 7.5 7 5.5 7-5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="nombre@fundacion.cl"/>
+            </div>
+          </div>
+
+          <div class="portal-field">
+            <label for="password">Contraseña</label>
+            <div class="portal-input has-toggle">
+              <svg class="portal-leading" width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña"/>
+              <button class="portal-toggle" id="togglePassword" type="button" aria-label="Mostrar contraseña" aria-pressed="false">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="portal-forgot"><button type="button">¿Olvidaste tu contraseña?</button></div>
+
+          <button class="portal-btn portal-btn-primary" type="submit">
+            Iniciar sesión <span aria-hidden="true">-&gt;</span>
+          </button>
+        </form>
+
+        <div class="portal-divider" aria-hidden="true">o</div>
+
+        <div class="portal-actions">
+          <button class="portal-btn portal-btn-outline" type="button" onclick="setAccessMode('store');navigate('quote-create')">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h4M10 13h5M10 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Realizar cotización
+          </button>
+          <button class="portal-btn portal-btn-soft" type="button" onclick="setAccessMode('intranet');navigate('dashboard')">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/></svg>
+            Ingresar como observador
+          </button>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;">
-        <button class="btn btn-ghost btn-sm" style="min-height:auto;color:var(--p600);font-size:12px;padding:4px 0;">Olvidé mi contraseña</button>
-      </div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="navigate('dashboard')">
-        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-        Ingresar al Sistema
-      </button>
-    </div>
-    <div class="login-divider"><span>o continúa como</span></div>
-    <button class="btn btn-outline btn-full" onclick="navigate('dashboard')">
-      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Ingresar como Invitado
-    </button>
-    <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">Los invitados tienen acceso de solo lectura</p>
+    </section>
   </div>
-  <p class="login-footer">© 2024 Fundación Gestionar Esperanzas · Chile · Argentina · Uruguay</p>
 </section>
 
 <!-- ===================== DASHBOARD ===================== -->
@@ -1593,6 +1700,18 @@
 const navHistory = [];
 let indicatorsOrigin = null;
 let currentScreenId = document.querySelector('.screen.active')?.id?.replace('screen-','') || 'login';
+let accessMode = 'intranet';
+const storeScreens = ['login','quote-create','quote-detail'];
+
+function setAccessMode(mode){
+  accessMode = mode;
+  navHistory.length = 0;
+  document.body.dataset.accessMode = mode;
+}
+
+function isStoreScreen(id){
+  return storeScreens.includes(id);
+}
 
 const breadcrumbMap = {
   dashboard: [
@@ -1734,6 +1853,10 @@ function breadcrumbClick(item){
 }
 
 function getBreadcrumbItems(id){
+  if(accessMode==='store'){
+    if(id==='quote-create') return [{label:'Catálogo público'}, {label:'Realizar cotización', active:true}];
+    if(id==='quote-detail') return [{label:'Catálogo público'}, {label:'Cotización enviada', active:true}];
+  }
   if(id==='indicators'){
     if(indicatorsOrigin==='org'){
       return [
@@ -1792,6 +1915,15 @@ function renderBreadcrumbs(id){
 }
 
 function goBack(){
+  if(accessMode==='store'){
+    if(navHistory.length){
+      const previous=navHistory.pop();
+      navigate(previous,true,true);
+    } else {
+      navigate('login',true,true);
+    }
+    return;
+  }
   if(navHistory.length){
     const previous=navHistory.pop();
     navigate(previous,true,true);
@@ -1801,6 +1933,11 @@ function goBack(){
 }
 
 function navigate(id, fromBreadcrumb=false, fromBack=false){
+  if(id==='login') setAccessMode('intranet');
+  if(accessMode==='store' && !isStoreScreen(id)){
+    alert('Esta entrada corresponde al catálogo público. Para acceder a la Intranet, vuelve al portal e inicia sesión.');
+    return;
+  }
   prepareExtensionScreens();
   if(id==='indicators' && !fromBreadcrumb && !fromBack){
     if(currentScreenId==='org') indicatorsOrigin='org';
@@ -1883,7 +2020,18 @@ document.querySelectorAll('.org-card').forEach(c=>{
   c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();c.click();}});
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu();});
-document.addEventListener('DOMContentLoaded',()=>{prepareExtensionScreens(); const initial=document.querySelector('.screen.active')?.id?.replace('screen-','')||'login'; currentScreenId=initial; updateSidebarForScreen(initial); renderBreadcrumbs(initial);});
+function setupPortalPasswordToggle(){
+  const passwordInput=document.getElementById('password');
+  const toggleButton=document.getElementById('togglePassword');
+  if(!passwordInput || !toggleButton) return;
+  toggleButton.addEventListener('click',()=>{
+    const isPassword=passwordInput.type==='password';
+    passwordInput.type=isPassword?'text':'password';
+    toggleButton.setAttribute('aria-pressed',String(isPassword));
+    toggleButton.setAttribute('aria-label',isPassword?'Ocultar contraseña':'Mostrar contraseña');
+  });
+}
+document.addEventListener('DOMContentLoaded',()=>{document.body.dataset.accessMode=accessMode; prepareExtensionScreens(); setupPortalPasswordToggle(); const initial=document.querySelector('.screen.active')?.id?.replace('screen-','')||'login'; currentScreenId=initial; updateSidebarForScreen(initial); renderBreadcrumbs(initial);});
 
 function setF2TableFilter(button,status){
   const table=document.getElementById('commitment-table'); if(!table)return;
