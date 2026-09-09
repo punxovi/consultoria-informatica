@@ -1,0 +1,43 @@
+---
+interface NavItem {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  items: NavItem[];
+}
+
+const { items } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<!--
+  RNF9/RNF10: en mobile queda oculto fuera de pantalla (data-open="false")
+  y el botón hamburguesa del Header lo despliega. En desktop (md:) queda
+  siempre visible y estático.
+-->
+<aside
+  id="app-sidebar"
+  data-open="false"
+  class="fixed inset-y-0 left-0 z-30 w-64 -translate-x-full border-r
+    border-neutral-200 bg-white p-4 transition-transform duration-200
+    data-[open=true]:translate-x-0 md:static md:translate-x-0"
+>
+  <nav class="flex flex-col gap-1">
+    {items.map((item) => {
+      const isActive = currentPath === item.href;
+      return (
+        <a
+          href={item.href}
+          aria-current={isActive ? 'page' : undefined}
+          class={`flex min-h-[48px] items-center rounded-lg px-3 py-2 text-sm
+            font-medium text-neutral-700 hover:bg-neutral-100
+            ${isActive ? 'bg-primary/10 text-primary' : ''}`}
+        >
+          {item.label}
+        </a>
+      );
+    })}
+  </nav>
+</aside>
