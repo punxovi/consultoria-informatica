@@ -1,10 +1,92 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Badge from '../components/ui/Badge.astro';
+import Card from '../components/ui/Card.astro';
+import Input from '../components/ui/Input.astro';
+import Select from '../components/ui/Select.astro';
+import Header from '../components/ui/Header.astro';
+import Sidebar from '../components/ui/Sidebar.astro';
+
+const navItems = [
+  { label: 'Inicio', href: '/' },
+  { label: 'Organizaciones', href: '/organizaciones' },
+  { label: 'Proyectos', href: '/proyectos' },
+  { label: 'Configuración', href: '/configuracion' },
+];
 ---
 
 <Layout>
-  <main>
-    <h1>Fundación Gestionar Esperanzas</h1>
-    <p>fge</p>
-  </main>
+  <div class="min-h-screen flex flex-col bg-neutral-50">
+    <!-- Header (RNF10) -->
+    <Header title="Fundación Gestionar Esperanzas">
+      <Button slot="actions" variant="outline" size="sm">Cerrar Sesión</Button>
+    </Header>
+
+    <div class="flex flex-1">
+      <!-- Sidebar (RNF9 / RNF10) -->
+      <Sidebar items={navItems} />
+
+      <!-- Main Content -->
+      <main class="flex-1 p-6 md:p-10 space-y-8 max-w-5xl">
+        <header class="border-b border-neutral-200 pb-4">
+          <h1 class="text-2xl md:text-3xl font-bold text-neutral-900 tracking-tight">
+            Componentes Visuales Básicos (Prototipo FGE)
+          </h1>
+          <p class="text-neutral-600 mt-1 text-base">
+            Catálogo y prueba visual de los componentes requeridos.
+          </p>
+        </header>
+
+        <!-- Sección de Badges (Semáforo RNF13) -->
+        <Card>
+          <h2 slot="header" class="text-lg font-semibold text-neutral-800">
+            Badges / Semáforo (RNF13)
+          </h2>
+          <div class="flex flex-wrap gap-3 py-2">
+            <Badge variant="success">Completado</Badge>
+            <Badge variant="warning">Pendiente</Badge>
+            <Badge variant="danger">Urgente / Rechazado</Badge>
+            <Badge variant="info">En Proceso</Badge>
+            <Badge variant="neutral">Inactivo</Badge>
+          </div>
+        </Card>
+
+        <!-- Sección de Botones -->
+        <Card>
+          <h2 slot="header" class="text-lg font-semibold text-neutral-800">
+            Botones (RNF11 - Táctiles min 48px)
+          </h2>
+          <div class="flex flex-wrap items-center gap-4 py-2">
+            <Button variant="primary">Principal</Button>
+            <Button variant="secondary">Secundario</Button>
+            <Button variant="outline">Borde</Button>
+            <Button variant="danger">Eliminar</Button>
+            <Button variant="primary" disabled>Deshabilitado</Button>
+          </div>
+        </Card>
+
+        <!-- Sección de Formulario -->
+        <Card>
+          <h2 slot="header" class="text-lg font-semibold text-neutral-800">
+            Componentes de Formulario (Input / Select)
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+            <Input id="nombre" label="Nombre de la Organización" required placeholder="Ej: FGE Chile" />
+            <Select
+              id="pais"
+              label="País"
+              options={[
+                { value: 'cl', label: 'Chile' },
+                { value: 'ar', label: 'Argentina' },
+                { value: 'uy', label: 'Uruguay' },
+              ]}
+              required
+            />
+          </div>
+        </Card>
+      </main>
+    </div>
+  </div>
 </Layout>
+

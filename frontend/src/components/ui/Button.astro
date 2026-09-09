@@ -1,0 +1,53 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  type?: 'button' | 'submit' | 'reset';
+  href?: string;
+  disabled?: boolean;
+  class?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  type = 'button',
+  href,
+  disabled = false,
+  class: className = '',
+} = Astro.props;
+
+// RNF11: componentes táctiles (botones) deben medir mínimo 48x48 px.
+const base =
+  'inline-flex items-center justify-center gap-2 rounded-lg font-medium ' +
+  'transition-colors min-h-[48px] min-w-[48px] ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+  'disabled:opacity-50 disabled:cursor-not-allowed';
+
+const variants = {
+  primary: 'bg-primary text-white hover:bg-primary/90 focus-visible:ring-primary',
+  secondary: 'bg-secondary text-white hover:bg-secondary/90 focus-visible:ring-secondary',
+  outline: 'border-2 border-primary text-primary hover:bg-primary/10 focus-visible:ring-primary',
+  danger: 'bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger',
+};
+
+const sizes = {
+  sm: 'px-3 py-2 text-sm',
+  md: 'px-4 py-2.5 text-base',
+  lg: 'px-6 py-3 text-lg',
+};
+
+const classes = `${base} ${variants[variant]} ${sizes[size]} ${className}`;
+
+// Tag dinámico: si viene "href" se renderiza como <a>, si no, como <button>.
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  class={classes}
+  href={href}
+  type={!href ? type : undefined}
+  disabled={!href && disabled}
+>
+  <slot />
+</Tag>

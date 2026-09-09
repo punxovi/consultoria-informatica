@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/*
+  Tokens de tema (RNF12).
+  Estos colores son PLACEHOLDER mientras FGE no entregue el Manual de Marca
+  formalmente como anexo del documento de requisitos (ver "Supuestos y
+  decisiones pendientes", punto no cubierto explícitamente).
+  Al llegar la paleta oficial, solo hay que actualizar los valores acá:
+  todos los componentes usan estas variables, no colores sueltos.
+*/
+@theme {
+  --color-primary: #2563eb;
+  --color-secondary: #0f172a;
+
+  /* Semáforo de urgencia (RF57-RF59) y estados generales */
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+  --color-danger: #dc2626;
+
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+}
+
+body {
+  @apply bg-neutral-50 text-neutral-900;
+}
