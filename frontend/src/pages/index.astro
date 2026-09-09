@@ -1,10 +1,69 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Badge from '../components/ui/Badge.astro';
+import Card from '../components/ui/Card.astro';
+import Input from '../components/ui/Input.astro';
+import Select from '../components/ui/Select.astro';
 ---
 
 <Layout>
-  <main>
-    <h1>Fundación Gestionar Esperanzas</h1>
-    <p>fge</p>
+  <main class="min-h-screen bg-neutral-50 p-6 md:p-12 space-y-8 max-w-4xl mx-auto">
+    <header class="border-b border-neutral-200 pb-6">
+      <h1 class="text-3xl md:text-4xl font-bold text-primary tracking-tight">
+        Fundación Gestionar Esperanzas
+      </h1>
+      <p class="text-neutral-600 mt-2 text-lg">
+        Prueba de integración de Tailwind CSS v4 en Astro
+      </p>
+    </header>
+
+    <!-- Sección de Badges (Semáforo / Estados) -->
+    <Card>
+      <h2 slot="header" class="text-lg font-semibold text-neutral-800">
+        Estados y Badges (Semáforo RNF13)
+      </h2>
+      <div class="flex flex-wrap gap-3 py-2">
+        <Badge variant="success">Completado</Badge>
+        <Badge variant="warning">Pendiente</Badge>
+        <Badge variant="danger">Urgente / Rechazado</Badge>
+        <Badge variant="info">En Proceso</Badge>
+        <Badge variant="neutral">Inactivo</Badge>
+      </div>
+    </Card>
+
+    <!-- Sección de Botones -->
+    <Card>
+      <h2 slot="header" class="text-lg font-semibold text-neutral-800">
+        Componentes de Botón
+      </h2>
+      <div class="flex flex-wrap items-center gap-4 py-2">
+        <Button variant="primary">Principal</Button>
+        <Button variant="secondary">Secundario</Button>
+        <Button variant="outline">Borde</Button>
+        <Button variant="danger">Eliminar</Button>
+        <Button variant="primary" disabled>Deshabilitado</Button>
+      </div>
+    </Card>
+
+    <!-- Sección de Formulario -->
+<Card>
+  <h2 slot="header" class="text-lg font-semibold text-neutral-800">
+    Componentes de Formulario
+  </h2>
+  <div class="space-y-4 py-2">
+    <Input id="nombre" label="Nombre de la Organización" required />
+    <Select
+      id="pais"
+      label="País"
+      options={[
+        { value: 'cl', label: 'Chile' },
+        { value: 'ar', label: 'Argentina' },
+        { value: 'uy', label: 'Uruguay' },
+      ]}
+      required
+    />
+  </div>
+</Card>
   </main>
 </Layout>
