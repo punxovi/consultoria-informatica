@@ -1,0 +1,63 @@
+---
+interface Props {
+  label: string;
+  id: string;
+  name?: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  value?: string;
+  maxlength?: number;
+  class?: string;
+}
+
+const {
+  label,
+  id,
+  name = id,
+  type = 'text',
+  placeholder,
+  required = false,
+  error,
+  hint,
+  value,
+  maxlength,
+  class: className = '',
+} = Astro.props;
+---
+
+<div class="flex flex-col gap-1.5">
+  <label for={id} class="text-sm font-medium text-neutral-800">
+    {label}
+    {required && (
+      <span class="ml-0.5 text-danger" aria-hidden="true">*</span>
+    )}
+  </label>
+
+  <input
+    id={id}
+    name={name}
+    type={type}
+    placeholder={placeholder}
+    required={required}
+    value={value}
+    maxlength={maxlength}
+    aria-invalid={error ? 'true' : 'false'}
+    aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+    class={`min-h-[48px] rounded-lg border px-3 py-2 text-base
+      focus:outline-none focus:ring-2 focus:ring-primary
+      ${error ? 'border-danger' : 'border-neutral-300'} ${className}`}
+  />
+
+  {hint && !error && (
+    <p id={`${id}-hint`} class="text-sm text-neutral-500">{hint}</p>
+  )}
+
+  {error && (
+    <p id={`${id}-error`} class="text-sm text-danger" role="alert">
+      {error}
+    </p>
+  )}
+</div>
