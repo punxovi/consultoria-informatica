@@ -1,0 +1,379 @@
+---
+// frontend/src/pages/login.astro
+---
+
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar Sesión - Consultoría Informática</title>
+  </head>
+  <body>
+
+    <div class="bg-circle circle-1"></div>
+    <div class="bg-circle circle-2"></div>
+    <div class="bg-circle circle-3"></div>
+
+    <main class="login-container">
+      <div class="login-card">
+        <!-- Logo o icono superior -->
+        <div class="logo-area">
+          <img src="/Logo-FGE-SIN-FONDO.png" alt="Logo Institucional" class="logo-img" />
+          <h2>Bienvenido al Sistema</h2>
+          <p>Ingresa tus credenciales para acceder</p>
+        </div>
+
+        <!-- Contenedor de Mensaje de Error (KAN-42) -->
+        <div id="error-alert" class="error-alert hidden">
+          <span class="error-icon">⚠️</span>
+          <span id="error-message">Por favor, completa todos los campos.</span>
+        </div>
+
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="email">CORREO ELECTRÓNICO</label>
+            <div class="input-with-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <input 
+                type="text" 
+                id="email" 
+                placeholder="admin@prueba.cl" 
+              />
+            </div>
+          </div>
+
+          <!-- Campo de contraseña (KAN-39) -->
+          <div class="form-group">
+            <label for="password">CONTRASEÑA</label>
+            <div class="input-with-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <input 
+                type="password" 
+                id="password" 
+                placeholder="••••••••" 
+              />
+            </div>
+            <!-- Opción de recuperación (KAN-41) -->
+            <div class="forgot-password">
+              <a href="#recuperar">Olvidé mi contraseña</a>
+            </div>
+          </div>
+
+          <!-- Botón de inicio de sesión (KAN-40) -->
+          <button type="submit" class="btn-primary">
+            ➔ Ingresar al Sistema
+          </button>
+
+          <div class="divider">
+            <span>O CONTINÚA COMO</span>
+          </div>
+
+          <button type="button" id="btn-guest" class="btn-secondary">
+             Ingresar como Invitado
+          </button>
+        </form>
+
+        <footer class="login-footer">
+          <p>© 2026 Fundación Gestión Específicas - Chile - Argentina - Uruguay</p>
+        </footer>
+      </div>
+    </main>
+
+    <!-- Script para manejar la validación visual de errores -->
+    <script>
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const emailInput = document.getElementById('email') as HTMLInputElement;
+      const passwordInput = document.getElementById('password') as HTMLInputElement;
+      const errorAlert = document.getElementById('error-alert') as HTMLDivElement;
+      const errorMessage = document.getElementById('error-message') as HTMLSpanElement;
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault(); // Evita que recargue la página por defecto
+
+        // 1. Validar campos vacíos
+        if (!emailInput.value.trim() || !passwordInput.value.trim()) {
+          showError("Por favor, completa todos los campos.");
+          return;
+        }
+
+        // 2. Validar formato básico de correo
+        if (!emailInput.value.includes('@') || !emailInput.value.includes('.')) {
+          showError("Por favor, introduce una dirección de correo electrónico válida.");
+          return;
+        }
+
+        // 3. Simulación de credenciales incorrectas
+        if (emailInput.value !== "admin@prueba.cl" || passwordInput.value !== "123456") {
+          showError("Credenciales incorrectas. Verifica tus datos.");
+          return;
+        }
+
+        // Si todo está correcto
+        hideError();
+        alert("¡Inicio de sesión exitoso!");
+      });
+
+      function showError(msg: string) {
+        errorMessage.textContent = msg;
+        errorAlert.classList.remove('hidden');
+        emailInput.style.borderColor = '#ef4444';
+        passwordInput.style.borderColor = '#ef4444';
+      }
+
+      function hideError() {
+        errorAlert.classList.add('hidden');
+        emailInput.style.borderColor = '#d1d5db';
+        passwordInput.style.borderColor = '#d1d5db';
+      }
+    </script>
+  </body>
+</html>
+
+<style>
+  /* Estilos generales */
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #2c2552 0%, #3d346b 50%, #4a3c7d 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+    .bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .circle-1 {
+    width: 350px;
+    height: 350px;
+    background: rgba(255, 255, 255, 0.04);
+    top: -80px;
+    right: -80px;
+  }
+
+  .circle-2 {
+    width: 250px;
+    height: 250px;
+    background: rgba(255, 255, 255, 0.03);
+    bottom: 50px;
+    right: 15%;
+  }
+
+  .circle-3 {
+    width: 300px;
+    height: 300px;
+    background: rgba(0, 0, 0, 0.1);
+    bottom: -100px;
+    left: -80px;
+  }
+
+
+  .login-container {
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .login-card {
+    background: #ffffff;
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+  }
+
+  .logo-area {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .logo-placeholder {
+    font-size: 2rem;
+    background: #f0edfcf8;
+    padding: 10px;
+    border-radius: 50%;
+  }
+
+  .logo-area h2 {
+    margin: 0.5rem 0 0.2rem 0;
+    color: #1f2937;
+    font-size: 1.4rem;
+  }
+
+  .logo-area p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+
+  /* Alerta de Error (KAN-42) */
+  .error-alert {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .error-alert.hidden {
+    display: none;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #4b5563;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.5px;
+  }
+
+  .input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 12px;
+    width: 18px;
+    height: 18px;
+    color: #9ca3af;
+  }
+
+  .input-with-icon input {
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .input-with-icon input:focus {
+    border-color: #584996;
+    box-shadow: 0 0 0 3px rgba(88, 73, 150, 0.15);
+  }
+
+  .forgot-password {
+    text-align: right;
+    margin-top: 0.4rem;
+  }
+
+  .forgot-password a {
+    font-size: 0.8rem;
+    color: #584996;
+    text-decoration: none;
+  }
+
+  .forgot-password a:hover {
+    text-decoration: underline;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #493b82;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-primary:hover {
+    background-color: #3b2e69;
+  }
+
+  .divider {
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+    line-height: 0.1rem;
+    margin: 1.5rem 0;
+  }
+
+  .divider span {
+    background: #fff;
+    padding: 0 10px;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background-color: #f9fafb;
+  }
+
+  .login-footer {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .login-footer p {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+
+  .logo-img {
+    width: 150px;    
+    height: auto;   
+    margin-bottom: 0.5rem;
+  }
+
+  /* Responsive (KAN-43) */
+  @media (max-width: 480px) {
+    .login-card {
+      padding: 1.5rem 1rem;
+      box-shadow: none;
+      background: transparent;
+    }
+    body {
+      background: #2c2552;
+    }
+  }
+</style>
