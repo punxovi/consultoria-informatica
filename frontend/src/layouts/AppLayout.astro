@@ -1,0 +1,41 @@
+---
+import Layout from './Layout.astro';
+import Header from '../components/ui/Header.astro';
+import Sidebar from '../components/ui/Sidebar.astro';
+import type { NavItem } from '../config/nav';
+
+interface Props {
+  title?: string;
+  navItems: NavItem[];
+}
+
+const { title, navItems } = Astro.props;
+const hasBreadcrumb = Astro.slots.has('breadcrumb');
+---
+
+<!--
+  Estructura común para páginas internas del sistema (Dashboard,
+  Organizaciones, Planes, etc). Cada página solo aporta su contenido
+  único a través de los slots: default (el cuerpo), "actions" (botones
+  del Header) y "breadcrumb" (opcional, ruta jerárquica RF19).
+-->
+<Layout title={title}>
+  <div class="flex min-h-screen flex-col bg-neutral-50">
+    <Header title={title ?? 'Fundación Gestionar Esperanzas'}>
+      <slot name="actions" slot="actions" />
+    </Header>
+
+    <div class="flex flex-1">
+      <Sidebar items={navItems} />
+
+      <main class="w-full flex-1 overflow-y-auto box-border p-4 md:p-8">
+        {hasBreadcrumb && (
+          <div class="mb-4 flex items-center gap-1.5 text-xs text-neutral-500 md:text-sm">
+            <slot name="breadcrumb" />
+          </div>
+        )}
+        <slot />
+      </main>
+    </div>
+  </div>
+</Layout>
