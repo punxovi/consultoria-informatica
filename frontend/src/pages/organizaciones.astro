@@ -31,31 +31,123 @@ import { mainNavItems } from '../config/nav';
     </div>
 
     <div class="bg-white border border-neutral-200 rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-neutral-800 mb-4">
-        Organizaciones registradas
-      </h2>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <h2 class="text-sm font-semibold text-neutral-800">
+          Organizaciones registradas
+        </h2>
 
-      <a
-        href="/organizaciones/1"
-        class="block border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-sm font-semibold text-neutral-900">
-              Organización 1
-            </h3>
+        <label class="flex items-center gap-2 text-sm text-neutral-600" for="estado-filtro">
+          Estado
+          <select
+            id="estado-filtro"
+            class="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 focus:border-[#4f428c] focus:outline-none focus:ring-2 focus:ring-[#4f428c]/20"
+          >
+            <option value="todos">Todos</option>
+            <option value="activo">Activas</option>
+            <option value="inactivo">Inactivas</option>
+          </select>
+        </label>
+      </div>
 
-            <p class="text-sm text-neutral-500 mt-1">
-              Ver información y gestión de la organización.
-            </p>
-          </div>
-
-          <span class="text-sm font-medium text-[#4f428c]">
-            Ver detalle →
-          </span>
-        </div>
-      </a>
+      <div id="organizaciones-lista" class="space-y-3" aria-live="polite" aria-busy="true">
+        <p class="py-4 text-sm text-neutral-500">Cargando organizaciones…</p>
+      </div>
     </div>
   </section>
 
 </AppLayout>
+
+<script>
+  import {
+    getOrganizacionesMock,
+    type EstadoFiltro,
+    type OrganizacionMock,
+  } from '../lib/supabase';
+
+  const filtro = document.querySelector<HTMLSelectElement>('#estado-filtro');
+  const lista = document.querySelector<HTMLDivElement>('#organizaciones-lista');
+
+  if (!filtro || !lista) {
+    throw new Error('No se encontró el contenedor de organizaciones.');
+  }
+
+  function limpiarLista() {
+    lista.replaceChildren();
+  }
+
+  function mostrarMensaje(mensaje: string, className = 'text-neutral-500') {
+    limpiarLista();
+    const parrafo = document.createElement('p');
+    parrafo.className = `py-4 text-sm ${className}`;
+    parrafo.textContent = mensaje;
+    lista.append(parrafo);
+  }
+
+  function crearOrganizacion(organizacion: OrganizacionMock) {
+    const tarjeta = document.createElement('article');
+    tarjeta.dataset.organizacionId = organizacion.id;
+    tarjeta.className =
+      'block rounded-lg border border-neutral-200 p-4 transition-colors hover:bg-neutral-50';
+
+    const contenido = document.createElement('div');
+    contenido.className = 'flex items-center justify-between gap-4';
+
+    const informacion = document.createElement('div');
+    const nombre = document.createElement('h3');
+    nombre.className = 'text-sm font-semibold text-neutral-900';
+    nombre.textContent = organizacion.nombre;
+
+    const rut = document.createElement('p');
+    rut.className = 'mt-1 text-sm text-neutral-500';
+    rut.textContent = `RUT: ${organizacion.rut}`;
+    informacion.append(nombre, rut);
+
+    const estado = document.createElement('span');
+    const estaActiva = organizacion.estado.toLowerCase() === 'activo';
+    estado.className = estaActiva
+      ? 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800'
+      : 'rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-700';
+    estado.textContent = organizacion.estado;
+
+    contenido.append(informacion, estado);
+    tarjeta.append(contenido);
+    return tarjeta;
+  }
+
+  async function cargarOrganizaciones(estadoFiltro: EstadoFiltro) {
+    filtro.disabled = true;
+    lista.setAttribute('aria-busy', 'true');
+    mostrarMensaje('Cargando organizaciones…');
+
+    try {
+      const organizaciones = await getOrganizacionesMock(estadoFiltro);
+      limpiarLista();
+
+      if (organizaciones.length === 0) {
+        mostrarMensaje('No hay organizaciones para el filtro seleccionado.');
+        return;
+      }
+
+      lista.append(...organizaciones.map(crearOrganizacion));
+    } catch (error) {
+      limpiarLista();
+      const mensaje = document.createElement('p');
+      mensaje.className = 'text-sm text-red-700';
+      mensaje.textContent = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+
+      const reintentar = document.createElement('button');
+      reintentar.type = 'button';
+      reintentar.className =
+        'mt-3 rounded-lg border border-[#4f428c] px-3 py-2 text-sm font-medium text-[#4f428c] hover:bg-[#4f428c]/5';
+      reintentar.textContent = 'Reintentar';
+      reintentar.addEventListener('click', () => void cargarOrganizaciones(filtro.value as EstadoFiltro));
+      lista.append(mensaje, reintentar);
+    } finally {
+      filtro.disabled = false;
+      lista.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  filtro.addEventListener('change', () => void cargarOrganizaciones(filtro.value as EstadoFiltro));
+  void cargarOrganizaciones('todos');
+</script>

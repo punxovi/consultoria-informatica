@@ -6,12 +6,15 @@ import assert from 'node:assert/strict';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
-assert.equal(files.length,5,'Se esperaban cinco migraciones');
+assert.equal(files.length,7,'Se esperaban siete migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
+const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 for (let i=0;i<files.length;i++) {
  assert.match(files[i],/^\d{14}_fge_.+\.sql$/);
- assert.match(sql[i],/BEGIN;/);
- assert.match(sql[i],/COMMIT;/);
+ if (files[i] !== triggerPerfiles) {
+  assert.match(sql[i],/BEGIN;/);
+  assert.match(sql[i],/COMMIT;/);
+ }
  assert.ok(!/DROP\s+(TABLE|SCHEMA|DATABASE)/i.test(sql[i]),'Sin borrado de estructuras existentes');
  // Equilibrio de paréntesis ignorando comentarios y literales.
  const plain=sql[i].replace(/--[^\n]*/g,'').replace(/'(?:''|[^'])*'/g,"''");
@@ -46,11 +49,15 @@ for(const d of destinations) assert.ok(filesBody.includes(d+' uuid REFERENCES'),
 assert.match(filesBody,/num_nonnulls\(id_organizacion,id_informacion_legal,id_programa,id_accion,id_donacion\) = 1/);
 assert.ok(!filesBody.includes('entidad_tipo'));
 assert.ok(!sql.join('\n').match(/CREATE POLICY/i),'Sin políticas inventadas');
-assert.ok(!sql.join('\n').match(/SECURITY DEFINER/i),'Sin funciones privilegiadas');
+assert.ok(!sql.filter((_,i)=>files[i]!==triggerPerfiles).join('\n').match(/SECURITY DEFINER/i),'Sin funciones privilegiadas fuera del trigger de Auth');
 assert.ok(sql[2].includes("'fge-archivos',false"));
 assert.ok(!sql[2].includes('INSERT INTO public.programas'));
 assert.match(sql[3],/ADD COLUMN id_producto uuid REFERENCES public.productos/);
 assert.match(sql[3],/num_nonnulls\(id_organizacion,id_informacion_legal,id_programa,id_accion,id_donacion,id_producto\) = 1/);
+const rpcSql=sql.find(s=>s.includes('get_organizaciones_mock'));
+assert.ok(rpcSql,'Existe migración de la RPC de organizaciones');
+assert.match(rpcSql,/SECURITY INVOKER/);
+assert.match(rpcSql,/GRANT EXECUTE ON FUNCTION public\.get_organizaciones_mock\(text\) TO anon/);
 const tests=readdirSync(join(root,'tests/database')).filter(f=>f.endsWith('.sql')).map(f=>readFileSync(join(root,'tests/database',f),'utf8')).join('\n');
 assert.match(tests,/ROLLBACK;/);
 assert.match(tests,/SET LOCAL ROLE anon;/);
