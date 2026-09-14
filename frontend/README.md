@@ -38,3 +38,19 @@ Desde la carpeta frontend/, ejecutar: npm run dev
 
 La aplicación estará disponible en: http://localhost:4321/
 
+## Consulta de organizaciones
+
+La página `/organizaciones` consume la RPC `get_organizaciones_mock` de
+Supabase y permite filtrar por `activo`, `inactivo` o `todos`.
+
+Antes de iniciarla, copia `.env.example` como `.env` y completa los valores
+públicos del proyecto:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Solo se usan `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY`. No se debe
+agregar ni exponer una clave `service_role` en el frontend. La RPC debe estar
+autorizada por el backend para el rol que usará la aplicación.
+

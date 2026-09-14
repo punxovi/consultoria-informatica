@@ -2,7 +2,7 @@
 
 ## Estado al 9 de septiembre de 2026
 
-Cinco migraciones aplicadas en el proyecto de desarrollo `fge-dev`, con 26 tablas
+Siete migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26 tablas
  de aplicación y una tabla privada de auditoría.
 
 | Migración | Contenido |
@@ -12,8 +12,10 @@ Cinco migraciones aplicadas en el proyecto de desarrollo `fge-dev`, con 26 tabla
 | `20260908002329_fge_paises_storage.sql` | Chile, Argentina, Uruguay y almacenamiento privado `fge-archivos`. |
 | `20260909000848_fge_catalogo_cotizaciones.sql` | Productos, solicitudes de cotización, detalles e imágenes de productos. |
 | `20260909152638_fge_ajustes_despliegue.sql` | Ajustes de permisos técnicos y dos índices adicionales. |
+| `20260909192500_fge_trigger_perfiles.sql` | Creación automática del perfil al registrar un usuario en Auth. |
+| `20260914000000_fge_get_organizaciones_mock.sql` | RPC de demostración para filtrar organizaciones desde el frontend. |
 
-La carpeta incluye configuración local, dos archivos de pruebas pgTAP y
+La carpeta incluye configuración local, tres archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
 
 ## Estado de seguridad
