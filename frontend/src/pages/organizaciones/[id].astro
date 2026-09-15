@@ -2,11 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 
-export function getStaticPaths() {
-  return [
-    { params: { id: '1' } },
-  ];
-}
+export const prerender = false;
 
 const { id } = Astro.params;
 ---

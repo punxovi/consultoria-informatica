@@ -1,6 +1,8 @@
 ---
 import AppLayout from '../layouts/AppLayout.astro';
 import { mainNavItems } from '../config/nav';
+import Card from '../components/ui/Card.astro';
+import Button from '../components/ui/Button.astro';
 ---
 
 <AppLayout title="Organizaciones" navItems={mainNavItems}>
@@ -8,51 +10,186 @@ import { mainNavItems } from '../config/nav';
   <Fragment slot="breadcrumb">
     <span>Chile</span>
     <span>&rsaquo;</span>
-    <span class="text-neutral-900 font-medium">Organizaciones</span>
+    <span class="font-medium text-neutral-900">Organizaciones</span>
   </Fragment>
 
-  <section>
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+  <section class="space-y-6">
+
+    <!-- Encabezado -->
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-neutral-900">
+        <p class="mb-1 text-sm font-medium text-primary">
+          Gestión institucional
+        </p>
+
+        <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
           Organizaciones
         </h1>
 
-        <p class="text-sm text-neutral-500 mt-1">
-          Gestión de las organizaciones asociadas a la fundación.
+        <p class="mt-1 text-sm text-neutral-500">
+          Gestiona las organizaciones asociadas a la fundación.
         </p>
       </div>
 
-      <button
-        class="px-4 py-2 rounded-lg bg-[#4f428c] text-white text-sm font-medium hover:bg-[#3f3573] transition-colors"
-      >
+      <Button variant="primary" size="md">
+        <span aria-hidden="true">+</span>
         Nueva organización
-      </button>
+      </Button>
     </div>
 
-    <div class="bg-white border border-neutral-200 rounded-xl p-6">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <h2 class="text-sm font-semibold text-neutral-800">
-          Organizaciones registradas
-        </h2>
+    <!-- Resumen -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
-        <label class="flex items-center gap-2 text-sm text-neutral-600" for="estado-filtro">
-          Estado
-          <select
-            id="estado-filtro"
-            class="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 focus:border-[#4f428c] focus:outline-none focus:ring-2 focus:ring-[#4f428c]/20"
+      <!-- Total -->
+      <Card class="!p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Organizaciones
+            </p>
+
+            <p
+              id="total-organizaciones"
+              class="mt-2 text-3xl font-bold text-neutral-900"
+            >
+              0
+            </p>
+
+            <p class="mt-1 text-sm text-neutral-500">
+              Registradas actualmente
+            </p>
+          </div>
+
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            aria-hidden="true"
           >
-            <option value="todos">Todos</option>
-            <option value="activo">Activas</option>
-            <option value="inactivo">Inactivas</option>
-          </select>
-        </label>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 21h18M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"
+              />
+            </svg>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Activas -->
+      <Card class="!p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Activas
+            </p>
+
+            <p
+              id="organizaciones-activas"
+              class="mt-2 text-3xl font-bold text-neutral-900"
+            >
+              0
+            </p>
+
+            <p class="mt-1 text-sm text-neutral-500">
+              Organizaciones activas
+            </p>
+          </div>
+
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success"
+            aria-hidden="true"
+          >
+            <span class="text-lg">●</span>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Inactivas -->
+      <Card class="!p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Inactivas
+            </p>
+
+            <p
+              id="organizaciones-inactivas"
+              class="mt-2 text-3xl font-bold text-neutral-900"
+            >
+              0
+            </p>
+
+            <p class="mt-1 text-sm text-neutral-500">
+              Organizaciones inactivas
+            </p>
+          </div>
+
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500"
+            aria-hidden="true"
+          >
+            <span class="text-lg">○</span>
+          </div>
+        </div>
+      </Card>
+
+    </div>
+
+    <!-- Listado -->
+    <Card>
+
+      <div class="flex flex-col gap-5">
+
+        <div>
+          <h2 class="text-lg font-semibold text-neutral-900">
+            Organizaciones registradas
+          </h2>
+
+          <p class="mt-1 text-sm text-neutral-500">
+            Consulta las organizaciones asociadas a la fundación.
+          </p>
+        </div>
+
+        <!-- Contador -->
+        <div class="flex items-center justify-between">
+          <div>
+            <p
+              id="contador-resultados"
+              class="text-sm text-neutral-500"
+            >
+              Cargando organizaciones...
+            </p>
+          </div>
+        </div>
+
+        <!-- Lista -->
+        <div
+          id="organizaciones-lista"
+          class="space-y-3"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div
+            class="rounded-xl border border-neutral-200 bg-white p-5"
+          >
+            <div class="animate-pulse space-y-3">
+              <div class="h-4 w-2/5 rounded bg-neutral-200"></div>
+              <div class="h-3 w-1/4 rounded bg-neutral-200"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div id="organizaciones-lista" class="space-y-3" aria-live="polite" aria-busy="true">
-        <p class="py-4 text-sm text-neutral-500">Cargando organizaciones…</p>
-      </div>
-    </div>
+    </Card>
+
   </section>
 
 </AppLayout>
@@ -60,94 +197,235 @@ import { mainNavItems } from '../config/nav';
 <script>
   import {
     getOrganizacionesMock,
-    type EstadoFiltro,
     type OrganizacionMock,
   } from '../lib/supabase';
 
-  const filtro = document.querySelector<HTMLSelectElement>('#estado-filtro');
-  const lista = document.querySelector<HTMLDivElement>('#organizaciones-lista');
+  const lista = document.querySelector<HTMLDivElement>(
+    '#organizaciones-lista',
+  );
 
-  if (!filtro || !lista) {
-    throw new Error('No se encontró el contenedor de organizaciones.');
+  const totalElement = document.querySelector<HTMLParagraphElement>(
+    '#total-organizaciones',
+  );
+
+  const activasElement = document.querySelector<HTMLParagraphElement>(
+    '#organizaciones-activas',
+  );
+
+  const inactivasElement = document.querySelector<HTMLParagraphElement>(
+    '#organizaciones-inactivas',
+  );
+
+  const contadorElement = document.querySelector<HTMLParagraphElement>(
+    '#contador-resultados',
+  );
+
+  if (
+    !lista ||
+    !totalElement ||
+    !activasElement ||
+    !inactivasElement ||
+    !contadorElement
+  ) {
+    throw new Error(
+      'No se encontraron los elementos necesarios del listado de organizaciones.',
+    );
   }
 
   function limpiarLista() {
     lista.replaceChildren();
   }
 
-  function mostrarMensaje(mensaje: string, className = 'text-neutral-500') {
+  function mostrarMensaje(
+    mensaje: string,
+    className = 'text-neutral-500',
+  ) {
     limpiarLista();
+
+    const contenedor = document.createElement('div');
+
+    contenedor.className =
+      'rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center';
+
     const parrafo = document.createElement('p');
-    parrafo.className = `py-4 text-sm ${className}`;
+
+    parrafo.className = `text-sm ${className}`;
     parrafo.textContent = mensaje;
-    lista.append(parrafo);
+
+    contenedor.append(parrafo);
+    lista.append(contenedor);
+  }
+
+  function actualizarResumen(datos: OrganizacionMock[]) {
+    const activas = datos.filter(
+      (organizacion) =>
+        organizacion.estado.toLowerCase() === 'activo',
+    ).length;
+
+    const inactivas = datos.filter(
+      (organizacion) =>
+        organizacion.estado.toLowerCase() === 'inactivo',
+    ).length;
+
+    totalElement.textContent = String(datos.length);
+    activasElement.textContent = String(activas);
+    inactivasElement.textContent = String(inactivas);
   }
 
   function crearOrganizacion(organizacion: OrganizacionMock) {
     const tarjeta = document.createElement('article');
-    tarjeta.dataset.organizacionId = organizacion.id;
+
     tarjeta.className =
-      'block rounded-lg border border-neutral-200 p-4 transition-colors hover:bg-neutral-50';
+      'group rounded-xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md';
 
     const contenido = document.createElement('div');
-    contenido.className = 'flex items-center justify-between gap-4';
 
+    contenido.className =
+      'flex flex-col gap-4 md:flex-row md:items-center md:justify-between';
+
+    // Información de la organización
     const informacion = document.createElement('div');
+
+    informacion.className = 'min-w-0';
+
+    const encabezado = document.createElement('div');
+
+    encabezado.className =
+      'flex flex-wrap items-center gap-2';
+
     const nombre = document.createElement('h3');
-    nombre.className = 'text-sm font-semibold text-neutral-900';
+
+    nombre.className =
+      'text-base font-semibold text-neutral-900';
+
     nombre.textContent = organizacion.nombre;
 
-    const rut = document.createElement('p');
-    rut.className = 'mt-1 text-sm text-neutral-500';
-    rut.textContent = `RUT: ${organizacion.rut}`;
-    informacion.append(nombre, rut);
-
+    // Estado
     const estado = document.createElement('span');
-    const estaActiva = organizacion.estado.toLowerCase() === 'activo';
-    estado.className = estaActiva
-      ? 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800'
-      : 'rounded-full bg-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-700';
-    estado.textContent = organizacion.estado;
 
-    contenido.append(informacion, estado);
+    const estaActiva =
+      organizacion.estado.toLowerCase() === 'activo';
+
+    estado.className = estaActiva
+      ? 'inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success'
+      : 'inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600';
+
+    const indicador = document.createElement('span');
+
+    indicador.textContent = estaActiva ? '●' : '○';
+
+    indicador.setAttribute('aria-hidden', 'true');
+
+    const textoEstado = document.createElement('span');
+
+    textoEstado.textContent = organizacion.estado;
+
+    estado.append(indicador, textoEstado);
+
+    encabezado.append(nombre, estado);
+
+    // RUT
+    const rut = document.createElement('p');
+
+    rut.className =
+      'mt-2 text-sm text-neutral-500';
+
+    rut.textContent = `RUT: ${organizacion.rut}`;
+
+    informacion.append(encabezado, rut);
+
+    // Acción de detalle
+    const acciones = document.createElement('div');
+
+    acciones.className =
+      'flex shrink-0 items-center md:justify-end';
+
+    const detalle = document.createElement('a');
+
+    detalle.href = `/organizaciones/${organizacion.id}`;
+
+    detalle.className =
+      'inline-flex min-h-[48px] items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+
+    detalle.textContent = 'Ver detalle →';
+
+    acciones.append(detalle);
+
+    contenido.append(informacion, acciones);
+
     tarjeta.append(contenido);
+
     return tarjeta;
   }
 
-  async function cargarOrganizaciones(estadoFiltro: EstadoFiltro) {
-    filtro.disabled = true;
+  function mostrarOrganizaciones(
+    datos: OrganizacionMock[],
+  ) {
+    limpiarLista();
+
+    if (datos.length === 0) {
+      mostrarMensaje(
+        'No hay organizaciones registradas actualmente.',
+      );
+
+      contadorElement.textContent =
+        '0 organizaciones registradas';
+
+      return;
+    }
+
+    lista.append(...datos.map(crearOrganizacion));
+
+    contadorElement.textContent =
+      datos.length === 1
+        ? '1 organización registrada'
+        : `${datos.length} organizaciones registradas`;
+  }
+
+  async function cargarOrganizaciones() {
     lista.setAttribute('aria-busy', 'true');
-    mostrarMensaje('Cargando organizaciones…');
 
     try {
-      const organizaciones = await getOrganizacionesMock(estadoFiltro);
-      limpiarLista();
+      /*
+       * Se utiliza la consulta existente de Supabase.
+       * La búsqueda y los filtros serán implementados
+       * posteriormente en la tarea correspondiente.
+       */
+      const datos = await getOrganizacionesMock('todos');
 
-      if (organizaciones.length === 0) {
-        mostrarMensaje('No hay organizaciones para el filtro seleccionado.');
-        return;
-      }
-
-      lista.append(...organizaciones.map(crearOrganizacion));
+      actualizarResumen(datos);
+      mostrarOrganizaciones(datos);
     } catch (error) {
-      limpiarLista();
-      const mensaje = document.createElement('p');
-      mensaje.className = 'text-sm text-red-700';
-      mensaje.textContent = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+      actualizarResumen([]);
+
+      contadorElement.textContent =
+        'No se pudieron cargar las organizaciones.';
+
+      mostrarMensaje(
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado.',
+        'text-danger',
+      );
 
       const reintentar = document.createElement('button');
+
       reintentar.type = 'button';
+
       reintentar.className =
-        'mt-3 rounded-lg border border-[#4f428c] px-3 py-2 text-sm font-medium text-[#4f428c] hover:bg-[#4f428c]/5';
+        'mt-4 min-h-[48px] rounded-lg border-2 border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10';
+
       reintentar.textContent = 'Reintentar';
-      reintentar.addEventListener('click', () => void cargarOrganizaciones(filtro.value as EstadoFiltro));
-      lista.append(mensaje, reintentar);
+
+      reintentar.addEventListener('click', () => {
+        void cargarOrganizaciones();
+      });
+
+      lista.append(reintentar);
     } finally {
-      filtro.disabled = false;
       lista.setAttribute('aria-busy', 'false');
     }
   }
 
-  filtro.addEventListener('change', () => void cargarOrganizaciones(filtro.value as EstadoFiltro));
-  void cargarOrganizaciones('todos');
+  void cargarOrganizaciones();
 </script>
