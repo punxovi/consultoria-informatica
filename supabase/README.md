@@ -15,8 +15,30 @@ Siete migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26 t
 | `20260909192500_fge_trigger_perfiles.sql` | Creación automática del perfil al registrar un usuario en Auth. |
 | `20260914000000_fge_get_organizaciones_mock.sql` | RPC de demostración para filtrar organizaciones desde el frontend. |
 
-La carpeta incluye configuración local, tres archivos de pruebas pgTAP y
+La carpeta incluye configuración local, cuatro archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
+
+## Datos iniciales de desarrollo (KAN-158)
+
+`supabase/seed.sql` está habilitado en `config.toml` y se ejecuta después de
+las migraciones al iniciar o reconstruir la base local. Incluye:
+
+- Los roles básicos Administrador, Coordinador e Invitado.
+- Una organización denominada `Organización temporal FGE (FICTICIA)`, sin
+  datos personales reales y con valores claramente identificados como
+  temporales.
+- Los seis Programas Institucionales oficiales entregados por FGE en el
+  documento `PROGRAMAS FGE.docx` del 20 de agosto de 2026.
+
+Los programas son datos reales de la fundación; solo su asociación con la
+organización ficticia es transitoria. Sus UUID son estables para facilitar las
+pruebas y su reasignación futura. Cuando FGE entregue el padrón oficial, se
+deben crear las organizaciones reales, actualizar `programas.id_organizacion`
+y eliminar la organización ficticia una vez que no tenga registros asociados.
+
+No se deben crear planes, acciones ni otros datos definitivos dependientes de
+la organización ficticia. Las pruebas automatizadas usan datos separados y
+revierten sus cambios al terminar.
 
 ## Estado de seguridad
 
@@ -38,9 +60,10 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las cinco migraciones. Si ya existe
-una base local con migraciones anteriores, se puede reconstruir con el siguiente
-comando, que **borra los datos locales**; usarlo solo en una base de pruebas:
+En una instalación nueva, el inicio aplica las siete migraciones y luego el
+seed. Si ya existe una base local con migraciones anteriores, se puede
+reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
+solo en una base de pruebas:
 
 ```powershell
 npx.cmd --yes supabase@2.117.0 db reset --local --no-seed
