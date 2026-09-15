@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
+const config = readFileSync(join(root,'config.toml'),'utf8');
+const seed = readFileSync(join(root,'seed.sql'),'utf8');
 assert.equal(files.length,7,'Se esperaban siete migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
@@ -58,9 +60,37 @@ const rpcSql=sql.find(s=>s.includes('get_organizaciones_mock'));
 assert.ok(rpcSql,'Existe migración de la RPC de organizaciones');
 assert.match(rpcSql,/SECURITY INVOKER/);
 assert.match(rpcSql,/GRANT EXECUTE ON FUNCTION public\.get_organizaciones_mock\(text\) TO anon/);
+assert.match(config,/\[db\.seed\][\s\S]*?enabled\s*=\s*true/,'Seed habilitado');
+assert.match(seed,/Organización temporal FGE \(FICTICIA\)/,'Organización temporal identificada');
+assert.match(seed,/@example\.invalid/,'Seed sin correo personal real');
+const programasOficiales=[
+ 'Programa de Formalización',
+ 'Espacios con Valor',
+ 'Referentes al Frente',
+ 'Una vuelta +',
+ 'Voluntariado Corporativo — Una hora para salvar al mundo',
+ 'Donación de Recursos a Organizaciones Comunitarias',
+];
+for(const programa of programasOficiales) {
+ assert.ok(seed.includes(`'${programa}'`),'Programa oficial en seed: '+programa);
+}
+assert.match(seed,/ON CONFLICT \(id_programa\) DO UPDATE SET/,'Seed de programas repetible');
 const tests=readdirSync(join(root,'tests/database')).filter(f=>f.endsWith('.sql')).map(f=>readFileSync(join(root,'tests/database',f),'utf8')).join('\n');
 assert.match(tests,/ROLLBACK;/);
 assert.match(tests,/SET LOCAL ROLE anon;/);
 assert.match(tests,/SET LOCAL ROLE authenticated;/);
+const operacionesTest=readFileSync(join(root,'tests/database/005_operaciones_organizaciones.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.organizaciones','FROM public.organizaciones','UPDATE public.organizaciones']) {
+ assert.ok(operacionesTest.includes(operacion),'Prueba de operación: '+operacion);
+}
+assert.match(operacionesTest,/JOIN public\.paises USING \(id_pais\)/,'Prueba relación Organización-País');
+for(const estadoSql of ['23503','23514']) {
+ assert.ok(operacionesTest.includes(`'${estadoSql}'`),'Prueba restricción SQLSTATE '+estadoSql);
+}
+const repositorioOrganizaciones=readFileSync(join(root,'../frontend/src/lib/server/organizaciones.ts'),'utf8');
+for(const operacion of ['listarOrganizaciones','obtenerOrganizacionPorId','crearOrganizacion','actualizarOrganizacion']) {
+ assert.match(repositorioOrganizaciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada: '+operacion);
+}
+assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
 const assertions=(tests.match(/SELECT (?:has_table|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
-console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
+console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));

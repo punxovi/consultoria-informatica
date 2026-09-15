@@ -1,6 +1,6 @@
 # Base de datos FGE/TDT
 
-## Estado al 9 de septiembre de 2026
+## Estado al 14 de septiembre de 2026
 
 Siete migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26 tablas
  de aplicación y una tabla privada de auditoría.
@@ -15,8 +15,43 @@ Siete migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26 t
 | `20260909192500_fge_trigger_perfiles.sql` | Creación automática del perfil al registrar un usuario en Auth. |
 | `20260914000000_fge_get_organizaciones_mock.sql` | RPC de demostración para filtrar organizaciones desde el frontend. |
 
-La carpeta incluye configuración local, tres archivos de pruebas pgTAP y
+La carpeta incluye configuración local, cinco archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
+
+## Datos iniciales de desarrollo (KAN-158)
+
+`supabase/seed.sql` está habilitado en `config.toml` y se ejecuta después de
+las migraciones al iniciar o reconstruir la base local. Incluye:
+
+- Los roles básicos Administrador, Coordinador e Invitado.
+- Una organización denominada `Organización temporal FGE (FICTICIA)`, sin
+  datos personales reales y con valores claramente identificados como
+  temporales.
+- Los seis Programas Institucionales oficiales entregados por FGE en el
+  documento `PROGRAMAS FGE.docx` del 20 de agosto de 2026.
+
+Los programas son datos reales de la fundación; solo su asociación con la
+organización ficticia es transitoria. Sus UUID son estables para facilitar las
+pruebas y su reasignación futura. Cuando FGE entregue el padrón oficial, se
+deben crear las organizaciones reales, actualizar `programas.id_organizacion`
+y eliminar la organización ficticia una vez que no tenga registros asociados.
+
+No se deben crear planes, acciones ni otros datos definitivos dependientes de
+la organización ficticia. Las pruebas automatizadas usan datos separados y
+revierten sus cambios al terminar.
+
+## Operaciones de organizaciones (KAN-159)
+
+El repositorio `frontend/src/lib/server/organizaciones.ts` implementa consulta,
+consulta por ID, registro y modificación mediante `supabase-js`. Cada lectura
+incluye el país relacionado, y las actualizaciones admiten una versión esperada
+para detectar escrituras concurrentes.
+
+La prueba `tests/database/005_operaciones_organizaciones.test.sql` verifica el
+CRUD directamente sobre PostgreSQL, la relación con `paises`, el incremento de
+versión y las restricciones principales. Las operaciones reciben un cliente
+Supabase creado por la capa de servidor y respetan sus permisos/RLS; no se
+añadieron políticas ni funciones privilegiadas dentro de esta tarea.
 
 ## Estado de seguridad
 
@@ -30,7 +65,7 @@ habilita todavía el uso de la aplicación por sus usuarios.
 
 ## Preparación y prueba local
 
-Requisitos: Node.js 20 o superior y Docker instalado y en ejecución.
+Requisitos: Node.js 22.12 o superior y Docker instalado y en ejecución.
 Ejecutar desde la raíz del repositorio, donde está la carpeta `supabase`:
 
 ```powershell
@@ -38,9 +73,10 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las cinco migraciones. Si ya existe
-una base local con migraciones anteriores, se puede reconstruir con el siguiente
-comando, que **borra los datos locales**; usarlo solo en una base de pruebas:
+En una instalación nueva, el inicio aplica las siete migraciones y luego el
+seed. Si ya existe una base local con migraciones anteriores, se puede
+reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
+solo en una base de pruebas:
 
 ```powershell
 npx.cmd --yes supabase@2.117.0 db reset --local --no-seed
@@ -84,8 +120,8 @@ Documentación técnica consultada:
 - [https://supabase.com/docs/guides/storage/schema/design](https://supabase.com/docs/guides/storage/schema/design)
 - [https://supabase.com/changelog](https://supabase.com/changelog)
 
-Se verificaron los comandos de la CLI con su ayuda. Se ejecutó PostgreSQL en
-Docker y pgTAP: ambos archivos de pruebas terminaron en PASS, con 130 pruebas
-sobre las cuatro migraciones originales. Las cinco migraciones se aplicaron en
-la base remota de desarrollo, donde se verificaron estructura, accesos y
-configuración mediante consultas. No se ejecutó pgTAP en remoto.
+En esta entrega, la revisión estática preparó 155 aserciones pgTAP. El CRUD de
+KAN-159 se verificó además en `fge-dev` dentro de una transacción con `ROLLBACK`:
+alta, listado, consulta por ID, relación con Chile y actualización quedaron
+confirmados sin persistir el registro de prueba. Para ejecutar los cinco
+archivos pgTAP completos en local sigue siendo necesario disponer de Docker.
