@@ -1,0 +1,38 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import { mainNavItems } from '../config/nav';
+---
+
+<AppLayout title="Reportes" navItems={mainNavItems}>
+
+  <Fragment slot="breadcrumb">
+    <span>Chile</span>
+    <span>&rsaquo;</span>
+    <span class="text-neutral-900 font-medium">
+      Reportes
+    </span>
+  </Fragment>
+
+  <section>
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-neutral-900">
+        Reportes
+      </h1>
+
+      <p class="text-sm text-neutral-500 mt-1">
+        Consulta y gestión de los reportes de la fundación.
+      </p>
+    </div>
+
+    <div class="bg-white border border-neutral-200 rounded-xl p-6">
+      <h2 class="text-sm font-semibold text-neutral-800 mb-4">
+        Reportes
+      </h2>
+
+      <p class="text-sm text-neutral-500">
+        Esta pantalla será desarrollada en un próximo sprint.
+      </p>
+    </div>
+  </section>
+
+</AppLayout>
