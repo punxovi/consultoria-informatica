@@ -1,4 +1,5 @@
 ---
+// frontend/src/layouts/AppLayout.astro
 import Layout from './Layout.astro';
 import Header from '../components/ui/Header.astro';
 import Sidebar from '../components/ui/Sidebar.astro';
@@ -13,29 +14,56 @@ const { title, navItems } = Astro.props;
 const hasBreadcrumb = Astro.slots.has('breadcrumb');
 ---
 
-<!--
-  Estructura común para páginas internas del sistema (Dashboard,
-  Organizaciones, Planes, etc). Cada página solo aporta su contenido
-  único a través de los slots: default (el cuerpo), "actions" (botones
-  del Header) y "breadcrumb" (opcional, ruta jerárquica RF19).
--->
 <Layout title={title}>
-  <div class="flex min-h-screen flex-col bg-neutral-50">
+  <div class="flex h-screen flex-col overflow-hidden bg-neutral-50">
+    <!-- Header -->
     <Header title={title ?? 'Fundación Gestionar Esperanzas'}>
       <slot name="actions" slot="actions" />
     </Header>
 
-    <div class="flex flex-1">
+    <!-- Cuerpo de la aplicación -->
+    <div class="flex min-h-0 flex-1">
       <Sidebar items={navItems} />
 
-      <main class="w-full flex-1 overflow-y-auto box-border p-4 md:p-8">
+      <!-- Contenido principal -->
+      <main
+        class="min-w-0 flex-1 overflow-y-auto box-border p-4 md:ml-64 md:p-8"
+      >
         {hasBreadcrumb && (
           <div class="mb-4 flex items-center gap-1.5 text-xs text-neutral-500 md:text-sm">
             <slot name="breadcrumb" />
           </div>
         )}
+
         <slot />
       </main>
     </div>
   </div>
 </Layout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  async function validateSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Si no hay sesión activa, redirige de inmediato al login y elimina la ruta protegida del historial
+    if (!session) {
+      window.location.replace('/login');
+    }
+  }
+
+  // Validar al cargar cualquier página interna
+  validateSession();
+
+  // Validar si el usuario presiona el botón "Atrás" del navegador (recuperación de caché/bfcache)
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      validateSession();
+    }
+  });
+</script>
