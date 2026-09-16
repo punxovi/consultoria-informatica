@@ -103,7 +103,7 @@ describe('schemas Zod de organizaciones', () => {
     );
   });
 
-  it('valida filtros e identificadores antes de consultar Supabase', () => {
+  it('valida filtros e identificadores antes de procesar los datos', () => {
     assert.deepEqual(listarOrganizacionesSchema.parse({}), {
       incluir_archivadas: false,
     });
