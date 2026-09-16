@@ -10,12 +10,15 @@ de arquitectura y contratos.
 ```text
 frontend/src/actions/
 ├── index.ts
+├── organizaciones/
+│   └── organizaciones.schema.ts
 └── prueba/
     ├── recibir-datos.action.ts
     ├── recibir-datos.handler.ts
     └── recibir-datos.schema.ts
 
 frontend/tests/actions/
+├── organizaciones.schema.test.mjs
 └── recibir-datos.test.mjs
 ```
 
@@ -27,6 +30,41 @@ frontend/tests/actions/
 
 Cada dominio nuevo debe crear su propia carpeta y exportar sus Actions desde
 `frontend/src/actions/index.ts`.
+
+## Validaciones de Organizaciones (KAN-161)
+
+`organizacionSchema` valida y normaliza los datos completos de una
+organización. Los schemas de listado, consulta por ID, creación y actualización
+quedan disponibles para que las futuras Actions de Organizaciones validen sus
+entradas antes de procesarlas. Entre otras reglas:
+
+- todos los datos requeridos deben estar presentes y usar el tipo correcto;
+- los identificadores deben ser UUID;
+- el correo debe ser válido y se normaliza a minúsculas;
+- el teléfono solo admite caracteres telefónicos;
+- `numero_beneficiarios` debe ser un entero no negativo;
+- `tipo_organizacion` solo admite los valores de la base de datos;
+- el tipo `otra` exige `tipo_organizacion_otro`;
+- las actualizaciones deben contener al menos un cambio;
+- se rechazan propiedades no declaradas.
+
+Los consumidores pueden usar `parse` o `safeParse` para rechazar datos inválidos
+antes de procesarlos. `formatearErroresOrganizacion` convierte un `ZodError` en
+una lista estable de objetos `{ campo, codigo, mensaje }` para formularios,
+Actions y pruebas.
+
+### Pruebas locales
+
+```bash
+cd frontend
+npm install
+npm test
+npm run build
+```
+
+Las pruebas comprueban campos obligatorios, tipos, UUID, formatos, límites,
+campos adicionales, reglas condicionales, actualizaciones vacías y la estructura
+de los errores. No requieren conexión a Supabase ni modifican datos reales.
 
 ## Action inicial
 
@@ -93,3 +131,5 @@ ejecuta el artefacto generado en `dist/server/entry.mjs`.
 - KAN-50: validación de la entrada mediante el esquema Zod.
 - KAN-51: errores con campo, código y mensaje identificables.
 - KAN-52: arquitectura, contrato y comandos documentados en este archivo.
+- KAN-161: schemas Zod reutilizables con campos obligatorios, tipos,
+  restricciones y errores identificables antes del procesamiento.

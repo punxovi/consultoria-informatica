@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "test": "node --experimental-strip-types --test tests/actions/*.test.mjs",
+    "test": "node --experimental-strip-types --test",
     "astro": "astro"
   },
   "dependencies": {
