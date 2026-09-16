@@ -5,7 +5,7 @@ import Card from '../components/ui/Card.astro';
 import Button from '../components/ui/Button.astro';
 ---
 
-<AppLayout title="Organizaciones" navItems={mainNavItems}>
+<AppLayout title="Organizaciones" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
 
   <Fragment slot="breadcrumb">
     <span>Chile</span>

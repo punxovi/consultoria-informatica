@@ -8,9 +8,10 @@ import type { NavItem } from '../config/nav';
 interface Props {
   title?: string;
   navItems: NavItem[];
+  allowedRoles?: string[];
 }
 
-const { title, navItems } = Astro.props;
+const { title, navItems, allowedRoles = [] } = Astro.props;
 const hasBreadcrumb = Astro.slots.has('breadcrumb');
 ---
 
@@ -27,22 +28,40 @@ const hasBreadcrumb = Astro.slots.has('breadcrumb');
 
       <!-- Contenido principal -->
       <main
-        class="min-w-0 flex-1 overflow-y-auto box-border p-4 md:ml-64 md:p-8"
+        id="main-content"
+        class="min-w-0 flex-1 overflow-y-auto box-border p-4 md:ml-64 md:p-8 opacity-0 transition-opacity duration-300"
       >
-        {hasBreadcrumb && (
-          <div class="mb-4 flex items-center gap-1.5 text-xs text-neutral-500 md:text-sm">
-            <slot name="breadcrumb" />
-          </div>
-        )}
+        <div id="page-content">
+          {hasBreadcrumb && (
+            <div class="mb-4 flex items-center gap-1.5 text-xs text-neutral-500 md:text-sm">
+              <slot name="breadcrumb" />
+            </div>
+          )}
 
-        <slot />
+          <slot />
+        </div>
+
+        <!-- Mensaje de Acceso Denegado -->
+        <div id="unauthorized-message" class="hidden h-full flex-col items-center justify-center text-center">
+          <div class="rounded-xl bg-danger/10 p-4 text-danger mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 class="text-xl font-bold text-neutral-900 mb-2">Acceso no autorizado</h2>
+          <p class="text-sm text-neutral-500 max-w-sm">No tienes los permisos necesarios para visualizar esta sección. Si crees que esto es un error, contacta al administrador.</p>
+        </div>
       </main>
+
+      <!-- Datos inyectados para el cliente -->
+      <div id="auth-config" data-allowed-roles={JSON.stringify(allowedRoles)} class="hidden" aria-hidden="true"></div>
     </div>
   </div>
 </Layout>
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { getUserRoles } from '../lib/supabase';
 
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -54,6 +73,44 @@ const hasBreadcrumb = Astro.slots.has('breadcrumb');
     // Si no hay sesión activa, redirige de inmediato al login y elimina la ruta protegida del historial
     if (!session) {
       window.location.replace('/login');
+      return;
+    }
+
+    const configEl = document.getElementById('auth-config');
+    let allowedRoles: string[] = [];
+    if (configEl && configEl.dataset.allowedRoles) {
+      try {
+        allowedRoles = JSON.parse(configEl.dataset.allowedRoles);
+      } catch (e) {
+        console.error('Error parseando roles permitidos', e);
+      }
+    }
+
+    const mainContent = document.getElementById('main-content');
+    const pageContent = document.getElementById('page-content');
+    const unauthorizedMsg = document.getElementById('unauthorized-message');
+
+    if (allowedRoles.length > 0) {
+      try {
+        const roles = await getUserRoles();
+        const userHasRole = roles.some((r) => allowedRoles.includes(r.codigo));
+        
+        if (!userHasRole) {
+          pageContent?.classList.add('hidden');
+          unauthorizedMsg?.classList.remove('hidden');
+          unauthorizedMsg?.classList.add('flex');
+        }
+      } catch (error) {
+        console.error('Error validando roles:', error);
+        pageContent?.classList.add('hidden');
+        unauthorizedMsg?.classList.remove('hidden');
+        unauthorizedMsg?.classList.add('flex');
+      }
+    }
+
+    // Mostrar el contenido con transición
+    if (mainContent) {
+      mainContent.classList.remove('opacity-0');
     }
   }
 
