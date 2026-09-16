@@ -9,6 +9,12 @@ export interface OrganizacionMock {
   estado: string;
 }
 
+export interface UserRole {
+  codigo: string;
+  alcance: string;
+  id_pais: string | null;
+}
+
 let supabaseClient: SupabaseClient | undefined;
 
 function getSupabaseClient(): SupabaseClient {
@@ -42,4 +48,15 @@ export async function getOrganizacionesMock(
   }
 
   return (data ?? []) as OrganizacionMock[];
+}
+
+/** Obtiene los roles asignados al usuario autenticado actual. */
+export async function getUserRoles(): Promise<UserRole[]> {
+  const { data, error } = await getSupabaseClient().rpc('get_user_roles');
+
+  if (error) {
+    throw new Error(`No se pudieron obtener los roles: ${error.message}`);
+  }
+
+  return (data ?? []) as UserRole[];
 }
