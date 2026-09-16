@@ -5,9 +5,11 @@ Frontend de la aplicación web de la Fundación Gestionar Esperanzas (FGE).
 ## Tecnologías
 
 - Astro
+- Astro Actions
 - TypeScript
 - Node.js
 - npm
+- Zod
 
 ## Estructura del proyecto
 
@@ -16,6 +18,7 @@ frontend/
 ├── public/
 ├── src/
 │   ├── assets/
+│   ├── actions/
 │   ├── components/
 │   ├── layouts/
 │   └── pages/
@@ -25,6 +28,7 @@ frontend/
 
 Carpetas principales
 src/pages/: páginas y rutas de la aplicación.
+src/actions/: Actions del servidor, esquemas Zod y lógica asociada.
 src/components/: componentes reutilizables.
 src/layouts/: layouts reutilizables para las páginas.
 src/assets/: recursos utilizados por la aplicación.
@@ -73,4 +77,13 @@ Los errores se exponen como `ErrorOperacionOrganizacion`, con códigos estables
 para registro inexistente, país inexistente, restricción, concurrencia, permiso
 y fallo general. El cliente recibido sigue sujeto a los privilegios y políticas
 RLS vigentes; esta tarea no abre accesos por sí sola.
+
+Pruebas del backend
+Desde la carpeta frontend/, ejecutar: npm test
+
+Compilación y ejecución del servidor standalone
+Desde la carpeta frontend/, ejecutar: npm run build y luego npm start
+
+La arquitectura y el contrato de las Actions están documentados en
+../backend/README.md.
 
