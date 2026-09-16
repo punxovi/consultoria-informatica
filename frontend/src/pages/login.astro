@@ -6,7 +6,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iniciar Sesión - Consultoría Informática</title>
+    <title>Iniciar Sesión - Fundación Gestionar Esperanzas</title>
   </head>
   <body>
 
@@ -16,20 +16,18 @@
 
     <main class="login-container">
       <div class="login-card">
-        <!-- Logo o icono superior -->
         <div class="logo-area">
           <img src="/Logo-FGE-SIN-FONDO.png" alt="Logo Institucional" class="logo-img" />
           <h2>Bienvenido al Sistema</h2>
           <p>Ingresa tus credenciales para acceder</p>
         </div>
 
-        <!-- Contenedor de Mensaje de Error (KAN-42) -->
         <div id="error-alert" class="error-alert hidden">
-          <span class="error-icon">⚠️</span>
+          <span class="error-icon">!</span>
           <span id="error-message">Por favor, completa todos los campos.</span>
         </div>
 
-        <form id="login-form" class="login-form">
+        <form id="login-form" class="login-form" novalidate>
           <div class="form-group">
             <label for="email">CORREO ELECTRÓNICO</label>
             <div class="input-with-icon">
@@ -37,14 +35,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <input 
-                type="text" 
+                type="email" 
                 id="email" 
-                placeholder="admin@prueba.cl" 
+                placeholder="coordinador@fge.cl" 
               />
             </div>
           </div>
 
-          <!-- Campo de contraseña (KAN-39) -->
           <div class="form-group">
             <label for="password">CONTRASEÑA</label>
             <div class="input-with-icon">
@@ -57,15 +54,13 @@
                 placeholder="••••••••" 
               />
             </div>
-            <!-- Opción de recuperación (KAN-41) -->
             <div class="forgot-password">
               <a href="#recuperar">Olvidé mi contraseña</a>
             </div>
           </div>
 
-          <!-- Botón de inicio de sesión (KAN-40) -->
-          <button type="submit" class="btn-primary">
-            ➔ Ingresar al Sistema
+          <button type="submit" id="submit-btn" class="btn-primary">
+            Ingresar al Sistema
           </button>
 
           <div class="divider">
@@ -73,48 +68,70 @@
           </div>
 
           <button type="button" id="btn-guest" class="btn-secondary">
-             Ingresar como Invitado
+            Ingresar como Invitado
           </button>
         </form>
 
         <footer class="login-footer">
-          <p>© 2026 Fundación Gestión Específicas - Chile - Argentina - Uruguay</p>
+          <p>© 2026 Fundación Gestionar Esperanzas - Chile - Argentina - Uruguay</p>
         </footer>
       </div>
     </main>
 
-    <!-- Script para manejar la validación visual de errores -->
     <script>
+      import { createClient } from '@supabase/supabase-js';
+
+      const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
       const form = document.getElementById('login-form') as HTMLFormElement;
       const emailInput = document.getElementById('email') as HTMLInputElement;
       const passwordInput = document.getElementById('password') as HTMLInputElement;
       const errorAlert = document.getElementById('error-alert') as HTMLDivElement;
       const errorMessage = document.getElementById('error-message') as HTMLSpanElement;
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 
-      form.addEventListener('submit', (e) => {
-        e.preventDefault(); // Evita que recargue la página por defecto
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideError();
 
-        // 1. Validar campos vacíos
-        if (!emailInput.value.trim() || !passwordInput.value.trim()) {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        if (!email || !password) {
           showError("Por favor, completa todos los campos.");
           return;
         }
 
-        // 2. Validar formato básico de correo
-        if (!emailInput.value.includes('@') || !emailInput.value.includes('.')) {
+        if (!email.includes('@') || !email.includes('.')) {
           showError("Por favor, introduce una dirección de correo electrónico válida.");
           return;
         }
 
-        // 3. Simulación de credenciales incorrectas
-        if (emailInput.value !== "admin@prueba.cl" || passwordInput.value !== "123456") {
-          showError("Credenciales incorrectas. Verifica tus datos.");
-          return;
-        }
+        try {
+          submitBtn.textContent = "Verificando...";
+          submitBtn.setAttribute("disabled", "true");
 
-        // Si todo está correcto
-        hideError();
-        alert("¡Inicio de sesión exitoso!");
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (error || !data.session) {
+            showError("Credenciales incorrectas o acceso no autorizado.");
+            submitBtn.textContent = "Ingresar al Sistema";
+            submitBtn.removeAttribute("disabled");
+            return;
+          }
+
+          window.location.href = '/dashboard';
+
+        } catch (err) {
+          showError("Ocurrió un error de conexión. Inténtalo nuevamente.");
+          submitBtn.textContent = "Ingresar al Sistema";
+          submitBtn.removeAttribute("disabled");
+        }
       });
 
       function showError(msg: string) {
@@ -134,7 +151,6 @@
 </html>
 
 <style>
-  /* Estilos generales */
   body {
     margin: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -147,7 +163,7 @@
     overflow: hidden;
   }
 
-    .bg-circle {
+  .bg-circle {
     position: absolute;
     border-radius: 50%;
     pointer-events: none;
@@ -178,7 +194,6 @@
     left: -80px;
   }
 
-
   .login-container {
     width: 100%;
     padding: 1rem;
@@ -186,6 +201,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 10;
   }
 
   .login-card {
@@ -203,13 +219,6 @@
     margin-bottom: 1.5rem;
   }
 
-  .logo-placeholder {
-    font-size: 2rem;
-    background: #f0edfcf8;
-    padding: 10px;
-    border-radius: 50%;
-  }
-
   .logo-area h2 {
     margin: 0.5rem 0 0.2rem 0;
     color: #1f2937;
@@ -222,7 +231,6 @@
     font-size: 0.9rem;
   }
 
-  /* Alerta de Error (KAN-42) */
   .error-alert {
     background-color: #fef2f2;
     border: 1px solid #fecaca;
@@ -310,6 +318,7 @@
     cursor: pointer;
     transition: background-color 0.2s;
     margin-top: 0.5rem;
+    min-height: 48px;
   }
 
   .btn-primary:hover {
@@ -342,6 +351,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
+    min-height: 48px;
   }
 
   .btn-secondary:hover {
@@ -365,7 +375,6 @@
     margin-bottom: 0.5rem;
   }
 
-  /* Responsive (KAN-43) */
   @media (max-width: 480px) {
     .login-card {
       padding: 1.5rem 1rem;
