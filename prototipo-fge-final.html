@@ -370,14 +370,21 @@
     padding:0 4px;border-radius:99px;font-size:9px;font-weight:900;background:var(--pink);color:#fff;}
 
   /* ======== LOGIN ======== */
-  #screen-login{display:none;min-height:100vh;background:linear-gradient(135deg,#f7f8fd 0%,#edf2f8 100%);
-    position:relative;overflow:auto;padding:32px;}
-  #screen-login.active{display:grid;place-items:center;}
-  .portal-entry{width:min(1120px,100%);min-height:690px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-    overflow:hidden;border-radius:28px;background:#fff;box-shadow:0 24px 70px rgba(49,28,91,.18);
-    border:1px solid rgba(255,255,255,.72);animation:slideUp .35s ease forwards;}
+  #screen-login{display:none;min-height:100vh;background:#fff;
+    position:relative;overflow:auto;padding:0;}
+  #screen-login.active{display:grid;place-items:stretch;}
+  .portal-entry{width:100%;min-height:100vh;height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    overflow:hidden;border-radius:0;background:#fff;box-shadow:none;
+    border:0;animation:slideUp .35s ease forwards;}
   @keyframes slideUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
-  .portal-story,.portal-access{position:relative;min-height:690px;padding:clamp(48px,5vw,64px);}
+  /* Login a pantalla completa en escritorio */
+  @media (min-width:901px){
+    #screen-login.active{width:100vw;min-height:100vh;height:100vh;}
+    #screen-login .portal-entry{width:100%;height:100%;min-height:100%;} 
+    #screen-login .portal-story,
+    #screen-login .portal-access{min-height:100%;height:100%;}
+  }
+  .portal-story,.portal-access{position:relative;min-height:100vh;height:100%;padding:clamp(48px,5vw,64px);}
   .portal-story{color:#fff;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate;
     background:linear-gradient(135deg,rgba(39,10,90,.95) 0%,rgba(94,53,177,.82) 48%,rgba(18,79,105,.78) 100%),
     url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=85") center/cover;}
@@ -456,6 +463,8 @@
   @media(min-width:768px){
     .mobile-only,.bottom-nav,.topbar{display:none!important;}
     .screen.active{display:flex!important;flex-direction:row;min-height:100vh;}
+    /* La portada pública ocupa todo el ancho y NO usa el layout de la intranet. */
+    #screen-public-home.active{display:block!important;min-height:100vh;width:100%;}
     #screen-login.active{display:grid!important;place-items:center;}
 
     /* Sidebar */
@@ -694,6 +703,45 @@
 .d-bc-item.clickable{cursor:pointer;transition:color .15s ease,background .15s ease;}
 .d-bc-item.clickable:hover{color:var(--p600);text-decoration:underline;text-underline-offset:3px;}
 .bc-item.clickable{cursor:pointer;}
+
+
+/* =========================================================
+   SITIO PÚBLICO FGE — PANTALLA INICIAL
+   ========================================================= */
+#screen-public-home{display:none;min-height:100vh;background:#fff;color:#444;}
+#screen-public-home.active{display:block;}
+.public-header{height:78px;background:#fff;display:flex;align-items:center;padding:0 18px 0 10px;gap:28px;border-bottom:1px solid #ececec;position:sticky;top:0;z-index:500;}
+.public-logo{display:flex;align-items:center;gap:9px;flex-shrink:0;text-decoration:none;color:#44396f;min-width:235px;}
+.public-logo-mark{width:42px;height:42px;border-radius:9px;background:#44396f;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;letter-spacing:-.4px;}
+.public-logo-text{font-size:17px;line-height:1.1;color:#44396f;white-space:nowrap;}
+.public-logo-text strong{display:block;font-weight:700;}
+.public-nav{display:flex;align-items:center;justify-content:flex-end;gap:26px;flex:1;min-width:0;}
+.public-nav-link{position:relative;display:inline-flex;align-items:center;gap:7px;height:78px;padding:0;color:#444;font-size:15px;font-weight:400;text-decoration:none;white-space:nowrap;transition:color .16s ease;}
+.public-nav-link:hover{color:var(--cyan);}
+.public-nav-link.active{color:var(--cyan);}
+.public-nav-link.active::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--cyan);}
+.public-nav-link.public-intranet{font-weight:400;color:#4b4b4b;}
+.public-nav-link.public-cotizaciones{font-weight:400;color:var(--cyan);}
+.public-nav-divider{width:1px;height:34px;background:#ddd;flex-shrink:0;margin-left:2px;}
+.public-language{display:inline-flex;align-items:center;gap:6px;font-size:15px;white-space:nowrap;color:#333;}
+.public-donate{display:inline-flex;align-items:center;gap:9px;height:48px;padding:0 19px;border:0;border-radius:10px;background:#1baac1;color:#fff;font-family:inherit;font-size:14px;font-weight:400;white-space:nowrap;cursor:pointer;transition:background .16s ease;}
+.public-donate:hover{background:#159bb1;}
+.public-hero{min-height:540px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background-color:#6b6b6b;background-image:linear-gradient(90deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.40) 42%,rgba(0,0,0,.12) 100%),url("https://fundaciongestionar.org/wp-content/uploads/2026/03/sl-001-movil-1.jpg");background-size:cover;background-position:center;}
+.public-hero-content{width:min(1180px,calc(100% - 80px));margin:0 auto;color:#fff;padding:35px 0;}
+.public-hero h1{max-width:620px;font-size:clamp(42px,5vw,62px);line-height:1.04;font-weight:900;letter-spacing:-1.2px;margin:0 0 24px;}
+.public-hero-line{width:44px;height:3px;background:#fff;border-radius:999px;margin-bottom:22px;}
+.public-hero p{font-size:17px;line-height:1.55;margin:0 0 6px;color:#fff;}
+.public-donation-links a{color:#1baac1;text-decoration:none;font-weight:700;}
+.public-donation-links a:hover{text-decoration:underline;}
+.public-about{background:#fff;padding:78px 40px;}
+.public-about-inner{width:min(1180px,100%);max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;}
+.public-about-title{color:#199d6b;font-size:46px;line-height:1.1;font-weight:900;margin:0 0 25px;}
+.public-about-text{color:#777;font-size:17px;line-height:1.7;margin:0;}
+.public-about-graphic{display:flex;align-items:center;justify-content:center;min-height:260px;}
+.public-about-graphic svg{width:250px;height:250px;}
+@media(max-width:1180px){.public-header{gap:16px}.public-nav{gap:17px}.public-nav-link{font-size:14px}.public-donate{padding:0 15px}.public-hero-content{width:calc(100% - 60px)}}
+@media(max-width:920px){.public-header{height:auto;min-height:72px;flex-wrap:wrap;padding:9px 14px}.public-logo img{height:52px}.public-nav{order:3;width:100%;justify-content:flex-start;overflow-x:auto;gap:20px;padding-bottom:3px}.public-nav-link{height:44px}.public-nav-link.active::after{bottom:0}.public-nav-divider{display:none}.public-hero{min-height:500px}.public-about-inner{grid-template-columns:1fr;gap:25px}}
+@media(max-width:600px){.public-header{gap:8px}.public-logo img{height:46px}.public-nav{gap:16px}.public-nav-link{font-size:13px}.public-language,.public-donate{display:none}.public-hero{min-height:500px;background-position:58% center}.public-hero-content{width:calc(100% - 40px)}.public-hero h1{font-size:42px;letter-spacing:-.7px}.public-about{padding:55px 24px}.public-about-title{font-size:36px}.public-about-text{font-size:15px}.public-about-graphic svg{width:190px;height:190px}}
 </style>
 </head>
 <body>
@@ -732,8 +780,69 @@
   </div>
 </nav>
 
+
+<!-- ===================== SITIO PÚBLICO FGE ===================== -->
+<section class="screen active" id="screen-public-home" role="main">
+  <header class="public-header">
+    <a class="public-logo" href="#" onclick="navigate('public-home');return false;" aria-label="Fundación Gestionar Esperanzas">
+      <span class="public-logo-mark" aria-hidden="true">FGE</span>
+      <span class="public-logo-text">Fundación Gestionar <strong>Esperanzas</strong></span>
+    </a>
+
+    <nav class="public-nav" aria-label="Navegación pública">
+      <a class="public-nav-link active" href="#" onclick="navigate('public-home');return false;">Inicio</a>
+      <a class="public-nav-link" href="#">Nosotros</a>
+      <a class="public-nav-link" href="#">Red Gestionar <span style="font-size:9px;">▼</span></a>
+      <a class="public-nav-link" href="#">Noticias</a>
+      <a class="public-nav-link" href="#">Contacto</a>
+
+      <span class="public-nav-divider" aria-hidden="true"></span>
+
+      <a class="public-nav-link public-intranet" href="#" onclick="navigate('login');return false;">Intranet</a>
+      <a class="public-nav-link public-cotizaciones" href="#" onclick="navigate('quote-create');return false;">Cotizaciones</a>
+
+      <span class="public-language" aria-label="Idioma">
+        <span>🇪🇸</span><span style="font-size:9px;">▼</span>
+      </span>
+
+      <button class="public-donate" type="button" onclick="alert('Aquí se abriría el portal de donaciones.');">
+        DONAR <span style="font-size:9px;">▼</span>
+      </button>
+    </nav>
+  </header>
+
+  <section class="public-hero" aria-label="Presentación Fundación Gestionar Esperanzas">
+    <div class="public-hero-content">
+      <h1>Juntos podemos<br/>transformar realidades</h1>
+      <div class="public-hero-line" aria-hidden="true"></div>
+      <p>Tu compromiso impulsa nuestra red.</p>
+      <p class="public-donation-links">Doná online: <a href="#">Argentina</a> | <a href="#">Uruguay</a> | <a href="#">Chile</a></p>
+    </div>
+  </section>
+
+  <section class="public-about" aria-labelledby="public-about-title">
+    <div class="public-about-inner">
+      <div>
+        <h2 id="public-about-title" class="public-about-title">Quiénes Somos</h2>
+        <div class="public-about-graphic" aria-hidden="true">
+          <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M130 222C88 193 49 163 49 113C49 80 73 58 101 58C117 58 128 66 130 79C132 66 143 58 159 58C187 58 211 80 211 113C211 163 172 193 130 222Z" stroke="#1baac1" stroke-width="12" stroke-linejoin="round"/>
+            <path d="M130 199C100 178 73 155 73 119C73 96 89 79 108 79C118 79 126 85 130 96C134 85 142 79 152 79C171 79 187 96 187 119C187 155 160 178 130 199Z" stroke="#ffc04c" stroke-width="10" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div>
+        <p class="public-about-text">Somos una fundación sin fines de lucro que trabaja para fortalecer y acompañar el desarrollo de organizaciones comunitarias en Argentina, Chile y Uruguay.</p>
+        <p class="public-about-text" style="margin-top:18px;">Trabajamos junto a aquellas que buscan mejorar la calidad de vida de personas en contextos vulnerables, brindándoles herramientas para su crecimiento y sostenibilidad.</p>
+        <p class="public-about-text" style="margin-top:18px;">A través de programas de formación, asesoramiento legal, mejora de infraestructura y el impulso de actividades productivas dentro de la economía circular, ayudamos a que estas organizaciones se formalicen, fortalezcan y amplíen su impacto en la comunidad.</p>
+      </div>
+    </div>
+  </section>
+</section>
+
 <!-- ===================== LOGIN ===================== -->
-<section class="screen active" id="screen-login" role="main">
+<section class="screen" id="screen-login" role="main">
   <div class="portal-entry">
     <section class="portal-story" aria-labelledby="portal-story-title">
       <div class="portal-brand" aria-label="Fundación Gestionar Esperanzas">
@@ -769,7 +878,7 @@
     </section>
 
     <section class="portal-access" aria-labelledby="portal-login-title">
-      <a class="portal-back" href="#" onclick="alert('Volvería al sitio institucional.');return false;">&lt; Volver al sitio</a>
+      <a class="portal-back" href="#" onclick="navigate('public-home');return false;">&lt; Volver al sitio</a>
 
       <div class="portal-login-box">
         <h2 id="portal-login-title">Inicia sesión</h2>
@@ -802,13 +911,7 @@
           </button>
         </form>
 
-        <div class="portal-divider" aria-hidden="true">o</div>
-
         <div class="portal-actions">
-          <button class="portal-btn portal-btn-outline" type="button" onclick="setAccessMode('store');navigate('quote-create')">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h4M10 13h5M10 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            Realizar cotización
-          </button>
           <button class="portal-btn portal-btn-soft" type="button" onclick="setAccessMode('intranet');navigate('dashboard')">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/></svg>
             Ingresar como observador
@@ -1881,8 +1984,8 @@
 const navHistory = [];
 let indicatorsOrigin = null;
 let currentScreenId = document.querySelector('.screen.active')?.id?.replace('screen-','') || 'login';
-let accessMode = 'intranet';
-const storeScreens = ['login','quote-create','quote-detail'];
+let accessMode = 'public';
+const storeScreens = ['quote-create','quote-detail'];
 
 function setAccessMode(mode){
   accessMode = mode;
@@ -1996,7 +2099,9 @@ function ensureExtensionSidebars(){
   // Esto evita que el menú desaparezca al navegar entre pantallas y elimina
   // cualquier versión antigua o duplicada del menú.
   document.querySelectorAll('.screen').forEach(screen=>{
-    if(screen.id==='screen-login') return;
+    // El sitio público y el login NO pertenecen a la intranet.
+    // El sidebar solo existe dentro del sistema de gestión.
+    if(screen.id==='screen-public-home' || screen.id==='screen-login') return;
     const old=screen.querySelector(':scope > .sidebar') || screen.querySelector('.page-shell > .sidebar');
     if(old) old.remove();
 
@@ -2101,7 +2206,7 @@ function goBack(){
       const previous=navHistory.pop();
       navigate(previous,true,true);
     } else {
-      navigate('login',true,true);
+      navigate('public-home',true,true);
     }
     return;
   }
@@ -2114,7 +2219,9 @@ function goBack(){
 }
 
 function navigate(id, fromBreadcrumb=false, fromBack=false){
+  if(id==='public-home') setAccessMode('public');
   if(id==='login') setAccessMode('intranet');
+  if(id==='quote-create' || id==='quote-detail') setAccessMode('store');
   if(accessMode==='store' && !isStoreScreen(id)){
     alert('Esta entrada corresponde al catálogo público. Para acceder a la Intranet, vuelve al portal e inicia sesión.');
     return;
