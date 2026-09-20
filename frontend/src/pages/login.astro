@@ -155,12 +155,13 @@
     margin: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #2c2552 0%, #3d346b 50%, #4a3c7d 100%);
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
-    overflow: hidden;
+    overflow: hidden; /* Bloquea el scroll del body */
   }
 
   .bg-circle {
@@ -196,52 +197,59 @@
 
   .login-container {
     width: 100%;
-    padding: 1rem;
+    height: 100vh;
+    height: 100dvh;
+    padding: 0.75rem;
     box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10;
+    overflow: hidden; /* Bloquea el scroll interno del contenedor */
   }
 
   .login-card {
     background: #ffffff;
-    padding: 2.5rem 2rem;
+    padding: 2rem 1.75rem;
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     width: 100%;
     max-width: 420px;
     box-sizing: border-box;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .logo-area {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.2rem;
   }
 
   .logo-area h2 {
-    margin: 0.5rem 0 0.2rem 0;
+    margin: 0.4rem 0 0.2rem 0;
     color: #1f2937;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
   }
 
   .logo-area p {
     margin: 0;
     color: #6b7280;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 
   .error-alert {
     background-color: #fef2f2;
     border: 1px solid #fecaca;
     color: #b91c1c;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 8px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
 
   .error-alert.hidden {
@@ -249,15 +257,15 @@
   }
 
   .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
 
   .form-group label {
     display: block;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: bold;
     color: #4b5563;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.3rem;
     letter-spacing: 0.5px;
   }
 
@@ -277,10 +285,10 @@
 
   .input-with-icon input {
     width: 100%;
-    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    padding: 0.65rem 0.75rem 0.65rem 2.5rem;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     outline: none;
     transition: border-color 0.2s;
     box-sizing: border-box;
@@ -293,11 +301,11 @@
 
   .forgot-password {
     text-align: right;
-    margin-top: 0.4rem;
+    margin-top: 0.3rem;
   }
 
   .forgot-password a {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #584996;
     text-decoration: none;
   }
@@ -308,17 +316,17 @@
 
   .btn-primary {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.65rem;
     background-color: #493b82;
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
-    margin-top: 0.5rem;
-    min-height: 48px;
+    margin-top: 0.2rem;
+    min-height: 44px;
   }
 
   .btn-primary:hover {
@@ -329,29 +337,29 @@
     text-align: center;
     border-bottom: 1px solid #e5e7eb;
     line-height: 0.1rem;
-    margin: 1.5rem 0;
+    margin: 1.1rem 0;
   }
 
   .divider span {
     background: #fff;
     padding: 0 10px;
     color: #9ca3af;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     letter-spacing: 0.5px;
   }
 
   .btn-secondary {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.65rem;
     background-color: #ffffff;
     color: #374151;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
-    min-height: 48px;
+    min-height: 44px;
   }
 
   .btn-secondary:hover {
@@ -360,26 +368,42 @@
 
   .login-footer {
     text-align: center;
-    margin-top: 2rem;
+    margin-top: 1.2rem;
   }
 
   .login-footer p {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #9ca3af;
     margin: 0;
   }
 
   .logo-img {
-    width: 150px;    
+    width: 130px;    
     height: auto;   
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
   }
 
   @media (max-width: 480px) {
     .login-card {
-      padding: 1.5rem 1rem;
-      box-shadow: none;
-      background: transparent;
+      padding: 1.25rem 1rem;
+      background: #ffffff;
+    }
+    .logo-area h2 {
+      color: #1f2937;
+      font-size: 1.1rem;
+    }
+    .logo-area p {
+      color: #6b7280;
+      font-size: 0.75rem;
+    }
+    .form-group {
+      margin-bottom: 0.75rem;
+    }
+    .divider {
+      margin: 0.8rem 0;
+    }
+    .login-footer {
+      margin-top: 0.8rem;
     }
     body {
       background: #2c2552;
