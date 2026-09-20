@@ -60,3 +60,70 @@ export async function getUserRoles(): Promise<UserRole[]> {
 
   return (data ?? []) as UserRole[];
 }
+
+export interface OrganizacionDetalle {
+  id_organizacion: string;
+  id_pais: string;
+  nombre: string;
+  nombre_representante: string;
+  telefono: string;
+  correo: string;
+  region_departamento: string;
+  comuna_municipio_ciudad: string;
+  direccion: string;
+  publico_objetivo: string;
+  descripcion_breve: string;
+  tipo_organizacion: string;
+  tipo_organizacion_otro: string | null;
+  numero_beneficiarios: number;
+  pais: {
+    id_pais: string;
+    codigo_iso: string;
+    nombre: string;
+  } | null;
+}
+
+export async function getOrganizacionPorId(
+  idOrganizacion: string,
+): Promise<OrganizacionDetalle> {
+  const { data, error } = await getSupabaseClient()
+    .from('organizaciones')
+    .select(`
+      id_organizacion,
+      id_pais,
+      nombre,
+      nombre_representante,
+      telefono,
+      correo,
+      region_departamento,
+      comuna_municipio_ciudad,
+      direccion,
+      publico_objetivo,
+      descripcion_breve,
+      tipo_organizacion,
+      tipo_organizacion_otro,
+      numero_beneficiarios,
+      pais:paises!organizaciones_id_pais_fkey (
+        id_pais,
+        codigo_iso,
+        nombre
+      )
+    `)
+    .eq('id_organizacion', idOrganizacion)
+    .is('archived_at', null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `No se pudo cargar la organización: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      'La organización solicitada no existe.',
+    );
+  }
+
+  return data as OrganizacionDetalle;
+}
