@@ -68,13 +68,18 @@ export type CodigoErrorOrganizacion =
   | 'ERROR_BASE_DATOS';
 
 export class ErrorOperacionOrganizacion extends Error {
+  public readonly codigo: CodigoErrorOrganizacion;
+  public readonly detalle?: PostgrestError;
+
   constructor(
-    public readonly codigo: CodigoErrorOrganizacion,
+    codigo: CodigoErrorOrganizacion,
     message: string,
-    public readonly detalle?: PostgrestError,
+    detalle?: PostgrestError,
   ) {
     super(message, detalle ? { cause: detalle } : undefined);
     this.name = 'ErrorOperacionOrganizacion';
+    this.codigo = codigo;
+    this.detalle = detalle;
   }
 }
 
