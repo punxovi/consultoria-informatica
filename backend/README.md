@@ -11,6 +11,8 @@ de arquitectura y contratos.
 frontend/src/actions/
 ├── index.ts
 ├── organizaciones/
+│   ├── organizaciones.action.ts
+│   ├── organizaciones.handler.ts
 │   └── organizaciones.schema.ts
 └── prueba/
     ├── recibir-datos.action.ts
@@ -19,6 +21,7 @@ frontend/src/actions/
 
 frontend/tests/actions/
 ├── organizaciones.schema.test.mjs
+├── organizaciones.handler.test.mjs
 └── recibir-datos.test.mjs
 ```
 
@@ -30,6 +33,63 @@ frontend/tests/actions/
 
 Cada dominio nuevo debe crear su propia carpeta y exportar sus Actions desde
 `frontend/src/actions/index.ts`.
+
+## Actions de Organizaciones (KAN-160)
+
+El registro público expone cuatro operaciones JSON:
+
+| Action | Propósito | Entrada principal |
+| --- | --- | --- |
+| `listarOrganizaciones` | Lista organizaciones activas y permite filtrar por país. | `id_pais?`, `incluir_archivadas` |
+| `obtenerOrganizacionPorId` | Consulta una organización activa. | `id_organizacion` |
+| `crearOrganizacion` | Registra una organización. | Todos los campos de `organizacionSchema` |
+| `actualizarOrganizacion` | Modifica campos y admite control de concurrencia. | `id_organizacion`, `cambios`, `version_esperada?` |
+
+Cada Action crea un cliente de Supabase por petición con
+`PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY`. Si la petición incluye
+`Authorization: Bearer <access_token>`, el encabezado se reenvía a Supabase para
+que las políticas RLS evalúen la sesión. No se utiliza una clave `service_role`
+desde el Frontend.
+
+Todas las respuestas de negocio comparten el mismo contrato:
+
+```ts
+type RespuestaAction<T> =
+  | { ok: true; codigo: string; mensaje: string; datos: T }
+  | { ok: false; codigo: string; mensaje: string; datos: null };
+```
+
+Los errores controlados distinguen organización inexistente, país inexistente,
+restricciones de base de datos, conflicto de versión, falta de permisos y
+configuración ausente. Los detalles internos de Supabase no se devuelven al
+cliente.
+
+La lógica de aplicación vive en `organizaciones.handler.ts` y recibe las
+operaciones de repositorio como dependencia. De esta forma las cuatro Actions y
+sus respuestas pueden probarse localmente sin escribir datos reales.
+
+### Prueba local del endpoint
+
+```bash
+cd frontend
+npm install
+npm test
+npm run build
+npm run dev
+```
+
+Con el servidor iniciado, la Action de listado puede invocarse así:
+
+```bash
+curl -X POST http://localhost:4321/_actions/listarOrganizaciones \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{"incluir_archivadas":false}'
+```
+
+Sin variables de Supabase configuradas, la respuesta controlada usa el código
+`CONFIGURACION_SUPABASE`. Con credenciales y una sesión autorizada, la respuesta
+correcta usa `ORGANIZACIONES_LISTADAS` y entrega los registros en `datos`.
 
 ## Validaciones de Organizaciones (KAN-161)
 
@@ -131,5 +191,7 @@ ejecuta el artefacto generado en `dist/server/entry.mjs`.
 - KAN-50: validación de la entrada mediante el esquema Zod.
 - KAN-51: errores con campo, código y mensaje identificables.
 - KAN-52: arquitectura, contrato y comandos documentados en este archivo.
+- KAN-160: Actions para listar, consultar, crear y actualizar organizaciones,
+  conectadas al repositorio Supabase con respuestas y errores uniformes.
 - KAN-161: schemas Zod reutilizables con campos obligatorios, tipos,
   restricciones y errores identificables antes del procesamiento.
