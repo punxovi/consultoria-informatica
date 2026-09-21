@@ -229,7 +229,9 @@ import Select from '../components/ui/Select.astro';
 </AppLayout>
 
 <script>
-  import { actions } from 'astro:actions';
+  import { createClient } from '@supabase/supabase-js';
+  import { parse } from 'devalue';
+  import type { RespuestaActionOrganizacion } from '../actions/organizaciones/organizaciones.handler';
   import type { Organizacion } from '../lib/server/organizaciones';
 
   const lista = document.querySelector<HTMLDivElement>(
@@ -273,6 +275,15 @@ import Select from '../components/ui/Select.astro';
       'No se encontraron los elementos necesarios del listado de organizaciones.',
     );
   }
+
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Faltan las variables de configuraciÃ³n de Supabase.');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   // Dataset completo tal como llegó del backend; los filtros (RF20) se
   // aplican en el cliente sobre esta copia. Cuando exista un filtro real
@@ -492,17 +503,36 @@ import Select from '../components/ui/Select.astro';
     lista.setAttribute('aria-busy', 'true');
 
     try {
-      const resultado = await actions.listarOrganizaciones({});
+      const { data, error } = await supabase.auth.getSession();
 
-      if (resultado.error) {
-        throw new Error(resultado.error.message);
+      if (error) throw error;
+      if (!data.session) {
+        throw new Error('Tu sesiÃ³n ha expirado. Vuelve a iniciar sesiÃ³n.');
       }
 
-      if (!resultado.data.ok) {
-        throw new Error(resultado.data.mensaje);
+      const respuesta = await fetch('/_actions/listarOrganizaciones', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error('No fue posible consultar las organizaciones.');
       }
 
-      const datos = resultado.data.datos;
+      const resultado = parse(
+        await respuesta.text(),
+      ) as RespuestaActionOrganizacion<Organizacion[]>;
+
+      if (!resultado.ok) {
+        throw new Error(resultado.mensaje);
+      }
+
+      const datos = resultado.datos;
 
       todasLasOrganizaciones = datos;
       actualizarResumen(datos);
