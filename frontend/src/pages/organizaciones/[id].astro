@@ -2,53 +2,51 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
+import { actions } from 'astro:actions';
+import type { Organizacion } from '../../lib/server/organizaciones';
 
-const idOrganizacion = Astro.params.id ?? '1';
+const idOrganizacion = Astro.params.id;
+let organizacion: Organizacion | null = null;
+let organizacionInexistente = false;
+let mensajeError = 'No fue posible cargar la organización.';
 
-// TODO: Reemplazar datos mock por obtenerOrganizacionPorIdAction.
-// La integración con Backend será realizada posteriormente.
-const organizacion = {
-  id_organizacion: idOrganizacion,
-  id_pais: '4050c89c-1460-440d-a63d-4a9f063b3007',
-  nombre: 'Organización demostración Centro',
-  nombre_representante: 'María González',
-  telefono: '+56 9 8765 4321',
-  correo: 'contacto@organizacion.cl',
-  region_departamento: 'Región Metropolitana',
-  comuna_municipio_ciudad: 'Maipú',
-  direccion: 'Av. Principal 1234',
-  publico_objetivo:
-    'Niños, niñas, adolescentes y familias de la comunidad local.',
-  descripcion_breve:
-    'Organización comunitaria orientada al acompañamiento y apoyo social de familias y personas de la comunidad.',
-  tipo_organizacion: 'comedor_merendero',
-  tipo_organizacion_otro: null,
-  numero_beneficiarios: 120,
-  created_at: '',
-  updated_at: '',
-  created_by: '',
-  updated_by: '',
-  archived_at: null,
-  version: 1,
-  pais: {
-    id_pais: '4050c89c-1460-440d-a63d-4a9f063b3007',
-    codigo_iso: 'CL',
-    nombre: 'Chile',
-  },
-};
+if (!idOrganizacion) {
+  organizacionInexistente = true;
+  mensajeError = 'La organización solicitada no existe.';
+} else {
+  const resultado = await Astro.callAction(
+    actions.obtenerOrganizacionPorId,
+    { id_organizacion: idOrganizacion },
+  );
 
-const tipoOrganizacion =
-  organizacion.tipo_organizacion === 'comedor_merendero'
+  if (resultado.error) {
+    mensajeError = resultado.error.message;
+  } else if (!resultado.data.ok) {
+    organizacionInexistente = resultado.data.codigo === 'NO_ENCONTRADA';
+    mensajeError = resultado.data.mensaje;
+  } else {
+    organizacion = resultado.data.datos;
+  }
+}
+
+const tituloPagina = organizacion?.nombre ??
+  (organizacionInexistente
+    ? 'Organización no encontrada'
+    : 'No fue posible cargar la organización');
+
+const tipoOrganizacion = organizacion
+  ? organizacion.tipo_organizacion === 'comedor_merendero'
     ? 'Comedor / Merendero'
     : organizacion.tipo_organizacion === 'centro_comunitario'
       ? 'Centro comunitario'
       : organizacion.tipo_organizacion === 'emprendimiento_uv'
         ? 'Emprendimiento UV'
-        : organizacion.tipo_organizacion_otro ?? 'Otra organización';
+        : organizacion.tipo_organizacion_otro ?? 'Otra organización'
+  : '';
 ---
 
 <AppLayout
-  title={organizacion.nombre}
+  title={tituloPagina}
   navItems={mainNavItems}
   allowedRoles={['ADMIN', 'COORD']}
 >
@@ -61,11 +59,12 @@ const tipoOrganizacion =
     </a>
     <span>&rsaquo;</span>
     <span class="font-medium text-neutral-900">
-      {organizacion.nombre}
+      {tituloPagina}
     </span>
   </Fragment>
 
-  <section class="space-y-6">
+  {organizacion ? (
+    <section class="space-y-6">
     <!-- Encabezado -->
     <div>
       <p class="mb-1 text-sm font-medium text-primary">
@@ -390,7 +389,27 @@ const tipoOrganizacion =
         </div>
       </Card>
     </div>
-  </section>
+    </section>
+  ) : (
+    <section class="space-y-6">
+      <Card>
+        <div class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
+          <h1 class="text-lg font-semibold text-neutral-900">
+            {tituloPagina}
+          </h1>
+          <p class="mt-2 text-sm text-neutral-500">
+            {mensajeError}
+          </p>
+          <a
+            href="/organizaciones"
+            class="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            Volver a organizaciones
+          </a>
+        </div>
+      </Card>
+    </section>
+  )}
 </AppLayout>
 
 <script>
