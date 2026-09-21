@@ -3,6 +3,8 @@ import AppLayout from '../layouts/AppLayout.astro';
 import { mainNavItems } from '../config/nav';
 import Card from '../components/ui/Card.astro';
 import Button from '../components/ui/Button.astro';
+import Input from '../components/ui/Input.astro';
+import Select from '../components/ui/Select.astro';
 ---
 
 <AppLayout title="Organizaciones" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
@@ -31,7 +33,7 @@ import Button from '../components/ui/Button.astro';
         </p>
       </div>
 
-      <Button variant="primary" size="md">
+      <Button variant="primary" size="md" href="/organizaciones/nueva">
         <span aria-hidden="true">+</span>
         Nueva organización
       </Button>
@@ -157,6 +159,38 @@ import Button from '../components/ui/Button.astro';
           </p>
         </div>
 
+        <!-- Búsqueda y filtros (RF20) -->
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="md:col-span-1">
+            <Input
+              id="buscar-organizacion"
+              label="Buscar por nombre"
+              placeholder="Ej: Comedor Los Aromos"
+            />
+          </div>
+
+          <Select
+            id="filtro-pais"
+            label="País"
+            options={[]}
+            placeholder="Todos los países"
+          />
+
+          <!--
+            RF20 pide filtrar también por Programa Institucional, pero el
+            tipo Organizacion no trae aún la asociación con Programas
+            (falta esa pieza de backend). Se deja el control visible pero
+            deshabilitado para no aparentar una función que no existe.
+          -->
+          <Select
+            id="filtro-programa"
+            label="Programa Institucional"
+            options={[{ value: '', label: 'Todos los programas' }]}
+            disabled
+            hint="Disponible cuando el backend asocie Organización–Programa."
+          />
+        </div>
+
         <!-- Contador -->
         <div class="flex items-center justify-between">
           <div>
@@ -218,17 +252,84 @@ import Button from '../components/ui/Button.astro';
     '#contador-resultados',
   );
 
+  const inputBusqueda = document.querySelector<HTMLInputElement>(
+    '#buscar-organizacion',
+  );
+
+  const selectPais = document.querySelector<HTMLSelectElement>(
+    '#filtro-pais',
+  );
+
   if (
     !lista ||
     !totalElement ||
     !activasElement ||
     !inactivasElement ||
-    !contadorElement
+    !contadorElement ||
+    !inputBusqueda ||
+    !selectPais
   ) {
     throw new Error(
       'No se encontraron los elementos necesarios del listado de organizaciones.',
     );
   }
+
+  // Dataset completo tal como llegó del backend; los filtros (RF20) se
+  // aplican en el cliente sobre esta copia. Cuando exista un filtro real
+  // en el backend, este arreglo puede reemplazarse por la respuesta ya
+  // filtrada de la Action, sin tocar el resto de esta función.
+  let todasLasOrganizaciones: Organizacion[] = [];
+
+  /** Quita tildes/mayúsculas para comparar texto sin distinguirlas (RF20). */
+  function normalizar(texto: string): string {
+    return texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function poblarFiltroPaises(datos: Organizacion[]) {
+    const paisesUnicos = new Map<string, string>();
+
+    datos.forEach((organizacion) => {
+      paisesUnicos.set(organizacion.pais.id_pais, organizacion.pais.nombre);
+    });
+
+    // Se limpia dejando solo la opción "Todos los países" (primera <option>).
+    while (selectPais.options.length > 1) {
+      selectPais.remove(1);
+    }
+
+    [...paisesUnicos.entries()]
+      .sort(([, nombreA], [, nombreB]) => nombreA.localeCompare(nombreB))
+      .forEach(([idPais, nombrePais]) => {
+        const opcion = document.createElement('option');
+        opcion.value = idPais;
+        opcion.textContent = nombrePais;
+        selectPais.append(opcion);
+      });
+  }
+
+  function aplicarFiltros() {
+    const textoBuscado = normalizar(inputBusqueda.value);
+    const idPaisSeleccionado = selectPais.value;
+
+    const filtradas = todasLasOrganizaciones.filter((organizacion) => {
+      const coincideNombre =
+        textoBuscado === '' || normalizar(organizacion.nombre).includes(textoBuscado);
+
+      const coincidePais =
+        idPaisSeleccionado === '' || organizacion.pais.id_pais === idPaisSeleccionado;
+
+      return coincideNombre && coincidePais;
+    });
+
+    mostrarOrganizaciones(filtradas, todasLasOrganizaciones.length);
+  }
+
+  inputBusqueda.addEventListener('input', aplicarFiltros);
+  selectPais.addEventListener('change', aplicarFiltros);
 
   function limpiarLista() {
     lista.replaceChildren();
@@ -358,16 +459,23 @@ import Button from '../components/ui/Button.astro';
 
   function mostrarOrganizaciones(
     datos: Organizacion[],
+    totalSinFiltrar = datos.length,
   ) {
     limpiarLista();
 
     if (datos.length === 0) {
+      // KAN-125 vs KAN-151: distingue "no hay ninguna organización" de
+      // "hay organizaciones, pero ninguna calza con el filtro actual".
       mostrarMensaje(
-        'No hay organizaciones registradas actualmente.',
+        totalSinFiltrar === 0
+          ? 'No hay organizaciones registradas actualmente.'
+          : 'No se encontraron organizaciones con esos filtros.',
       );
 
       contadorElement.textContent =
-        '0 organizaciones registradas';
+        totalSinFiltrar === 0
+          ? '0 organizaciones registradas'
+          : '0 resultados';
 
       return;
     }
@@ -376,8 +484,8 @@ import Button from '../components/ui/Button.astro';
 
     contadorElement.textContent =
       datos.length === 1
-        ? '1 organización registrada'
-        : `${datos.length} organizaciones registradas`;
+        ? '1 organización encontrada'
+        : `${datos.length} organizaciones encontradas`;
   }
 
   async function cargarOrganizaciones() {
@@ -396,9 +504,12 @@ import Button from '../components/ui/Button.astro';
 
       const datos = resultado.data.datos;
 
+      todasLasOrganizaciones = datos;
       actualizarResumen(datos);
-      mostrarOrganizaciones(datos);
+      poblarFiltroPaises(datos);
+      aplicarFiltros();
     } catch (error) {
+      todasLasOrganizaciones = [];
       actualizarResumen([]);
 
       contadorElement.textContent =
