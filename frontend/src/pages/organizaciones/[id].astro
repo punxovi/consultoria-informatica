@@ -3,52 +3,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 
-const idOrganizacion = Astro.params.id ?? '1';
-
-// TODO: Reemplazar datos mock por obtenerOrganizacionPorIdAction.
-// La integración con Backend será realizada posteriormente.
-const organizacion = {
-  id_organizacion: idOrganizacion,
-  id_pais: '4050c89c-1460-440d-a63d-4a9f063b3007',
-  nombre: 'Organización demostración Centro',
-  nombre_representante: 'María González',
-  telefono: '+56 9 8765 4321',
-  correo: 'contacto@organizacion.cl',
-  region_departamento: 'Región Metropolitana',
-  comuna_municipio_ciudad: 'Maipú',
-  direccion: 'Av. Principal 1234',
-  publico_objetivo:
-    'Niños, niñas, adolescentes y familias de la comunidad local.',
-  descripcion_breve:
-    'Organización comunitaria orientada al acompañamiento y apoyo social de familias y personas de la comunidad.',
-  tipo_organizacion: 'comedor_merendero',
-  tipo_organizacion_otro: null,
-  numero_beneficiarios: 120,
-  created_at: '',
-  updated_at: '',
-  created_by: '',
-  updated_by: '',
-  archived_at: null,
-  version: 1,
-  pais: {
-    id_pais: '4050c89c-1460-440d-a63d-4a9f063b3007',
-    codigo_iso: 'CL',
-    nombre: 'Chile',
-  },
-};
-
-const tipoOrganizacion =
-  organizacion.tipo_organizacion === 'comedor_merendero'
-    ? 'Comedor / Merendero'
-    : organizacion.tipo_organizacion === 'centro_comunitario'
-      ? 'Centro comunitario'
-      : organizacion.tipo_organizacion === 'emprendimiento_uv'
-        ? 'Emprendimiento UV'
-        : organizacion.tipo_organizacion_otro ?? 'Otra organización';
+const idOrganizacion = Astro.params.id ?? '';
 ---
 
 <AppLayout
-  title={organizacion.nombre}
+  title="Detalle de organización"
   navItems={mainNavItems}
   allowedRoles={['ADMIN', 'COORD']}
 >
@@ -60,12 +19,30 @@ const tipoOrganizacion =
       Organizaciones
     </a>
     <span>&rsaquo;</span>
-    <span class="font-medium text-neutral-900">
-      {organizacion.nombre}
+    <span id="breadcrumb-organizacion" class="font-medium text-neutral-900">
+      Detalle de organización
     </span>
   </Fragment>
 
-  <section class="space-y-6">
+  <section
+    id="estado-organizacion"
+    data-id={idOrganizacion}
+    class="space-y-6"
+    aria-live="polite"
+  >
+    <Card>
+      <div class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
+        <h1 id="titulo-estado-organizacion" class="text-lg font-semibold text-neutral-900">
+          Cargando organización...
+        </h1>
+        <p id="mensaje-estado-organizacion" class="mt-2 text-sm text-neutral-500">
+          Estamos obteniendo la información de la organización.
+        </p>
+      </div>
+    </Card>
+  </section>
+
+  <section id="ficha-organizacion" class="hidden space-y-6">
     <!-- Encabezado -->
     <div>
       <p class="mb-1 text-sm font-medium text-primary">
@@ -74,7 +51,7 @@ const tipoOrganizacion =
 
       <div class="flex flex-wrap items-center gap-3">
         <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
-          {organizacion.nombre}
+          <span id="titulo-organizacion">Organización</span>
         </h1>
 
         <span
@@ -86,9 +63,9 @@ const tipoOrganizacion =
       </div>
 
       <p class="mt-2 text-sm text-neutral-500">
-        {tipoOrganizacion}
+        <span id="tipo-organizacion">—</span>
         <span class="mx-1">·</span>
-        {organizacion.pais.nombre}
+        <span id="pais-organizacion">—</span>
       </p>
     </div>
 
@@ -151,7 +128,7 @@ const tipoOrganizacion =
               Nombre de la organización
             </p>
             <p class="mt-1 text-sm font-medium text-neutral-900">
-              {organizacion.nombre}
+              <span id="nombre-organizacion">—</span>
             </p>
           </div>
 
@@ -160,7 +137,7 @@ const tipoOrganizacion =
               País
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.pais.nombre}
+              <span id="pais-informacion-organizacion">—</span>
             </p>
           </div>
 
@@ -169,7 +146,7 @@ const tipoOrganizacion =
               Tipo de organización
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {tipoOrganizacion}
+              <span id="tipo-informacion-organizacion">—</span>
             </p>
           </div>
 
@@ -178,7 +155,7 @@ const tipoOrganizacion =
               Representante
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.nombre_representante}
+              <span id="representante-organizacion">—</span>
             </p>
           </div>
 
@@ -187,7 +164,7 @@ const tipoOrganizacion =
               Número de beneficiarios
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.numero_beneficiarios}
+              <span id="beneficiarios-organizacion">—</span>
             </p>
           </div>
         </div>
@@ -210,7 +187,7 @@ const tipoOrganizacion =
               Correo electrónico
             </p>
             <p class="mt-1 break-words text-sm text-neutral-900">
-              {organizacion.correo}
+              <span id="correo-organizacion">—</span>
             </p>
           </div>
 
@@ -219,7 +196,7 @@ const tipoOrganizacion =
               Teléfono
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.telefono}
+              <span id="telefono-organizacion">—</span>
             </p>
           </div>
 
@@ -228,7 +205,7 @@ const tipoOrganizacion =
               Región / Departamento
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.region_departamento}
+              <span id="region-organizacion">—</span>
             </p>
           </div>
 
@@ -237,7 +214,7 @@ const tipoOrganizacion =
               Comuna / Municipio / Ciudad
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.comuna_municipio_ciudad}
+              <span id="comuna-organizacion">—</span>
             </p>
           </div>
 
@@ -246,7 +223,7 @@ const tipoOrganizacion =
               Dirección
             </p>
             <p class="mt-1 text-sm text-neutral-900">
-              {organizacion.direccion}
+              <span id="direccion-organizacion">—</span>
             </p>
           </div>
         </div>
@@ -269,7 +246,7 @@ const tipoOrganizacion =
               Público objetivo
             </p>
             <p class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
-              {organizacion.publico_objetivo}
+              <span id="publico-objetivo-organizacion">—</span>
             </p>
           </div>
 
@@ -278,7 +255,7 @@ const tipoOrganizacion =
               Descripción
             </p>
             <p class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
-              {organizacion.descripcion_breve}
+              <span id="descripcion-organizacion">—</span>
             </p>
           </div>
         </div>
@@ -394,6 +371,164 @@ const tipoOrganizacion =
 </AppLayout>
 
 <script>
+  import { createClient } from '@supabase/supabase-js';
+  import { parse } from 'devalue';
+  import type { RespuestaActionOrganizacion } from '../../actions/organizaciones/organizaciones.handler';
+  import type { Organizacion } from '../../lib/server/organizaciones';
+
+  const estado = document.querySelector<HTMLElement>('#estado-organizacion');
+  const ficha = document.querySelector<HTMLElement>('#ficha-organizacion');
+  const tituloEstado = document.querySelector<HTMLElement>(
+    '#titulo-estado-organizacion',
+  );
+  const mensajeEstado = document.querySelector<HTMLElement>(
+    '#mensaje-estado-organizacion',
+  );
+
+  if (!estado || !ficha || !tituloEstado || !mensajeEstado) {
+    throw new Error('No se encontraron los elementos de la ficha de organización.');
+  }
+
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Faltan las variables de configuración de Supabase.');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  function elemento(id: string) {
+    const resultado = document.getElementById(id);
+
+    if (!resultado) {
+      throw new Error(`No se encontró el elemento ${id}.`);
+    }
+
+    return resultado;
+  }
+
+  function asignarTexto(id: string, valor: string | number) {
+    elemento(id).textContent = String(valor);
+  }
+
+  function formatearTipoOrganizacion(organizacion: Organizacion) {
+    if (organizacion.tipo_organizacion === 'comedor_merendero') {
+      return 'Comedor / Merendero';
+    }
+
+    if (organizacion.tipo_organizacion === 'centro_comunitario') {
+      return 'Centro comunitario';
+    }
+
+    if (organizacion.tipo_organizacion === 'emprendimiento_uv') {
+      return 'Emprendimiento UV';
+    }
+
+    return organizacion.tipo_organizacion_otro ?? 'Otra organización';
+  }
+
+  function mostrarEstado(titulo: string, mensaje: string) {
+    ficha.classList.add('hidden');
+    estado.classList.remove('hidden');
+    tituloEstado.textContent = titulo;
+    mensajeEstado.textContent = mensaje;
+
+    estado.querySelector('#volver-listado')?.remove();
+
+    const volver = document.createElement('a');
+
+    volver.id = 'volver-listado';
+    volver.href = '/organizaciones';
+    volver.className =
+      'mt-5 inline-flex min-h-[48px] items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+    volver.textContent = 'Volver a organizaciones';
+
+    mensajeEstado.parentElement?.append(volver);
+  }
+
+  function mostrarFicha(organizacion: Organizacion) {
+    const tipoOrganizacion = formatearTipoOrganizacion(organizacion);
+
+    asignarTexto('breadcrumb-organizacion', organizacion.nombre);
+    asignarTexto('titulo-organizacion', organizacion.nombre);
+    asignarTexto('tipo-organizacion', tipoOrganizacion);
+    asignarTexto('pais-organizacion', organizacion.pais.nombre);
+    asignarTexto('nombre-organizacion', organizacion.nombre);
+    asignarTexto('pais-informacion-organizacion', organizacion.pais.nombre);
+    asignarTexto('tipo-informacion-organizacion', tipoOrganizacion);
+    asignarTexto('representante-organizacion', organizacion.nombre_representante);
+    asignarTexto('beneficiarios-organizacion', organizacion.numero_beneficiarios);
+    asignarTexto('correo-organizacion', organizacion.correo);
+    asignarTexto('telefono-organizacion', organizacion.telefono);
+    asignarTexto('region-organizacion', organizacion.region_departamento);
+    asignarTexto('comuna-organizacion', organizacion.comuna_municipio_ciudad);
+    asignarTexto('direccion-organizacion', organizacion.direccion);
+    asignarTexto('publico-objetivo-organizacion', organizacion.publico_objetivo);
+    asignarTexto('descripcion-organizacion', organizacion.descripcion_breve);
+
+    document.title = `${organizacion.nombre} | Detalle de organización`;
+    estado.classList.add('hidden');
+    ficha.classList.remove('hidden');
+  }
+
+  async function cargarOrganizacion() {
+    const idOrganizacion = estado.dataset.id;
+
+    if (!idOrganizacion) {
+      mostrarEstado(
+        'Organización no encontrada',
+        'La organización solicitada no existe.',
+      );
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) throw error;
+      if (!data.session) {
+        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
+      }
+
+      const respuesta = await fetch('/_actions/obtenerOrganizacionPorId', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_organizacion: idOrganizacion }),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error('No fue posible consultar la organización.');
+      }
+
+      const resultado = parse(
+        await respuesta.text(),
+      ) as RespuestaActionOrganizacion<Organizacion>;
+
+      if (!resultado.ok) {
+        if (resultado.codigo === 'NO_ENCONTRADA') {
+          mostrarEstado('Organización no encontrada', resultado.mensaje);
+          return;
+        }
+
+        throw new Error(resultado.mensaje);
+      }
+
+      mostrarFicha(resultado.datos);
+    } catch (error) {
+      mostrarEstado(
+        'No fue posible cargar la organización',
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado.',
+      );
+    }
+  }
+
   const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-organizacion');
   const contenidos =
     document.querySelectorAll<HTMLElement>('.contenido-tab');
@@ -422,4 +557,6 @@ const tipoOrganizacion =
       });
     });
   });
+
+  void cargarOrganizacion();
 </script>
