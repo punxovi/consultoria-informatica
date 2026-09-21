@@ -195,10 +195,8 @@ import Button from '../components/ui/Button.astro';
 </AppLayout>
 
 <script>
-  import {
-    getOrganizacionesMock,
-    type OrganizacionMock,
-  } from '../lib/supabase';
+  import { actions } from 'astro:actions';
+  import type { Organizacion } from '../lib/server/organizaciones';
 
   const lista = document.querySelector<HTMLDivElement>(
     '#organizaciones-lista',
@@ -256,23 +254,35 @@ import Button from '../components/ui/Button.astro';
     lista.append(contenedor);
   }
 
-  function actualizarResumen(datos: OrganizacionMock[]) {
+  function actualizarResumen(datos: Organizacion[]) {
     const activas = datos.filter(
-      (organizacion) =>
-        organizacion.estado.toLowerCase() === 'activo',
+      (organizacion) => organizacion.archived_at === null,
     ).length;
 
-    const inactivas = datos.filter(
-      (organizacion) =>
-        organizacion.estado.toLowerCase() === 'inactivo',
-    ).length;
+    const inactivas = datos.length - activas;
 
     totalElement.textContent = String(datos.length);
     activasElement.textContent = String(activas);
     inactivasElement.textContent = String(inactivas);
   }
 
-  function crearOrganizacion(organizacion: OrganizacionMock) {
+  function formatearTipoOrganizacion(organizacion: Organizacion) {
+    if (organizacion.tipo_organizacion === 'comedor_merendero') {
+      return 'Comedor / Merendero';
+    }
+
+    if (organizacion.tipo_organizacion === 'centro_comunitario') {
+      return 'Centro comunitario';
+    }
+
+    if (organizacion.tipo_organizacion === 'emprendimiento_uv') {
+      return 'Emprendimiento UV';
+    }
+
+    return organizacion.tipo_organizacion_otro ?? 'Otra organización';
+  }
+
+  function crearOrganizacion(organizacion: Organizacion) {
     const tarjeta = document.createElement('article');
 
     tarjeta.className =
@@ -300,39 +310,27 @@ import Button from '../components/ui/Button.astro';
 
     nombre.textContent = organizacion.nombre;
 
-    // Estado
-    const estado = document.createElement('span');
+    const tipo = document.createElement('span');
 
-    const estaActiva =
-      organizacion.estado.toLowerCase() === 'activo';
+    tipo.className =
+      'inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary';
 
-    estado.className = estaActiva
-      ? 'inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success'
-      : 'inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600';
+    tipo.textContent = formatearTipoOrganizacion(organizacion);
 
-    const indicador = document.createElement('span');
+    encabezado.append(nombre, tipo);
 
-    indicador.textContent = estaActiva ? '●' : '○';
+    const ubicacion = document.createElement('p');
 
-    indicador.setAttribute('aria-hidden', 'true');
-
-    const textoEstado = document.createElement('span');
-
-    textoEstado.textContent = organizacion.estado;
-
-    estado.append(indicador, textoEstado);
-
-    encabezado.append(nombre, estado);
-
-    // RUT
-    const rut = document.createElement('p');
-
-    rut.className =
+    ubicacion.className =
       'mt-2 text-sm text-neutral-500';
 
-    rut.textContent = `RUT: ${organizacion.rut}`;
+    ubicacion.textContent = [
+      organizacion.comuna_municipio_ciudad,
+      organizacion.region_departamento,
+      organizacion.pais.nombre,
+    ].join(' · ');
 
-    informacion.append(encabezado, rut);
+    informacion.append(encabezado, ubicacion);
 
     // Acción de detalle
     const acciones = document.createElement('div');
@@ -342,7 +340,7 @@ import Button from '../components/ui/Button.astro';
 
     const detalle = document.createElement('a');
 
-    detalle.href = `/organizaciones/${organizacion.id}`;
+    detalle.href = `/organizaciones/${organizacion.id_organizacion}`;
 
     detalle.className =
       'inline-flex min-h-[48px] items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
@@ -359,7 +357,7 @@ import Button from '../components/ui/Button.astro';
   }
 
   function mostrarOrganizaciones(
-    datos: OrganizacionMock[],
+    datos: Organizacion[],
   ) {
     limpiarLista();
 
@@ -386,12 +384,17 @@ import Button from '../components/ui/Button.astro';
     lista.setAttribute('aria-busy', 'true');
 
     try {
-      /*
-       * Se utiliza la consulta existente de Supabase.
-       * La búsqueda y los filtros serán implementados
-       * posteriormente en la tarea correspondiente.
-       */
-      const datos = await getOrganizacionesMock('todos');
+      const resultado = await actions.listarOrganizaciones({});
+
+      if (resultado.error) {
+        throw new Error(resultado.error.message);
+      }
+
+      if (!resultado.data.ok) {
+        throw new Error(resultado.data.mensaje);
+      }
+
+      const datos = resultado.data.datos;
 
       actualizarResumen(datos);
       mostrarOrganizaciones(datos);
