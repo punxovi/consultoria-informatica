@@ -8,12 +8,16 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,7,'Se esperaban siete migraciones');
+assert.equal(files.length,9,'Se esperaban nueve migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
+const noTransactionMigrations=new Set([
+ triggerPerfiles,
+ '20260916143000_fge_obtener_roles_usuario.sql',
+]);
 for (let i=0;i<files.length;i++) {
  assert.match(files[i],/^\d{14}_fge_.+\.sql$/);
- if (files[i] !== triggerPerfiles) {
+ if (!noTransactionMigrations.has(files[i])) {
   assert.match(sql[i],/BEGIN;/);
   assert.match(sql[i],/COMMIT;/);
  }
@@ -50,8 +54,16 @@ const destinations=['id_organizacion','id_informacion_legal','id_programa','id_a
 for(const d of destinations) assert.ok(filesBody.includes(d+' uuid REFERENCES'),'FK anulable: '+d);
 assert.match(filesBody,/num_nonnulls\(id_organizacion,id_informacion_legal,id_programa,id_accion,id_donacion\) = 1/);
 assert.ok(!filesBody.includes('entidad_tipo'));
-assert.ok(!sql.join('\n').match(/CREATE POLICY/i),'Sin políticas inventadas');
-assert.ok(!sql.filter((_,i)=>files[i]!==triggerPerfiles).join('\n').match(/SECURITY DEFINER/i),'Sin funciones privilegiadas fuera del trigger de Auth');
+const allowedSecurityDefiner=new Set([
+ '20260909192500_fge_trigger_perfiles.sql',
+ '20260916143000_fge_obtener_roles_usuario.sql',
+ '20260922111500_fge_programas_storage_rls.sql',
+]);
+for (let i=0;i<files.length;i++) {
+ if (/SECURITY DEFINER/i.test(sql[i])) {
+  assert.ok(allowedSecurityDefiner.has(files[i]),'SECURITY DEFINER permitido: '+files[i]);
+ }
+}
 assert.ok(sql[2].includes("'fge-archivos',false"));
 assert.ok(!sql[2].includes('INSERT INTO public.programas'));
 assert.match(sql[3],/ADD COLUMN id_producto uuid REFERENCES public.productos/);
@@ -60,6 +72,13 @@ const rpcSql=sql.find(s=>s.includes('get_organizaciones_mock'));
 assert.ok(rpcSql,'Existe migración de la RPC de organizaciones');
 assert.match(rpcSql,/SECURITY INVOKER/);
 assert.match(rpcSql,/GRANT EXECUTE ON FUNCTION public\.get_organizaciones_mock\(text\) TO anon/);
+const programasRlsSql=sql.find(s=>s.includes('programas_admin_insert'));
+assert.ok(programasRlsSql,'Existe migración de RLS para Programas');
+assert.match(programasRlsSql,/CREATE POLICY programas_lectura_roles/);
+assert.match(programasRlsSql,/CREATE POLICY programas_admin_insert/);
+assert.match(programasRlsSql,/CREATE POLICY storage_programas_admin_insert/);
+assert.match(programasRlsSql,/file_size_limit = 614400/);
+assert.match(programasRlsSql,/allowed_mime_types = ARRAY\['image\/jpeg', 'image\/png', 'image\/webp'\]/);
 assert.match(config,/\[db\.seed\][\s\S]*?enabled\s*=\s*true/,'Seed habilitado');
 assert.match(seed,/Organización temporal FGE \(FICTICIA\)/,'Organización temporal identificada');
 assert.match(seed,/@example\.invalid/,'Seed sin correo personal real');

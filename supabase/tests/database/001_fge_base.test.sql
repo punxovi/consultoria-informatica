@@ -83,8 +83,8 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.diagnosticos'::
 SELECT ok(NOT has_table_privilege('anon','public.diagnosticos','SELECT') AND NOT has_table_privilege('authenticated','public.diagnosticos','SELECT'),'Sin lectura cliente: diagnosticos');
 SELECT ok(NOT has_table_privilege('authenticated','public.diagnosticos','INSERT') AND NOT has_table_privilege('authenticated','public.diagnosticos','UPDATE') AND NOT has_table_privilege('authenticated','public.diagnosticos','DELETE'),'Sin escritura cliente: diagnosticos');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.programas'::regclass),'RLS habilitada: programas');
-SELECT ok(NOT has_table_privilege('anon','public.programas','SELECT') AND NOT has_table_privilege('authenticated','public.programas','SELECT'),'Sin lectura cliente: programas');
-SELECT ok(NOT has_table_privilege('authenticated','public.programas','INSERT') AND NOT has_table_privilege('authenticated','public.programas','UPDATE') AND NOT has_table_privilege('authenticated','public.programas','DELETE'),'Sin escritura cliente: programas');
+SELECT ok(NOT has_table_privilege('anon','public.programas','SELECT') AND has_table_privilege('authenticated','public.programas','SELECT'),'Lectura cliente autenticada controlada por RLS: programas');
+SELECT ok(has_table_privilege('authenticated','public.programas','INSERT') AND has_table_privilege('authenticated','public.programas','UPDATE') AND NOT has_table_privilege('authenticated','public.programas','DELETE'),'Escritura autenticada controlada por RLS: programas');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.planes'::regclass),'RLS habilitada: planes');
 SELECT ok(NOT has_table_privilege('anon','public.planes','SELECT') AND NOT has_table_privilege('authenticated','public.planes','SELECT'),'Sin lectura cliente: planes');
 SELECT ok(NOT has_table_privilege('authenticated','public.planes','INSERT') AND NOT has_table_privilege('authenticated','public.planes','UPDATE') AND NOT has_table_privilege('authenticated','public.planes','DELETE'),'Sin escritura cliente: planes');
@@ -110,8 +110,8 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.donaciones'::re
 SELECT ok(NOT has_table_privilege('anon','public.donaciones','SELECT') AND NOT has_table_privilege('authenticated','public.donaciones','SELECT'),'Sin lectura cliente: donaciones');
 SELECT ok(NOT has_table_privilege('authenticated','public.donaciones','INSERT') AND NOT has_table_privilege('authenticated','public.donaciones','UPDATE') AND NOT has_table_privilege('authenticated','public.donaciones','DELETE'),'Sin escritura cliente: donaciones');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.archivos'::regclass),'RLS habilitada: archivos');
-SELECT ok(NOT has_table_privilege('anon','public.archivos','SELECT') AND NOT has_table_privilege('authenticated','public.archivos','SELECT'),'Sin lectura cliente: archivos');
-SELECT ok(NOT has_table_privilege('authenticated','public.archivos','INSERT') AND NOT has_table_privilege('authenticated','public.archivos','UPDATE') AND NOT has_table_privilege('authenticated','public.archivos','DELETE'),'Sin escritura cliente: archivos');
+SELECT ok(NOT has_table_privilege('anon','public.archivos','SELECT') AND has_table_privilege('authenticated','public.archivos','SELECT'),'Lectura cliente autenticada controlada por RLS: archivos');
+SELECT ok(has_table_privilege('authenticated','public.archivos','INSERT') AND has_table_privilege('authenticated','public.archivos','UPDATE') AND NOT has_table_privilege('authenticated','public.archivos','DELETE'),'Escritura autenticada controlada por RLS: archivos');
 SELECT is((SELECT public FROM storage.buckets WHERE id='fge-archivos'),false,'Bucket privado');
 SELECT is((SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='organizaciones'),0::bigint,'No se inventan políticas de roles');
 SET LOCAL ROLE anon;
