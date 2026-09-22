@@ -280,15 +280,13 @@ import Select from '../components/ui/Select.astro';
   const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Faltan las variables de configuraciÃ³n de Supabase.');
+    throw new Error('Faltan las variables de configuración de Supabase.');
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   // Dataset completo tal como llegó del backend; los filtros (RF20) se
-  // aplican en el cliente sobre esta copia. Cuando exista un filtro real
-  // en el backend, este arreglo puede reemplazarse por la respuesta ya
-  // filtrada de la Action, sin tocar el resto de esta función.
+  // aplican en el cliente sobre esta copia.
   let todasLasOrganizaciones: Organizacion[] = [];
 
   /** Quita tildes/mayúsculas para comparar texto sin distinguirlas (RF20). */
@@ -475,8 +473,6 @@ import Select from '../components/ui/Select.astro';
     limpiarLista();
 
     if (datos.length === 0) {
-      // KAN-125 vs KAN-151: distingue "no hay ninguna organización" de
-      // "hay organizaciones, pero ninguna calza con el filtro actual".
       mostrarMensaje(
         totalSinFiltrar === 0
           ? 'No hay organizaciones registradas actualmente.'
@@ -507,7 +503,7 @@ import Select from '../components/ui/Select.astro';
 
       if (error) throw error;
       if (!data.session) {
-        throw new Error('Tu sesiÃ³n ha expirado. Vuelve a iniciar sesiÃ³n.');
+        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
       }
 
       const respuesta = await fetch('/_actions/listarOrganizaciones', {
