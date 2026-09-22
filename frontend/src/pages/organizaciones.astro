@@ -172,8 +172,7 @@ import Select from '../components/ui/Select.astro';
           <Select
             id="filtro-pais"
             label="País"
-            options={[]}
-            placeholder="Todos los países"
+            options={[{ value: '', label: 'Todos los países' }]}
           />
 
           <!--
@@ -299,16 +298,19 @@ import Select from '../components/ui/Select.astro';
   }
 
   function poblarFiltroPaises(datos: Organizacion[]) {
+    const seleccionPrevia = selectPais.value;
     const paisesUnicos = new Map<string, string>();
 
     datos.forEach((organizacion) => {
       paisesUnicos.set(organizacion.pais.id_pais, organizacion.pais.nombre);
     });
 
-    // Se limpia dejando solo la opción "Todos los países" (primera <option>).
-    while (selectPais.options.length > 1) {
-      selectPais.remove(1);
-    }
+    selectPais.replaceChildren();
+
+    const opcionTodos = document.createElement('option');
+    opcionTodos.value = '';
+    opcionTodos.textContent = 'Todos los países';
+    selectPais.append(opcionTodos);
 
     [...paisesUnicos.entries()]
       .sort(([, nombreA], [, nombreB]) => nombreA.localeCompare(nombreB))
@@ -318,6 +320,8 @@ import Select from '../components/ui/Select.astro';
         opcion.textContent = nombrePais;
         selectPais.append(opcion);
       });
+
+    selectPais.value = seleccionPrevia;
   }
 
   function aplicarFiltros() {
