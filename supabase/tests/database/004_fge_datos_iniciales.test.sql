@@ -19,32 +19,35 @@ SELECT ok(
 );
 
 SELECT ok(
-  EXISTS(
-    SELECT 1
-    FROM public.organizaciones
+  NOT EXISTS(
+    SELECT 1 FROM public.organizaciones
     WHERE id_organizacion = '15800000-0000-4000-8000-000000000000'
-      AND nombre LIKE '%(FICTICIA)%'
-      AND correo LIKE '%@example.invalid'
   ),
-  'La organización temporal está identificada como ficticia y no contiene un correo real'
+  'El catálogo institucional no necesita una organización ficticia'
 );
 
 SELECT is(
   (
     SELECT count(*)
     FROM public.programas
-    WHERE id_organizacion = '15800000-0000-4000-8000-000000000000'
+    WHERE id_programa IN (
+      '15800000-0000-4000-8000-000000000001',
+      '15800000-0000-4000-8000-000000000002',
+      '15800000-0000-4000-8000-000000000003',
+      '15800000-0000-4000-8000-000000000004',
+      '15800000-0000-4000-8000-000000000005',
+      '15800000-0000-4000-8000-000000000006'
+    )
   ),
   6::bigint,
-  'La organización temporal contiene los seis Programas Institucionales'
+  'Se conservan los seis UUID de los Programas Institucionales'
 );
 
 SELECT is(
   (
     SELECT count(*)
     FROM public.programas
-    WHERE id_organizacion = '15800000-0000-4000-8000-000000000000'
-      AND nombre IN (
+    WHERE nombre IN (
         'Programa de Formalización',
         'Espacios con Valor',
         'Referentes al Frente',
@@ -61,7 +64,14 @@ SELECT is(
   (
     SELECT count(*)
     FROM public.programas
-    WHERE id_organizacion = '15800000-0000-4000-8000-000000000000'
+    WHERE id_programa IN (
+      '15800000-0000-4000-8000-000000000001',
+      '15800000-0000-4000-8000-000000000002',
+      '15800000-0000-4000-8000-000000000003',
+      '15800000-0000-4000-8000-000000000004',
+      '15800000-0000-4000-8000-000000000005',
+      '15800000-0000-4000-8000-000000000006'
+    )
       AND NULLIF(btrim(descripcion), '') IS NOT NULL
       AND NULLIF(btrim(objetivo_general), '') IS NOT NULL
       AND NULLIF(btrim(objetivos_especificos), '') IS NOT NULL

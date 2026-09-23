@@ -10,11 +10,7 @@ VALUES
   ('90000000-0000-4000-8000-000000000002','coord-programas@example.invalid'),
   ('90000000-0000-4000-8000-000000000003','sin-rol-programas@example.invalid');
 
-INSERT INTO public.perfiles(id_usuario,nombre)
-VALUES
-  ('90000000-0000-4000-8000-000000000001','Admin Programas'),
-  ('90000000-0000-4000-8000-000000000002','Coord Programas'),
-  ('90000000-0000-4000-8000-000000000003','Sin Rol Programas');
+-- La migración del trigger Auth ya creó public.perfiles para estos usuarios.
 
 INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,otorgado_por)
 SELECT '90000000-0000-4000-8000-000000000001', id_rol, 'global', '90000000-0000-4000-8000-000000000001'
@@ -30,7 +26,7 @@ WHERE roles.codigo = 'COORD'
 
 SELECT is(
   (SELECT file_size_limit FROM storage.buckets WHERE id = 'fge-archivos'),
-  614400,
+  614400::bigint,
   'Bucket limita archivos de imagen a 600 KB'
 );
 
@@ -46,7 +42,6 @@ SELECT lives_ok(
   $q$
     INSERT INTO public.programas(
       id_programa,
-      id_organizacion,
       nombre,
       descripcion,
       objetivo_general,
@@ -56,7 +51,6 @@ SELECT lives_ok(
     )
     VALUES (
       '91000000-0000-4000-8000-000000000001',
-      '15800000-0000-4000-8000-000000000000',
       'Programa RLS Admin',
       'Prueba',
       'Prueba',
@@ -129,6 +123,25 @@ SELECT throws_ok(
 
 RESET ROLE;
 
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM fge_private.historial_cambios
+    WHERE tabla_afectada = 'programas'
+      AND tipo_accion = 'INSERT'
+      AND id_usuario = '90000000-0000-4000-8000-000000000001'
+      AND actor_sql = 'authenticated'
+  ),
+  'La creación autorizada conserva usuario y rol invocador en la auditoría'
+);
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'fge_private.historial_cambios', 'INSERT'),
+  'El cliente no puede escribir directamente el historial privado'
+);
+SELECT ok(
+  NOT has_function_privilege('authenticated', 'fge_private.auditar_registro()', 'EXECUTE'),
+  'El cliente no puede ejecutar directamente el trigger de auditoría'
+);
+
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000002', true);
 
@@ -140,7 +153,6 @@ SELECT ok(
 SELECT throws_ok(
   $q$
     INSERT INTO public.programas(
-      id_organizacion,
       nombre,
       descripcion,
       objetivo_general,
@@ -149,7 +161,6 @@ SELECT throws_ok(
       resultados_esperados
     )
     VALUES (
-      '15800000-0000-4000-8000-000000000000',
       'Programa no permitido',
       'Prueba',
       'Prueba',

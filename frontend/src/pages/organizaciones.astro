@@ -177,8 +177,8 @@ import Select from '../components/ui/Select.astro';
 
           <!--
             RF20 pide filtrar también por Programa Institucional, pero el
-            tipo Organizacion no trae aún la asociación con Programas
-            (falta esa pieza de backend). Se deja el control visible pero
+            listado aún no consulta los Planes que vinculan Organización y
+            Programa. Se deja el control visible pero
             deshabilitado para no aparentar una función que no existe.
           -->
           <Select
@@ -186,7 +186,7 @@ import Select from '../components/ui/Select.astro';
             label="Programa Institucional"
             options={[{ value: '', label: 'Todos los programas' }]}
             disabled
-            hint="Disponible cuando el backend asocie Organización–Programa."
+            hint="Disponible cuando se puedan consultar los planes de cada organización."
           />
         </div>
 

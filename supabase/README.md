@@ -1,9 +1,10 @@
 # Base de datos FGE/TDT
 
-## Estado al 14 de septiembre de 2026
+## Estado de la rama `fix/relaciones-organizacion-programa-plan`
 
-Siete migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26 tablas
- de aplicación y una tabla privada de auditoría.
+Once migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26
+tablas de aplicación y una tabla privada de auditoría. Esta rama prepara el
+cambio localmente; la nueva migración todavía no se ha aplicado en `fge-dev`.
 
 | Migración | Contenido |
 |---|---|
@@ -14,8 +15,12 @@ Siete migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26 t
 | `20260909152638_fge_ajustes_despliegue.sql` | Ajustes de permisos técnicos y dos índices adicionales. |
 | `20260909192500_fge_trigger_perfiles.sql` | Creación automática del perfil al registrar un usuario en Auth. |
 | `20260914000000_fge_get_organizaciones_mock.sql` | RPC de demostración para filtrar organizaciones desde el frontend. |
+| `20260916143000_fge_obtener_roles_usuario.sql` | Consulta de roles para operaciones de organizaciones. |
+| `20260922111500_fge_programas_storage_rls.sql` | Permisos de Programas y sus imágenes en Storage. |
+| `20260923014926_fge_relaciones_planes_programas.sql` | Programas institucionales independientes; cada plan relaciona organización y programa. |
+| `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
 
-La carpeta incluye configuración local, cinco archivos de pruebas pgTAP y
+La carpeta incluye configuración local, seis archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
 
 ## Datos iniciales de desarrollo (KAN-158)
@@ -24,21 +29,33 @@ La carpeta incluye configuración local, cinco archivos de pruebas pgTAP y
 las migraciones al iniciar o reconstruir la base local. Incluye:
 
 - Los roles básicos Administrador, Coordinador e Invitado.
-- Una organización denominada `Organización temporal FGE (FICTICIA)`, sin
-  datos personales reales y con valores claramente identificados como
-  temporales.
 - Los seis Programas Institucionales oficiales entregados por FGE en el
   documento `PROGRAMAS FGE.docx` del 20 de agosto de 2026.
 
-Los programas son datos reales de la fundación; solo su asociación con la
-organización ficticia es transitoria. Sus UUID son estables para facilitar las
-pruebas y su reasignación futura. Cuando FGE entregue el padrón oficial, se
-deben crear las organizaciones reales, actualizar `programas.id_organizacion`
-y eliminar la organización ficticia una vez que no tenga registros asociados.
+Los programas son un catálogo global de la fundación y no tienen
+`id_organizacion`. Sus UUID permanecen estables para conservar imágenes y
+futuras referencias. Cada Plan de Intervención requiere `id_organizacion` e
+`id_programa`; las Acciones siguen vinculadas a un Plan. La organización
+ficticia deja de crearse en instalaciones nuevas. En una base existente, la
+nueva migración la elimina solo si su UUID y nombre coinciden y ninguna otra
+referencia impide el borrado. Si existe un Plan bajo ella, la migración se
+detiene para evitar una asignación inventada.
 
-No se deben crear planes, acciones ni otros datos definitivos dependientes de
-la organización ficticia. Las pruebas automatizadas usan datos separados y
-revierten sus cambios al terminar.
+Las 23 organizaciones reales de `fge-dev` se cargaron por separado; el seed
+no las reemplaza. Las pruebas automatizadas usan datos separados y revierten
+sus cambios al terminar.
+
+### Antes de desplegar en `fge-dev`
+
+La revisión de solo lectura del 22-sep-2026 encontró 24 organizaciones (23
+reales y la ficticia), seis programas ligados a la ficticia, cero planes y cero
+acciones. El historial remoto todavía incluye la carga de datos
+`20260916221136_organizaciones_datos_parciales_20260916`, que no está entre
+los archivos de migración del repositorio, y no incluye varias migraciones de
+esta rama. Por eso **no se debe ejecutar `db push` todavía**: primero hay que
+reconciliar el historial y el esquema remoto con el equipo, respaldar los
+datos, repetir el conteo y revisar el `dry-run`. No usar `db reset --linked` ni
+`--include-seed` sobre esa base; el seed es solo para desarrollo local.
 
 ## Operaciones de organizaciones (KAN-159)
 
@@ -55,9 +72,11 @@ añadieron políticas ni funciones privilegiadas dentro de esta tarea.
 
 ## Estado de seguridad
 
-Todas las tablas tienen RLS activado. Los accesos de `anon` y `authenticated`
-están cerrados y el almacenamiento de archivos es privado. La revisión remota
-final solo informó RLS sin políticas de acceso.
+Todas las tablas tienen RLS activado y el almacenamiento es privado. La
+migración de Programas define políticas para consultar y administrar ese
+catálogo y sus imágenes. El trigger privado audita las escrituras autorizadas
+sin conceder INSERT directo al historial. Planes continúa sin acceso directo para clientes:
+esta corrección de relaciones no habilita por sí sola su CRUD.
 
 Falta implementar y probar los permisos por rol, país y operación, el acceso
 público al catálogo y la recepción de cotizaciones. La estructura actual no
@@ -73,10 +92,10 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las siete migraciones y luego el
+En una instalación nueva, el inicio aplica las once migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
-solo en una base de pruebas:
+solo en una base de pruebas desechable, nunca en `fge-dev`:
 
 ```powershell
 npx.cmd --yes supabase@2.117.0 db reset --local --no-seed
@@ -120,8 +139,6 @@ Documentación técnica consultada:
 - [https://supabase.com/docs/guides/storage/schema/design](https://supabase.com/docs/guides/storage/schema/design)
 - [https://supabase.com/changelog](https://supabase.com/changelog)
 
-En esta entrega, la revisión estática preparó 155 aserciones pgTAP. El CRUD de
-KAN-159 se verificó además en `fge-dev` dentro de una transacción con `ROLLBACK`:
-alta, listado, consulta por ID, relación con Chile y actualización quedaron
-confirmados sin persistir el registro de prueba. Para ejecutar los cinco
-archivos pgTAP completos en local sigue siendo necesario disponer de Docker.
+La revisión estática no sustituye las pruebas pgTAP ni una comprobación de
+datos antes y después de aplicar la migración. Para ejecutar los seis archivos
+pgTAP completos en local se necesita Docker.

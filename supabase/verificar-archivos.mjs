@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,9,'Se esperaban nueve migraciones');
+assert.equal(files.length,11,'Se esperaban once migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -46,9 +46,16 @@ for(const [,name,body] of tables) {
  assert.ok(allSql.includes('AFTER INSERT OR UPDATE OR DELETE ON public.'+name),'Auditoría '+name);
 }
 const body=n=>tables.find(t=>t[1]===n)[2];
+// La migración inicial es histórica: el esquema final se verifica abajo.
 assert.match(body('programas'),/id_organizacion uuid NOT NULL/);
 assert.ok(!body('planes').includes('id_organizacion'));
 assert.ok(!known.has('organizacion_programas'));
+const relacionesSql=sql.find(s=>s.includes('ALTER TABLE public.programas DROP COLUMN id_organizacion'));
+assert.ok(relacionesSql,'Existe migración que desacopla Programas de Organizaciones');
+assert.match(relacionesSql,/ALTER TABLE public\.planes ADD COLUMN id_organizacion uuid/);
+assert.match(relacionesSql,/FOREIGN KEY \(id_organizacion\)[\s\S]*?REFERENCES public\.organizaciones\(id_organizacion\)/);
+assert.match(relacionesSql,/Hay planes asociados a la organización ficticia/,'Migración bloquea planes sin organización verificable');
+assert.match(relacionesSql,/CREATE INDEX planes_id_organizacion_fk_idx/);
 const filesBody=body('archivos');
 const destinations=['id_organizacion','id_informacion_legal','id_programa','id_accion','id_donacion'];
 for(const d of destinations) assert.ok(filesBody.includes(d+' uuid REFERENCES'),'FK anulable: '+d);
@@ -58,6 +65,7 @@ const allowedSecurityDefiner=new Set([
  '20260909192500_fge_trigger_perfiles.sql',
  '20260916143000_fge_obtener_roles_usuario.sql',
  '20260922111500_fge_programas_storage_rls.sql',
+ '20260923020339_fge_auditoria_escrituras_autorizadas.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  if (/SECURITY DEFINER/i.test(sql[i])) {
@@ -79,9 +87,12 @@ assert.match(programasRlsSql,/CREATE POLICY programas_admin_insert/);
 assert.match(programasRlsSql,/CREATE POLICY storage_programas_admin_insert/);
 assert.match(programasRlsSql,/file_size_limit = 614400/);
 assert.match(programasRlsSql,/allowed_mime_types = ARRAY\['image\/jpeg', 'image\/png', 'image\/webp'\]/);
+const auditoriaSql=sql.find(s=>s.includes('CREATE OR REPLACE FUNCTION fge_private.auditar_registro() RETURNS trigger'));
+assert.ok(auditoriaSql,'Existe corrección del trigger de auditoría');
+assert.match(auditoriaSql,/SECURITY DEFINER SET search_path = ''/);
+assert.match(auditoriaSql,/REVOKE ALL ON FUNCTION fge_private\.auditar_registro\(\)/);
 assert.match(config,/\[db\.seed\][\s\S]*?enabled\s*=\s*true/,'Seed habilitado');
-assert.match(seed,/Organización temporal FGE \(FICTICIA\)/,'Organización temporal identificada');
-assert.match(seed,/@example\.invalid/,'Seed sin correo personal real');
+assert.ok(!seed.includes('15800000-0000-4000-8000-000000000000'),'Seed sin organización ficticia');
 const programasOficiales=[
  'Programa de Formalización',
  'Espacios con Valor',
@@ -111,5 +122,5 @@ for(const operacion of ['listarOrganizaciones','obtenerOrganizacionPorId','crear
  assert.match(repositorioOrganizaciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada: '+operacion);
 }
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
-const assertions=(tests.match(/SELECT (?:has_table|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
+const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
 console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));

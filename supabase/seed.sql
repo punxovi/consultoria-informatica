@@ -1,10 +1,8 @@
 -- Datos semilla para FGE
 -- Estos datos se insertan al hacer `supabase start` o `supabase db reset`
 --
--- IMPORTANTE: la organización con UUID 15800000-0000-4000-8000-000000000000
--- es ficticia y solo sostiene temporalmente los seis Programas Institucionales
--- oficiales. Cuando FGE entregue el padrón real, se deben reasignar los programas
--- mediante `programas.id_organizacion` y eliminar este registro temporal.
+-- Los seis Programas Institucionales son un catálogo global de FGE. La
+-- relación con cada organización se establece mediante un Plan de Intervención.
 
 -- Insertar roles básicos de la plataforma
 INSERT INTO public.roles (codigo, nombre) VALUES
@@ -13,52 +11,11 @@ INSERT INTO public.roles (codigo, nombre) VALUES
 ('INVIT', 'Invitado')
 ON CONFLICT (codigo) DO UPDATE SET nombre = EXCLUDED.nombre;
 
--- Organización transitoria: no contiene datos personales ni representa a una
--- organización real. Chile se usa solo para satisfacer la relación territorial
--- obligatoria del modelo mientras la clienta entrega el padrón definitivo.
-INSERT INTO public.organizaciones (
-  id_organizacion,
-  id_pais,
-  nombre,
-  nombre_representante,
-  telefono,
-  correo,
-  region_departamento,
-  comuna_municipio_ciudad,
-  direccion,
-  publico_objetivo,
-  descripcion_breve,
-  tipo_organizacion,
-  tipo_organizacion_otro,
-  numero_beneficiarios
-)
-SELECT
-  '15800000-0000-4000-8000-000000000000',
-  id_pais,
-  'Organización temporal FGE (FICTICIA)',
-  'Representante pendiente (FICTICIO)',
-  '000000000',
-  'organizacion-temporal@example.invalid',
-  'Pendiente de información oficial',
-  'Pendiente de información oficial',
-  'Pendiente de información oficial',
-  'Dato temporal para desarrollo',
-  'Registro ficticio para alojar temporalmente los Programas Institucionales oficiales de FGE.',
-  'otra',
-  'Organización temporal de desarrollo',
-  0
-FROM public.paises
-WHERE codigo_iso = 'CL'
-ON CONFLICT (id_organizacion) DO UPDATE SET
-  nombre = EXCLUDED.nombre,
-  descripcion_breve = EXCLUDED.descripcion_breve;
-
 -- Los contenidos de estos seis programas provienen del documento oficial
 -- `PROGRAMAS FGE.docx`, entregado por la clienta el 20 de agosto de 2026.
--- Los programas son reales; únicamente su organización asociada es temporal.
+-- Sus UUID permanecen estables para conservar imágenes y futuras referencias.
 INSERT INTO public.programas (
   id_programa,
-  id_organizacion,
   nombre,
   descripcion,
   objetivo_general,
@@ -68,7 +25,6 @@ INSERT INTO public.programas (
 ) VALUES
 (
   '15800000-0000-4000-8000-000000000001',
-  '15800000-0000-4000-8000-000000000000',
   'Programa de Formalización',
   'Acompaña a las organizaciones comunitarias en su proceso de formalización, salud, alimentación y fortalecimiento institucional.',
   'Promover la autonomía de las organizaciones para que puedan articularse con organismos públicos y privados, recibir donaciones y ampliar su alcance.',
@@ -78,7 +34,6 @@ INSERT INTO public.programas (
 ),
 (
   '15800000-0000-4000-8000-000000000002',
-  '15800000-0000-4000-8000-000000000000',
   'Espacios con Valor',
   'Programa de mejoramiento de infraestructura que colabora con las organizaciones de la red para gestionar recursos destinados a sus espacios comunitarios.',
   'Fortalecer la infraestructura de las organizaciones para que desarrollen sus actividades en condiciones adecuadas y sostenibles.',
@@ -88,7 +43,6 @@ INSERT INTO public.programas (
 ),
 (
   '15800000-0000-4000-8000-000000000003',
-  '15800000-0000-4000-8000-000000000000',
   'Referentes al Frente',
   'Programa de fortalecimiento de líderes comunitarios orientado a promover la gestión y el liderazgo de dirigentes sociales.',
   'Impulsar el desarrollo, la autonomía y la transformación social de las comunidades mediante el fortalecimiento de sus referentes.',
@@ -98,7 +52,6 @@ INSERT INTO public.programas (
 ),
 (
   '15800000-0000-4000-8000-000000000004',
-  '15800000-0000-4000-8000-000000000000',
   'Una vuelta +',
   'Programa que promueve la economía circular y permite transformar materiales corporativos en desuso en productos con impacto ambiental y social medible.',
   'Generar impacto social, ambiental y económico mediante proyectos productivos sustentables y la valorización de materiales en desuso.',
@@ -108,7 +61,6 @@ INSERT INTO public.programas (
 ),
 (
   '15800000-0000-4000-8000-000000000005',
-  '15800000-0000-4000-8000-000000000000',
   'Voluntariado Corporativo — Una hora para salvar al mundo',
   'Programa que articula acciones de voluntariado con el ámbito corporativo y sus colaboradores.',
   'Generar involucramiento, comunidad y solidaridad mediante actividades conjuntas con organizaciones comunitarias.',
@@ -118,7 +70,6 @@ INSERT INTO public.programas (
 ),
 (
   '15800000-0000-4000-8000-000000000006',
-  '15800000-0000-4000-8000-000000000000',
   'Donación de Recursos a Organizaciones Comunitarias',
   'Programa destinado a proveer apoyo y recursos a organizaciones comunitarias.',
   'Responder a las necesidades de las organizaciones mediante campañas y asistencia permanente.',
