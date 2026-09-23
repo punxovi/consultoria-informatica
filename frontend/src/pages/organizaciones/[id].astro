@@ -85,14 +85,6 @@ const idOrganizacion = Astro.params.id ?? '';
 
         <button
           type="button"
-          data-tab="programas"
-          class="tab-organizacion border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
-        >
-          Programas
-        </button>
-
-        <button
-          type="button"
           data-tab="intervenciones"
           class="tab-organizacion border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
         >
@@ -262,37 +254,7 @@ const idOrganizacion = Astro.params.id ?? '';
       </Card>
     </div>
 
-    <!-- Programas -->
-    <div id="tab-programas" class="contenido-tab hidden">
-      <Card>
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold text-neutral-900">
-            Programas asociados
-          </h2>
-          <p class="mt-1 text-sm text-neutral-500">
-            Programas institucionales utilizados en los planes de esta organización.
-          </p>
-        </div>
-
-        <div
-          class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center"
-        >
-          <div
-            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"
-          >
-            <span class="text-xl">+</span>
-          </div>
-
-          <p class="mt-4 text-sm font-medium text-neutral-700">
-            Vista de programas relacionados en preparación.
-          </p>
-          <p class="mt-1 text-sm text-neutral-500">
-            Un programa aparecerá aquí cuando exista un plan de esta organización que lo utilice.
-          </p>
-        </div>
-      </Card>
-    </div>
-
+    <!-- Los programas usados por la organización se obtendrán de sus planes, sin relación directa Organización–Programa. -->
     <!-- Intervenciones -->
     <div id="tab-intervenciones" class="contenido-tab hidden">
       <Card>
@@ -319,7 +281,7 @@ const idOrganizacion = Astro.params.id ?? '';
             Vista de intervenciones en preparación.
           </p>
           <p class="mt-1 text-sm text-neutral-500">
-            Cada plan mostrará su organización, programa institucional y acciones.
+            Cada plan mostrará el programa institucional que utiliza y sus acciones.
           </p>
         </div>
       </Card>
