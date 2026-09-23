@@ -2,6 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
+import BackButton from '../../components/ui/BackButton.astro';
 
 const idOrganizacion = Astro.params.id ?? '';
 ---
@@ -12,17 +13,26 @@ const idOrganizacion = Astro.params.id ?? '';
   allowedRoles={['ADMIN', 'COORD']}
 >
   <Fragment slot="breadcrumb">
-    <a
-      href="/organizaciones"
-      class="text-primary transition-colors hover:underline"
-    >
-      Organizaciones
-    </a>
-    <span>&rsaquo;</span>
-    <span id="breadcrumb-organizacion" class="font-medium text-neutral-900">
-      Detalle de organización
-    </span>
-  </Fragment>
+  <div class="flex items-center gap-4">
+    <BackButton />
+
+    <div class="flex min-w-0 items-center gap-2 text-sm">
+      <a
+        href="/organizaciones"
+        class="text-neutral-500 transition-colors hover:text-primary"
+      >
+        Organizaciones
+      </a>
+      <span class="text-neutral-400">&rsaquo;</span>
+      <span
+        id="breadcrumb-organizacion"
+        class="truncate font-medium text-neutral-900"
+      >
+        Detalle de organización
+      </span>
+    </div>
+  </div>
+</Fragment>
 
   <section
     id="estado-organizacion"
