@@ -1,412 +1,337 @@
 ---
-// frontend/src/pages/login.astro
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+import Input from '../components/ui/Input.astro';
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iniciar Sesión - Fundación Gestionar Esperanzas</title>
-  </head>
-  <body>
-
-    <div class="bg-circle circle-1"></div>
-    <div class="bg-circle circle-2"></div>
-    <div class="bg-circle circle-3"></div>
-
-    <main class="login-container">
-      <div class="login-card">
-        <div class="logo-area">
-          <img src="/Logo-FGE-SIN-FONDO.png" alt="Logo Institucional" class="logo-img" />
-          <h2>Bienvenido al Sistema</h2>
-          <p>Ingresa tus credenciales para acceder</p>
-        </div>
-
-        <div id="error-alert" class="error-alert hidden">
-          <span class="error-icon">!</span>
-          <span id="error-message">Por favor, completa todos los campos.</span>
-        </div>
-
-        <form id="login-form" class="login-form" novalidate>
-          <div class="form-group">
-            <label for="email">CORREO ELECTRÓNICO</label>
-            <div class="input-with-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <input 
-                type="email" 
-                id="email" 
-                placeholder="coordinador@fge.cl" 
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="password">CONTRASEÑA</label>
-            <div class="input-with-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <input 
-                type="password" 
-                id="password" 
-                placeholder="••••••••" 
-              />
-            </div>
-            <div class="forgot-password">
-              <a href="#recuperar">Olvidé mi contraseña</a>
-            </div>
-          </div>
-
-          <button type="submit" id="submit-btn" class="btn-primary">
-            Ingresar al Sistema
-          </button>
-
-          <div class="divider">
-            <span>O CONTINÚA COMO</span>
-          </div>
-
-          <button type="button" id="btn-guest" class="btn-secondary">
-            Ingresar como Invitado
-          </button>
-        </form>
-
-        <footer class="login-footer">
-          <p>© 2026 Fundación Gestionar Esperanzas - Chile - Argentina - Uruguay</p>
-        </footer>
+<Layout title="Iniciar sesión - Fundación Gestionar Esperanzas">
+  <main class="auth-page">
+    <section class="brand-panel">
+      <div class="brand-circle"></div>
+      <img src="/Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas" class="brand-logo" />
+      <div class="brand-wave"></div>
+      <div class="brand-footer">
+        <span>Chile · Argentina · Uruguay</span>
+        <span>© Fundación Gestionar Esperanzas</span>
       </div>
-    </main>
+    </section>
 
-    <script>
-      import { createClient } from '@supabase/supabase-js';
+    <section class="auth-panel">
+      <Card class="auth-card">
+        <div class="auth-content">
+          <header class="auth-header">
+            <h1>Inicia sesión</h1>
+            <p>Accede a la intranet de Fundación Gestionar Esperanzas.</p>
+          </header>
 
-      const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+          <div id="error-alert" class="error-alert hidden" role="alert">
+            <span class="error-icon">!</span>
+            <span id="error-message"></span>
+          </div>
 
-      const form = document.getElementById('login-form') as HTMLFormElement;
-      const emailInput = document.getElementById('email') as HTMLInputElement;
-      const passwordInput = document.getElementById('password') as HTMLInputElement;
-      const errorAlert = document.getElementById('error-alert') as HTMLDivElement;
-      const errorMessage = document.getElementById('error-message') as HTMLSpanElement;
-      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+          <form id="login-form" class="auth-form" novalidate>
+            <Input
+              label="Correo electrónico"
+              id="email"
+              type="email"
+              placeholder="coordinador@fge.cl"
+              autocomplete="email"
+              required
+            />
 
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        hideError();
+            <div>
+              <Input
+                label="Contraseña"
+                id="password"
+                type="password"
+                placeholder="Ingresa tu contraseña"
+                autocomplete="current-password"
+                showPasswordToggle
+                required
+              />
+              <div class="forgot">
+                <a href="/recuperar-contrasena">¿Olvidaste tu contraseña?</a>
+              </div>
+            </div>
 
-        const email = emailInput.value.trim();
-        const password = passwordInput.value.trim();
+            <Button id="submit-btn" type="submit" variant="primary" size="lg" class="full">
+              Iniciar sesión
+            </Button>
 
-        if (!email || !password) {
-          showError("Por favor, completa todos los campos.");
+            <div class="divider"><span>O CONTINÚA COMO</span></div>
+
+            <Button id="btn-guest" type="button" variant="outline" size="lg" class="full">
+              Ingresar como invitado
+            </Button>
+          </form>
+
+          <p class="auth-footer">Acceso seguro para usuarios autorizados.</p>
+        </div>
+      </Card>
+    </section>
+  </main>
+
+  <script>
+    import { createClient } from '@supabase/supabase-js';
+
+    const supabase = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+    );
+
+    const form = document.getElementById('login-form') as HTMLFormElement;
+    const email = document.getElementById('email') as HTMLInputElement;
+    const password = document.getElementById('password') as HTMLInputElement;
+    const alert = document.getElementById('error-alert') as HTMLDivElement;
+    const message = document.getElementById('error-message') as HTMLSpanElement;
+    const submit = document.getElementById('submit-btn') as HTMLButtonElement;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      hideError();
+
+      const emailValue = email.value.trim();
+      const passwordValue = password.value.trim();
+
+      if (!emailValue || !passwordValue) {
+        showError('Por favor, completa todos los campos.');
+        return;
+      }
+
+      if (!emailValue.includes('@') || !emailValue.includes('.')) {
+        showError('Por favor, introduce una dirección de correo electrónico válida.');
+        return;
+      }
+
+      try {
+        submit.textContent = 'Verificando...';
+        submit.disabled = true;
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailValue,
+          password: passwordValue,
+        });
+
+        if (error || !data.session) {
+          showError('Credenciales incorrectas o acceso no autorizado.');
+          submit.textContent = 'Iniciar sesión';
+          submit.disabled = false;
           return;
         }
 
-        if (!email.includes('@') || !email.includes('.')) {
-          showError("Por favor, introduce una dirección de correo electrónico válida.");
-          return;
-        }
-
-        try {
-          submitBtn.textContent = "Verificando...";
-          submitBtn.setAttribute("disabled", "true");
-
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (error || !data.session) {
-            showError("Credenciales incorrectas o acceso no autorizado.");
-            submitBtn.textContent = "Ingresar al Sistema";
-            submitBtn.removeAttribute("disabled");
-            return;
-          }
-
-          window.location.href = '/dashboard';
-
-        } catch (err) {
-          showError("Ocurrió un error de conexión. Inténtalo nuevamente.");
-          submitBtn.textContent = "Ingresar al Sistema";
-          submitBtn.removeAttribute("disabled");
-        }
-      });
-
-      function showError(msg: string) {
-        errorMessage.textContent = msg;
-        errorAlert.classList.remove('hidden');
-        emailInput.style.borderColor = '#ef4444';
-        passwordInput.style.borderColor = '#ef4444';
+        window.location.href = '/dashboard';
+      } catch {
+        showError('Ocurrió un error de conexión. Inténtalo nuevamente.');
+        submit.textContent = 'Iniciar sesión';
+        submit.disabled = false;
       }
+    });
 
-      function hideError() {
-        errorAlert.classList.add('hidden');
-        emailInput.style.borderColor = '#d1d5db';
-        passwordInput.style.borderColor = '#d1d5db';
-      }
-    </script>
-  </body>
-</html>
+    function showError(text: string) {
+      message.textContent = text;
+      alert.classList.remove('hidden');
+    }
+
+    function hideError() {
+      alert.classList.add('hidden');
+    }
+  </script>
+</Layout>
 
 <style>
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #2c2552 0%, #3d346b 50%, #4a3c7d 100%);
-    height: 100vh;
-    height: 100dvh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 45% 55%;
+    background: #fff;
+  }
+
+  .brand-panel {
     position: relative;
-    overflow: hidden; /* Bloquea el scroll del body */
-  }
-
-  .bg-circle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .circle-1 {
-    width: 350px;
-    height: 350px;
-    background: rgba(255, 255, 255, 0.04);
-    top: -80px;
-    right: -80px;
-  }
-
-  .circle-2 {
-    width: 250px;
-    height: 250px;
-    background: rgba(255, 255, 255, 0.03);
-    bottom: 50px;
-    right: 15%;
-  }
-
-  .circle-3 {
-    width: 300px;
-    height: 300px;
-    background: rgba(0, 0, 0, 0.1);
-    bottom: -100px;
-    left: -80px;
-  }
-
-  .login-container {
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    padding: 0.75rem;
-    box-sizing: border-box;
+    min-height: 100vh;
+    overflow: hidden;
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 10;
-    overflow: hidden; /* Bloquea el scroll interno del contenedor */
+    justify-content: center;
+    background: linear-gradient(135deg, #fff 0%, #fafafa 65%, #f5f3fb 100%);
   }
 
-  .login-card {
-    background: #ffffff;
-    padding: 2rem 1.75rem;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    width: 100%;
-    max-width: 420px;
-    box-sizing: border-box;
-    max-height: 100%;
+  .brand-logo {
+    position: relative;
+    z-index: 2;
+    width: min(78%, 390px);
+  }
+
+  .brand-circle {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: -145px;
+    left: -90px;
+    border-radius: 50%;
+    background: rgba(76, 70, 136, .08);
+  }
+
+  .brand-wave {
+    position: absolute;
+    left: -10%;
+    right: -15%;
+    bottom: -25%;
+    height: 42%;
+    background: #4c4688;
+    border-radius: 55% 55% 0 0 / 35% 35% 0 0;
+    transform: rotate(-3deg);
+  }
+
+  .brand-footer {
+    position: absolute;
+    z-index: 3;
+    left: 2.5rem;
+    bottom: 2rem;
     display: flex;
     flex-direction: column;
+    gap: .35rem;
+    color: rgba(255,255,255,.9);
+    font-size: .78rem;
+  }
+
+  .auth-panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    padding: 3rem 5rem;
   }
 
-  .logo-area {
-    text-align: center;
-    margin-bottom: 1.2rem;
-  }
-
-  .logo-area h2 {
-    margin: 0.4rem 0 0.2rem 0;
-    color: #1f2937;
-    font-size: 1.3rem;
-  }
-
-  .logo-area p {
-    margin: 0;
-    color: #6b7280;
-    font-size: 0.85rem;
-  }
-
-  .error-alert {
-    background-color: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #b91c1c;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .error-alert.hidden {
-    display: none;
-  }
-
-  .form-group {
-    margin-bottom: 1rem;
-  }
-
-  .form-group label {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: bold;
-    color: #4b5563;
-    margin-bottom: 0.3rem;
-    letter-spacing: 0.5px;
-  }
-
-  .input-with-icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .input-icon {
-    position: absolute;
-    left: 12px;
-    width: 18px;
-    height: 18px;
-    color: #9ca3af;
-  }
-
-  .input-with-icon input {
+  .auth-card {
     width: 100%;
-    padding: 0.65rem 0.75rem 0.65rem 2.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    outline: none;
-    transition: border-color 0.2s;
-    box-sizing: border-box;
+    max-width: 560px;
+    padding: 2rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
   }
 
-  .input-with-icon input:focus {
-    border-color: #584996;
-    box-shadow: 0 0 0 3px rgba(88, 73, 150, 0.15);
+  .auth-content {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
   }
 
-  .forgot-password {
-    text-align: right;
-    margin-top: 0.3rem;
+  .auth-header {
+    margin-bottom: 2.5rem;
   }
 
-  .forgot-password a {
-    font-size: 0.75rem;
-    color: #584996;
+  .auth-header h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .auth-header p {
+    margin: .75rem 0 0;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+
+  .forgot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .55rem;
+  }
+
+  .forgot a {
+    color: #4c4688;
+    font-size: .85rem;
+    font-weight: 600;
     text-decoration: none;
   }
 
-  .forgot-password a:hover {
-    text-decoration: underline;
-  }
+  .forgot a:hover { text-decoration: underline; }
 
-  .btn-primary {
-    width: 100%;
-    padding: 0.65rem;
-    background-color: #493b82;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 0.2rem;
-    min-height: 44px;
-  }
-
-  .btn-primary:hover {
-    background-color: #3b2e69;
-  }
+  .full { width: 100%; }
 
   .divider {
-    text-align: center;
-    border-bottom: 1px solid #e5e7eb;
-    line-height: 0.1rem;
-    margin: 1.1rem 0;
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e5e5;
   }
 
   .divider span {
-    background: #fff;
-    padding: 0 10px;
-    color: #9ca3af;
-    font-size: 0.7rem;
-    letter-spacing: 0.5px;
+    color: #a09fa2;
+    font-size: .7rem;
+    font-weight: 600;
+    white-space: nowrap;
   }
 
-  .btn-secondary {
-    width: 100%;
-    padding: 0.65rem;
-    background-color: #ffffff;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    min-height: 44px;
+  .error-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    margin-bottom: 1.5rem;
+    padding: .8rem .9rem;
+    border: 1px solid rgba(255,36,113,.25);
+    border-radius: .65rem;
+    background: rgba(255,36,113,.06);
+    color: #706e78;
+    font-size: .82rem;
   }
 
-  .btn-secondary:hover {
-    background-color: #f9fafb;
+  .error-alert.hidden { display: none; }
+
+  .error-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff2471;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
   }
 
-  .login-footer {
+  .auth-footer {
+    margin: 2rem 0 0;
+    color: #a09fa2;
     text-align: center;
-    margin-top: 1.2rem;
+    font-size: .75rem;
   }
 
-  .login-footer p {
-    font-size: 0.65rem;
-    color: #9ca3af;
-    margin: 0;
+  @media (max-width: 900px) {
+    .auth-page { grid-template-columns: 40% 60%; }
+    .auth-panel { padding: 2rem; }
   }
 
-  .logo-img {
-    width: 130px;    
-    height: auto;   
-    margin-bottom: 0.3rem;
-  }
-
-  @media (max-width: 480px) {
-    .login-card {
-      padding: 1.25rem 1rem;
-      background: #ffffff;
-    }
-    .logo-area h2 {
-      color: #1f2937;
-      font-size: 1.1rem;
-    }
-    .logo-area p {
-      color: #6b7280;
-      font-size: 0.75rem;
-    }
-    .form-group {
-      margin-bottom: 0.75rem;
-    }
-    .divider {
-      margin: 0.8rem 0;
-    }
-    .login-footer {
-      margin-top: 0.8rem;
-    }
-    body {
-      background: #2c2552;
-    }
+  @media (max-width: 700px) {
+    .auth-page { display: flex; flex-direction: column; }
+    .brand-panel { min-height: 230px; height: 230px; }
+    .brand-logo { width: 220px; }
+    .brand-wave { bottom: -85px; height: 150px; }
+    .brand-footer { left: 1.25rem; bottom: .9rem; font-size: .65rem; }
+    .auth-panel { min-height: auto; padding: 2rem 1.25rem 3rem; }
+    .auth-card { padding: 0; }
+    .auth-header h1 { font-size: 1.8rem; }
   }
 </style>

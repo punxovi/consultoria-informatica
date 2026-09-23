@@ -1,0 +1,339 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+import Input from '../components/ui/Input.astro';
+---
+
+<Layout title="Cambiar contraseña - Fundación Gestionar Esperanzas">
+  <main class="auth-page">
+    <section class="brand-panel">
+      <div class="brand-circle"></div>
+      <img src="/Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas" class="brand-logo" />
+      <div class="brand-wave"></div>
+      <div class="brand-footer">
+        <span>Chile · Argentina · Uruguay</span>
+        <span>© Fundación Gestionar Esperanzas</span>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <Card class="auth-card">
+        <div class="auth-content">
+          <header class="auth-header">
+            <h1>Crear nueva contraseña</h1>
+            <p>Ingresa una nueva contraseña para acceder nuevamente a tu cuenta.</p>
+          </header>
+
+          <div id="error-alert" class="error-alert hidden" role="alert">
+            <span class="error-icon">!</span>
+            <span id="error-message"></span>
+          </div>
+
+          <div id="success-alert" class="success-alert hidden">
+            <span class="success-icon">✓</span>
+            <div>
+              <strong>Contraseña actualizada</strong>
+              <p>Tu contraseña se cambió correctamente. Ya puedes iniciar sesión con tu nueva contraseña.</p>
+            </div>
+          </div>
+
+          <div id="expired-alert" class="expired-alert hidden">
+            <span class="expired-icon">!</span>
+            <div>
+              <strong>Enlace inválido o expirado</strong>
+              <p>El enlace utilizado ya no es válido. Solicita nuevamente la recuperación de contraseña.</p>
+            </div>
+          </div>
+
+          <form id="password-form" class="auth-form" novalidate>
+            <Input
+              label="Nueva contraseña"
+              id="password"
+              type="password"
+              placeholder="Ingresa tu nueva contraseña"
+              showPasswordToggle
+              autocomplete="new-password"
+              hint="La contraseña debe tener al menos 8 caracteres."
+              required
+            />
+
+            <Input
+              label="Confirmar contraseña"
+              id="confirm-password"
+              type="password"
+              placeholder="Repite tu nueva contraseña"
+              showPasswordToggle
+              autocomplete="new-password"
+              required
+            />
+
+            <Button id="submit-btn" type="submit" variant="primary" size="lg" class="full">
+              Cambiar contraseña
+            </Button>
+          </form>
+
+          <div class="back">
+            <Button href="/login" variant="ghost" size="sm">← Volver al inicio de sesión</Button>
+          </div>
+        </div>
+      </Card>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('password-form') as HTMLFormElement;
+    const password = document.getElementById('password') as HTMLInputElement;
+    const confirmPassword = document.getElementById('confirm-password') as HTMLInputElement;
+    const alert = document.getElementById('error-alert') as HTMLDivElement;
+    const message = document.getElementById('error-message') as HTMLSpanElement;
+    const success = document.getElementById('success-alert') as HTMLDivElement;
+    const expired = document.getElementById('expired-alert') as HTMLDivElement;
+    const submit = document.getElementById('submit-btn') as HTMLButtonElement;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      hideMessages();
+
+      const value = password.value;
+      const confirmation = confirmPassword.value;
+
+      if (!value) {
+        showError('Por favor, ingresa una nueva contraseña.');
+        password.focus();
+        return;
+      }
+
+      if (value.length < 8) {
+        showError('La contraseña debe tener al menos 8 caracteres.');
+        password.focus();
+        return;
+      }
+
+      if (!confirmation) {
+        showError('Por favor, confirma tu nueva contraseña.');
+        confirmPassword.focus();
+        return;
+      }
+
+      if (value !== confirmation) {
+        showError('Las contraseñas no coinciden.');
+        confirmPassword.focus();
+        return;
+      }
+
+      submit.textContent = 'Actualizando...';
+      submit.disabled = true;
+
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      form.classList.add('hidden');
+      success.classList.remove('hidden');
+      submit.textContent = 'Contraseña actualizada';
+    });
+
+    function showError(text: string) {
+      message.textContent = text;
+      alert.classList.remove('hidden');
+    }
+
+    function hideMessages() {
+      alert.classList.add('hidden');
+      success.classList.add('hidden');
+      expired.classList.add('hidden');
+    }
+
+    function showExpiredLink() {
+      form.classList.add('hidden');
+      expired.classList.remove('hidden');
+    }
+
+    (window as typeof window & { showExpiredLink?: () => void }).showExpiredLink = showExpiredLink;
+  </script>
+</Layout>
+
+<style>
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 45% 55%;
+    background: #fff;
+  }
+
+  .brand-panel {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg,#fff 0%,#fafafa 65%,#f5f3fb 100%);
+  }
+
+  .brand-logo {
+    position: relative;
+    z-index: 2;
+    width: min(78%,390px);
+  }
+
+  .brand-circle {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: -145px;
+    left: -90px;
+    border-radius: 50%;
+    background: rgba(76,70,136,.08);
+  }
+
+  .brand-wave {
+    position: absolute;
+    left: -10%;
+    right: -15%;
+    bottom: -25%;
+    height: 42%;
+    background: #4c4688;
+    border-radius: 55% 55% 0 0 / 35% 35% 0 0;
+    transform: rotate(-3deg);
+  }
+
+  .brand-footer {
+    position: absolute;
+    z-index: 3;
+    left: 2.5rem;
+    bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    color: rgba(255,255,255,.9);
+    font-size: .78rem;
+  }
+
+  .auth-panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 5rem;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 2rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .auth-content {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+  }
+
+  .auth-header { margin-bottom: 2.5rem; }
+
+  .auth-header h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .auth-header p {
+    margin: .75rem 0 0;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+
+  .full { width: 100%; }
+
+  .back {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .error-alert,
+  .success-alert,
+  .expired-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    margin-bottom: 1.5rem;
+    padding: .8rem .9rem;
+    border-radius: .65rem;
+    font-size: .82rem;
+    line-height: 1.4;
+  }
+
+  .error-alert {
+    border: 1px solid rgba(255,36,113,.25);
+    background: rgba(255,36,113,.06);
+    color: #706e78;
+  }
+
+  .success-alert {
+    border: 1px solid rgba(25,157,107,.25);
+    background: rgba(25,157,107,.07);
+    color: #47705f;
+  }
+
+  .expired-alert {
+    border: 1px solid rgba(255,192,76,.35);
+    background: rgba(255,192,76,.1);
+    color: #80651f;
+  }
+
+  .error-alert.hidden,
+  .success-alert.hidden,
+  .expired-alert.hidden { display: none; }
+
+  .error-icon,
+  .success-icon,
+  .expired-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+
+  .error-icon { background: #ff2471; }
+  .success-icon { background: #199d6b; }
+  .expired-icon { background: #ffc04c; color: #4c4688; }
+
+  .success-alert p,
+  .expired-alert p { margin: .25rem 0 0; }
+
+  @media (max-width: 900px) {
+    .auth-page { grid-template-columns: 40% 60%; }
+    .auth-panel { padding: 2rem; }
+  }
+
+  @media (max-width: 700px) {
+    .auth-page { display: flex; flex-direction: column; }
+    .brand-panel { min-height: 230px; height: 230px; }
+    .brand-logo { width: 220px; }
+    .brand-wave { bottom: -85px; height: 150px; }
+    .brand-footer { left: 1.25rem; bottom: .9rem; font-size: .65rem; }
+    .auth-panel { min-height: auto; padding: 2rem 1.25rem 3rem; }
+    .auth-card { padding: 0; }
+    .auth-header h1 { font-size: 1.8rem; }
+  }
+</style>
