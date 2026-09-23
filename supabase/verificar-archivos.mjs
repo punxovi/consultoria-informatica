@@ -8,15 +8,16 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,11,'Se esperaban once migraciones');
+assert.equal(files.length,12,'Se esperaban doce migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
  triggerPerfiles,
  '20260916143000_fge_obtener_roles_usuario.sql',
+ '20260916221136_organizaciones_datos_parciales_20260916.sql',
 ]);
 for (let i=0;i<files.length;i++) {
- assert.match(files[i],/^\d{14}_fge_.+\.sql$/);
+ assert.ok(files[i]==='20260916221136_organizaciones_datos_parciales_20260916.sql' || /^\d{14}_fge_.+\.sql$/.test(files[i]),'Nombre de migración válido');
  if (!noTransactionMigrations.has(files[i])) {
   assert.match(sql[i],/BEGIN;/);
   assert.match(sql[i],/COMMIT;/);

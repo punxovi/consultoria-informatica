@@ -2,9 +2,9 @@
 
 ## Estado de la rama `fix/relaciones-organizacion-programa-plan`
 
-Once migraciones versionadas para el proyecto de desarrollo `fge-dev`, con 26
-tablas de aplicación y una tabla privada de auditoría. Esta rama prepara el
-cambio localmente; la nueva migración todavía no se ha aplicado en `fge-dev`.
+Doce archivos de migración para `fge-dev`, con 26 tablas de aplicación y una
+tabla privada de auditoría. Las migraciones del nuevo modelo y de auditoría
+están en esta rama, pero todavía no se aplicaron en `fge-dev`.
 
 | Migración | Contenido |
 |---|---|
@@ -16,6 +16,7 @@ cambio localmente; la nueva migración todavía no se ha aplicado en `fge-dev`.
 | `20260909192500_fge_trigger_perfiles.sql` | Creación automática del perfil al registrar un usuario en Auth. |
 | `20260914000000_fge_get_organizaciones_mock.sql` | RPC de demostración para filtrar organizaciones desde el frontend. |
 | `20260916143000_fge_obtener_roles_usuario.sql` | Consulta de roles para operaciones de organizaciones. |
+| `20260916221136_organizaciones_datos_parciales_20260916.sql` | Permite guardar organizaciones con campos aún pendientes, manteniendo las validaciones cuando tienen valor. |
 | `20260922111500_fge_programas_storage_rls.sql` | Permisos de Programas y sus imágenes en Storage. |
 | `20260923014926_fge_relaciones_planes_programas.sql` | Programas institucionales independientes; cada plan relaciona organización y programa. |
 | `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
@@ -47,14 +48,31 @@ sus cambios al terminar.
 
 ### Antes de desplegar en `fge-dev`
 
-La revisión de solo lectura del 22-sep-2026 encontró 24 organizaciones (23
-reales y la ficticia), seis programas ligados a la ficticia, cero planes y cero
-acciones. El historial remoto todavía incluye la carga de datos
-`20260916221136_organizaciones_datos_parciales_20260916`, que no está entre
-los archivos de migración del repositorio, y no incluye varias migraciones de
-esta rama. Por eso **no se debe ejecutar `db push` todavía**: primero hay que
-reconciliar el historial y el esquema remoto con el equipo, respaldar los
-datos, repetir el conteo y revisar el `dry-run`. No usar `db reset --linked` ni
+La consulta de solo lectura del 23-sep-2026 encontró 24 organizaciones (23
+reales y la ficticia), seis programas, cero planes y cero acciones. Los seis
+programas siguen ligados a la organización ficticia. El historial remoto tiene
+siete versiones: las cinco migraciones iniciales, `20260916143000_fge_obtener_roles_usuario`
+y `20260916221136_organizaciones_datos_parciales_20260916`. Esta última se
+recuperó del stash local y el archivo se incorporó a esta rama. El repositorio
+tiene doce archivos de migración; cinco versiones no aparecen en el historial
+remoto: `20260909192500_fge_trigger_perfiles`,
+`20260914000000_fge_get_organizaciones_mock`,
+`20260922111500_fge_programas_storage_rls`,
+`20260923014926_fge_relaciones_planes_programas` y
+`20260923020339_fge_auditoria_escrituras_autorizadas`.
+
+La ausencia en el historial no implica que todos esos cambios estén totalmente
+ausentes del esquema. La función `get_organizaciones_mock(text)` existe, pero
+en remoto permite ejecutar también a `authenticated`, mientras que el archivo
+local restringe la ejecución a `anon`. En cambio, no se encontró el trigger de
+Auth para crear perfiles ni las políticas de Programas/Storage de sus
+migraciones. La relación nueva tampoco está aplicada: `programas` aún tiene
+FK obligatoria a `organizaciones` y `planes` no tiene `id_organizacion`. La
+función de auditoría remota sigue como `SECURITY INVOKER`, no con la corrección
+incluida en la migración local. Por eso **no ejecutar `db push` a ciegas**:
+primero comparar cada migración pendiente con el esquema, resolver las
+diferencias de historial y permisos, respaldar los datos, repetir los conteos
+y revisar el plan de aplicación. No usar `db reset --linked` ni
 `--include-seed` sobre esa base; el seed es solo para desarrollo local.
 
 ## Operaciones de organizaciones (KAN-159)
@@ -92,7 +110,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las once migraciones y luego el
+En una instalación nueva, el inicio aplica las doce migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:
