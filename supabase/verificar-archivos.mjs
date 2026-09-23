@@ -134,5 +134,15 @@ for(const operacion of ['listarOrganizaciones','obtenerOrganizacionPorId','crear
  assert.match(repositorioOrganizaciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada: '+operacion);
 }
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
+const repositorioProgramas=readFileSync(join(root,'../frontend/src/lib/server/programas.ts'),'utf8');
+for(const operacion of ['listarProgramas','obtenerProgramaPorId','crearPrograma','actualizarPrograma']) {
+ assert.match(repositorioProgramas,new RegExp(`export async function ${operacion}\\b`),'Operación exportada: '+operacion);
+}
+assert.ok(!repositorioProgramas.includes('id_organizacion'),'Programas sin FK directa a Organización');
+assert.ok(!/service[_-]?role/i.test(repositorioProgramas),'Operaciones de Programas sin clave privilegiada');
+const operacionesProgramasTest=readFileSync(join(root,'tests/database/008_operaciones_programas.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.programas','FROM public.programas','UPDATE public.programas']) {
+ assert.ok(operacionesProgramasTest.includes(operacion),'Prueba de Programa: '+operacion);
+}
 const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
-console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
+console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));

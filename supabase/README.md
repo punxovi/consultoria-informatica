@@ -22,7 +22,7 @@ en `fge-dev`; la nueva migración de líneas de acción permanece solo en esta r
 | `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
 | `20260923151202_fge_programa_lineas_accion.sql` | Líneas propias por Programa, cada una con resultado esperado, auditoría y permisos. |
 
-La carpeta incluye configuración local, siete archivos de pruebas pgTAP y
+La carpeta incluye configuración local, ocho archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
 
 ## Datos iniciales de desarrollo (KAN-158)
@@ -73,6 +73,22 @@ CRUD directamente sobre PostgreSQL, la relación con `paises`, el incremento de
 versión y las restricciones principales. Las operaciones reciben un cliente
 Supabase creado por la capa de servidor y respetan sus permisos/RLS; no se
 añadieron políticas ni funciones privilegiadas dentro de esta tarea.
+
+## Operaciones de Programas Institucionales (KAN-172)
+
+`frontend/src/lib/server/programas.ts` implementa listado, consulta por ID,
+registro y modificación de Programas globales, sin `id_organizacion` ni filtro
+territorial. Excluye registros archivados y admite una versión esperada para
+evitar sobreescrituras concurrentes. Usa el cliente Supabase de la sesión:
+lectura según roles existentes y escritura limitada al Administrador por RLS.
+
+La tabla todavía exige `componentes_linea_accion` y `resultados_esperados`
+como textos legados. El repositorio los recibe sin alterar su significado;
+KAN-171 deberá coordinar el contrato Zod de líneas individuales con esos
+campos y con la tabla de KAN-173 antes de exponer el formulario de creación.
+No se modifica el esquema ni se duplican datos en esta tarea. La prueba
+`008_operaciones_programas.test.sql` comprueba las cuatro operaciones, las
+restricciones, la relación con Planes, RLS y auditoría en Supabase local.
 
 ## Líneas de acción de Programas (KAN-173)
 
@@ -167,5 +183,5 @@ Documentación técnica consultada:
 - [https://supabase.com/changelog](https://supabase.com/changelog)
 
 La revisión estática no sustituye las pruebas pgTAP ni una comprobación de
-datos antes y después de aplicar la migración. Para ejecutar los siete archivos
+datos antes y después de aplicar la migración. Para ejecutar los ocho archivos
 pgTAP completos en local se necesita Docker.
