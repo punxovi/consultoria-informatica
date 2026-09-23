@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,12,'Se esperaban doce migraciones');
+assert.equal(files.length,13,'Se esperaban trece migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -31,7 +31,7 @@ for (let i=0;i<files.length;i++) {
 }
 const allSql=sql.join('\n');
 const tables=[...allSql.matchAll(/CREATE TABLE public\.(\w+) \(([\s\S]*?)\n\);/g)];
-assert.equal(tables.length,26,'26 tablas public');
+assert.equal(tables.length,27,'27 tablas public');
 const known=new Set();
 for(const [,name,body] of tables) {
  assert.ok(!known.has(name),'Tabla única');
@@ -57,6 +57,13 @@ assert.match(relacionesSql,/ALTER TABLE public\.planes ADD COLUMN id_organizacio
 assert.match(relacionesSql,/FOREIGN KEY \(id_organizacion\)[\s\S]*?REFERENCES public\.organizaciones\(id_organizacion\)/);
 assert.match(relacionesSql,/Hay planes asociados a la organización ficticia/,'Migración bloquea planes sin organización verificable');
 assert.match(relacionesSql,/CREATE INDEX planes_id_organizacion_fk_idx/);
+const lineasSql=sql.find(s=>s.includes('CREATE TABLE public.programa_lineas_accion'));
+assert.ok(lineasSql,'Existe migración de líneas de acción de Programas');
+assert.match(lineasSql,/resultado_esperado text NOT NULL/);
+assert.match(lineasSql,/CREATE UNIQUE INDEX programa_lineas_accion_unica_activa_idx/);
+assert.match(lineasSql,/CREATE POLICY programa_lineas_accion_admin_insert/);
+assert.match(lineasSql,/CREATE POLICY programa_lineas_accion_admin_update/);
+assert.ok(!/DROP COLUMN (componentes_linea_accion|resultados_esperados)/i.test(lineasSql),'Textos legados de Programas intactos');
 const filesBody=body('archivos');
 const destinations=['id_organizacion','id_informacion_legal','id_programa','id_accion','id_donacion'];
 for(const d of destinations) assert.ok(filesBody.includes(d+' uuid REFERENCES'),'FK anulable: '+d);
@@ -115,6 +122,10 @@ for(const operacion of ['INSERT INTO public.organizaciones','FROM public.organiz
  assert.ok(operacionesTest.includes(operacion),'Prueba de operación: '+operacion);
 }
 assert.match(operacionesTest,/JOIN public\.paises USING \(id_pais\)/,'Prueba relación Organización-País');
+const lineasTest=readFileSync(join(root,'tests/database/007_programa_lineas_accion.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.programa_lineas_accion','FROM public.programa_lineas_accion','UPDATE public.programa_lineas_accion']) {
+ assert.ok(lineasTest.includes(operacion),'Prueba de línea de acción: '+operacion);
+}
 for(const estadoSql of ['23503','23514']) {
  assert.ok(operacionesTest.includes(`'${estadoSql}'`),'Prueba restricción SQLSTATE '+estadoSql);
 }

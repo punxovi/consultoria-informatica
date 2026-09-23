@@ -2,9 +2,9 @@
 
 ## Estado de la rama `fix/relaciones-organizacion-programa-plan`
 
-Doce archivos de migración para `fge-dev`, con 26 tablas de aplicación y una
-tabla privada de auditoría. Las migraciones del nuevo modelo y de auditoría
-están en esta rama, pero todavía no se aplicaron en `fge-dev`.
+Trece archivos de migración para `fge-dev`, con 27 tablas de aplicación y una
+tabla privada de auditoría. Las primeras doce migraciones ya están aplicadas
+en `fge-dev`; la nueva migración de líneas de acción permanece solo en esta rama.
 
 | Migración | Contenido |
 |---|---|
@@ -20,8 +20,9 @@ están en esta rama, pero todavía no se aplicaron en `fge-dev`.
 | `20260922111500_fge_programas_storage_rls.sql` | Permisos de Programas y sus imágenes en Storage. |
 | `20260923014926_fge_relaciones_planes_programas.sql` | Programas institucionales independientes; cada plan relaciona organización y programa. |
 | `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
+| `20260923151202_fge_programa_lineas_accion.sql` | Líneas propias por Programa, cada una con resultado esperado, auditoría y permisos. |
 
-La carpeta incluye configuración local, seis archivos de pruebas pgTAP y
+La carpeta incluye configuración local, siete archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
 
 ## Datos iniciales de desarrollo (KAN-158)
@@ -46,34 +47,19 @@ Las 23 organizaciones reales de `fge-dev` se cargaron por separado; el seed
 no las reemplaza. Las pruebas automatizadas usan datos separados y revierten
 sus cambios al terminar.
 
-### Antes de desplegar en `fge-dev`
+### Antes de desplegar la nueva migración en `fge-dev`
 
-La consulta de solo lectura del 23-sep-2026 encontró 24 organizaciones (23
-reales y la ficticia), seis programas, cero planes y cero acciones. Los seis
-programas siguen ligados a la organización ficticia. El historial remoto tiene
-siete versiones: las cinco migraciones iniciales, `20260916143000_fge_obtener_roles_usuario`
-y `20260916221136_organizaciones_datos_parciales_20260916`. Esta última se
-recuperó del stash local y el archivo se incorporó a esta rama. El repositorio
-tiene doce archivos de migración; cinco versiones no aparecen en el historial
-remoto: `20260909192500_fge_trigger_perfiles`,
-`20260914000000_fge_get_organizaciones_mock`,
-`20260922111500_fge_programas_storage_rls`,
-`20260923014926_fge_relaciones_planes_programas` y
-`20260923020339_fge_auditoria_escrituras_autorizadas`.
+La consulta de solo lectura del 23-sep-2026 confirmó que las doce versiones
+anteriores están en el historial remoto: hay seis Programas y cero Planes;
+`programas` ya no contiene `id_organizacion` y `planes` sí lo contiene. Aún
+no existe `programa_lineas_accion`. La nueva migración no modifica los textos
+existentes de Programas ni carga líneas inventadas: la documentación de FGE
+enumera componentes y resultados globales, pero no asigna un resultado a cada
+componente. Hay que confirmar esos pares antes de cargar los seis programas.
 
-La ausencia en el historial no implica que todos esos cambios estén totalmente
-ausentes del esquema. La función `get_organizaciones_mock(text)` existe, pero
-en remoto permite ejecutar también a `authenticated`, mientras que el archivo
-local restringe la ejecución a `anon`. En cambio, no se encontró el trigger de
-Auth para crear perfiles ni las políticas de Programas/Storage de sus
-migraciones. La relación nueva tampoco está aplicada: `programas` aún tiene
-FK obligatoria a `organizaciones` y `planes` no tiene `id_organizacion`. La
-función de auditoría remota sigue como `SECURITY INVOKER`, no con la corrección
-incluida en la migración local. Por eso **no ejecutar `db push` a ciegas**:
-primero comparar cada migración pendiente con el esquema, resolver las
-diferencias de historial y permisos, respaldar los datos, repetir los conteos
-y revisar el plan de aplicación. No usar `db reset --linked` ni
-`--include-seed` sobre esa base; el seed es solo para desarrollo local.
+Antes de aplicar la migración, revisar el historial y hacer respaldo. No usar
+`db reset --linked` ni `--include-seed` sobre `fge-dev`; el seed es solo para
+desarrollo local.
 
 ## Operaciones de organizaciones (KAN-159)
 
@@ -88,11 +74,34 @@ versión y las restricciones principales. Las operaciones reciben un cliente
 Supabase creado por la capa de servidor y respetan sus permisos/RLS; no se
 añadieron políticas ni funciones privilegiadas dentro de esta tarea.
 
+## Líneas de acción de Programas (KAN-173)
+
+La tabla `programa_lineas_accion` contiene una fila por línea y su resultado
+esperado, con FK a `programas`, unicidad del nombre activo dentro de cada
+Programa, límites de 500/2000 caracteres, auditoría y versión para concurrencia.
+Un Administrador puede consultar, crear y modificar; Coordinador e Invitado
+pueden consultar. Usuarios sin rol y sesiones anónimas no tienen acceso.
+
+`frontend/src/lib/server/programa-lineas-accion.ts` expone
+`listarLineasAccionPrograma`, `crearLineaAccionPrograma` y
+`actualizarLineaAccionPrograma` para las futuras Actions de KAN-171. Recibe
+un cliente Supabase de la sesión, sin clave privilegiada. La prueba
+`007_programa_lineas_accion.test.sql` verifica relaciones, restricciones,
+lectura/escritura por rol y auditoría. Los campos legados
+`componentes_linea_accion` y `resultados_esperados` permanecen por
+compatibilidad; las Actions de Programas deben coordinar ambas representaciones
+hasta que el equipo confirme la migración de sus contenidos. Los programas
+preexistentes pueden tener cero filas estructuradas temporalmente; el schema
+Zod de creación exige al menos una línea nueva. Jira KAN-173 cita RF72, pero
+el requisito vigente para el resultado por línea es RF70; RF72 se refiere a
+mostrar Organización y Programa en las vistas de Planes.
+
 ## Estado de seguridad
 
 Todas las tablas tienen RLS activado y el almacenamiento es privado. La
 migración de Programas define políticas para consultar y administrar ese
-catálogo y sus imágenes. El trigger privado audita las escrituras autorizadas
+catálogo y sus imágenes. KAN-173 agrega permisos equivalentes para las líneas
+de acción. El trigger privado audita las escrituras autorizadas
 sin conceder INSERT directo al historial. Planes continúa sin acceso directo para clientes:
 esta corrección de relaciones no habilita por sí sola su CRUD.
 
@@ -110,7 +119,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las doce migraciones y luego el
+En una instalación nueva, el inicio aplica las trece migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:
@@ -158,5 +167,5 @@ Documentación técnica consultada:
 - [https://supabase.com/changelog](https://supabase.com/changelog)
 
 La revisión estática no sustituye las pruebas pgTAP ni una comprobación de
-datos antes y después de aplicar la migración. Para ejecutar los seis archivos
+datos antes y después de aplicar la migración. Para ejecutar los siete archivos
 pgTAP completos en local se necesita Docker.
