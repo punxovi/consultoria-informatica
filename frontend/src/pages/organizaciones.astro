@@ -159,7 +159,7 @@ import Select from '../components/ui/Select.astro';
           </p>
         </div>
 
-        <!-- Búsqueda y filtros (RF20) -->
+        <!-- Búsqueda y filtros (RF18) -->
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div class="md:col-span-1">
             <Input
@@ -176,17 +176,18 @@ import Select from '../components/ui/Select.astro';
           />
 
           <!--
-            RF20 pide filtrar también por Programa Institucional, pero el
-            tipo Organizacion no trae aún la asociación con Programas
-            (falta esa pieza de backend). Se deja el control visible pero
-            deshabilitado para no aparentar una función que no existe.
+            RF18: los programas son un catálogo global de FGE. Para filtrar organizaciones
+            por programa, buscar los planes cuyo id_programa coincida y usar sus
+            id_organizacion; no crear una relación directa Organización–Programa.
+            Este selector muestra el catálogo global, pero todavía no modifica
+            los resultados. Conectar la consulta de planes y sus permisos de
+            lectura en el sprint de Planes de Intervención.
           -->
           <Select
             id="filtro-programa"
-            label="Programa Institucional"
+            label="Filtrar por programa"
             options={[{ value: '', label: 'Todos los programas' }]}
-            disabled
-            hint="Disponible cuando el backend asocie Organización–Programa."
+            hint="Por ahora la selección no filtra resultados; estará disponible al consultar los planes de intervención."
           />
         </div>
 
@@ -260,6 +261,12 @@ import Select from '../components/ui/Select.astro';
   const selectPais = document.querySelector<HTMLSelectElement>(
     '#filtro-pais',
   );
+  const selectPrograma = document.querySelector<HTMLSelectElement>(
+    '#filtro-programa',
+  );
+  const hintPrograma = document.querySelector<HTMLParagraphElement>(
+    '#filtro-programa-hint',
+  );
 
   if (
     !lista ||
@@ -268,7 +275,8 @@ import Select from '../components/ui/Select.astro';
     !inactivasElement ||
     !contadorElement ||
     !inputBusqueda ||
-    !selectPais
+    !selectPais ||
+    !selectPrograma
   ) {
     throw new Error(
       'No se encontraron los elementos necesarios del listado de organizaciones.',
@@ -284,11 +292,11 @@ import Select from '../components/ui/Select.astro';
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  // Dataset completo tal como llegó del backend; los filtros (RF20) se
+  // Dataset completo tal como llegó del backend; los filtros (RF18) se
   // aplican en el cliente sobre esta copia.
   let todasLasOrganizaciones: Organizacion[] = [];
 
-  /** Quita tildes/mayúsculas para comparar texto sin distinguirlas (RF20). */
+  /** Quita tildes/mayúsculas para comparar texto sin distinguirlas (RF18). */
   function normalizar(texto: string): string {
     return texto
       .normalize('NFD')
@@ -324,9 +332,45 @@ import Select from '../components/ui/Select.astro';
     selectPais.value = seleccionPrevia;
   }
 
+  async function cargarProgramasDisponibles() {
+    const { data, error } = await supabase
+      .from('programas')
+      .select('id_programa, nombre')
+      .is('archived_at', null)
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      if (hintPrograma) {
+        hintPrograma.textContent =
+          'No se pudo cargar el catálogo de programas. La selección aún no filtra organizaciones.';
+      }
+      return;
+    }
+
+    const seleccionPrevia = selectPrograma.value;
+    selectPrograma.replaceChildren();
+
+    const opcionTodos = document.createElement('option');
+    opcionTodos.value = '';
+    opcionTodos.textContent = 'Todos los programas';
+    selectPrograma.append(opcionTodos);
+
+    for (const programa of data ?? []) {
+      const opcion = document.createElement('option');
+      opcion.value = programa.id_programa;
+      opcion.textContent = programa.nombre;
+      selectPrograma.append(opcion);
+    }
+
+    selectPrograma.value = seleccionPrevia;
+  }
+
   function aplicarFiltros() {
     const textoBuscado = normalizar(inputBusqueda.value);
     const idPaisSeleccionado = selectPais.value;
+
+    // RF18 pendiente: filtrar por selectPrograma.value usando los id_organizacion
+    // de planes con ese id_programa, una vez habilitada la lectura de planes.
 
     const filtradas = todasLasOrganizaciones.filter((organizacion) => {
       const coincideNombre =
@@ -501,6 +545,8 @@ import Select from '../components/ui/Select.astro';
 
   async function cargarOrganizaciones() {
     lista.setAttribute('aria-busy', 'true');
+    contadorElement.textContent = 'Cargando organizaciones...';
+    mostrarMensaje('Cargando organizaciones...');
 
     try {
       const { data, error } = await supabase.auth.getSession();
@@ -509,6 +555,8 @@ import Select from '../components/ui/Select.astro';
       if (!data.session) {
         throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
       }
+
+      void cargarProgramasDisponibles();
 
       const respuesta = await fetch('/_actions/listarOrganizaciones', {
         method: 'POST',

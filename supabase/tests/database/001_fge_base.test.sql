@@ -5,18 +5,33 @@ SET search_path = public, extensions;
 SELECT no_plan();
 
 SELECT has_table('public','programas','Existe programas');
-SELECT hasnt_column('public','planes','id_organizacion','Plan obtiene organización por programa');
+SELECT hasnt_column('public','programas','id_organizacion','Programa institucional no pertenece a una organización');
+SELECT has_column('public','planes','id_organizacion','Plan identifica su organización');
 SELECT hasnt_table('public','organizacion_programas','Sin asociación N:M');
-SELECT fk_ok('public','programas','id_organizacion','public','organizaciones','id_organizacion','Programa pertenece a una organización');
+SELECT fk_ok('public','planes','id_organizacion','public','organizaciones','id_organizacion','Plan pertenece a una organización');
+SELECT fk_ok('public','planes','id_programa','public','programas','id_programa','Plan utiliza un programa institucional');
 SELECT fk_ok('public','perfiles','id_usuario','auth','users','id','Perfil usa identidad Auth');
 SELECT throws_ok($q$INSERT INTO public.perfiles(id_usuario,nombre) VALUES ('ffffffff-ffff-ffff-ffff-ffffffffffff','No existe')$q$,'23503',NULL,'No se admite perfil sin Auth');
 
 INSERT INTO public.organizaciones(id_organizacion,id_pais,nombre,nombre_representante,telefono,correo,region_departamento,comuna_municipio_ciudad,direccion,publico_objetivo,descripcion_breve,tipo_organizacion,numero_beneficiarios)
 SELECT '10000000-0000-0000-0000-000000000001',id_pais,'Organización prueba','Representante','123','prueba@example.invalid','Región','Ciudad','Dirección','Comunidad','Prueba','comedor_merendero',10 FROM public.paises WHERE codigo_iso='CL';
-INSERT INTO public.programas(id_programa,id_organizacion,nombre,descripcion,objetivo_general,objetivos_especificos,componentes_linea_accion,resultados_esperados)
-VALUES ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Programa propio','Prueba','Prueba','Prueba','Prueba','Prueba');
-INSERT INTO public.planes(id_plan,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino)
-VALUES ('30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Plan','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01');
+INSERT INTO public.organizaciones(id_organizacion,id_pais,nombre,nombre_representante,telefono,correo,region_departamento,comuna_municipio_ciudad,direccion,publico_objetivo,descripcion_breve,tipo_organizacion,numero_beneficiarios)
+SELECT '10000000-0000-0000-0000-000000000002',id_pais,'Otra organización','Representante','123','otra@example.invalid','Región','Ciudad','Dirección','Comunidad','Prueba','comedor_merendero',10 FROM public.paises WHERE codigo_iso='UY';
+INSERT INTO public.programas(id_programa,nombre,descripcion,objetivo_general,objetivos_especificos,componentes_linea_accion,resultados_esperados)
+VALUES ('20000000-0000-0000-0000-000000000001','Programa institucional','Prueba','Prueba','Prueba','Prueba','Prueba');
+INSERT INTO public.programas(id_programa,nombre,descripcion,objetivo_general,objetivos_especificos,componentes_linea_accion,resultados_esperados)
+VALUES ('20000000-0000-0000-0000-000000000002','Otro programa institucional','Prueba','Prueba','Prueba','Prueba','Prueba');
+INSERT INTO public.planes(id_plan,id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino)
+VALUES
+  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Plan Chile','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01'),
+  ('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','Plan Uruguay','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01'),
+  ('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','Otro plan Chile','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01');
+SELECT is((SELECT count(*) FROM public.planes WHERE id_programa='20000000-0000-0000-0000-000000000001'),2::bigint,'Un programa institucional puede servir a varias organizaciones');
+SELECT is((SELECT count(DISTINCT id_organizacion) FROM public.planes WHERE id_programa='20000000-0000-0000-0000-000000000001'),2::bigint,'Cada plan conserva su propia organización');
+SELECT is((SELECT count(DISTINCT id_programa) FROM public.planes WHERE id_organizacion='10000000-0000-0000-0000-000000000001'),2::bigint,'Una organización puede tener planes de distintos programas');
+SELECT throws_ok($q$INSERT INTO public.planes(id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES ('20000000-0000-0000-0000-000000000001','Sin organización','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23502',NULL,'Plan requiere organización');
+SELECT throws_ok($q$INSERT INTO public.planes(id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES ('ffffffff-ffff-ffff-ffff-ffffffffffff','20000000-0000-0000-0000-000000000001','Organización inexistente','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23503',NULL,'Plan no admite organización inexistente');
+SELECT throws_ok($q$INSERT INTO public.planes(id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES ('10000000-0000-0000-0000-000000000001','ffffffff-ffff-ffff-ffff-ffffffffffff','Programa inexistente','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23503',NULL,'Plan no admite programa inexistente');
 INSERT INTO public.acciones(id_accion,id_plan,nombre,responsable_nombre,fecha_inicio,fecha_termino)
 VALUES ('40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','Acción','Persona','2026-09-01','2026-09-10');
 

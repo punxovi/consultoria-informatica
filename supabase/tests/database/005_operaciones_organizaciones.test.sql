@@ -63,7 +63,7 @@ SELECT throws_ok($q$
   ) VALUES (
     'ffffffff-ffff-ffff-ffff-ffffffffffff', 'País inexistente', 'Representante',
     '123', 'pais@example.invalid', 'Región', 'Comuna', 'Dirección', 'Público',
-    'Descripción', 'otra', 1
+    'Descripción', 'centro_comunitario', 1
   )
 $q$, '23503', NULL, 'No se admite una organización con un país inexistente');
 

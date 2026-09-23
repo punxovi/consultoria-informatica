@@ -38,7 +38,6 @@ const lineasAccionProgramaSchema = z
 /** Campos editables que comparten la creación y la actualización. */
 export const camposProgramaSchema = z
   .object({
-    id_organizacion: uuid('La organización'),
     nombre: textoObligatorio('El nombre', 150),
     descripcion: textoObligatorio('La descripción', 5000),
     objetivo_general: textoObligatorio('El objetivo general', 3000),

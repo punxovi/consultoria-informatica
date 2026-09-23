@@ -9,7 +9,6 @@ import {
 } from '../../src/actions/programas/index.ts';
 
 const programaValido = {
-  id_organizacion: '15800000-0000-4000-8000-000000000000',
   nombre: '  Programa de Formalización  ',
   descripcion: '  Acompañamiento a organizaciones comunitarias.  ',
   objetivo_general: '  Fortalecer la autonomía institucional.  ',
@@ -44,12 +43,11 @@ describe('schemas Zod de Programas', () => {
   it('rechaza campos obligatorios, tipos y campos adicionales', () => {
     const validacion = crearProgramaSchema.safeParse({
       ...programaValido,
-      id_organizacion: 'organizacion-invalida',
+      id_organizacion: '15800000-0000-4000-8000-000000000000',
       nombre: '   ',
       descripcion: 123,
       objetivo_general: undefined,
       lineas_accion: 'Capacitación',
-      campo_no_permitido: true,
     });
 
     assert.equal(validacion.success, false);
@@ -58,7 +56,6 @@ describe('schemas Zod de Programas', () => {
     const campos = new Set(errores.map(({ campo }) => campo));
 
     for (const campo of [
-      'id_organizacion',
       'nombre',
       'descripcion',
       'objetivo_general',
