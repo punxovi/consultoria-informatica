@@ -1,0 +1,26 @@
+---
+interface Props {
+  label?: string;
+  class?: string;
+}
+
+const {
+  label = '',
+  class: className = '',
+} = Astro.props;
+---
+
+<button
+  type="button"
+  class={`inline-flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${className}`}
+  aria-label="Volver a la página anterior"
+  onclick="history.back()"
+>
+  <span class="text-xl leading-none" aria-hidden="true">←</span>
+
+  {label && (
+    <span class="ml-2 text-sm font-medium">
+      {label}
+    </span>
+  )}
+</button>
