@@ -1,0 +1,8 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import ProgramaForm from '../../components/programas/ProgramaForm.astro';
+import { mainNavItems } from '../../config/nav';
+---
+<AppLayout title="Crear programa" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <ProgramaForm />
+</AppLayout>
