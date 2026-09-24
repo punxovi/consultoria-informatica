@@ -59,6 +59,10 @@ const campos = [
             <input id="imagen" name="imagen" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="imagen-ayuda" class="mt-2 min-h-[48px] max-w-full text-sm" />
             <p id="imagen-ayuda" class="text-sm text-neutral-700">JPG, PNG o WebP, hasta 10 MB. Se optimiza a WebP de menos de 600 KB antes de subir.</p>
             <img id="imagen-preview" alt="Vista previa de la imagen del programa" hidden class="mt-4 max-h-64 max-w-full rounded-lg object-contain" />
+            <div id="quitar-imagen-contenedor" hidden class="mt-3">
+              <Button id="quitar-imagen" variant="outline">Quitar imagen</Button>
+            </div>
+            <p id="imagen-cambio" role="status" class="mt-2 text-sm text-neutral-700"></p>
           </div>
         </div>
       </Card>

@@ -17,15 +17,30 @@ const path = require('node:path');
   let programa = null;
   let creaciones = 0, ediciones = 0, fallarImagen = false, subidas = 0, archivos = 0;
   let rol = 'ADMIN', falloArchivo = false;
+  let imagenGuardada = false, fallarRetiro = false, retiros = 0;
   const fallos = [];
   await context.route(`${url}/**`, async route => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname.endsWith('/rpc/get_user_roles')) return route.fulfill({ json: [{ codigo: rol, alcance: 'global', id_pais: null }] });
+    if (pathname.includes('/storage/v1/object/sign/') && route.request().method() === 'POST') return route.fulfill({ json: { signedURL: '/object/sign/prueba.webp?token=prueba' } });
     if (pathname.includes('/storage/v1/object/') && route.request().method() === 'POST') {
       subidas++;
       return route.fulfill({ status: fallarImagen ? 500 : 200, json: fallarImagen ? { message: 'Fallo simulado' } : { Key: 'ok' } });
     }
-    if (pathname.endsWith('/archivos')) return route.fulfill({ json: route.request().method() === 'GET' ? null : {} });
+    if (pathname.endsWith('/archivos')) {
+      if (route.request().method() === 'GET') return route.fulfill({ json: imagenGuardada ? { ruta_objeto: 'programas/prueba.webp' } : null });
+      if (route.request().method() === 'PATCH') {
+        retiros++;
+        assert.ok(route.request().postDataJSON().archived_at);
+        assert.equal(new URL(route.request().url()).searchParams.get('id_programa'), `eq.${id}`);
+        assert.equal(new URL(route.request().url()).searchParams.get('categoria'), 'eq.imagen_programa');
+        if (fallarRetiro) return route.fulfill({ status: 403, json: { message: 'denied' } });
+        imagenGuardada = false;
+        return route.fulfill({ json: [{ id_archivo: 'imagen-1' }, { id_archivo: 'imagen-anterior' }] });
+      }
+      imagenGuardada = true;
+      return route.fulfill({ json: {} });
+    }
     return route.fulfill({ json: [] });
   });
   await context.route('**/_actions/**', async route => {
@@ -72,6 +87,12 @@ const path = require('node:path');
   const png = await page.screenshot();
   await page.locator('#imagen').setInputFiles({ name: 'prueba.png', mimeType: 'image/png', buffer: png });
   await page.waitForFunction(() => document.querySelector('#programa-estado').textContent.includes('Imagen lista'));
+  await page.locator('#quitar-imagen').click();
+  assert.equal(await page.locator('#imagen').inputValue(), '');
+  assert.equal(await page.locator('#imagen-preview').isVisible(), false);
+  assert.equal(retiros, 0);
+  await page.locator('#imagen').setInputFiles({ name: 'prueba.png', mimeType: 'image/png', buffer: png });
+  await page.waitForFunction(() => document.querySelector('#programa-estado').textContent.includes('Imagen lista'));
   await page.evaluate(() => document.querySelector('#main-content').scrollTop = 0);
   await page.waitForFunction(() => getComputedStyle(document.querySelector('#main-content')).opacity === '1');
   await page.screenshot({ path: path.join(process.env.QA_OUTPUT || '.', 'formulario-movil.png'), fullPage: true });
@@ -90,6 +111,21 @@ const path = require('node:path');
   assert.equal(await page.locator('#nombre').inputValue(), 'Programa de prueba');
   assert.equal(await page.locator('#referencias_ods').inputValue(), 'ODS 4');
   assert.equal(await page.locator('[data-campo="linea_accion"]').count(), 2);
+  await page.locator('#quitar-imagen').click();
+  assert.equal(retiros, 0);
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#cancelar-programa').click();
+  await page.waitForURL('**/programas');
+  assert.equal(imagenGuardada, true);
+  await page.goto((process.env.BASE_URL || 'http://127.0.0.1:4322') + `/programas/${id}/editar`);
+  await page.waitForFunction(() => !document.querySelector('#programa-campos').disabled);
+  await page.locator('#quitar-imagen').click();
+  fallarRetiro = true;
+  await page.locator('#guardar-programa').click();
+  await page.locator('#programa-errores').filter({ hasText: 'no se pudo quitar' }).waitFor();
+  assert.equal(imagenGuardada, true);
+  assert.ok(new URL(page.url()).pathname.endsWith('/editar'));
+  fallarRetiro = false;
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => getComputedStyle(document.querySelector('#main-content')).opacity === '1');
   await page.screenshot({ path: path.join(process.env.QA_OUTPUT || '.', 'formulario-escritorio.png'), fullPage: true });
@@ -99,6 +135,9 @@ const path = require('node:path');
   await page.getByRole('link', { name: 'Ver detalle' }).click();
   await page.getByRole('heading', { name: 'Programa de prueba' }).waitFor();
   assert.equal(await page.locator('#detalle-lineas dt').count(), 2);
+  assert.equal(imagenGuardada, false);
+  assert.equal(retiros, 2);
+  assert.equal(await page.locator('#detalle-imagen').isVisible(), false);
   await page.locator('#eliminar-programa').waitFor({ state: 'visible' });
   page.once('dialog', dialog => dialog.dismiss());
   await page.locator('#eliminar-programa').click();

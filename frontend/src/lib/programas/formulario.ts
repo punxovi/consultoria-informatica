@@ -1,7 +1,7 @@
 import { crearProgramaSchema } from '../../actions/programas/programas.schema';
 import { getUserRoles } from '../supabase';
 import { actualizarPrograma, crearPrograma, obtenerPrograma } from './cliente';
-import { guardarImagen, obtenerImagen, optimizarImagen } from './imagen';
+import { guardarImagen, obtenerImagen, optimizarImagen, quitarImagen } from './imagen';
 
 const form = document.querySelector<HTMLFormElement>('#programa-form');
 if (form) iniciar(form);
@@ -15,6 +15,10 @@ function iniciar(form: HTMLFormElement) {
   const guardar = document.querySelector<HTMLButtonElement>('#guardar-programa')!;
   const imagen = document.querySelector<HTMLInputElement>('#imagen')!;
   const preview = document.querySelector<HTMLImageElement>('#imagen-preview')!;
+  const quitarContenedor = document.querySelector<HTMLElement>('#quitar-imagen-contenedor')!;
+  const imagenCambio = document.querySelector<HTMLElement>('#imagen-cambio')!;
+  let imagenGuardadaUrl: string | null = null;
+  let quitarImagenPendiente = false;
   let id = form.dataset.id || '';
   let version: number | undefined;
   let modificado = false;
@@ -86,6 +90,25 @@ function iniciar(form: HTMLFormElement) {
   window.addEventListener('beforeunload', evento => {
     if (modificado || ocupado) { evento.preventDefault(); evento.returnValue = ''; }
   });
+  document.querySelector('#quitar-imagen')!.addEventListener('click', () => {
+    ++secuenciaImagen;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = '';
+    imagenPendiente = null;
+    imagenInvalida = false;
+    imagen.value = '';
+    preview.hidden = true;
+    preview.removeAttribute('src');
+    quitarImagenPendiente = Boolean(imagenGuardadaUrl);
+    quitarContenedor.hidden = true;
+    guardar.disabled = false;
+    modificado = true;
+    estado.textContent = '';
+    imagenCambio.textContent = quitarImagenPendiente
+      ? 'La imagen se quitará al guardar el programa.'
+      : 'Imagen seleccionada retirada.';
+    imagen.focus();
+  });
   imagen.addEventListener('change', async () => {
     const solicitud = ++secuenciaImagen;
     imagenPendiente = null;
@@ -94,13 +117,20 @@ function iniciar(form: HTMLFormElement) {
     previewUrl = '';
     preview.hidden = true;
     const archivo = imagen.files?.[0];
-    if (!archivo) { guardar.disabled = false; estado.textContent = ''; return; }
+    if (!archivo) {
+      if (imagenGuardadaUrl && !quitarImagenPendiente) { preview.src = imagenGuardadaUrl; preview.hidden = false; }
+      quitarContenedor.hidden = preview.hidden;
+      guardar.disabled = false; estado.textContent = ''; return;
+    }
+    quitarContenedor.hidden = false;
     guardar.disabled = true;
     estado.textContent = 'Optimizando imagen…';
     try {
       const blob = await optimizarImagen(archivo);
       if (solicitud !== secuenciaImagen) return;
       imagenPendiente = blob;
+      quitarImagenPendiente = false;
+      imagenCambio.textContent = '';
       previewUrl = URL.createObjectURL(blob);
       preview.src = previewUrl; preview.hidden = false;
       estado.textContent = `Imagen lista (${Math.ceil(blob.size / 1000)} KB).`;
@@ -156,6 +186,11 @@ function iniciar(form: HTMLFormElement) {
         estado.textContent = 'Programa guardado. Subiendo imagen…';
         await guardarImagen(id, imagenPendiente, imagen.files?.[0]?.name || 'imagen.webp');
         imagenPendiente = null; imagen.value = '';
+      } else if (quitarImagenPendiente) {
+        estado.textContent = 'Programa guardado. Quitando imagen…';
+        await quitarImagen(id);
+        quitarImagenPendiente = false;
+        imagenGuardadaUrl = null;
       }
       modificado = false;
       ocupado = false;
@@ -180,7 +215,8 @@ function iniciar(form: HTMLFormElement) {
         programa.lineas_accion.forEach(nuevaLinea);
         try {
           const url = await obtenerImagen(id);
-          if (url) { preview.src = url; preview.hidden = false; }
+          imagenGuardadaUrl = url;
+          if (url) { preview.src = url; preview.hidden = false; quitarContenedor.hidden = false; }
         } catch (error) { mostrarError((error as Error).message); }
       }
       if (!lineas.children.length) nuevaLinea();

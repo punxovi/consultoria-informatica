@@ -32,6 +32,19 @@ export async function obtenerImagen(idPrograma: string) {
   return enlace.signedUrl;
 }
 
+/** Archiva todas las imágenes activas para que no reaparezca una versión anterior. */
+export async function quitarImagen(idPrograma: string) {
+  const { data, error } = await clienteProgramas.from('archivos')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id_programa', idPrograma)
+    .eq('categoria', 'imagen_programa')
+    .is('archived_at', null)
+    .select('id_archivo');
+  if (error || !data?.length) {
+    throw new Error('El programa está guardado, pero no se pudo quitar la imagen. Revisa tus permisos o recarga el formulario antes de reintentar.');
+  }
+}
+
 /** Conserva las imágenes anteriores como historial, sin eliminaciones físicas. */
 export async function guardarImagen(idPrograma: string, imagen: Blob, nombre: string) {
   const ruta = `programas/${idPrograma}/${crypto.randomUUID()}.webp`;
