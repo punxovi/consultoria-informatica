@@ -9,6 +9,8 @@ export interface Programa {
   objetivos_especificos: string;
   componentes_linea_accion: string;
   resultados_esperados: string;
+  referencias_ods?: string;
+  referencias_esg?: string;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -28,6 +30,8 @@ export interface CrearProgramaInput {
   objetivos_especificos: string;
   componentes_linea_accion: string;
   resultados_esperados: string;
+  referencias_ods?: string;
+  referencias_esg?: string;
 }
 
 export type ActualizarProgramaInput = Partial<CrearProgramaInput>;
@@ -63,6 +67,8 @@ const CAMPOS_PROGRAMA = `
   objetivos_especificos,
   componentes_linea_accion,
   resultados_esperados,
+  referencias_ods,
+  referencias_esg,
   created_at,
   updated_at,
   created_by,
