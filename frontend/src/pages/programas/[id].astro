@@ -64,6 +64,7 @@ const secciones = [ ['objetivo_general', 'Objetivo general'], ['objetivos_especi
             document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = true;
             mensaje.textContent = 'Programa eliminado del catálogo. Su historial se conserva. Puedes volver al listado de programas.';
             boton.textContent = 'Programa eliminado';
+            window.location.replace('/programas?resultado=eliminado');
           } catch (error) {
             mensaje.textContent = error instanceof Error ? error.message : 'No se pudo eliminar el programa.';
             boton.disabled = false;

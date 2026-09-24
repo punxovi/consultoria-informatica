@@ -158,7 +158,9 @@ function iniciar(form: HTMLFormElement) {
         imagenPendiente = null; imagen.value = '';
       }
       modificado = false;
+      ocupado = false;
       estado.textContent = 'Programa guardado correctamente.';
+      window.location.replace('/programas?resultado=guardado');
     } catch (error) {
       estado.textContent = '';
       mostrarError(error instanceof Error ? error.message : 'No se pudo guardar el programa.');
