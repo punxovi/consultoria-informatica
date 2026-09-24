@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { archivarPrograma, type Programa } from '../../lib/server/programas';
 
 import { crearClienteSupabaseParaAction } from '../../lib/server/supabase-actions';
 import {
@@ -11,10 +12,28 @@ import {
 } from './programas.handler';
 import {
   actualizarProgramaSchema,
+  archivarProgramaSchema,
   crearProgramaSchema,
   listarProgramasSchema,
   obtenerProgramaPorIdSchema,
 } from './programas.schema';
+
+export const archivarProgramaAction = defineAction({
+  accept: 'json',
+  input: archivarProgramaSchema,
+  handler: async (input, context) => {
+    try {
+      const datos = await archivarPrograma(
+        crearClienteSupabaseParaAction(context.request),
+        input.id_programa,
+        input.version_esperada,
+      );
+      return { ok: true as const, codigo: 'PROGRAMA_ARCHIVADO' as const, mensaje: 'Programa eliminado del catálogo. Su historial se conserva.', datos };
+    } catch (error) {
+      return crearRespuestaErrorPrograma<Programa>(error);
+    }
+  },
+});
 
 export const listarProgramasAction = defineAction({
   accept: 'json',

@@ -175,3 +175,24 @@ export async function actualizarPrograma(
   }
   return data as Programa;
 }
+
+/** Borrado lógico: conserva líneas, archivos y planes vinculados. RLS exige ADMIN. */
+export async function archivarPrograma(
+  cliente: SupabaseClient,
+  idPrograma: string,
+  versionEsperada: number,
+): Promise<Programa> {
+  const { data, error } = await cliente.from('programas')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id_programa', idPrograma)
+    .eq('version', versionEsperada)
+    .is('archived_at', null)
+    .select(CAMPOS_PROGRAMA)
+    .maybeSingle();
+  if (error) throw convertirError(error);
+  if (!data) throw new ErrorOperacionPrograma(
+    'CONFLICTO_CONCURRENCIA',
+    'No se pudo eliminar: el programa cambió, ya fue archivado o no tienes permiso. Recarga la página.',
+  );
+  return data as Programa;
+}

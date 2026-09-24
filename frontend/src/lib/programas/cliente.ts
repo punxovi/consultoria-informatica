@@ -31,6 +31,7 @@ async function solicitar<T>(ruta: string, entrada: unknown): Promise<T> {
 }
 
 export const listarProgramas = () => solicitar<ProgramaConLineas[]>(getActionPath(actions.listarProgramas), {});
+export const archivarPrograma = (id: string, version: number) => solicitar(getActionPath(actions.archivarPrograma), { id_programa: id, version_esperada: version });
 export const obtenerPrograma = (id: string) => solicitar<ProgramaConLineas>(getActionPath(actions.obtenerProgramaPorId), { id_programa: id });
 export const crearPrograma = (datos: CrearProgramaInput) => solicitar<ProgramaConLineas>(getActionPath(actions.crearPrograma), datos);
 export const actualizarPrograma = (datos: ActualizarProgramaInput) => solicitar<ProgramaConLineas>(getActionPath(actions.actualizarPrograma), datos);
