@@ -4,8 +4,12 @@ export {
   crearProgramaSchema,
   formatearErroresPrograma,
   lineaAccionProgramaSchema,
+  listarProgramasSchema,
+  obtenerProgramaPorIdSchema,
   type ActualizarProgramaInput,
   type CrearProgramaInput,
   type ErrorValidacionPrograma,
   type LineaAccionProgramaInput,
+  type ListarProgramasInput,
+  type ObtenerProgramaPorIdInput,
 } from './programas.schema.ts';

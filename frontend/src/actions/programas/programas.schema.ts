@@ -79,6 +79,18 @@ export const crearProgramaSchema = camposProgramaSchema.superRefine(
   validarLineasUnicas,
 );
 
+/** El listado no admite filtros hasta que el producto los defina. */
+export const listarProgramasSchema = z
+  .object({})
+  .strict('No se permiten filtros adicionales.');
+
+/** Identificador utilizado por la Action de detalle. */
+export const obtenerProgramaPorIdSchema = z
+  .object({
+    id_programa: uuid('El programa'),
+  })
+  .strict('No se permiten campos adicionales.');
+
 const cambiosProgramaSchema = camposProgramaSchema
   .partial()
   .superRefine((datos, contexto) => {
@@ -107,6 +119,10 @@ export const actualizarProgramaSchema = z
 
 export type LineaAccionProgramaInput = z.infer<
   typeof lineaAccionProgramaSchema
+>;
+export type ListarProgramasInput = z.infer<typeof listarProgramasSchema>;
+export type ObtenerProgramaPorIdInput = z.infer<
+  typeof obtenerProgramaPorIdSchema
 >;
 export type CrearProgramaInput = z.infer<typeof crearProgramaSchema>;
 export type ActualizarProgramaInput = z.infer<
