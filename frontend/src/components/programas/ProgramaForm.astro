@@ -85,3 +85,38 @@ const campos = [
 <script>
   import '../../lib/programas/formulario';
 </script>
+
+<style>
+  #imagen {
+    width: 100%;
+    margin-bottom: 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  #imagen::file-selector-button {
+    min-height: 48px;
+    margin-right: 0.75rem;
+    padding: 0.625rem 1rem;
+    border: 2px solid var(--color-primary);
+    border-radius: 0.5rem;
+    background: white;
+    color: var(--color-primary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #imagen:not(:disabled):hover::file-selector-button {
+    background: var(--color-neutral-100);
+  }
+
+  #imagen:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+
+  #imagen:disabled::file-selector-button {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>
