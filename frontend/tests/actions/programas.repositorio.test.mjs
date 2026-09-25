@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   actualizarPrograma,
+  archivarPrograma,
   crearPrograma,
   ErrorOperacionPrograma,
   listarProgramas,
@@ -40,6 +41,22 @@ function clienteFalso(respuesta) {
 }
 
 describe('operaciones de Programas Institucionales', () => {
+  it('archiva con control de versión sin borrar dependencias', async () => {
+    const cliente = clienteFalso({ data: { ...programa, archived_at: '2026-09-24T12:00:00Z' }, error: null });
+    const resultado = await archivarPrograma(cliente, programa.id_programa, 1);
+    assert.ok(resultado.archived_at);
+    assert.deepEqual(cliente.llamadas.filter(([tipo]) => tipo === 'from'), [['from', 'programas']]);
+    const cambios = cliente.llamadas.find(([tipo]) => tipo === 'update')[1];
+    assert.deepEqual(Object.keys(cambios), ['archived_at']);
+    assert.ok(Number.isFinite(Date.parse(cambios.archived_at)));
+    assert.ok(cliente.llamadas.some(([tipo, campo, valor]) => tipo === 'eq' && campo === 'version' && valor === 1));
+    assert.ok(cliente.llamadas.some(([tipo, campo, valor]) => tipo === 'is' && campo === 'archived_at' && valor === null));
+  });
+
+  it('no informa éxito si RLS rechaza el archivo o la versión quedó desactualizada', async () => {
+    await assert.rejects(archivarPrograma(clienteFalso({ data: null, error: { code: '42501', message: 'denied' } }), programa.id_programa, 1), error => error.codigo === 'SIN_PERMISO');
+    await assert.rejects(archivarPrograma(clienteFalso({ data: null, error: null }), programa.id_programa, 1), error => error.codigo === 'CONFLICTO_CONCURRENCIA');
+  });
   it('lista programas activos sin filtrar por organización o país', async () => {
     const cliente = clienteFalso({ data: [programa], error: null });
     assert.deepEqual(await listarProgramas(cliente), [programa]);

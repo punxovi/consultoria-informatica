@@ -34,6 +34,41 @@ frontend/tests/actions/
 Cada dominio nuevo debe crear su propia carpeta y exportar sus Actions desde
 `frontend/src/actions/index.ts`.
 
+## Actions de Programas (KAN-171)
+
+El registro público expone cuatro operaciones JSON para Programas
+Institucionales:
+
+| Action | Propósito | Entrada principal |
+| --- | --- | --- |
+| `listarProgramas` | Lista Programas activos con sus líneas de acción. | Objeto vacío |
+| `obtenerProgramaPorId` | Consulta un Programa y sus líneas por UUID. | `id_programa` |
+| `crearPrograma` | Crea el Programa y cada línea con su resultado esperado. | `crearProgramaSchema` |
+| `actualizarPrograma` | Actualiza datos, sincroniza líneas y admite control de versión. | `actualizarProgramaSchema` |
+
+Las cuatro Actions utilizan el cliente por petición de `supabase-actions.ts` y
+reenvían el token Bearer para que las políticas RLS evalúen el rol de la
+sesión. Las respuestas siguen el contrato `{ ok, codigo, mensaje, datos }` y
+los errores controlados no exponen el detalle interno de Supabase.
+
+La actualización de líneas conserva las existentes, crea las adicionales y
+archiva las retiradas. Los textos legados de `programas` se mantienen
+sincronizados para preservar compatibilidad con el modelo anterior.
+
+La comprobación local no necesita escribir en Supabase:
+
+```bash
+cd frontend
+npm test
+npm run build
+npm run dev
+```
+
+Las pruebas cubren las cuatro operaciones, validación previa, líneas de acción,
+control de versión, archivado y estructura de errores. Una prueba manual con
+datos reales requiere una sesión `ADMIN`; `COORD` e `INVIT` solo poseen lectura
+según las políticas RLS actuales.
+
 ## Actions de Organizaciones (KAN-160)
 
 El registro público expone cuatro operaciones JSON:

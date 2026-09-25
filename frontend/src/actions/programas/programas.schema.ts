@@ -46,6 +46,8 @@ export const camposProgramaSchema = z
       5000,
     ),
     lineas_accion: lineasAccionProgramaSchema,
+    referencias_ods: z.string().trim().max(2000, 'Las referencias ODS no pueden superar 2000 caracteres.').optional(),
+    referencias_esg: z.string().trim().max(2000, 'Las referencias ESG no pueden superar 2000 caracteres.').optional(),
   })
   .strict('No se permiten campos adicionales en el programa.');
 
@@ -79,6 +81,18 @@ export const crearProgramaSchema = camposProgramaSchema.superRefine(
   validarLineasUnicas,
 );
 
+/** El listado no admite filtros hasta que el producto los defina. */
+export const listarProgramasSchema = z
+  .object({})
+  .strict('No se permiten filtros adicionales.');
+
+/** Identificador utilizado por la Action de detalle. */
+export const obtenerProgramaPorIdSchema = z
+  .object({
+    id_programa: uuid('El programa'),
+  })
+  .strict('No se permiten campos adicionales.');
+
 const cambiosProgramaSchema = camposProgramaSchema
   .partial()
   .superRefine((datos, contexto) => {
@@ -107,6 +121,15 @@ export const actualizarProgramaSchema = z
 
 export type LineaAccionProgramaInput = z.infer<
   typeof lineaAccionProgramaSchema
+>;
+export const archivarProgramaSchema = z.object({
+  id_programa: uuid('El programa'),
+  version_esperada: z.number().int().positive(),
+}).strict('No se permiten campos adicionales.');
+
+export type ListarProgramasInput = z.infer<typeof listarProgramasSchema>;
+export type ObtenerProgramaPorIdInput = z.infer<
+  typeof obtenerProgramaPorIdSchema
 >;
 export type CrearProgramaInput = z.infer<typeof crearProgramaSchema>;
 export type ActualizarProgramaInput = z.infer<
