@@ -1,0 +1,13 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import ProgramaForm from '../../../components/programas/ProgramaForm.astro';
+import { mainNavItems } from '../../../config/nav';
+import { obtenerProgramaPorIdSchema } from '../../../actions/programas/programas.schema';
+const { id } = Astro.params;
+if (!obtenerProgramaPorIdSchema.safeParse({ id_programa: id }).success) {
+  Astro.response.status = 404;
+}
+---
+<AppLayout title="Editar programa" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <ProgramaForm idPrograma={id} />
+</AppLayout>

@@ -1,0 +1,77 @@
+---
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import Button from '../ui/Button.astro';
+
+interface Props { idPrograma?: string }
+const { idPrograma = '' } = Astro.props;
+const campos = [
+  { id: 'objetivo_general', label: 'Objetivo general', max: 3000 },
+  { id: 'objetivos_especificos', label: 'Objetivos específicos', max: 5000 },
+  { id: 'descripcion', label: 'Descripción / contexto', max: 5000 },
+];
+---
+
+<section class="mx-auto max-w-4xl space-y-6">
+  <div>
+    <p class="text-sm font-medium text-primary">Programas institucionales</p>
+    <h1 class="mt-1 text-2xl font-bold md:text-3xl">{idPrograma ? 'Editar programa' : 'Crear programa'}</h1>
+    <p class="mt-2 text-neutral-700">Los campos marcados con * son obligatorios. Cada línea de acción debe tener su propio resultado esperado.</p>
+  </div>
+
+  <p id="programa-estado" role="status" aria-live="polite" class="text-neutral-700">Cargando formulario…</p>
+  <div id="programa-errores" role="alert" tabindex="-1" class="hidden rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
+  <div id="programa-recuperacion" hidden class="flex flex-wrap gap-3">
+    <Button id="recargar-programa" variant="outline">Volver a cargar datos</Button>
+    <a href="/login" class="inline-flex items-center text-primary underline">Iniciar sesión</a>
+  </div>
+  <form id="programa-form" data-id={idPrograma} novalidate aria-busy="true" class="space-y-6">
+    <fieldset id="programa-campos" disabled class="min-w-0 space-y-6">
+      <Card>
+        <h2 class="mb-5 text-lg font-semibold">Información del programa</h2>
+        <div class="space-y-5">
+          <Input id="nombre" label="Nombre" required maxlength={150} />
+          {campos.map(({ id, label, max }) => (
+            <div class="space-y-1.5">
+              <label for={id} class="block text-sm font-medium">{label} <span aria-hidden="true">*</span></label>
+              <textarea id={id} name={id} required maxlength={max} rows="4" class="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card>
+        <h2 class="text-lg font-semibold">Líneas de acción y resultados esperados</h2>
+        <p class="mt-1 text-sm text-neutral-700">Cada programa nuevo requiere al menos una línea. Puedes registrar hasta 50.</p>
+        <div id="programa-legado" hidden class="mt-4 rounded-lg bg-neutral-50 p-4 text-sm">
+          <p>Este programa conserva sus componentes y resultados generales. Puedes editar sus datos sin agregar líneas, o registrar cada línea con su resultado correspondiente.</p>
+          <h3 class="mt-3 font-semibold">Componentes registrados</h3>
+          <p id="legado-componentes" class="whitespace-pre-wrap"></p>
+          <h3 class="mt-3 font-semibold">Resultados registrados</h3>
+          <p id="legado-resultados" class="whitespace-pre-wrap"></p>
+        </div>
+        <div id="programa-lineas" class="my-5 space-y-4"></div>
+        <Button id="agregar-linea" variant="outline">Agregar línea de acción</Button>
+      </Card>
+      <div class="flex flex-col-reverse gap-3 md:flex-row md:justify-end">
+        <Button id="cancelar-programa" variant="outline">Cancelar</Button>
+        <Button id="guardar-programa" type="submit">Guardar programa</Button>
+      </div>
+    </fieldset>
+  </form>
+  <a href="/programas" class="inline-flex min-h-[48px] items-center font-medium text-primary underline">Volver al catálogo</a>
+</section>
+
+<template id="plantilla-linea">
+  <fieldset class="min-w-0 rounded-lg border border-neutral-200 p-4">
+    <legend class="px-1 font-medium"></legend>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div><label class="block text-sm font-medium" data-label="linea_accion">Línea de acción *</label><textarea data-campo="linea_accion" required maxlength="500" rows="3" class="mt-1.5 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:ring-2 focus:ring-primary"></textarea></div>
+      <div><label class="block text-sm font-medium" data-label="resultado_esperado">Resultado esperado *</label><textarea data-campo="resultado_esperado" required maxlength="2000" rows="3" class="mt-1.5 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:ring-2 focus:ring-primary"></textarea></div>
+    </div>
+    <button type="button" data-quitar class="mt-2 min-h-[48px] min-w-[48px] rounded-lg px-3 font-medium text-red-800 underline focus:ring-2 focus:ring-primary">Quitar línea</button>
+  </fieldset>
+</template>
+
+<script>
+  import '../../lib/programas/formulario';
+</script>

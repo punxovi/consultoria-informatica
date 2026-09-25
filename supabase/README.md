@@ -1,10 +1,11 @@
 # Base de datos FGE/TDT
 
-## Estado de la rama `fix/relaciones-organizacion-programa-plan`
+## Esquema y migraciones
 
-Trece archivos de migración para `fge-dev`, con 27 tablas de aplicación y una
-tabla privada de auditoría. Las primeras doce migraciones ya están aplicadas
-en `fge-dev`; la nueva migración de líneas de acción permanece solo en esta rama.
+Catorce archivos de migración, con 27 tablas de aplicación y una tabla privada
+de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
+aplicación de esta nueva migración a una instancia remota queda pendiente;
+las verificaciones de esta tarea usan PostgreSQL embebido local.
 
 | Migración | Contenido |
 |---|---|
@@ -21,6 +22,7 @@ en `fge-dev`; la nueva migración de líneas de acción permanece solo en esta r
 | `20260923014926_fge_relaciones_planes_programas.sql` | Programas institucionales independientes; cada plan relaciona organización y programa. |
 | `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
 | `20260923151202_fge_programa_lineas_accion.sql` | Líneas propias por Programa, cada una con resultado esperado, auditoría y permisos. |
+| `20260925120000_fge_guardar_programa_completo.sql` | Guardado atómico del Programa y sus líneas con RLS, control de versión y archivado. |
 
 La carpeta incluye configuración local, ocho archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
@@ -75,6 +77,13 @@ Supabase creado por la capa de servidor y respetan sus permisos/RLS; no se
 añadieron políticas ni funciones privilegiadas dentro de esta tarea.
 
 ## Operaciones de Programas Institucionales (KAN-172)
+
+La integración KAN-176 está descrita en
+[PROBAR-KAN-176](../docs/PROBAR-KAN-176.md). Las Actions de lectura usan estos
+repositorios; creación y edición usan `programas-completos.ts` y la RPC
+`guardar_programa_completo`, que coordina líneas y textos generales en una sola
+transacción. Sustituye la coordinación pendiente mencionada en los antecedentes
+de KAN-172/KAN-173 que siguen a continuación.
 
 `frontend/src/lib/server/programas.ts` implementa listado, consulta por ID,
 registro y modificación de Programas globales, sin `id_organizacion` ni filtro
@@ -135,7 +144,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las trece migraciones y luego el
+En una instalación nueva, el inicio aplica las catorce migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:

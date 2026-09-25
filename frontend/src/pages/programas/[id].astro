@@ -3,313 +3,110 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
-import BackButton from '../../components/ui/BackButton.astro';
-
-const programas = {
-  '1': {
-    nombre: 'Formalización',
-    objetivoGeneral:
-      'Fortalecimiento de la gestión y regularización de organizaciones.',
-    objetivosEspecificos: [
-      'Fortalecer las capacidades de gestión de las organizaciones.',
-      'Promover procesos de regularización y formalización.',
-      'Entregar herramientas para mejorar la gestión institucional.',
-    ],
-    descripcion:
-      'Programa orientado al fortalecimiento de organizaciones sociales mediante acompañamiento y herramientas que contribuyen a mejorar sus procesos de gestión y regularización.',
-    imagen:
-      'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80',
-    lineasAccion: [
-      'Fortalecimiento de capacidades',
-      'Acompañamiento institucional',
-      'Regularización de organizaciones',
-    ],
-    resultadosEsperados:
-      'Organizaciones con mayores capacidades de gestión, procesos institucionales fortalecidos y avances en sus procesos de formalización.',
-  },
-
-  '2': {
-    nombre: 'Espacios con Valor',
-    objetivoGeneral:
-      'Mejora y recuperación de espacios comunitarios.',
-    objetivosEspecificos: [
-      'Promover la recuperación de espacios comunitarios.',
-      'Fortalecer la participación de las comunidades.',
-      'Impulsar iniciativas de mejora del entorno.',
-    ],
-    descripcion:
-      'Programa enfocado en la recuperación y puesta en valor de espacios comunitarios, promoviendo la participación de las comunidades en su desarrollo.',
-    imagen:
-      'https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&w=1200&q=80',
-    lineasAccion: [
-      'Recuperación de espacios',
-      'Participación comunitaria',
-      'Mejora del entorno',
-    ],
-    resultadosEsperados:
-      'Espacios comunitarios recuperados y comunidades involucradas activamente en su cuidado y desarrollo.',
-  },
-
-  '3': {
-    nombre: 'Referentes al Frente',
-    objetivoGeneral:
-      'Formación y fortalecimiento de liderazgos comunitarios.',
-    objetivosEspecificos: [
-      'Fortalecer habilidades de liderazgo comunitario.',
-      'Promover la participación y organización territorial.',
-      'Generar espacios de formación para referentes sociales.',
-    ],
-    descripcion:
-      'Programa destinado a fortalecer liderazgos comunitarios y entregar herramientas para que referentes sociales puedan desarrollar iniciativas en sus territorios.',
-    imagen:
-      'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80',
-    lineasAccion: [
-      'Formación de líderes',
-      'Participación comunitaria',
-      'Fortalecimiento territorial',
-    ],
-    resultadosEsperados:
-      'Referentes comunitarios fortalecidos y con mayores herramientas para impulsar iniciativas en sus territorios.',
-  },
-
-  '4': {
-    nombre: 'Una Vuelta +',
-    objetivoGeneral:
-      'Iniciativas de acompañamiento y participación comunitaria.',
-    objetivosEspecificos: [
-      'Promover iniciativas de acompañamiento comunitario.',
-      'Fortalecer la participación de las comunidades.',
-      'Generar espacios de colaboración y encuentro.',
-    ],
-    descripcion:
-      'Programa orientado al acompañamiento de comunidades y al desarrollo de iniciativas que promuevan la participación y colaboración entre sus integrantes.',
-    imagen:
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
-    lineasAccion: [
-      'Acompañamiento comunitario',
-      'Participación',
-      'Trabajo colaborativo',
-    ],
-    resultadosEsperados:
-      'Comunidades acompañadas y con mayores oportunidades de participación y colaboración.',
-  },
-
-  '5': {
-    nombre: 'Alimentación Saludable',
-    objetivoGeneral:
-      'Promoción de alimentación y bienestar en comunidades.',
-    objetivosEspecificos: [
-      'Promover hábitos de alimentación saludable.',
-      'Fortalecer conocimientos relacionados con alimentación y bienestar.',
-      'Apoyar iniciativas comunitarias relacionadas con alimentación.',
-    ],
-    descripcion:
-      'Programa orientado a promover una alimentación saludable y contribuir al bienestar de las comunidades mediante iniciativas y acciones de carácter comunitario.',
-    imagen:
-      'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80',
-    lineasAccion: [
-      'Alimentación saludable',
-      'Educación y bienestar',
-      'Iniciativas comunitarias',
-    ],
-    resultadosEsperados:
-      'Comunidades con mayores conocimientos y herramientas para promover una alimentación saludable.',
-  },
-
-  '6': {
-    nombre: 'Gestión y Formación',
-    objetivoGeneral:
-      'Capacitación para equipos y mejora de la gestión institucional.',
-    objetivosEspecificos: [
-      'Fortalecer las capacidades de los equipos.',
-      'Promover procesos de formación institucional.',
-      'Entregar herramientas para mejorar la gestión.',
-    ],
-    descripcion:
-      'Programa enfocado en la formación y fortalecimiento de equipos, contribuyendo a mejorar sus capacidades y procesos de gestión institucional.',
-    imagen:
-      'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80',
-    lineasAccion: [
-      'Capacitación de equipos',
-      'Formación institucional',
-      'Mejora de la gestión',
-    ],
-    resultadosEsperados:
-      'Equipos fortalecidos y con mayores capacidades para desarrollar una gestión institucional efectiva.',
-  },
-};
-
-const id = Astro.params.id;
-const programa = id ? programas[id as keyof typeof programas] : undefined;
+import { obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
+const id = Astro.params.id ?? '';
+const idValido = obtenerProgramaPorIdSchema.safeParse({ id_programa: id }).success;
+if (!idValido) Astro.response.status = 404;
 ---
 
-<AppLayout
-  title={programa ? programa.nombre : 'Programa no encontrado'}
-  navItems={mainNavItems}
-  allowedRoles={['ADMIN', 'COORD']}
->
- <Fragment slot="breadcrumb">
-  <div class="flex items-center gap-4">
-    <BackButton />
-
-    <div class="flex min-w-0 items-center gap-2 text-sm">
-      <a
-        href="/programas"
-        class="text-neutral-500 transition-colors hover:text-primary"
-      >
-        Programas Institucionales
-      </a>
-
-      <span class="text-neutral-400">&rsaquo;</span>
-
-      <span class="truncate font-medium text-neutral-900">
-        {programa ? programa.nombre : 'Programa no encontrado'}
-      </span>
+<AppLayout title="Detalle del programa" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <Fragment slot="breadcrumb">
+    <a href="/programas" class="hover:text-primary">Programas Institucionales</a>
+    <span>&rsaquo;</span><span id="programa-breadcrumb">Detalle del programa</span>
+  </Fragment>
+  <section id="programa-detalle" data-id={id} data-id-valido={String(idValido)} aria-busy={idValido ? 'true' : 'false'} class="space-y-6">
+    <div id="detalle-estado-panel" class="rounded-xl border border-neutral-200 bg-white p-6">
+      <h1 id="detalle-estado" role="status" aria-live="polite" class="text-xl font-semibold">{idValido ? 'Cargando programa…' : 'Programa no encontrado'}</h1>
+      <p id="detalle-error" role="alert" hidden class="mt-3 text-red-800"></p>
+      <div id="detalle-reintentar" hidden class="mt-4"><Button id="recargar-programa" variant="outline">Reintentar</Button></div>
     </div>
-  </div>
-</Fragment>
-
-  {!programa ? (
-    <section class="space-y-6">
-      <Card>
-        <div class="py-10 text-center">
-          <div
-            class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100"
-          >
-            <span class="text-2xl text-neutral-400">!</span>
-          </div>
-
-          <h1 class="mt-4 text-xl font-semibold text-neutral-900">
-            Programa no encontrado
-          </h1>
-
-          <p class="mx-auto mt-2 max-w-md text-sm text-neutral-500">
-            El programa que estás buscando no existe o no está disponible
-            actualmente.
-          </p>
-
-          <div class="mt-6">
-            <Button
-              variant="ghost"
-              size="md"
-              href="/programas"
-            >
-              ← Volver a programas
-            </Button>
-          </div>
+    <p id="programa-confirmacion" role="status" hidden class="rounded-lg bg-green-50 p-4 text-green-800">Programa guardado correctamente.</p>
+    <div id="detalle-contenido" hidden class="space-y-6">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-primary">Programa institucional</p>
+          <h1 id="detalle-nombre" class="mt-1 break-words text-2xl font-bold md:text-3xl"></h1>
         </div>
-      </Card>
-    </section>
-  ) : (
-    <section class="space-y-6">
-      <!-- Encabezado -->
-      <div>
-        <p class="mb-1 text-sm font-medium text-primary">
-          Programa institucional
-        </p>
-
-        <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
-          {programa.nombre}
-        </h1>
-
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
-          {programa.objetivoGeneral}
-        </p>
+        <div id="editar-programa-panel" hidden><Button href={`/programas/${id}/editar`}>Editar programa</Button></div>
       </div>
-
-      <!-- Imagen y objetivo -->
-      <div class="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <Card class="overflow-hidden !p-0 lg:col-span-2">
-          <img
-            src={programa.imagen}
-            alt={`Imagen del programa ${programa.nombre}`}
-            class="h-full min-h-[240px] w-full object-cover"
-          />
-        </Card>
-
-        <Card class="lg:col-span-3">
-          <div class="space-y-6">
-            <div>
-              <h2 class="text-lg font-semibold text-neutral-900">
-                Objetivo general
-              </h2>
-
-              <p class="mt-2 text-sm leading-6 text-neutral-600">
-                {programa.objetivoGeneral}
-              </p>
-            </div>
-
-            <div>
-              <h2 class="text-lg font-semibold text-neutral-900">
-                Objetivos específicos
-              </h2>
-
-              <ul class="mt-3 space-y-3">
-                {programa.objetivosEspecificos.map((objetivo) => (
-                  <li class="flex gap-3 text-sm leading-6 text-neutral-600">
-                    <span
-                      class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                    ></span>
-
-                    <span>{objetivo}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </Card>
+      <div class="grid gap-5 lg:grid-cols-2">
+        <Card><h2 class="text-lg font-semibold">Objetivo general</h2><p id="detalle-objetivo" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
+        <Card><h2 class="text-lg font-semibold">Objetivos específicos</h2><p id="detalle-objetivos" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
       </div>
-
-      <!-- Descripción / contexto -->
+      <Card><h2 class="text-lg font-semibold">Descripción y contexto</h2><p id="detalle-descripcion" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
       <Card>
-        <div>
-          <h2 class="text-lg font-semibold text-neutral-900">
-            Descripción y contexto
-          </h2>
-
-          <p class="mt-3 max-w-4xl text-sm leading-7 text-neutral-600">
-            {programa.descripcion}
-          </p>
-        </div>
+        <h2 class="text-lg font-semibold">Líneas de acción y resultados esperados</h2>
+        <dl id="detalle-lineas" class="mt-4 grid gap-4 md:grid-cols-2"></dl>
+        <p id="detalle-sin-lineas" hidden class="mt-3 text-neutral-600">Este programa aún no tiene líneas de acción con resultados individuales registrados.</p>
       </Card>
-
-      <!-- Líneas de acción -->
-      <Card>
-        <div>
-          <h2 class="text-lg font-semibold text-neutral-900">
-            Líneas de acción
-          </h2>
-
-          <p class="mt-1 text-sm text-neutral-500">
-            Principales líneas de trabajo asociadas al programa.
-          </p>
-
-          <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {programa.lineasAccion.map((linea) => (
-              <div
-                class="rounded-lg border border-neutral-200 bg-neutral-50 p-4"
-              >
-                <p class="text-sm font-medium text-neutral-800">
-                  {linea}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      <!-- Resultados esperados -->
-      <Card>
-        <div>
-          <h2 class="text-lg font-semibold text-neutral-900">
-            Resultados esperados
-          </h2>
-
-          <p class="mt-3 max-w-4xl text-sm leading-7 text-neutral-600">
-            {programa.resultadosEsperados}
-          </p>
-        </div>
-      </Card>
-    </section>
-  )}
+      <div id="detalle-legado" hidden class="grid gap-5 lg:grid-cols-2">
+        <Card><h2 class="text-lg font-semibold">Componentes registrados</h2><p id="detalle-componentes" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
+        <Card><h2 class="text-lg font-semibold">Resultados esperados generales</h2><p id="detalle-resultados" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
+      </div>
+    </div>
+    <Button variant="ghost" href="/programas">← Volver a programas</Button>
+  </section>
 </AppLayout>
+
+<template id="plantilla-detalle-linea">
+  <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+    <dt class="whitespace-pre-wrap break-words font-semibold"></dt>
+    <dd class="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-600"></dd>
+  </div>
+</template>
+
+<script>
+  import { obtenerPrograma } from '../../lib/programas/cliente';
+  import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
+  import { getUserRoles } from '../../lib/supabase';
+  const detalle = document.querySelector<HTMLElement>('#programa-detalle')!;
+  const panel = document.querySelector<HTMLElement>('#detalle-estado-panel')!;
+  const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
+  const error = document.querySelector<HTMLElement>('#detalle-error')!;
+  const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
+  const reintentar = document.querySelector<HTMLElement>('#detalle-reintentar')!;
+  let cargando = false;
+  async function cargar() {
+    if (cargando || detalle.dataset.idValido !== 'true') return;
+    cargando = true; detalle.setAttribute('aria-busy', 'true');
+    panel.hidden = false; contenido.hidden = true; error.hidden = true; reintentar.hidden = true;
+    document.querySelector<HTMLElement>('#programa-confirmacion')!.hidden = true;
+    estado.textContent = 'Cargando programa…';
+    try {
+      const programa = await obtenerPrograma(detalle.dataset.id!);
+      for (const [selector, valor] of Object.entries({
+        '#detalle-nombre': programa.nombre, '#programa-breadcrumb': programa.nombre,
+        '#detalle-objetivo': programa.objetivo_general, '#detalle-objetivos': programa.objetivos_especificos,
+        '#detalle-descripcion': programa.descripcion, '#detalle-componentes': programa.componentes_linea_accion,
+        '#detalle-resultados': programa.resultados_esperados,
+      })) document.querySelector(selector)!.textContent = valor;
+      const lineas = document.querySelector('#detalle-lineas')!;
+      lineas.replaceChildren();
+      const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-detalle-linea')!;
+      for (const linea of programa.lineas_accion) {
+        const fila = plantilla.content.cloneNode(true) as DocumentFragment;
+        fila.querySelector('dt')!.textContent = linea.linea_accion;
+        fila.querySelector('dd')!.textContent = linea.resultado_esperado;
+        lineas.append(fila);
+      }
+      const tieneLineas = programa.lineas_accion.length > 0;
+      document.querySelector<HTMLElement>('#detalle-sin-lineas')!.hidden = tieneLineas;
+      document.querySelector<HTMLElement>('#detalle-legado')!.hidden = tieneLineas;
+      document.querySelector<HTMLElement>('#programa-confirmacion')!.hidden = new URLSearchParams(location.search).get('resultado') !== 'guardado';
+      document.title = `${programa.nombre} | Programas`;
+      panel.hidden = true; contenido.hidden = false;
+    } catch (fallo) {
+      const inexistente = fallo instanceof ErrorSolicitudPrograma && fallo.codigo === 'NO_ENCONTRADO';
+      estado.textContent = inexistente ? 'Programa no encontrado' : 'No fue posible cargar el programa';
+      error.textContent = fallo instanceof Error ? fallo.message : 'Vuelve a intentarlo.';
+      error.hidden = false; reintentar.hidden = inexistente;
+      document.title = estado.textContent;
+    } finally { cargando = false; detalle.setAttribute('aria-busy', 'false'); }
+  }
+  document.querySelector('#recargar-programa')!.addEventListener('click', cargar);
+  window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
+  void cargar();
+  void getUserRoles().then(roles => {
+    document.querySelector<HTMLElement>('#editar-programa-panel')!.hidden = !roles.some(rol => rol.codigo === 'ADMIN');
+  }).catch(() => {});
+</script>

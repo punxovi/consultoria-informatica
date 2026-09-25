@@ -17,7 +17,7 @@ export interface UserRole {
 
 let supabaseClient: SupabaseClient | undefined;
 
-function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient {
   if (supabaseClient) {
     return supabaseClient;
   }

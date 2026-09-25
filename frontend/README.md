@@ -87,3 +87,14 @@ Desde la carpeta frontend/, ejecutar: npm run build y luego npm start
 La arquitectura y el contrato de las Actions están documentados en
 ../backend/README.md.
 
+## Integración de Programas (KAN-176)
+
+Las rutas `/programas`, `/programas/[id]`, `/programas/nuevo` y
+`/programas/[id]/editar` consumen Actions autenticadas. La creación y edición
+requieren aplicar `20260925120000_fge_guardar_programa_completo.sql` en la
+instancia Supabase configurada. La guía [PROBAR-KAN-176](../docs/PROBAR-KAN-176.md)
+detalla lo implementado, la preparación y cómo comprobar cada criterio.
+
+`npm test` incluye PostgreSQL embebido; `npm run test:e2e` ejecuta los flujos en
+navegador con base temporal y Actions reales, sin modificar el Supabase remoto.
+
