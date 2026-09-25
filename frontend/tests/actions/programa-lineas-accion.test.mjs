@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   actualizarLineaAccionPrograma,
+  archivarLineaAccionPrograma,
   crearLineaAccionPrograma,
   ErrorOperacionLineaAccionPrograma,
   listarLineasAccionPrograma,
@@ -72,6 +73,26 @@ describe('operaciones de líneas de acción de Programas', () => {
     assert.deepEqual(cliente.llamadas.filter(([tipo]) => tipo === 'eq'), [
       ['eq', 'id_linea_accion', linea.id_linea_accion],
       ['eq', 'version', 1],
+    ]);
+  });
+
+  it('archiva una línea activa con control de versión', async () => {
+    const archivada = { ...linea, archived_at: '2026-09-23T12:00:00.000Z', version: 2 };
+    const cliente = clienteFalso({ data: archivada, error: null });
+
+    assert.deepEqual(
+      await archivarLineaAccionPrograma(
+        cliente,
+        linea.id_linea_accion,
+        linea.version,
+      ),
+      archivada,
+    );
+    assert.equal(cliente.llamadas[1][0], 'update');
+    assert.equal(typeof cliente.llamadas[1][1].archived_at, 'string');
+    assert.deepEqual(cliente.llamadas.filter(([tipo]) => tipo === 'eq'), [
+      ['eq', 'id_linea_accion', linea.id_linea_accion],
+      ['eq', 'version', linea.version],
     ]);
   });
 

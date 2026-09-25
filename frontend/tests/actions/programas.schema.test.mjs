@@ -6,6 +6,8 @@ import {
   crearProgramaSchema,
   formatearErroresPrograma,
   lineaAccionProgramaSchema,
+  listarProgramasSchema,
+  obtenerProgramaPorIdSchema,
 } from '../../src/actions/programas/index.ts';
 
 const programaValido = {
@@ -26,6 +28,25 @@ const programaValido = {
 };
 
 describe('schemas Zod de Programas', () => {
+  it('valida el listado y la consulta por identificador', () => {
+    assert.deepEqual(listarProgramasSchema.parse({}), {});
+    assert.equal(
+      listarProgramasSchema.safeParse({ filtro_no_permitido: true }).success,
+      false,
+    );
+    assert.equal(
+      obtenerProgramaPorIdSchema.safeParse({
+        id_programa: '15800000-0000-4000-8000-000000000001',
+      }).success,
+      true,
+    );
+    assert.equal(
+      obtenerProgramaPorIdSchema.safeParse({ id_programa: 'invalido' })
+        .success,
+      false,
+    );
+  });
+
   it('acepta y normaliza todos los campos de creación', () => {
     const resultado = crearProgramaSchema.parse(programaValido);
 
