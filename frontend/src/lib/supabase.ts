@@ -60,3 +60,5 @@ export async function getUserRoles(): Promise<UserRole[]> {
 
   return (data ?? []) as UserRole[];
 }
+
+export const supabase = getSupabaseClient();
