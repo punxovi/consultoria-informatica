@@ -46,6 +46,8 @@ export const camposProgramaSchema = z
       5000,
     ),
     lineas_accion: lineasAccionProgramaSchema,
+    referencias_ods: z.string().trim().max(2000, 'Las referencias ODS no pueden superar 2000 caracteres.').optional(),
+    referencias_esg: z.string().trim().max(2000, 'Las referencias ESG no pueden superar 2000 caracteres.').optional(),
   })
   .strict('No se permiten campos adicionales en el programa.');
 
@@ -120,6 +122,11 @@ export const actualizarProgramaSchema = z
 export type LineaAccionProgramaInput = z.infer<
   typeof lineaAccionProgramaSchema
 >;
+export const archivarProgramaSchema = z.object({
+  id_programa: uuid('El programa'),
+  version_esperada: z.number().int().positive(),
+}).strict('No se permiten campos adicionales.');
+
 export type ListarProgramasInput = z.infer<typeof listarProgramasSchema>;
 export type ObtenerProgramaPorIdInput = z.infer<
   typeof obtenerProgramaPorIdSchema

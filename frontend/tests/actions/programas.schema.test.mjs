@@ -28,6 +28,20 @@ const programaValido = {
 };
 
 describe('schemas Zod de Programas', () => {
+  it('normaliza referencias opcionales y permite quitarlas al editar', () => {
+    const resultado = crearProgramaSchema.parse({ ...programaValido, referencias_ods: ' ODS 4 ', referencias_esg: ' Social ' });
+    assert.equal(resultado.referencias_ods, 'ODS 4');
+    assert.equal(resultado.referencias_esg, 'Social');
+    const edicion = actualizarProgramaSchema.parse({ id_programa: '11111111-1111-4111-8111-111111111111', cambios: { referencias_ods: '', referencias_esg: '' } });
+    assert.equal(edicion.cambios.referencias_ods, '');
+  });
+
+  it('rechaza referencias demasiado largas o con tipos inválidos', () => {
+    for (const campo of ['referencias_ods', 'referencias_esg']) {
+      assert.equal(crearProgramaSchema.safeParse({ ...programaValido, [campo]: 'x'.repeat(2001) }).success, false);
+      assert.equal(crearProgramaSchema.safeParse({ ...programaValido, [campo]: 4 }).success, false);
+    }
+  });
   it('valida el listado y la consulta por identificador', () => {
     assert.deepEqual(listarProgramasSchema.parse({}), {});
     assert.equal(

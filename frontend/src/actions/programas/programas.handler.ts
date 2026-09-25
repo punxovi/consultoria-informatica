@@ -31,6 +31,7 @@ export type CodigoExitoPrograma =
   | 'PROGRAMAS_LISTADOS'
   | 'PROGRAMA_OBTENIDO'
   | 'PROGRAMA_CREADO'
+  | 'PROGRAMA_ARCHIVADO'
   | 'PROGRAMA_ACTUALIZADO';
 
 export type CodigoErrorActionPrograma =
