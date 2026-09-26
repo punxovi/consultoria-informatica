@@ -1,5 +1,23 @@
 # Backend con Astro Actions
 
+## Programas integrados (KAN-176)
+
+Las Actions `listarProgramas`, `obtenerProgramaPorId`, `crearPrograma` y
+`actualizarPrograma` están registradas en `frontend/src/actions/index.ts`.
+Usan los schemas del dominio y respuestas `{ ok, codigo, mensaje, datos }`.
+El cliente envía el Bearer de la sesión; la instancia Supabase conserva RLS.
+
+Las lecturas consultan programas y líneas activos. Las escrituras usan
+`public.guardar_programa_completo(jsonb, uuid, bigint)`, una RPC con permisos
+del invocador que guarda todo en una transacción y controla la versión esperada.
+Requiere la migración `20260925120000_fge_guardar_programa_completo.sql`.
+
+Los errores de dominio incluyen `NO_ENCONTRADO`, `CONFLICTO_CONCURRENCIA`,
+`SIN_PERMISO`, `RESTRICCION_INCUMPLIDA` y `ERROR_BASE_DATOS`. Zod entrega
+`ActionInputError` antes de ejecutar el handler si la entrada es inválida.
+La guía [PROBAR-KAN-176](../docs/PROBAR-KAN-176.md) documenta los casos manuales
+y automatizados y el alcance de las comprobaciones locales.
+
 El backend de FGE se implementa con Astro Actions. Astro descubre las Actions
 únicamente desde `frontend/src/actions/index.ts`; por eso el código ejecutable
 permanece dentro del proyecto Astro y esta carpeta concentra la documentación

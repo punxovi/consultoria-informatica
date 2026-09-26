@@ -10,7 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "test": "node --experimental-strip-types --test",
+    "test": "node --experimental-strip-types --test tests/actions/*.test.mjs",
+    "test:e2e": "playwright test",
     "astro": "astro"
   },
   "dependencies": {
@@ -29,7 +30,11 @@
     "esbuild": true
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7"
+    "@types/react-dom": "^19.2.7",
+    "typescript": "^6.0.3"
   }
 }
