@@ -17,7 +17,7 @@ export interface UserRole {
 
 let supabaseClient: SupabaseClient | undefined;
 
-export function getSupabaseClient(): SupabaseClient {
+function getSupabaseClient(): SupabaseClient {
   if (supabaseClient) {
     return supabaseClient;
   }
@@ -60,3 +60,5 @@ export async function getUserRoles(): Promise<UserRole[]> {
 
   return (data ?? []) as UserRole[];
 }
+
+export const supabase = getSupabaseClient();

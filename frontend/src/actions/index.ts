@@ -5,6 +5,7 @@ import {
   listarOrganizacionesAction,
   obtenerOrganizacionPorIdAction,
 } from './organizaciones/organizaciones.action';
+import { authActions } from './auth/auth.action';
 import {
   actualizarProgramaAction,
   archivarProgramaAction,
@@ -12,7 +13,6 @@ import {
   listarProgramasAction,
   obtenerProgramaPorIdAction,
 } from './programas/programas.action';
-
 /**
  * Registro público de Astro Actions.
  *
@@ -30,4 +30,6 @@ export const server = {
   listarProgramas: listarProgramasAction,
   obtenerProgramaPorId: obtenerProgramaPorIdAction,
   recibirDatosPrueba,
+  solicitarRecuperacion: authActions.solicitarRecuperacion,
+  cambiarContrasena: authActions.cambiarContrasena,
 };
