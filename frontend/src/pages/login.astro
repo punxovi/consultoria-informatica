@@ -72,7 +72,7 @@ import Input from '../components/ui/Input.astro';
     </section>
   </main>
 
-  <script>
+<script>
     import { createClient } from '@supabase/supabase-js';
 
     const supabase = createClient(
@@ -87,12 +87,15 @@ import Input from '../components/ui/Input.astro';
     const message = document.getElementById('error-message') as HTMLSpanElement;
     const submit = document.getElementById('submit-btn') as HTMLButtonElement;
 
+    const LOCKOUT_TIME_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
+    const MAX_FAILED_ATTEMPTS = 3; // Al 4to intento se bloquea
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       hideError();
 
-      const emailValue = email.value.trim();
-      const passwordValue = password.value.trim();
+      const emailValue = email.value.trim().toLowerCase();
+      const passwordValue = password.value;
 
       if (!emailValue || !passwordValue) {
         showError('Por favor, completa todos los campos.');
@@ -104,29 +107,66 @@ import Input from '../components/ui/Input.astro';
         return;
       }
 
+      // 1. Verificar si el correo se encuentra bajo bloqueo temporal
+      const lockoutKey = `lockout_${emailValue}`;
+      const lockoutUntil = localStorage.getItem(lockoutKey);
+
+      if (lockoutUntil) {
+        const remainingTime = parseInt(lockoutUntil, 10) - Date.now();
+        if (remainingTime > 0) {
+          const minutesLeft = Math.ceil(remainingTime / (60 * 1000));
+          showError(`Demasiados intentos fallidos. Cuenta temporalmente bloqueada por seguridad. Inténtalo en ${minutesLeft} minuto(s).`);
+          return;
+        } else {
+          localStorage.removeItem(lockoutKey);
+          localStorage.removeItem(`attempts_${emailValue}`);
+        }
+      }
+
       try {
         submit.textContent = 'Verificando...';
         submit.disabled = true;
 
+        // Autenticación directa en el cliente para guardar la sesión en el navegador
         const { data, error } = await supabase.auth.signInWithPassword({
           email: emailValue,
           password: passwordValue,
         });
 
         if (error || !data.session) {
-          showError('Credenciales incorrectas o acceso no autorizado.');
+          handleFailedAttempt(emailValue);
           submit.textContent = 'Iniciar sesión';
           submit.disabled = false;
           return;
         }
 
+        // Éxito: limpiar registros de intentos fallidos y bloqueo
+        localStorage.removeItem(`attempts_${emailValue}`);
+        localStorage.removeItem(lockoutKey);
+
         window.location.href = '/dashboard';
       } catch {
-        showError('Ocurrió un error de conexión. Inténtalo nuevamente.');
+        handleFailedAttempt(emailValue);
         submit.textContent = 'Iniciar sesión';
         submit.disabled = false;
       }
     });
+
+    function handleFailedAttempt(emailValue: string) {
+      const attemptsKey = `attempts_${emailValue}`;
+      const lockoutKey = `lockout_${emailValue}`;
+
+      let currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0', 10) + 1;
+      localStorage.setItem(attemptsKey, currentAttempts.toString());
+
+      if (currentAttempts > MAX_FAILED_ATTEMPTS) {
+        const unblockTime = Date.now() + LOCKOUT_TIME_MS;
+        localStorage.setItem(lockoutKey, unblockTime.toString());
+        showError('Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos por seguridad.');
+      } else {
+        showError('Credenciales incorrectas o acceso no autorizado.');
+      }
+    }
 
     function showError(text: string) {
       message.textContent = text;

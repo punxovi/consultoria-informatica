@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { SolicitarRecuperacionInput, CambiarContrasenaInput } from './auth.schema';
+import type { SolicitarRecuperacionInput, CambiarContrasenaInput, LoginInput } from './auth.schema';
 
 export async function solicitarRecuperacionHandler(data: SolicitarRecuperacionInput, originUrl?: string) {
   const redirectUrl = originUrl ? `${originUrl}/cambiar-contrasena` : 'http://localhost:4321/cambiar-contrasena';
@@ -25,4 +25,17 @@ export async function cambiarContrasenaHandler(data: CambiarContrasenaInput) {
   }
 
   return { success: true, message: 'Contraseña actualizada exitosamente.' };
+}
+
+export async function loginHandler(data: LoginInput) {
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
+    email: data.correo,
+    password: data.password,
+  });
+
+  if (error || !authData.session) {
+    throw new Error('Credenciales incorrectas o acceso no autorizado.');
+  }
+
+  return { success: true, session: authData.session };
 }

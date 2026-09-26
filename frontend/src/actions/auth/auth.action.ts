@@ -1,6 +1,6 @@
 import { defineAction } from 'astro:actions';
-import { solicitarRecuperacionSchema, cambiarContrasenaSchema } from './auth.schema';
-import { solicitarRecuperacionHandler, cambiarContrasenaHandler } from './auth.handler';
+import { solicitarRecuperacionSchema, cambiarContrasenaSchema, loginSchema } from './auth.schema';
+import { solicitarRecuperacionHandler, cambiarContrasenaHandler, loginHandler } from './auth.handler';
 
 export const authActions = {
   solicitarRecuperacion: defineAction({
@@ -22,6 +22,17 @@ export const authActions = {
         return await cambiarContrasenaHandler(input);
       } catch (error: any) {
         throw new Error(error.message || 'Error al actualizar la contraseña.');
+      }
+    },
+  }),
+
+  login: defineAction({
+    input: loginSchema,
+    handler: async (input) => {
+      try {
+        return await loginHandler(input);
+      } catch (error: any) {
+        throw new Error(error.message || 'Error al iniciar sesión.');
       }
     },
   }),
