@@ -2,7 +2,7 @@
 
 ## Esquema y migraciones
 
-Catorce archivos de migración, con 27 tablas de aplicación y una tabla privada
+Quince archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
 aplicación de esta nueva migración a una instancia remota queda pendiente;
 las verificaciones de esta tarea usan PostgreSQL embebido local.

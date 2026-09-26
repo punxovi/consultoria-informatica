@@ -28,6 +28,7 @@ export async function crearBaseProgramas() {
     '20260923014926_fge_relaciones_planes_programas.sql',
     '20260923020339_fge_auditoria_escrituras_autorizadas.sql',
     '20260923151202_fge_programa_lineas_accion.sql',
+    '20260924120000_fge_programas_referencias.sql',
     '20260925120000_fge_guardar_programa_completo.sql',
   ];
   for (const nombre of migraciones) {

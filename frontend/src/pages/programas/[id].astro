@@ -5,9 +5,8 @@ import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 
 const { id } = Astro.params;
-if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-  return new Response('Programa no encontrado', { status: 404 });
-}
+const idValido = Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+if (!idValido) Astro.response.status = 404;
 const secciones = [ 
   ['objetivo_general', 'Objetivo general'], 
   ['objetivos_especificos', 'Objetivos específicos'], 
@@ -26,10 +25,11 @@ const secciones = [
   <section id="programa-detalle" data-id={id} class="mx-auto max-w-5xl space-y-6">
     <Button href="/programas" variant="ghost">← Volver a programas</Button>
     <div id="programa-recuperacion" hidden class="flex flex-wrap gap-3">
-      <Button id="recargar-programa" variant="outline">Volver a intentar</Button>
+      <Button id="recargar-programa" variant="outline">Reintentar</Button>
       <a href="/login" class="inline-flex items-center text-primary underline">Iniciar sesión</a>
     </div>
     <p id="detalle-estado" role="status">Cargando programa…</p>
+    <p id="programa-confirmacion" role="status" hidden class="rounded-lg bg-green-50 p-4 text-green-800"></p>
     <p id="detalle-error" role="alert" hidden class="rounded-lg bg-red-50 p-4 text-red-800"></p>
     
     <div id="detalle-contenido" hidden class="space-y-6">
@@ -94,6 +94,9 @@ const secciones = [
     recuperacion.hidden = true;
 
     try {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raiz.dataset.id!)) {
+        throw new ErrorSolicitudPrograma('NO_ENCONTRADO', 'Programa no encontrado.');
+      }
       const programa = await obtenerPrograma(raiz.dataset.id!);
       
       document.querySelector('#detalle-nombre')!.textContent = programa.nombre;
@@ -118,6 +121,12 @@ const secciones = [
       const tieneLineas = programa.lineas_accion.length > 0;
       document.querySelector<HTMLElement>('#detalle-sin-lineas')!.hidden = tieneLineas;
       document.querySelector<HTMLElement>('#detalle-legado')!.hidden = tieneLineas;
+
+      const confirmacion = document.querySelector<HTMLElement>('#programa-confirmacion')!;
+      if (new URLSearchParams(window.location.search).get('resultado') === 'guardado') {
+        confirmacion.textContent = 'Programa guardado correctamente.';
+        confirmacion.hidden = false;
+      }
 
       document.querySelector<HTMLElement>('#detalle-contenido')!.hidden = false;
       estado.textContent = '';
@@ -144,8 +153,12 @@ const secciones = [
           }
         });
       }
-      const imagen = await obtenerImagen(programa.id_programa);
-      if (imagen) { const el = document.querySelector<HTMLImageElement>('#detalle-imagen')!; el.src = imagen; el.hidden = false; }
+      try {
+        const imagen = await obtenerImagen(programa.id_programa);
+        if (imagen) { const el = document.querySelector<HTMLImageElement>('#detalle-imagen')!; el.src = imagen; el.hidden = false; }
+      } catch {
+        document.querySelector<HTMLImageElement>('#detalle-imagen')!.hidden = true;
+      }
     } catch (fallo) { 
       const inexistente = fallo instanceof ErrorSolicitudPrograma && fallo.codigo === 'NO_ENCONTRADO';
       estado.textContent = inexistente ? 'Programa no encontrado' : 'No fue posible cargar el programa';
