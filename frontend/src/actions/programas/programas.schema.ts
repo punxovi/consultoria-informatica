@@ -19,10 +19,11 @@ const textoObligatorio = (campo: string, maximo: number) =>
  * Así las Actions no pueden recibir dos listas con posiciones desalineadas.
  */
 export const lineaAccionProgramaSchema = z
-  .strictObject({
+  .object({
     linea_accion: textoObligatorio('La línea de acción', 500),
     resultado_esperado: textoObligatorio('El resultado esperado', 2000),
-  }, { error: 'No se permiten campos adicionales en la línea de acción.' });
+  })
+  .strict('No se permiten campos adicionales en la línea de acción.');
 
 const lineasAccionProgramaSchema = z
   .array(lineaAccionProgramaSchema, {
@@ -36,7 +37,7 @@ const lineasAccionProgramaSchema = z
 
 /** Campos editables que comparten la creación y la actualización. */
 export const camposProgramaSchema = z
-  .strictObject({
+  .object({
     nombre: textoObligatorio('El nombre', 150),
     descripcion: textoObligatorio('La descripción', 5000),
     objetivo_general: textoObligatorio('El objetivo general', 3000),
@@ -45,7 +46,10 @@ export const camposProgramaSchema = z
       5000,
     ),
     lineas_accion: lineasAccionProgramaSchema,
-  }, { error: 'No se permiten campos adicionales en el programa.' });
+    referencias_ods: z.string().trim().max(2000, 'Las referencias ODS no pueden superar 2000 caracteres.').optional(),
+    referencias_esg: z.string().trim().max(2000, 'Las referencias ESG no pueden superar 2000 caracteres.').optional(),
+  })
+  .strict('No se permiten campos adicionales en el programa.');
 
 function validarLineasUnicas(
   datos: { lineas_accion?: Array<{ linea_accion: string }> },
@@ -79,13 +83,15 @@ export const crearProgramaSchema = camposProgramaSchema.superRefine(
 
 /** El listado no admite filtros hasta que el producto los defina. */
 export const listarProgramasSchema = z
-  .strictObject({}, { error: 'No se permiten filtros adicionales.' });
+  .object({})
+  .strict('No se permiten filtros adicionales.');
 
 /** Identificador utilizado por la Action de detalle. */
 export const obtenerProgramaPorIdSchema = z
-  .strictObject({
+  .object({
     id_programa: uuid('El programa'),
-  }, { error: 'No se permiten campos adicionales.' });
+  })
+  .strict('No se permiten campos adicionales.');
 
 const cambiosProgramaSchema = camposProgramaSchema
   .partial()
@@ -102,7 +108,7 @@ const cambiosProgramaSchema = camposProgramaSchema
 
 /** Schema que debe utilizar la Action de actualización de Programas. */
 export const actualizarProgramaSchema = z
-  .strictObject({
+  .object({
     id_programa: uuid('El programa'),
     version_esperada: z
       .number({ error: 'La versión esperada debe ser numérica.' })
@@ -110,11 +116,17 @@ export const actualizarProgramaSchema = z
       .positive('La versión esperada debe ser mayor que cero.')
       .optional(),
     cambios: cambiosProgramaSchema,
-  }, { error: 'No se permiten campos adicionales.' });
+  })
+  .strict('No se permiten campos adicionales.');
 
 export type LineaAccionProgramaInput = z.infer<
   typeof lineaAccionProgramaSchema
 >;
+export const archivarProgramaSchema = z.object({
+  id_programa: uuid('El programa'),
+  version_esperada: z.number().int().positive(),
+}).strict('No se permiten campos adicionales.');
+
 export type ListarProgramasInput = z.infer<typeof listarProgramasSchema>;
 export type ObtenerProgramaPorIdInput = z.infer<
   typeof obtenerProgramaPorIdSchema

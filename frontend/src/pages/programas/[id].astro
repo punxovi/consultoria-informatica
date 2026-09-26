@@ -3,110 +3,161 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
-import { obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
-const id = Astro.params.id ?? '';
-const idValido = obtenerProgramaPorIdSchema.safeParse({ id_programa: id }).success;
-if (!idValido) Astro.response.status = 404;
+
+const { id } = Astro.params;
+if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+  return new Response('Programa no encontrado', { status: 404 });
+}
+const secciones = [ 
+  ['objetivo_general', 'Objetivo general'], 
+  ['objetivos_especificos', 'Objetivos específicos'], 
+  ['descripcion', 'Descripción / contexto'], 
+  ['referencias_ods', 'Referencias ODS'], 
+  ['referencias_esg', 'Referencias ESG'] 
+];
 ---
 
-<AppLayout title="Detalle del programa" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
-  <Fragment slot="breadcrumb">
-    <a href="/programas" class="hover:text-primary">Programas Institucionales</a>
-    <span>&rsaquo;</span><span id="programa-breadcrumb">Detalle del programa</span>
-  </Fragment>
-  <section id="programa-detalle" data-id={id} data-id-valido={String(idValido)} aria-busy={idValido ? 'true' : 'false'} class="space-y-6">
-    <div id="detalle-estado-panel" class="rounded-xl border border-neutral-200 bg-white p-6">
-      <h1 id="detalle-estado" role="status" aria-live="polite" class="text-xl font-semibold">{idValido ? 'Cargando programa…' : 'Programa no encontrado'}</h1>
-      <p id="detalle-error" role="alert" hidden class="mt-3 text-red-800"></p>
-      <div id="detalle-reintentar" hidden class="mt-4"><Button id="recargar-programa" variant="outline">Reintentar</Button></div>
+<AppLayout title="Detalle de programa" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <span slot="breadcrumb">
+    <a href="/programas" class="font-medium text-neutral-500 hover:text-neutral-900">Programas Institucionales</a>
+    <span class="mx-2 text-neutral-400">/</span>
+    <span id="programa-breadcrumb" class="font-medium text-neutral-900">Detalle</span>
+  </span>
+  <section id="programa-detalle" data-id={id} class="mx-auto max-w-5xl space-y-6">
+    <Button href="/programas" variant="ghost">← Volver a programas</Button>
+    <div id="programa-recuperacion" hidden class="flex flex-wrap gap-3">
+      <Button id="recargar-programa" variant="outline">Volver a intentar</Button>
+      <a href="/login" class="inline-flex items-center text-primary underline">Iniciar sesión</a>
     </div>
-    <p id="programa-confirmacion" role="status" hidden class="rounded-lg bg-green-50 p-4 text-green-800">Programa guardado correctamente.</p>
+    <p id="detalle-estado" role="status">Cargando programa…</p>
+    <p id="detalle-error" role="alert" hidden class="rounded-lg bg-red-50 p-4 text-red-800"></p>
+    
     <div id="detalle-contenido" hidden class="space-y-6">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p class="text-sm font-medium text-primary">Programa institucional</p>
-          <h1 id="detalle-nombre" class="mt-1 break-words text-2xl font-bold md:text-3xl"></h1>
-        </div>
-        <div id="editar-programa-panel" hidden><Button href={`/programas/${id}/editar`}>Editar programa</Button></div>
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 id="detalle-nombre" class="text-2xl font-bold md:text-3xl"></h1>
+        <div id="editar-programa-enlace" hidden><Button href={`/programas/${id}/editar`}>Editar programa</Button></div>
       </div>
-      <div class="grid gap-5 lg:grid-cols-2">
-        <Card><h2 class="text-lg font-semibold">Objetivo general</h2><p id="detalle-objetivo" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
-        <Card><h2 class="text-lg font-semibold">Objetivos específicos</h2><p id="detalle-objetivos" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
+      <img id="detalle-imagen" hidden alt="Imagen representativa del programa" class="max-h-80 max-w-full rounded-xl object-contain" />
+      <div class="grid gap-5 md:grid-cols-2">
+        {secciones.map(([campo, titulo]) => (
+          <Card>
+            <h2 class="text-lg font-semibold">{titulo}</h2>
+            <p data-campo={campo} class="mt-3 whitespace-pre-line break-words text-neutral-700"></p>
+          </Card>
+        ))}
       </div>
-      <Card><h2 class="text-lg font-semibold">Descripción y contexto</h2><p id="detalle-descripcion" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
+      
       <Card>
         <h2 class="text-lg font-semibold">Líneas de acción y resultados esperados</h2>
-        <dl id="detalle-lineas" class="mt-4 grid gap-4 md:grid-cols-2"></dl>
-        <p id="detalle-sin-lineas" hidden class="mt-3 text-neutral-600">Este programa aún no tiene líneas de acción con resultados individuales registrados.</p>
+        <dl id="detalle-lineas" class="mt-4 space-y-4"></dl>
+        <p id="detalle-sin-lineas" hidden class="mt-4 text-sm text-neutral-700">Este programa no cuenta con líneas de acción estructuradas. Su información se mantiene como texto general.</p>
+        <div id="detalle-legado" hidden class="mt-4 rounded-lg bg-neutral-50 p-4 text-sm">
+          <h3 class="font-semibold">Componentes registrados</h3>
+          <p id="detalle-componentes" class="whitespace-pre-wrap"></p>
+          <h3 class="mt-3 font-semibold">Resultados registrados</h3>
+          <p id="detalle-resultados" class="whitespace-pre-wrap"></p>
+        </div>
       </Card>
-      <div id="detalle-legado" hidden class="grid gap-5 lg:grid-cols-2">
-        <Card><h2 class="text-lg font-semibold">Componentes registrados</h2><p id="detalle-componentes" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
-        <Card><h2 class="text-lg font-semibold">Resultados esperados generales</h2><p id="detalle-resultados" class="mt-3 whitespace-pre-wrap break-words text-neutral-600"></p></Card>
+
+      <div id="eliminar-programa-panel" hidden>
+        <Card>
+          <h2 class="text-lg font-semibold">Eliminar programa</h2>
+          <p class="my-3 text-neutral-700">Se quitará del catálogo activo. Sus planes, líneas de acción y archivos se conservarán como historial.</p>
+          <Button id="eliminar-programa" variant="outline" class="!border-red-800 !text-red-800">Eliminar programa</Button>
+          <p id="eliminar-estado" role="status" aria-live="polite" class="mt-3 text-neutral-700"></p>
+        </Card>
       </div>
     </div>
-    <Button variant="ghost" href="/programas">← Volver a programas</Button>
   </section>
 </AppLayout>
 
-<template id="plantilla-detalle-linea">
-  <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-    <dt class="whitespace-pre-wrap break-words font-semibold"></dt>
-    <dd class="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-600"></dd>
-  </div>
-</template>
-
 <script>
-  import { obtenerPrograma } from '../../lib/programas/cliente';
-  import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
+  import { obtenerPrograma, archivarPrograma } from '../../lib/programas/cliente';
+  import { obtenerImagen } from '../../lib/programas/imagen';
   import { getUserRoles } from '../../lib/supabase';
-  const detalle = document.querySelector<HTMLElement>('#programa-detalle')!;
-  const panel = document.querySelector<HTMLElement>('#detalle-estado-panel')!;
-  const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
-  const error = document.querySelector<HTMLElement>('#detalle-error')!;
-  const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
-  const reintentar = document.querySelector<HTMLElement>('#detalle-reintentar')!;
+  import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
+
+  const recargar = document.querySelector<HTMLButtonElement>('#recargar-programa')!;
   let cargando = false;
+
   async function cargar() {
-    if (cargando || detalle.dataset.idValido !== 'true') return;
-    cargando = true; detalle.setAttribute('aria-busy', 'true');
-    panel.hidden = false; contenido.hidden = true; error.hidden = true; reintentar.hidden = true;
-    document.querySelector<HTMLElement>('#programa-confirmacion')!.hidden = true;
+    if (cargando) return;
+    cargando = true; recargar.disabled = true;
+    
+    const raiz = document.querySelector<HTMLElement>('#programa-detalle')!;
+    const estado = document.querySelector('#detalle-estado')!;
+    const error = document.querySelector('#detalle-error')!;
+    const recuperacion = document.querySelector<HTMLElement>('#programa-recuperacion')!;
+    
     estado.textContent = 'Cargando programa…';
+    error.hidden = true;
+    recuperacion.hidden = true;
+
     try {
-      const programa = await obtenerPrograma(detalle.dataset.id!);
-      for (const [selector, valor] of Object.entries({
-        '#detalle-nombre': programa.nombre, '#programa-breadcrumb': programa.nombre,
-        '#detalle-objetivo': programa.objetivo_general, '#detalle-objetivos': programa.objetivos_especificos,
-        '#detalle-descripcion': programa.descripcion, '#detalle-componentes': programa.componentes_linea_accion,
-        '#detalle-resultados': programa.resultados_esperados,
-      })) document.querySelector(selector)!.textContent = valor;
+      const programa = await obtenerPrograma(raiz.dataset.id!);
+      
+      document.querySelector('#detalle-nombre')!.textContent = programa.nombre;
+      document.querySelector('#programa-breadcrumb')!.textContent = programa.nombre;
+      
+      raiz.querySelectorAll<HTMLElement>('[data-campo]').forEach(el => { 
+        el.textContent = String((programa as any)[el.dataset.campo as string] || 'Sin referencias registradas.'); 
+      });
+
+      document.querySelector('#detalle-componentes')!.textContent = (programa as any).componentes_linea_accion || '';
+      document.querySelector('#detalle-resultados')!.textContent = (programa as any).resultados_esperados || '';
+      
       const lineas = document.querySelector('#detalle-lineas')!;
       lineas.replaceChildren();
-      const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-detalle-linea')!;
-      for (const linea of programa.lineas_accion) {
-        const fila = plantilla.content.cloneNode(true) as DocumentFragment;
-        fila.querySelector('dt')!.textContent = linea.linea_accion;
-        fila.querySelector('dd')!.textContent = linea.resultado_esperado;
-        lineas.append(fila);
-      }
+      programa.lineas_accion.forEach(linea => {
+        const grupo = document.createElement('div'); grupo.className = 'rounded-lg bg-neutral-50 p-4';
+        const titulo = document.createElement('dt'); titulo.className = 'font-medium'; titulo.textContent = linea.linea_accion;
+        const resultado = document.createElement('dd'); resultado.className = 'mt-2 whitespace-pre-line break-words text-neutral-700'; resultado.textContent = linea.resultado_esperado;
+        grupo.append(titulo, resultado); lineas.append(grupo);
+      });
+      
       const tieneLineas = programa.lineas_accion.length > 0;
       document.querySelector<HTMLElement>('#detalle-sin-lineas')!.hidden = tieneLineas;
       document.querySelector<HTMLElement>('#detalle-legado')!.hidden = tieneLineas;
-      document.querySelector<HTMLElement>('#programa-confirmacion')!.hidden = new URLSearchParams(location.search).get('resultado') !== 'guardado';
-      document.title = `${programa.nombre} | Programas`;
-      panel.hidden = true; contenido.hidden = false;
-    } catch (fallo) {
+
+      document.querySelector<HTMLElement>('#detalle-contenido')!.hidden = false;
+      estado.textContent = '';
+      
+      const roles = await getUserRoles();
+      if (roles.some(rol => rol.codigo === 'ADMIN')) {
+        document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = false;
+        document.querySelector<HTMLElement>('#eliminar-programa-panel')!.hidden = false;
+        const boton = document.querySelector<HTMLButtonElement>('#eliminar-programa')!;
+        const mensaje = document.querySelector<HTMLElement>('#eliminar-estado')!;
+        boton.addEventListener('click', async () => {
+          if (boton.disabled || !confirm(`¿Eliminar «${programa.nombre}» del catálogo activo? Sus planes y archivos se conservarán.`)) return;
+          boton.disabled = true;
+          mensaje.textContent = 'Eliminando programa…';
+          try {
+            await archivarPrograma(programa.id_programa, programa.version);
+            document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = true;
+            mensaje.textContent = 'Programa eliminado del catálogo. Su historial se conserva. Puedes volver al listado de programas.';
+            boton.textContent = 'Programa eliminado';
+            window.location.replace('/programas?resultado=eliminado');
+          } catch (error) {
+            mensaje.textContent = error instanceof Error ? error.message : 'No se pudo eliminar el programa.';
+            boton.disabled = false;
+          }
+        });
+      }
+      const imagen = await obtenerImagen(programa.id_programa);
+      if (imagen) { const el = document.querySelector<HTMLImageElement>('#detalle-imagen')!; el.src = imagen; el.hidden = false; }
+    } catch (fallo) { 
       const inexistente = fallo instanceof ErrorSolicitudPrograma && fallo.codigo === 'NO_ENCONTRADO';
       estado.textContent = inexistente ? 'Programa no encontrado' : 'No fue posible cargar el programa';
       error.textContent = fallo instanceof Error ? fallo.message : 'Vuelve a intentarlo.';
-      error.hidden = false; reintentar.hidden = inexistente;
+      error.hidden = false; recuperacion.hidden = inexistente;
       document.title = estado.textContent;
-    } finally { cargando = false; detalle.setAttribute('aria-busy', 'false'); }
+    } finally {
+      cargando = false; recargar.disabled = false;
+    }
   }
-  document.querySelector('#recargar-programa')!.addEventListener('click', cargar);
+
+  recargar.addEventListener('click', cargar);
   window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
   void cargar();
-  void getUserRoles().then(roles => {
-    document.querySelector<HTMLElement>('#editar-programa-panel')!.hidden = !roles.some(rol => rol.codigo === 'ADMIN');
-  }).catch(() => {});
 </script>

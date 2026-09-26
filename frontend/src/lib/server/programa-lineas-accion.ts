@@ -158,3 +158,33 @@ export async function actualizarLineaAccionPrograma(
   }
   return data as LineaAccionPrograma;
 }
+
+/** Archiva una línea que dejó de formar parte del Programa. */
+export async function archivarLineaAccionPrograma(
+  cliente: SupabaseClient,
+  idLineaAccion: string,
+  versionEsperada?: number,
+): Promise<LineaAccionPrograma> {
+  let consulta = cliente
+    .from('programa_lineas_accion')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id_linea_accion', idLineaAccion)
+    .is('archived_at', null);
+
+  if (versionEsperada !== undefined) {
+    consulta = consulta.eq('version', versionEsperada);
+  }
+
+  const { data, error } = await consulta.select(CAMPOS_LINEA_ACCION).maybeSingle();
+  if (error) throw convertirError(error);
+  if (!data) {
+    throw new ErrorOperacionLineaAccionPrograma(
+      versionEsperada === undefined ? 'NO_ENCONTRADA' : 'CONFLICTO_CONCURRENCIA',
+      versionEsperada === undefined
+        ? 'La línea de acción solicitada no existe.'
+        : 'La línea de acción fue modificada por otra sesión.',
+    );
+  }
+
+  return data as LineaAccionPrograma;
+}

@@ -8,6 +8,7 @@ import Button from '../components/ui/Button.astro';
 <AppLayout title="Programas Institucionales" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
   <span slot="breadcrumb" class="font-medium text-neutral-900">Programas Institucionales</span>
   <section class="space-y-6">
+    <p id="programa-confirmacion" hidden role="status" class="rounded-lg border border-primary bg-primary/5 p-4 text-primary"></p>
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="mb-1 text-sm font-medium text-primary">Gestión institucional</p>
@@ -47,6 +48,16 @@ import Button from '../components/ui/Button.astro';
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-programas')!;
   let cargando = false;
   async function cargar() {
+    const resultado = new URLSearchParams(window.location.search).get('resultado');
+    const confirmacion = document.querySelector<HTMLElement>('#programa-confirmacion')!;
+    if (resultado === 'guardado' || resultado === 'eliminado') {
+      confirmacion.textContent = resultado === 'guardado'
+        ? 'Programa guardado correctamente.'
+        : 'Programa eliminado del catálogo. Su historial se conserva.';
+      confirmacion.hidden = false;
+      history.replaceState(null, '', '/programas');
+    }
+    
     if (cargando) return;
     cargando = true; recargar.disabled = true; listado.setAttribute('aria-busy', 'true');
     listado.replaceChildren(); error.hidden = true; estado.textContent = 'Cargando programas…';

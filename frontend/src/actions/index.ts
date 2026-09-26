@@ -7,6 +7,7 @@ import {
 } from './organizaciones/organizaciones.action';
 import {
   actualizarProgramaAction,
+  archivarProgramaAction,
   crearProgramaAction,
   listarProgramasAction,
   obtenerProgramaPorIdAction,
@@ -24,6 +25,7 @@ export const server = {
   listarOrganizaciones: listarOrganizacionesAction,
   obtenerOrganizacionPorId: obtenerOrganizacionPorIdAction,
   actualizarPrograma: actualizarProgramaAction,
+  archivarPrograma: archivarProgramaAction,
   crearPrograma: crearProgramaAction,
   listarProgramas: listarProgramasAction,
   obtenerProgramaPorId: obtenerProgramaPorIdAction,
