@@ -32,4 +32,5 @@ export const server = {
   recibirDatosPrueba,
   solicitarRecuperacion: authActions.solicitarRecuperacion,
   cambiarContrasena: authActions.cambiarContrasena,
+  login: authActions.login,
 };

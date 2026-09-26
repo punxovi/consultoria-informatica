@@ -31,8 +31,17 @@ export const cambiarContrasenaSchema = z
     path: ['confirmPassword'],
   });
 
+/** Schema para el inicio de sesión. */
+export const loginSchema = z
+  .object({
+    correo: emailSchema,
+    password: z.string({ error: 'La contraseña debe ser texto.' }).min(1, 'La contraseña es obligatoria.'),
+  })
+  .strict('No se permiten campos adicionales.');
+
 export type SolicitarRecuperacionInput = z.infer<typeof solicitarRecuperacionSchema>;
 export type CambiarContrasenaInput = z.infer<typeof cambiarContrasenaSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 
 export interface ErrorValidacionAuth {
   campo: string;
