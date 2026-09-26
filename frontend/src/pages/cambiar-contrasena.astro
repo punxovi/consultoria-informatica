@@ -82,6 +82,8 @@ import Input from '../components/ui/Input.astro';
   </main>
 
   <script>
+    import { supabase } from '../lib/supabase';
+
     const form = document.getElementById('password-form') as HTMLFormElement;
     const password = document.getElementById('password') as HTMLInputElement;
     const confirmPassword = document.getElementById('confirm-password') as HTMLInputElement;
@@ -125,7 +127,17 @@ import Input from '../components/ui/Input.astro';
       submit.textContent = 'Actualizando...';
       submit.disabled = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
+// Actualización directa con Supabase desde el navegador
+      const { error } = await supabase.auth.updateUser({
+        password: value,
+      });
+
+      if (error) {
+        showError(error.message);
+        submit.textContent = 'Cambiar contraseña';
+        submit.disabled = false;
+        return;
+      }
 
       form.classList.add('hidden');
       success.classList.remove('hidden');

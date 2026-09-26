@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Button from '../components/ui/Button.astro';
 import Card from '../components/ui/Card.astro';
 import Input from '../components/ui/Input.astro';
+
 ---
 
 <Layout title="Recuperar contraseña - Fundación Gestionar Esperanzas">
@@ -62,6 +63,8 @@ import Input from '../components/ui/Input.astro';
   </main>
 
   <script>
+    import { actions } from 'astro:actions';
+
     const form = document.getElementById('recovery-form') as HTMLFormElement;
     const email = document.getElementById('email') as HTMLInputElement;
     const alert = document.getElementById('error-alert') as HTMLDivElement;
@@ -88,7 +91,14 @@ import Input from '../components/ui/Input.astro';
       submit.textContent = 'Enviando...';
       submit.disabled = true;
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const result = await actions.solicitarRecuperacion({ correo: value });
+
+      if (result.error) {
+        showError(error.message);
+        submit.textContent = 'Enviar enlace de recuperación';
+        submit.disabled = false;
+        return;
+      }
 
       success.classList.remove('hidden');
       form.classList.add('hidden');
