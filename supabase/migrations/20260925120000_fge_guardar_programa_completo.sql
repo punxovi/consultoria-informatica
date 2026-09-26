@@ -40,19 +40,30 @@ BEGIN
   END IF;
   IF EXISTS (
     SELECT 1 FROM jsonb_object_keys(p_datos) AS campo
-    WHERE campo NOT IN ('nombre', 'descripcion', 'objetivo_general', 'objetivos_especificos', 'lineas_accion')
+    WHERE campo NOT IN (
+      'nombre', 'descripcion', 'objetivo_general', 'objetivos_especificos',
+      'lineas_accion', 'referencias_ods', 'referencias_esg'
+    )
   ) THEN
     RAISE EXCEPTION 'Campos de programa no permitidos.' USING ERRCODE = '22023';
   END IF;
   IF EXISTS (
     SELECT 1 FROM jsonb_each(p_datos) AS campo
-    WHERE campo.key <> 'lineas_accion' AND (
+    WHERE campo.key IN ('nombre', 'descripcion', 'objetivo_general', 'objetivos_especificos') AND (
       jsonb_typeof(campo.value) <> 'string' OR btrim(campo.value #>> '{}') = ''
       OR char_length(campo.value #>> '{}') > CASE campo.key
         WHEN 'nombre' THEN 150 WHEN 'objetivo_general' THEN 3000 ELSE 5000 END
     )
   ) THEN
     RAISE EXCEPTION 'Campos de programa inválidos.' USING ERRCODE = '22023';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM jsonb_each(p_datos) AS campo
+    WHERE campo.key IN ('referencias_ods', 'referencias_esg')
+      AND (jsonb_typeof(campo.value) <> 'string' OR char_length(campo.value #>> '{}') > 2000)
+  ) THEN
+    RAISE EXCEPTION 'Referencias de programa invalidas.' USING ERRCODE = '22023';
   END IF;
 
   IF p_id_programa IS NULL AND NOT p_datos ?& ARRAY[
@@ -93,11 +104,13 @@ BEGIN
   IF p_id_programa IS NULL THEN
     INSERT INTO public.programas (
       nombre, descripcion, objetivo_general, objetivos_especificos,
-      componentes_linea_accion, resultados_esperados
+      componentes_linea_accion, resultados_esperados, referencias_ods, referencias_esg
     ) VALUES (
       btrim(p_datos->>'nombre'), btrim(p_datos->>'descripcion'),
       btrim(p_datos->>'objetivo_general'), btrim(p_datos->>'objetivos_especificos'),
-      v_componentes, v_resultados
+      v_componentes, v_resultados,
+      coalesce(btrim(p_datos->>'referencias_ods'), ''),
+      coalesce(btrim(p_datos->>'referencias_esg'), '')
     ) RETURNING * INTO v_programa;
   ELSE
     SELECT * INTO v_programa FROM public.programas
@@ -114,7 +127,9 @@ BEGIN
       objetivo_general = coalesce(btrim(p_datos->>'objetivo_general'), objetivo_general),
       objetivos_especificos = coalesce(btrim(p_datos->>'objetivos_especificos'), objetivos_especificos),
       componentes_linea_accion = coalesce(v_componentes, componentes_linea_accion),
-      resultados_esperados = coalesce(v_resultados, resultados_esperados)
+      resultados_esperados = coalesce(v_resultados, resultados_esperados),
+      referencias_ods = CASE WHEN p_datos ? 'referencias_ods' THEN btrim(p_datos->>'referencias_ods') ELSE referencias_ods END,
+      referencias_esg = CASE WHEN p_datos ? 'referencias_esg' THEN btrim(p_datos->>'referencias_esg') ELSE referencias_esg END
     WHERE id_programa = p_id_programa RETURNING * INTO v_programa;
   END IF;
 
