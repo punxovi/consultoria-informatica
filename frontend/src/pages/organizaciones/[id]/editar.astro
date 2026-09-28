@@ -1,0 +1,32 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import { mainNavItems } from '../../../config/nav';
+import BackButton from '../../../components/ui/BackButton.astro';
+import OrganizacionForm from '../../../components/organizaciones/OrganizacionForm.astro';
+
+const { id } = Astro.params;
+---
+
+<AppLayout
+  title="Editar Organización"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="breadcrumb">
+    <div class="flex items-center gap-2 text-sm">
+      <BackButton />
+      <a
+        href="/organizaciones"
+        class="text-neutral-500 transition-colors hover:text-primary"
+      >
+        Organizaciones
+      </a>
+      <span class="text-neutral-400">&rsaquo;</span>
+      <span class="font-medium text-neutral-900">
+        Editar Organización
+      </span>
+    </div>
+  </Fragment>
+
+  <OrganizacionForm idOrganizacion={id ?? ''} />
+</AppLayout>

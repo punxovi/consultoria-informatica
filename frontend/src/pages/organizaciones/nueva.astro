@@ -1,23 +1,8 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
-import Card from '../../components/ui/Card.astro';
-import Input from '../../components/ui/Input.astro';
-import Select from '../../components/ui/Select.astro';
-import Button from '../../components/ui/Button.astro';
 import { mainNavItems } from '../../config/nav';
-
-const paisesPlaceholder = [
-  { value: 'cl', label: 'Chile' },
-  { value: 'ar', label: 'Argentina' },
-  { value: 'uy', label: 'Uruguay' },
-];
-
-const tiposOrganizacion = [
-  { value: 'comedor_merendero', label: 'Comedor solidario / Merendero' },
-  { value: 'centro_comunitario', label: 'Centro comunitario' },
-  { value: 'emprendimiento_uv', label: 'Emprendimiento UV+' },
-  { value: 'otra', label: 'Otra' },
-];
+import BackButton from '../../components/ui/BackButton.astro';
+import OrganizacionForm from '../../components/organizaciones/OrganizacionForm.astro';
 ---
 
 <AppLayout
@@ -26,203 +11,20 @@ const tiposOrganizacion = [
   allowedRoles={['ADMIN', 'COORD']}
 >
   <Fragment slot="breadcrumb">
-    <a href="/organizaciones" class="hover:text-primary">Organizaciones</a>
-    <span>&rsaquo;</span>
-    <span class="font-medium text-neutral-900">Nueva Organización</span>
+    <div class="flex items-center gap-2 text-sm">
+      <BackButton />
+      <a
+        href="/organizaciones"
+        class="text-neutral-500 transition-colors hover:text-primary"
+      >
+        Organizaciones
+      </a>
+      <span class="text-neutral-400">&rsaquo;</span>
+      <span class="font-medium text-neutral-900">
+        Nueva Organización
+      </span>
+    </div>
   </Fragment>
 
-  <div class="w-full">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-neutral-900">Nueva Organización</h1>
-      <p class="mt-1 text-sm text-neutral-500">
-        Registra una nueva Organización.
-      </p>
-    </div>
-
-    <Card class="w-full">
-      <form id="form-nueva-organizacion" class="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div class="md:col-span-2">
-          <Input
-            id="nombre"
-            name="nombre"
-            label="Nombre de la Organización"
-            placeholder="Ej: Comedor Los Aromos"
-            required
-            maxlength={150}
-          />
-        </div>
-
-        <div class="md:col-span-2">
-          <Input
-            id="nombre_representante"
-            name="nombre_representante"
-            label="Nombre del representante, dirigente o líder"
-            required
-            maxlength={150}
-          />
-        </div>
-
-        <Input
-          id="telefono"
-          name="telefono"
-          label="Teléfono de contacto"
-          type="tel"
-          placeholder="+56 9 1234 5678"
-          required
-        />
-
-        <Input
-          id="correo"
-          name="correo"
-          label="Correo electrónico"
-          type="email"
-          required
-        />
-
-        <Select
-          id="id_pais"
-          name="id_pais"
-          label="País"
-          options={paisesPlaceholder}
-          placeholder="Selecciona un país"
-          required
-          hint="Opciones provisionales: aún falta conectar el listado real de países."
-        />
-
-        <Select
-          id="tipo_organizacion"
-          name="tipo_organizacion"
-          label="Tipo de Organización"
-          options={tiposOrganizacion}
-          placeholder="Selecciona un tipo"
-          required
-        />
-
-        <Input
-          id="region_departamento"
-          name="region_departamento"
-          label="Región / Departamento"
-          required
-          maxlength={120}
-        />
-
-        <Input
-          id="comuna_municipio_ciudad"
-          name="comuna_municipio_ciudad"
-          label="Comuna / Municipio / Ciudad"
-          required
-          maxlength={120}
-        />
-
-        <div class="md:col-span-2">
-          <Input
-            id="direccion"
-            name="direccion"
-            label="Dirección"
-            required
-            maxlength={250}
-          />
-        </div>
-
-        <div id="grupo-tipo-otro" class="hidden md:col-span-2">
-          <Input
-            id="tipo_organizacion_otro"
-            name="tipo_organizacion_otro"
-            label='Especifica el tipo de Organización ("Otra")'
-            maxlength={100}
-          />
-        </div>
-
-        <div>
-          <label
-            for="publico_objetivo"
-            class="text-sm font-medium text-neutral-800"
-          >
-            Público objetivo
-            <span class="text-danger" aria-hidden="true">*</span>
-          </label>
-
-          <textarea
-            id="publico_objetivo"
-            name="publico_objetivo"
-            required
-            maxlength={500}
-            rows={5}
-            class="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-          ></textarea>
-        </div>
-
-        <div>
-          <label
-            for="descripcion_breve"
-            class="text-sm font-medium text-neutral-800"
-          >
-            Descripción general
-            <span class="text-danger" aria-hidden="true">*</span>
-          </label>
-
-          <textarea
-            id="descripcion_breve"
-            name="descripcion_breve"
-            required
-            maxlength={1000}
-            rows={5}
-            class="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-          ></textarea>
-        </div>
-
-        <div class="md:col-span-2">
-          <Input
-            id="numero_beneficiarios"
-            name="numero_beneficiarios"
-            label="Número de beneficiarios atendidos"
-            type="number"
-            required
-          />
-        </div>
-
-        <div class="flex flex-col-reverse gap-3 border-t border-neutral-100 pt-5 sm:flex-row sm:justify-end md:col-span-2">
-          <Button variant="outline" href="/organizaciones">Cancelar</Button>
-          <Button type="submit">Guardar</Button>
-        </div>
-      </form>
-    </Card>
-  </div>
+  <OrganizacionForm />
 </AppLayout>
-
-<script>
-  const selectTipo = document.getElementById(
-    'tipo_organizacion',
-  ) as HTMLSelectElement | null;
-
-  const grupoOtro = document.getElementById('grupo-tipo-otro');
-
-  const inputOtro = document.getElementById(
-    'tipo_organizacion_otro',
-  ) as HTMLInputElement | null;
-
-  function actualizarVisibilidadOtro() {
-    const esOtra = selectTipo?.value === 'otra';
-
-    grupoOtro?.classList.toggle('hidden', !esOtra);
-
-    if (inputOtro) {
-      inputOtro.required = esOtra;
-
-      if (!esOtra) inputOtro.value = '';
-    }
-  }
-
-  selectTipo?.addEventListener('change', actualizarVisibilidadOtro);
-  actualizarVisibilidadOtro();
-
-  const form = document.getElementById('form-nueva-organizacion');
-
-  form?.addEventListener('submit', (event) => {
-    event.preventDefault();
-
-    console.warn(
-      'Formulario aún no conectado al backend (falta id_pais real). Ver KAN-137.',
-    );
-  });
-</script>
