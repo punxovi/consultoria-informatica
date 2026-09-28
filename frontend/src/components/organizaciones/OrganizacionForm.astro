@@ -1,0 +1,472 @@
+
+---
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import Select from '../ui/Select.astro';
+import Button from '../ui/Button.astro';
+
+interface Props {
+  idOrganizacion?: string;
+}
+
+const { idOrganizacion = '' } = Astro.props;
+const esEdicion = Boolean(idOrganizacion);
+
+const paisesPlaceholder = [
+  { value: 'cl', label: 'Chile' },
+  { value: 'ar', label: 'Argentina' },
+  { value: 'uy', label: 'Uruguay' },
+];
+
+const tiposOrganizacion = [
+  { value: 'comedor_merendero', label: 'Comedor solidario / Merendero' },
+  { value: 'centro_comunitario', label: 'Centro comunitario' },
+  { value: 'emprendimiento_uv', label: 'Emprendimiento UV+' },
+  { value: 'otra', label: 'Otra' },
+];
+---
+
+<section class="w-full">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-neutral-900">
+      {esEdicion ? 'Editar Organización' : 'Nueva Organización'}
+    </h1>
+    <p class="mt-1 text-sm text-neutral-500">
+      {esEdicion
+        ? 'Actualiza la información de la organización.'
+        : 'Registra una nueva Organización.'}
+    </p>
+  </div>
+
+  <p
+    id="organizacion-estado"
+    role="status"
+    aria-live="polite"
+    class="mb-4 text-sm text-neutral-700"
+    hidden={!esEdicion}
+  >
+    Cargando organización...
+  </p>
+
+  <div
+    id="organizacion-error"
+    role="alert"
+    hidden
+    class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+  ></div>
+
+  <div id="organizacion-recuperacion" hidden class="mb-4 flex flex-wrap gap-3">
+    <Button id="recargar-organizacion" variant="outline">
+      Reintentar
+    </Button>
+    <a href="/login" class="inline-flex items-center text-primary underline">
+      Iniciar sesión
+    </a>
+  </div>
+
+  <Card class="w-full">
+    <form
+      id="form-organizacion"
+      data-modo={esEdicion ? 'editar' : 'crear'}
+      data-id={idOrganizacion}
+      novalidate
+      aria-busy={esEdicion ? 'true' : 'false'}
+      hidden={esEdicion}
+      class="grid grid-cols-1 gap-5 md:grid-cols-2"
+    >
+      <fieldset
+        id="campos-organizacion"
+        disabled={esEdicion}
+        class="contents"
+      >
+        <div class="md:col-span-2">
+          <Input
+            id="nombre"
+            name="nombre"
+            label="Nombre de la Organización"
+            placeholder="Ej: Comedor Los Aromos"
+            required
+            maxlength={150}
+          />
+        </div>
+
+        <div class="md:col-span-2">
+          <Input
+            id="nombre_representante"
+            name="nombre_representante"
+            label="Nombre del representante, dirigente o líder"
+            required
+            maxlength={150}
+          />
+        </div>
+
+        <Input
+          id="telefono"
+          name="telefono"
+          label="Teléfono de contacto"
+          type="tel"
+          placeholder="+56 9 1234 5678"
+          required
+        />
+
+        <Input
+          id="correo"
+          name="correo"
+          label="Correo electrónico"
+          type="email"
+          required
+        />
+
+        <Select
+          id="id_pais"
+          name="id_pais"
+          label="País"
+          options={paisesPlaceholder}
+          placeholder="Selecciona un país"
+          required
+          hint="Opciones provisionales: aún falta conectar el listado real de países."
+        />
+
+        <Select
+          id="tipo_organizacion"
+          name="tipo_organizacion"
+          label="Tipo de Organización"
+          options={tiposOrganizacion}
+          placeholder="Selecciona un tipo"
+          required
+        />
+
+        <Input
+          id="region_departamento"
+          name="region_departamento"
+          label="Región / Departamento"
+          required
+          maxlength={120}
+        />
+
+        <Input
+          id="comuna_municipio_ciudad"
+          name="comuna_municipio_ciudad"
+          label="Comuna / Municipio / Ciudad"
+          required
+          maxlength={120}
+        />
+
+        <div class="md:col-span-2">
+          <Input
+            id="direccion"
+            name="direccion"
+            label="Dirección"
+            required
+            maxlength={250}
+          />
+        </div>
+
+        <div id="grupo-tipo-otro" class="hidden md:col-span-2">
+          <Input
+            id="tipo_organizacion_otro"
+            name="tipo_organizacion_otro"
+            label={'Especifica el tipo de Organización ("Otra")'}
+            maxlength={100}
+          />
+        </div>
+
+        <div class="space-y-1.5">
+          <label
+            for="publico_objetivo"
+            class="text-sm font-medium text-neutral-800"
+          >
+            Público objetivo
+            <span class="text-danger" aria-hidden="true">*</span>
+          </label>
+          <textarea
+            id="publico_objetivo"
+            name="publico_objetivo"
+            required
+            maxlength="500"
+            rows="5"
+            class="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+          ></textarea>
+        </div>
+
+        <div class="space-y-1.5">
+          <label
+            for="descripcion_breve"
+            class="text-sm font-medium text-neutral-800"
+          >
+            Descripción general
+            <span class="text-danger" aria-hidden="true">*</span>
+          </label>
+          <textarea
+            id="descripcion_breve"
+            name="descripcion_breve"
+            required
+            maxlength="1000"
+            rows="5"
+            class="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+          ></textarea>
+        </div>
+
+        <div class="md:col-span-2">
+          <Input
+            id="numero_beneficiarios"
+            name="numero_beneficiarios"
+            label="Número de beneficiarios atendidos"
+            type="number"
+            required
+          />
+        </div>
+
+        <div class="flex flex-col-reverse gap-3 border-t border-neutral-100 pt-5 sm:flex-row sm:justify-end md:col-span-2">
+          <Button
+            id="cancelar-organizacion"
+            variant="outline"
+            href={esEdicion
+              ? `/organizaciones/${encodeURIComponent(idOrganizacion)}`
+              : '/organizaciones'}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit">
+            {esEdicion ? 'Guardar cambios' : 'Guardar'}
+          </Button>
+        </div>
+      </fieldset>
+    </form>
+  </Card>
+</section>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+  import { parse } from 'devalue';
+  import type { RespuestaActionOrganizacion } from '../../actions/organizaciones/organizaciones.handler';
+  import type { Organizacion } from '../../lib/server/organizaciones';
+
+  const form = document.querySelector<HTMLFormElement>(
+    '#form-organizacion',
+  );
+  const campos = document.querySelector<HTMLFieldSetElement>(
+    '#campos-organizacion',
+  );
+  const estado = document.querySelector<HTMLElement>(
+    '#organizacion-estado',
+  );
+  const error = document.querySelector<HTMLElement>(
+    '#organizacion-error',
+  );
+  const recuperacion = document.querySelector<HTMLElement>(
+    '#organizacion-recuperacion',
+  );
+  const recargar = document.querySelector<HTMLButtonElement>(
+    '#recargar-organizacion',
+  );
+  const selectTipo = document.querySelector<HTMLSelectElement>(
+    '#tipo_organizacion',
+  );
+  const grupoOtro = document.querySelector<HTMLElement>(
+    '#grupo-tipo-otro',
+  );
+  const inputOtro = document.querySelector<HTMLInputElement>(
+    '#tipo_organizacion_otro',
+  );
+
+  if (
+    !form ||
+    !campos ||
+    !estado ||
+    !error ||
+    !recuperacion ||
+    !recargar
+  ) {
+    throw new Error('No se encontraron los elementos del formulario de organización.');
+  }
+
+  const esEdicion = form.dataset.modo === 'editar';
+  const idOrganizacion = form.dataset.id ?? '';
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+  const supabase =
+    supabaseUrl && supabaseAnonKey
+      ? createClient(supabaseUrl, supabaseAnonKey)
+      : null;
+
+  function actualizarVisibilidadOtro() {
+    const esOtra = selectTipo?.value === 'otra';
+    grupoOtro?.classList.toggle('hidden', !esOtra);
+
+    if (inputOtro) {
+      inputOtro.required = Boolean(esOtra);
+      if (!esOtra) inputOtro.value = '';
+    }
+  }
+
+  selectTipo?.addEventListener('change', actualizarVisibilidadOtro);
+  actualizarVisibilidadOtro();
+
+  function mostrarError(titulo: string, mensaje: string, requiereSesion = false) {
+    estado!.textContent = titulo;
+    error!.textContent = mensaje;
+    error!.hidden = false;
+    recuperacion!.hidden = !requiereSesion;
+  }
+
+  function asignarValor(id: string, valor: string | number | null | undefined) {
+    const campo = form!.querySelector<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >(`#${id}`);
+
+    if (campo) campo.value = valor == null ? '' : String(valor);
+  }
+
+  function seleccionarPais(nombre: string) {
+    const select = form!.querySelector<HTMLSelectElement>('#id_pais');
+    if (!select || !nombre) return;
+
+    const normalizar = (valor: string) =>
+      valor.trim().toLocaleLowerCase('es');
+
+    const opcion = Array.from(select.options).find(
+      (item) => normalizar(item.textContent ?? '') === normalizar(nombre),
+    );
+
+    if (opcion) {
+      select.value = opcion.value;
+      return;
+    }
+
+    const nuevaOpcion = new Option(nombre, nombre, true, true);
+    select.add(nuevaOpcion);
+    select.value = nombre;
+  }
+
+  function precargarOrganizacion(organizacion: Organizacion) {
+    const valores: Record<string, string | number | null | undefined> = {
+      nombre: organizacion.nombre,
+      nombre_representante: organizacion.nombre_representante,
+      telefono: organizacion.telefono,
+      correo: organizacion.correo,
+      tipo_organizacion: organizacion.tipo_organizacion,
+      tipo_organizacion_otro: organizacion.tipo_organizacion_otro,
+      region_departamento: organizacion.region_departamento,
+      comuna_municipio_ciudad: organizacion.comuna_municipio_ciudad,
+      direccion: organizacion.direccion,
+      publico_objetivo: organizacion.publico_objetivo,
+      descripcion_breve: organizacion.descripcion_breve,
+      numero_beneficiarios: organizacion.numero_beneficiarios,
+    };
+
+    for (const [id, valor] of Object.entries(valores)) {
+      asignarValor(id, valor);
+    }
+
+    seleccionarPais(organizacion.pais?.nombre ?? '');
+    actualizarVisibilidadOtro();
+  }
+
+  async function cargarOrganizacion() {
+    if (!esEdicion) return;
+
+    if (!idOrganizacion) {
+      mostrarError(
+        'Organización no encontrada',
+        'No se proporcionó el identificador de la organización.',
+      );
+      return;
+    }
+
+    if (!supabase) {
+      mostrarError(
+        'No fue posible cargar la organización',
+        'Faltan las variables públicas de configuración de Supabase.',
+      );
+      return;
+    }
+
+    estado!.textContent = 'Cargando organización...';
+    error!.hidden = true;
+    recuperacion!.hidden = true;
+    recargar!.disabled = true;
+    form!.hidden = true;
+    form!.setAttribute('aria-busy', 'true');
+
+    try {
+      const { data, error: errorSesion } = await supabase.auth.getSession();
+
+      if (errorSesion) throw errorSesion;
+
+      if (!data.session) {
+        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
+      }
+
+      const respuesta = await fetch('/_actions/obtenerOrganizacionPorId', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${data.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_organizacion: idOrganizacion,
+        }),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error('No fue posible consultar la organización.');
+      }
+
+      const resultado = parse(
+        await respuesta.text(),
+      ) as RespuestaActionOrganizacion<Organizacion>;
+
+      if (!resultado.ok) {
+        mostrarError(
+          resultado.codigo === 'NO_ENCONTRADA'
+            ? 'Organización no encontrada'
+            : 'No fue posible cargar la organización',
+          resultado.mensaje,
+        );
+        return;
+      }
+
+      precargarOrganizacion(resultado.datos);
+      campos!.disabled = false;
+      form!.hidden = false;
+      estado!.textContent = '';
+    } catch (fallo) {
+      const mensaje =
+        fallo instanceof Error
+          ? fallo.message
+          : 'Ocurrió un error inesperado.';
+
+      mostrarError(
+        'No fue posible cargar la organización',
+        mensaje,
+        mensaje.toLocaleLowerCase('es').includes('sesión'),
+      );
+    } finally {
+      recargar!.disabled = false;
+      form!.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  recargar.addEventListener('click', () => {
+    void cargarOrganizacion();
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    if (!form!.reportValidity()) return;
+
+    console.warn(
+      esEdicion
+        ? 'La actualización de organizaciones aún no está conectada al backend.'
+        : 'La creación de organizaciones aún no está conectada al backend.',
+    );
+  });
+
+  if (esEdicion) {
+    void cargarOrganizacion();
+  }
+</script>

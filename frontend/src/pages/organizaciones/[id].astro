@@ -3,6 +3,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 import BackButton from '../../components/ui/BackButton.astro';
+import Button from '../../components/ui/Button.astro';
 
 const idOrganizacion = Astro.params.id ?? '';
 ---
@@ -53,30 +54,39 @@ const idOrganizacion = Astro.params.id ?? '';
   </section>
 
   <section id="ficha-organizacion" class="hidden space-y-6">
+    
     <!-- Encabezado -->
-    <div>
-      <p class="mb-1 text-sm font-medium text-primary">
-        Gestión institucional
-      </p>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <p class="mb-1 text-sm font-medium text-primary">
+          Gestión institucional
+        </p>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
-          <span id="titulo-organizacion">Organización</span>
-        </h1>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
+            <span id="titulo-organizacion">Organización</span>
+          </h1>
 
-        <span
-          class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success"
-        >
-          <span aria-hidden="true">●</span>
-          Activa
-        </span>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+            <span aria-hidden="true">●</span>
+            Activa
+          </span>
+        </div>
+
+        <p class="mt-2 text-sm text-neutral-500">
+          <span id="tipo-organizacion">—</span>
+          <span class="mx-1">·</span>
+          <span id="pais-organizacion">—</span>
+        </p>
       </div>
 
-      <p class="mt-2 text-sm text-neutral-500">
-        <span id="tipo-organizacion">—</span>
-        <span class="mx-1">·</span>
-        <span id="pais-organizacion">—</span>
-      </p>
+      <Button
+        href={`/organizaciones/${encodeURIComponent(idOrganizacion)}/editar`}
+        variant="outline"
+        class="shrink-0"
+      >
+        Editar organización
+      </Button>
     </div>
 
     <!-- Tabs -->
