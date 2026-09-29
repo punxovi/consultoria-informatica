@@ -2,19 +2,24 @@
 interface Props {
   label?: string;
   class?: string;
+  href?: string;
 }
 
 const {
   label = '',
   class: className = '',
+  href,
 } = Astro.props;
+
+const Tag = href ? 'a' : 'button';
 ---
 
-<button
-  type="button"
+<Tag
+  type={!href ? 'button' : undefined}
+  href={href}
   class={`inline-flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${className}`}
-  aria-label="Volver a la página anterior"
-  onclick="history.back()"
+  aria-label={href ? 'Volver al listado' : 'Volver a la página anterior'}
+  onclick={!href ? 'history.back()' : undefined}
 >
   <span class="text-xl leading-none" aria-hidden="true">←</span>
 
@@ -23,4 +28,4 @@ const {
       {label}
     </span>
   )}
-</button>
+</Tag>
