@@ -60,12 +60,9 @@ const hasBreadcrumb = Astro.slots.has('breadcrumb');
 </Layout>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
-  import { getUserRoles } from '../lib/supabase';
+  import { getSupabaseClient, getUserRoles } from '../lib/supabase';
 
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   async function validateSession() {
     const { data: { session } } = await supabase.auth.getSession();
