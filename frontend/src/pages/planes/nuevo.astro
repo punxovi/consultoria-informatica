@@ -1,0 +1,9 @@
+---
+import PlanForm from '../../components/planes/PlanForm.astro';
+import { mainNavItems } from '../../config/nav';
+import AppLayout from '../../layouts/AppLayout.astro';
+---
+
+<AppLayout title="Crear plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <PlanForm />
+</AppLayout>
