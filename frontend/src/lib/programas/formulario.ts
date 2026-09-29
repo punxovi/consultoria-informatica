@@ -239,7 +239,12 @@ function iniciar(form: HTMLFormElement) {
       campos.disabled = false;
       mostrarError(error instanceof Error ? error.message : 'No se pudo guardar el programa.',
         error instanceof ErrorSolicitudPrograma ? error.campos : []);
-      if (recuperacion) recuperacion.hidden = false;
+      if (recuperacion) {
+        recuperacion.hidden = !(
+          error instanceof ErrorSolicitudPrograma &&
+          ['SESION', 'CONEXION', 'HTTP', 'CONFLICTO_CONCURRENCIA'].includes(error.codigo)
+        );
+      }
     } finally {
       ocupado = false;
       if (!guardado) campos.disabled = false;

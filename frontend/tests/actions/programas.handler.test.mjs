@@ -3,6 +3,7 @@ import { it } from 'node:test';
 import { manejarListarProgramas, manejarObtenerProgramaPorId, manejarCrearPrograma, manejarActualizarPrograma, crearRespuestaErrorPrograma } from '../../src/actions/programas/programas.handler.ts';
 import { ErrorOperacionPrograma } from '../../src/lib/server/programas.ts';
 import { ErrorOperacionLineaAccionPrograma } from '../../src/lib/server/programa-lineas-accion.ts';
+import { mensajeRestriccionPrograma } from '../../src/lib/server/programas-completos.ts';
 
 const programa = { id_programa: '17100000-0000-4000-8000-000000000001', nombre: 'Programa', version: 1 };
 const lineas = [{ linea_accion: 'Formación', resultado_esperado: 'Equipos capacitados' }];
@@ -50,4 +51,19 @@ it('los errores conservan códigos sin exponer detalles internos', () => {
   assert.equal(error.codigo, 'ERROR_INTERNO');
   assert.ok(!JSON.stringify(error).includes('secreto interno'));
   assert.equal(crearRespuestaErrorPrograma(Object.assign(new Error('Configuración'), { name: 'ErrorConfiguracionSupabase' })).codigo, 'CONFIGURACION_SUPABASE');
+});
+
+it('explica las restricciones de guardado con mensajes corregibles', () => {
+  assert.equal(
+    mensajeRestriccionPrograma({ code: '23505', message: 'detalle interno' }),
+    'Hay líneas de acción repetidas. Cada línea debe tener un nombre diferente.',
+  );
+  assert.equal(
+    mensajeRestriccionPrograma({ code: '22023', message: 'Faltan campos obligatorios.' }),
+    'Faltan campos obligatorios.',
+  );
+  assert.equal(
+    mensajeRestriccionPrograma({ code: '23514', message: 'detalle interno' }),
+    'Algún texto está vacío o supera el máximo permitido. Revisa especialmente las líneas de acción y sus resultados.',
+  );
 });
