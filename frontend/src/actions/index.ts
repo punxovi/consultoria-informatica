@@ -13,6 +13,12 @@ import {
   listarProgramasAction,
   obtenerProgramaPorIdAction,
 } from './programas/programas.action';
+import {
+  actualizarPlanAction,
+  crearPlanAction,
+  listarPlanesAction,
+  obtenerPlanPorIdAction,
+} from './planes/planes.action';
 /**
  * Registro público de Astro Actions.
  *
@@ -29,6 +35,10 @@ export const server = {
   crearPrograma: crearProgramaAction,
   listarProgramas: listarProgramasAction,
   obtenerProgramaPorId: obtenerProgramaPorIdAction,
+  actualizarPlan: actualizarPlanAction,
+  crearPlan: crearPlanAction,
+  listarPlanes: listarPlanesAction,
+  obtenerPlanPorId: obtenerPlanPorIdAction,
   recibirDatosPrueba,
   solicitarRecuperacion: authActions.solicitarRecuperacion,
   cambiarContrasena: authActions.cambiarContrasena,

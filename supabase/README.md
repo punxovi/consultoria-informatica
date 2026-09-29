@@ -2,7 +2,7 @@
 
 ## Esquema y migraciones
 
-Diecisiete archivos de migración, con 27 tablas de aplicación y una tabla privada
+Dieciocho archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
 instancia remota debe tener aplicadas las migraciones hasta la reparación de
 acceso Data API; las verificaciones locales no sustituyen ese despliegue.
@@ -25,6 +25,7 @@ acceso Data API; las verificaciones locales no sustituyen ese despliegue.
 | `20260925120000_fge_guardar_programa_completo.sql` | Guardado atómico del Programa y sus líneas con RLS, control de versión y archivado. |
 | `20260928220437_fge_reparar_acceso_api_programas.sql` | Restablece los privilegios Data API de Programas y líneas sin desactivar RLS. |
 | `20260928222053_fge_sincronizar_guardado_programas.sql` | Actualiza la RPC ya desplegada para aceptar referencias ODS/ESG y el contrato vigente del formulario. |
+| `20260928223251_fge_planes_actions_rls.sql` | Habilita lectura y gestión autorizada de Planes para las Astro Actions. |
 
 La carpeta incluye configuración local, ocho archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
@@ -123,6 +124,19 @@ Zod de creación exige al menos una línea nueva. Jira KAN-173 cita RF72, pero
 el requisito vigente para el resultado por línea es RF70; RF72 se refiere a
 mostrar Organización y Programa en las vistas de Planes.
 
+## Astro Actions de Planes
+
+`frontend/src/actions/planes` contiene los contratos Zod y las cuatro Actions
+para listar, consultar por ID, crear y actualizar Planes de Intervención. El
+repositorio `frontend/src/lib/server/planes.ts` utiliza el cliente Supabase de
+la sesión, devuelve la Organización y el Programa relacionados y aplica control
+de versión en las ediciones.
+
+La política RLS permite lectura a Administrador, Coordinador e Invitado. La
+escritura corresponde al Administrador y al Coordinador con alcance global o
+asignación en el país de la Organización. Las fechas se validan en Zod y en
+PostgreSQL; la fecha de término nunca puede ser anterior al inicio.
+
 ## Estado de seguridad
 
 Todas las tablas tienen RLS activado y el almacenamiento es privado. La
@@ -146,7 +160,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las diecisiete migraciones y luego el
+En una instalación nueva, el inicio aplica las dieciocho migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:

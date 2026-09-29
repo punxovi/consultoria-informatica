@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,17,'Se esperaban diecisiete migraciones');
+assert.equal(files.length,18,'Se esperaban dieciocho migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -75,6 +75,7 @@ const allowedSecurityDefiner=new Set([
  '20260922111500_fge_programas_storage_rls.sql',
  '20260923020339_fge_auditoria_escrituras_autorizadas.sql',
  '20260925120000_fge_guardar_programa_completo.sql',
+ '20260928223251_fge_planes_actions_rls.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  if (/SECURITY DEFINER/i.test(sql[i])) {
@@ -105,6 +106,13 @@ const sincronizacionProgramasSql=sql.find(s=>s.includes('Sincroniza una instanci
 assert.ok(sincronizacionProgramasSql,'Existe sincronización de la RPC remota de Programas');
 assert.match(sincronizacionProgramasSql,/CREATE OR REPLACE FUNCTION public\.guardar_programa_completo/);
 assert.match(sincronizacionProgramasSql,/'lineas_accion', 'referencias_ods', 'referencias_esg'/);
+const planesRlsSql=sql.find(s=>s.includes('Acceso de las Astro Actions de Planes'));
+assert.ok(planesRlsSql,'Existe migración de acceso para Astro Actions de Planes');
+assert.match(planesRlsSql,/GRANT SELECT, INSERT, UPDATE ON TABLE public\.planes TO authenticated/);
+assert.match(planesRlsSql,/CREATE POLICY planes_lectura_roles/);
+assert.match(planesRlsSql,/CREATE POLICY planes_gestion_insert/);
+assert.match(planesRlsSql,/CREATE POLICY planes_gestion_update/);
+assert.match(planesRlsSql,/usuario_puede_gestionar_organizacion/);
 const auditoriaSql=sql.find(s=>s.includes('CREATE OR REPLACE FUNCTION fge_private.auditar_registro() RETURNS trigger'));
 assert.ok(auditoriaSql,'Existe corrección del trigger de auditoría');
 assert.match(auditoriaSql,/SECURITY DEFINER SET search_path = ''/);
@@ -154,5 +162,16 @@ const operacionesProgramasTest=readFileSync(join(root,'tests/database/008_operac
 for(const operacion of ['INSERT INTO public.programas','FROM public.programas','UPDATE public.programas']) {
  assert.ok(operacionesProgramasTest.includes(operacion),'Prueba de Programa: '+operacion);
 }
+const repositorioPlanes=readFileSync(join(root,'../frontend/src/lib/server/planes.ts'),'utf8');
+for(const operacion of ['listarPlanes','obtenerPlanPorId','crearPlan','actualizarPlan']) {
+ assert.match(repositorioPlanes,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Planes: '+operacion);
+}
+assert.match(repositorioPlanes,/organizacion:organizaciones/,'Planes incluyen Organización');
+assert.match(repositorioPlanes,/programa:programas/,'Planes incluyen Programa');
+assert.ok(!/service[_-]?role/i.test(repositorioPlanes),'Operaciones de Planes sin clave privilegiada');
+const operacionesPlanesTest=readFileSync(join(root,'tests/database/009_operaciones_planes.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.planes','FROM public.planes','UPDATE public.planes']) {
+ assert.ok(operacionesPlanesTest.includes(operacion),'Prueba de Plan: '+operacion);
+}
 const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
-console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
+console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,operaciones_planes:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
