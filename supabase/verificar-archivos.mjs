@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,18,'Se esperaban dieciocho migraciones');
+assert.equal(files.length,19,'Se esperaban diecinueve migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -173,5 +173,22 @@ const operacionesPlanesTest=readFileSync(join(root,'tests/database/009_operacion
 for(const operacion of ['INSERT INTO public.planes','FROM public.planes','UPDATE public.planes']) {
  assert.ok(operacionesPlanesTest.includes(operacion),'Prueba de Plan: '+operacion);
 }
+const accionesRlsSql=sql.find(s=>s.includes('Astro Actions de Acciones asociadas a Planes'));
+assert.ok(accionesRlsSql,'Existe migración de acceso para Astro Actions de Acciones');
+assert.match(accionesRlsSql,/GRANT SELECT, INSERT, UPDATE ON TABLE public\.acciones TO authenticated/);
+assert.match(accionesRlsSql,/CREATE POLICY acciones_lectura_roles/);
+assert.match(accionesRlsSql,/CREATE POLICY acciones_gestion_insert/);
+assert.match(accionesRlsSql,/CREATE POLICY acciones_gestion_update/);
+assert.match(accionesRlsSql,/usuario_puede_gestionar_organizacion/);
+const repositorioAcciones=readFileSync(join(root,'../frontend/src/lib/server/acciones.ts'),'utf8');
+for(const operacion of ['listarAcciones','obtenerAccionPorId','crearAccion','actualizarAccion']) {
+ assert.match(repositorioAcciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Acciones: '+operacion);
+}
+assert.match(repositorioAcciones,/plan:planes/,'Acciones incluyen el Plan asociado');
+assert.ok(!/service[_-]?role/i.test(repositorioAcciones),'Operaciones de Acciones sin clave privilegiada');
+const operacionesAccionesTest=readFileSync(join(root,'tests/database/010_operaciones_acciones.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.acciones','FROM public.acciones','UPDATE public.acciones']) {
+ assert.ok(operacionesAccionesTest.includes(operacion),'Prueba de Acción: '+operacion);
+}
 const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
-console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,operaciones_planes:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
+console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,operaciones_planes:4,operaciones_acciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));

@@ -19,6 +19,12 @@ import {
   listarPlanesAction,
   obtenerPlanPorIdAction,
 } from './planes/planes.action';
+import {
+  actualizarAccionAction,
+  crearAccionAction,
+  listarAccionesAction,
+  obtenerAccionPorIdAction,
+} from './acciones/acciones.action';
 /**
  * Registro público de Astro Actions.
  *
@@ -26,9 +32,13 @@ import {
  * desde este objeto para que Astro genere el cliente tipado correspondiente.
  */
 export const server = {
+  actualizarAccion: actualizarAccionAction,
   actualizarOrganizacion: actualizarOrganizacionAction,
+  crearAccion: crearAccionAction,
   crearOrganizacion: crearOrganizacionAction,
+  listarAcciones: listarAccionesAction,
   listarOrganizaciones: listarOrganizacionesAction,
+  obtenerAccionPorId: obtenerAccionPorIdAction,
   obtenerOrganizacionPorId: obtenerOrganizacionPorIdAction,
   actualizarPrograma: actualizarProgramaAction,
   archivarPrograma: archivarProgramaAction,

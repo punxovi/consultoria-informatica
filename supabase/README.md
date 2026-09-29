@@ -2,7 +2,7 @@
 
 ## Esquema y migraciones
 
-Dieciocho archivos de migración, con 27 tablas de aplicación y una tabla privada
+Diecinueve archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
 instancia remota debe tener aplicadas las migraciones hasta la reparación de
 acceso Data API; las verificaciones locales no sustituyen ese despliegue.
@@ -26,8 +26,9 @@ acceso Data API; las verificaciones locales no sustituyen ese despliegue.
 | `20260928220437_fge_reparar_acceso_api_programas.sql` | Restablece los privilegios Data API de Programas y líneas sin desactivar RLS. |
 | `20260928222053_fge_sincronizar_guardado_programas.sql` | Actualiza la RPC ya desplegada para aceptar referencias ODS/ESG y el contrato vigente del formulario. |
 | `20260928223251_fge_planes_actions_rls.sql` | Habilita lectura y gestión autorizada de Planes para las Astro Actions. |
+| `20260929090000_fge_acciones_actions_rls.sql` | Habilita lectura y gestión autorizada de Acciones según el Plan y país de la Organización. |
 
-La carpeta incluye configuración local, ocho archivos de pruebas pgTAP y
+La carpeta incluye configuración local, diez archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
 
 ## Datos iniciales de desarrollo (KAN-158)
@@ -137,14 +138,26 @@ escritura corresponde al Administrador y al Coordinador con alcance global o
 asignación en el país de la Organización. Las fechas se validan en Zod y en
 PostgreSQL; la fecha de término nunca puede ser anterior al inicio.
 
+## Astro Actions de Acciones
+
+`frontend/src/actions/acciones` expone las operaciones para listar, consultar
+por ID, crear y actualizar las actividades asociadas a un Plan. Los contratos
+Zod validan campos, estados, fechas y el motivo obligatorio de una cancelación.
+El repositorio `frontend/src/lib/server/acciones.ts` conserva respuestas
+estructuradas, control de versión y errores identificables.
+
+Supabase comprueba mediante FK y RLS que el Plan exista y permanezca activo.
+Administrador y Coordinador autorizado para el país de la Organización pueden
+crear o modificar Acciones; Invitado dispone únicamente de lectura.
+
 ## Estado de seguridad
 
 Todas las tablas tienen RLS activado y el almacenamiento es privado. La
 migración de Programas define políticas para consultar y administrar ese
 catálogo y sus imágenes. KAN-173 agrega permisos equivalentes para las líneas
 de acción. El trigger privado audita las escrituras autorizadas
-sin conceder INSERT directo al historial. Planes continúa sin acceso directo para clientes:
-esta corrección de relaciones no habilita por sí sola su CRUD.
+sin conceder INSERT directo al historial. Planes y Acciones se exponen mediante
+el cliente autenticado y permanecen protegidos por RLS.
 
 Falta implementar y probar los permisos por rol, país y operación, el acceso
 público al catálogo y la recepción de cotizaciones. La estructura actual no
@@ -160,7 +173,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las dieciocho migraciones y luego el
+En una instalación nueva, el inicio aplica las diecinueve migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:
