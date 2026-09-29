@@ -30,6 +30,7 @@ export async function crearBaseProgramas() {
     '20260923151202_fge_programa_lineas_accion.sql',
     '20260924120000_fge_programas_referencias.sql',
     '20260925120000_fge_guardar_programa_completo.sql',
+    '20260928222053_fge_sincronizar_guardado_programas.sql',
   ];
   for (const nombre of migraciones) {
     await db.exec(await readFile(new URL(`../../../supabase/migrations/${nombre}`, import.meta.url), 'utf8'));

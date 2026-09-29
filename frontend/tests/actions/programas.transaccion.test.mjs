@@ -39,6 +39,16 @@ it('crea, consulta y actualiza pares con auditoría y versión', async () => {
   assert.ok(auditoria.rows[0].cantidad >= 4);
 });
 
+it('acepta las referencias ODS y ESG que envía el formulario vigente', async () => {
+  const creado = await guardar(db, {
+    ...entrada(),
+    referencias_ods: 'ODS 4 y ODS 11',
+    referencias_esg: 'Impacto social',
+  });
+  assert.equal(creado.referencias_ods, 'ODS 4 y ODS 11');
+  assert.equal(creado.referencias_esg, 'Impacto social');
+});
+
 it('una línea inválida revierte incluso el programa creado o actualizado', async () => {
   const antes = (await db.query('SELECT count(*)::int AS cantidad FROM public.programas')).rows[0].cantidad;
   const invalido = entrada();

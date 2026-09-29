@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,16,'Se esperaban dieciséis migraciones');
+assert.equal(files.length,17,'Se esperaban diecisiete migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -101,6 +101,10 @@ assert.ok(accesoApiProgramasSql,'Existe reparación de acceso Data API para Prog
 assert.match(accesoApiProgramasSql,/GRANT SELECT, INSERT, UPDATE\s+ON TABLE public\.programas\s+TO authenticated/);
 assert.match(accesoApiProgramasSql,/GRANT SELECT, INSERT, UPDATE\s+ON TABLE public\.programa_lineas_accion\s+TO authenticated/);
 assert.match(accesoApiProgramasSql,/GRANT EXECUTE\s+ON FUNCTION public\.guardar_programa_completo\(jsonb, uuid, bigint\)\s+TO authenticated/);
+const sincronizacionProgramasSql=sql.find(s=>s.includes('Sincroniza una instancia que ya registró una versión anterior'));
+assert.ok(sincronizacionProgramasSql,'Existe sincronización de la RPC remota de Programas');
+assert.match(sincronizacionProgramasSql,/CREATE OR REPLACE FUNCTION public\.guardar_programa_completo/);
+assert.match(sincronizacionProgramasSql,/'lineas_accion', 'referencias_ods', 'referencias_esg'/);
 const auditoriaSql=sql.find(s=>s.includes('CREATE OR REPLACE FUNCTION fge_private.auditar_registro() RETURNS trigger'));
 assert.ok(auditoriaSql,'Existe corrección del trigger de auditoría');
 assert.match(auditoriaSql,/SECURITY DEFINER SET search_path = ''/);

@@ -2,7 +2,7 @@
 
 ## Esquema y migraciones
 
-Dieciséis archivos de migración, con 27 tablas de aplicación y una tabla privada
+Diecisiete archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
 instancia remota debe tener aplicadas las migraciones hasta la reparación de
 acceso Data API; las verificaciones locales no sustituyen ese despliegue.
@@ -24,6 +24,7 @@ acceso Data API; las verificaciones locales no sustituyen ese despliegue.
 | `20260923151202_fge_programa_lineas_accion.sql` | Líneas propias por Programa, cada una con resultado esperado, auditoría y permisos. |
 | `20260925120000_fge_guardar_programa_completo.sql` | Guardado atómico del Programa y sus líneas con RLS, control de versión y archivado. |
 | `20260928220437_fge_reparar_acceso_api_programas.sql` | Restablece los privilegios Data API de Programas y líneas sin desactivar RLS. |
+| `20260928222053_fge_sincronizar_guardado_programas.sql` | Actualiza la RPC ya desplegada para aceptar referencias ODS/ESG y el contrato vigente del formulario. |
 
 La carpeta incluye configuración local, ocho archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
@@ -145,7 +146,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las dieciséis migraciones y luego el
+En una instalación nueva, el inicio aplica las diecisiete migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:
