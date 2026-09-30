@@ -101,8 +101,8 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.programas'::reg
 SELECT ok(NOT has_table_privilege('anon','public.programas','SELECT') AND has_table_privilege('authenticated','public.programas','SELECT'),'Lectura cliente autenticada controlada por RLS: programas');
 SELECT ok(has_table_privilege('authenticated','public.programas','INSERT') AND has_table_privilege('authenticated','public.programas','UPDATE') AND NOT has_table_privilege('authenticated','public.programas','DELETE'),'Escritura autenticada controlada por RLS: programas');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.planes'::regclass),'RLS habilitada: planes');
-SELECT ok(NOT has_table_privilege('anon','public.planes','SELECT') AND NOT has_table_privilege('authenticated','public.planes','SELECT'),'Sin lectura cliente: planes');
-SELECT ok(NOT has_table_privilege('authenticated','public.planes','INSERT') AND NOT has_table_privilege('authenticated','public.planes','UPDATE') AND NOT has_table_privilege('authenticated','public.planes','DELETE'),'Sin escritura cliente: planes');
+SELECT ok(NOT has_table_privilege('anon','public.planes','SELECT') AND has_table_privilege('authenticated','public.planes','SELECT'),'Lectura de planes solo para sesiones autenticadas');
+SELECT ok(has_table_privilege('authenticated','public.planes','INSERT') AND has_table_privilege('authenticated','public.planes','UPDATE') AND NOT has_table_privilege('authenticated','public.planes','DELETE'),'Gestión de planes sin borrado físico');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.acciones'::regclass),'RLS habilitada: acciones');
 SELECT ok(NOT has_table_privilege('anon','public.acciones','SELECT') AND NOT has_table_privilege('authenticated','public.acciones','SELECT'),'Sin lectura cliente: acciones');
 SELECT ok(NOT has_table_privilege('authenticated','public.acciones','INSERT') AND NOT has_table_privilege('authenticated','public.acciones','UPDATE') AND NOT has_table_privilege('authenticated','public.acciones','DELETE'),'Sin escritura cliente: acciones');

@@ -1,0 +1,170 @@
+---
+import BackButton from '../ui/BackButton.astro';
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+
+const textos = [
+  { id: 'situacion_necesidad', label: 'Situación o necesidad', max: 5000 },
+  { id: 'objetivo_general', label: 'Objetivo general', max: 3000 },
+  { id: 'objetivos_especificos', label: 'Objetivos específicos', max: 5000 },
+  { id: 'resultado_esperado', label: 'Resultado esperado', max: 5000 },
+];
+---
+
+<section class="w-full space-y-6">
+  <div class="flex items-start gap-4">
+    <BackButton class="mt-1 shrink-0" />
+    <div>
+      <p class="text-sm font-medium text-primary">Planes de Intervención</p>
+      <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Crear plan</h1>
+      <p class="mt-2 text-sm text-neutral-500">
+        Registra el plan, su organización, programa, objetivos y período de ejecución.
+      </p>
+    </div>
+  </div>
+
+  <p id="plan-estado" role="status" aria-live="polite" class="text-sm text-neutral-700">
+    Cargando organizaciones y programas…
+  </p>
+  <div id="plan-errores" role="alert" tabindex="-1" hidden class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
+
+  <form id="plan-form" novalidate aria-busy="true">
+    <fieldset id="plan-campos" disabled>
+      <Card class="w-full md:p-6">
+        <div class="space-y-8">
+          <section class="space-y-5">
+            <div>
+              <h2 class="text-lg font-semibold text-neutral-900">Información del plan</h2>
+              <p class="mt-1 text-sm text-neutral-500">Todos los campos son obligatorios.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div class="space-y-1.5">
+                <label for="id_organizacion" class="block text-sm font-medium text-neutral-800">Organización <span class="text-danger">*</span></label>
+                <select id="id_organizacion" name="id_organizacion" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecciona una organización</option>
+                </select>
+              </div>
+              <div class="space-y-1.5">
+                <label for="id_programa" class="block text-sm font-medium text-neutral-800">Programa institucional <span class="text-danger">*</span></label>
+                <select id="id_programa" name="id_programa" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecciona un programa</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <Input id="nombre" label="Nombre del plan" required maxlength={150} />
+              </div>
+              <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <Input id="fecha_inicio" label="Fecha de inicio" type="date" required />
+                <Input id="fecha_termino" label="Fecha de término" type="date" required />
+              </div>
+            </div>
+          </section>
+
+          <section class="grid grid-cols-1 gap-5 border-t border-neutral-100 pt-6 md:grid-cols-2">
+            {textos.map(({ id, label, max }) => (
+              <div class="space-y-1.5">
+                <label for={id} class="block text-sm font-medium text-neutral-800">{label} <span class="text-danger">*</span></label>
+                <textarea id={id} name={id} required maxlength={max} rows="5" class="w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+              </div>
+            ))}
+          </section>
+
+          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-6">
+            <Button href="/planes" variant="outline">Cancelar</Button>
+            <Button id="guardar-plan" type="submit">Guardar plan</Button>
+          </div>
+        </div>
+      </Card>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  import { crearPlanSchema } from '../../actions/planes/planes.schema';
+  import { crearPlan, listarOrganizacionesParaPlan, listarProgramasParaPlan } from '../../lib/planes/cliente';
+  import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
+
+  const form = document.querySelector<HTMLFormElement>('#plan-form')!;
+  const campos = document.querySelector<HTMLFieldSetElement>('#plan-campos')!;
+  const estado = document.querySelector<HTMLElement>('#plan-estado')!;
+  const errores = document.querySelector<HTMLElement>('#plan-errores')!;
+  const guardar = document.querySelector<HTMLButtonElement>('#guardar-plan')!;
+  const selectOrganizacion = document.querySelector<HTMLSelectElement>('#id_organizacion')!;
+  const selectPrograma = document.querySelector<HTMLSelectElement>('#id_programa')!;
+
+  function mostrarError(mensaje: string, detalles: string[] = []) {
+    errores.replaceChildren();
+    const titulo = document.createElement('p');
+    titulo.className = 'font-semibold';
+    titulo.textContent = mensaje;
+    errores.append(titulo);
+    if (detalles.length) {
+      const lista = document.createElement('ul');
+      lista.className = 'mt-2 list-disc space-y-1 pl-5';
+      for (const detalle of detalles) {
+        const item = document.createElement('li');
+        item.textContent = detalle;
+        lista.append(item);
+      }
+      errores.append(lista);
+    }
+    errores.hidden = false;
+    errores.focus();
+  }
+
+  async function cargarCatalogos() {
+    try {
+      const [organizaciones, programas] = await Promise.all([
+        listarOrganizacionesParaPlan(),
+        listarProgramasParaPlan(),
+      ]);
+      for (const organizacion of organizaciones) {
+        selectOrganizacion.add(new Option(organizacion.nombre, organizacion.id_organizacion));
+      }
+      for (const programa of programas) {
+        selectPrograma.add(new Option(programa.nombre, programa.id_programa));
+      }
+      campos.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+      estado.textContent = organizaciones.length && programas.length
+        ? 'Formulario listo.'
+        : 'Necesitas al menos una organización y un programa registrados para crear el plan.';
+      guardar.disabled = !organizaciones.length || !programas.length;
+    } catch (error) {
+      estado.textContent = '';
+      mostrarError(error instanceof Error ? error.message : 'No fue posible preparar el formulario.');
+    }
+  }
+
+  form.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    errores.hidden = true;
+    const datos = Object.fromEntries(new FormData(form).entries());
+    const validacion = crearPlanSchema.safeParse(datos);
+    if (!validacion.success) {
+      mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => issue.message));
+      return;
+    }
+
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estado.textContent = 'Guardando plan…';
+    try {
+      await crearPlan(validacion.data);
+      window.location.assign('/planes?resultado=guardado');
+    } catch (error) {
+      const detalles = error instanceof ErrorSolicitudPlan
+        ? error.campos.map(campo => campo.mensaje)
+        : [];
+      mostrarError(error instanceof Error ? error.message : 'No fue posible guardar el plan.', detalles);
+      campos.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+      estado.textContent = '';
+    }
+  });
+
+  void cargarCatalogos();
+</script>

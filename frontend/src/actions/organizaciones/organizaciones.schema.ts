@@ -30,10 +30,15 @@ export const camposOrganizacionSchema = z
     id_pais: uuid('El país'),
     nombre: textoObligatorio('El nombre', 150),
     nombre_representante: textoObligatorio('El nombre del representante', 150),
-    telefono: textoObligatorio('El teléfono', 30).regex(
-      /^[+0-9() .-]{6,30}$/,
-      'El teléfono contiene caracteres no permitidos.',
-    ),
+    telefono: textoObligatorio('El teléfono', 25)
+      .regex(
+        /^[+0-9() .-]{6,25}$/,
+        'El teléfono contiene caracteres no permitidos.',
+      )
+      .refine(
+        (value) => (value.match(/\d/g) ?? []).length <= 15,
+        'El teléfono no puede superar 15 números.',
+      ),
     correo: z
       .string({ error: 'El correo debe ser texto.' })
       .trim()

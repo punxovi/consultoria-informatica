@@ -81,6 +81,24 @@ describe('schemas Zod de organizaciones', () => {
     );
   });
 
+  it('limita el teléfono a un máximo de 15 números', () => {
+    const quinceNumeros = organizacionSchema.safeParse({
+      ...organizacionValida,
+      telefono: '+56 9 1234 5678 9012',
+    });
+    const dieciseisNumeros = organizacionSchema.safeParse({
+      ...organizacionValida,
+      telefono: '+56 9 1234 5678 9012 3',
+    });
+
+    assert.equal(quinceNumeros.success, true);
+    assert.equal(dieciseisNumeros.success, false);
+    assert.equal(
+      formatearErroresOrganizacion(dieciseisNumeros.error)[0]?.campo,
+      'telefono',
+    );
+  });
+
   it('exige al menos un cambio y valida el tipo otra al actualizar', () => {
     const sinCambios = actualizarOrganizacionSchema.safeParse({
       id_organizacion: '20000000-0000-4000-8000-000000000001',

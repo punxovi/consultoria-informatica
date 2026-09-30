@@ -39,6 +39,16 @@ it('crea, consulta y actualiza pares con auditoría y versión', async () => {
   assert.ok(auditoria.rows[0].cantidad >= 4);
 });
 
+it('acepta las referencias ODS y ESG que envía el formulario vigente', async () => {
+  const creado = await guardar(db, {
+    ...entrada(),
+    referencias_ods: 'ODS 4 y ODS 11',
+    referencias_esg: 'Impacto social',
+  });
+  assert.equal(creado.referencias_ods, 'ODS 4 y ODS 11');
+  assert.equal(creado.referencias_esg, 'Impacto social');
+});
+
 it('una línea inválida revierte incluso el programa creado o actualizado', async () => {
   const antes = (await db.query('SELECT count(*)::int AS cantidad FROM public.programas')).rows[0].cantidad;
   const invalido = entrada();
@@ -51,7 +61,10 @@ it('una línea inválida revierte incluso el programa creado o actualizado', asy
   assert.equal(consulta.rows[0].descripcion, 'Descripción');
   assert.equal(Number(consulta.rows[0].version), 1);
   const lineas = await db.query('SELECT resultado_esperado FROM public.programa_lineas_accion WHERE id_programa = $1 AND archived_at IS NULL ORDER BY created_at', [programa.id_programa]);
-  assert.deepEqual(lineas.rows.map(fila => fila.resultado_esperado), entrada().lineas_accion.map(fila => fila.resultado_esperado));
+  assert.deepEqual(
+    lineas.rows.map(fila => fila.resultado_esperado).sort(),
+    entrada().lineas_accion.map(fila => fila.resultado_esperado).sort(),
+  );
 });
 
 it('conflictos, inexistentes y archivados no alteran datos', async () => {

@@ -1,385 +1,107 @@
-
 ---
-import AppLayout from '../../layouts/AppLayout.astro';
-import { mainNavItems } from '../../config/nav';
-import Card from '../../components/ui/Card.astro';
 import BackButton from '../../components/ui/BackButton.astro';
-
-const planesDemo = [
-  {
-    id: 'demo-1',
-    nombre: 'Plan de intervención 2026',
-    organizacion: 'Organización de ejemplo',
-    programa: 'Programa institucional de ejemplo',
-    periodo: '2026',
-    estado: 'En ejecución',
-    objetivo:
-      'Fortalecer las capacidades de la organización y apoyar el desarrollo de sus iniciativas comunitarias.',
-    objetivosEspecificos: [
-      'Fortalecer la gestión interna de la organización.',
-      'Promover la participación de la comunidad.',
-      'Dar seguimiento a las acciones de intervención.',
-    ],
-    acciones: [
-      {
-        id: 'accion-1',
-        nombre: 'Diagnóstico de la organización',
-        descripcion:
-          'Identificar las principales necesidades y oportunidades de mejora.',
-        estado: 'Finalizada',
-      },
-      {
-        id: 'accion-2',
-        nombre: 'Taller de fortalecimiento organizacional',
-        descripcion:
-          'Realizar actividades de apoyo y capacitación para la organización.',
-        estado: 'En ejecución',
-      },
-      {
-        id: 'accion-3',
-        nombre: 'Evaluación de resultados',
-        descripcion:
-          'Revisar los avances y resultados de las acciones realizadas.',
-        estado: 'Pendiente',
-      },
-    ],
-  },
-  {
-    id: 'demo-2',
-    nombre: 'Plan de apoyo comunitario',
-    organizacion: 'Comedor de ejemplo',
-    programa: 'Programa institucional de ejemplo',
-    periodo: '2026',
-    estado: 'Pendiente',
-    objetivo:
-      'Apoyar el desarrollo de iniciativas comunitarias y fortalecer la organización.',
-    objetivosEspecificos: [
-      'Identificar las necesidades de la comunidad.',
-      'Planificar actividades de apoyo.',
-    ],
-    acciones: [
-      {
-        id: 'accion-4',
-        nombre: 'Levantamiento de necesidades',
-        descripcion: 'Recopilar información relevante de la comunidad.',
-        estado: 'Pendiente',
-      },
-    ],
-  },
-];
+import Card from '../../components/ui/Card.astro';
+import { mainNavItems } from '../../config/nav';
+import AppLayout from '../../layouts/AppLayout.astro';
 
 const idPlan = Astro.params.id ?? '';
-const plan = planesDemo.find((item) => item.id === idPlan);
-const vista = Astro.url.searchParams.get('vista');
-const mostrarCarga = vista === 'cargando';
-const mostrarError = vista === 'error';
-
-const estadoClass = (estado: string) => {
-  switch (estado) {
-    case 'En ejecución':
-      return 'bg-success/10 text-success';
-    case 'Finalizada':
-    case 'Finalizado':
-      return 'bg-neutral-100 text-neutral-600';
-    case 'Pendiente':
-      return 'bg-amber-50 text-amber-700';
-    default:
-      return 'bg-neutral-100 text-neutral-600';
-  }
-};
-
-const camposGenerales = plan
-  ? [
-      { etiqueta: 'Nombre del plan', valor: plan.nombre },
-      { etiqueta: 'Período', valor: plan.periodo },
-      { etiqueta: 'Estado', valor: plan.estado },
-    ]
-  : [];
-
-const entidadesRelacionadas = plan
-  ? [
-      {
-        titulo: 'Organización asociada',
-        descripcion: 'Organización vinculada al plan de intervención.',
-        etiqueta: 'Nombre de la organización',
-        valor: plan.organizacion,
-      },
-      {
-        titulo: 'Programa asociado',
-        descripcion: 'Programa institucional al que pertenece el plan.',
-        etiqueta: 'Nombre del programa',
-        valor: plan.programa,
-      },
-    ]
-  : [];
 ---
 
-<AppLayout
-  title={plan?.nombre ?? 'Detalle del Plan'}
-  navItems={mainNavItems}
-  allowedRoles={['ADMIN', 'COORD']}
->
+<AppLayout title="Detalle del plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
   <Fragment slot="breadcrumb">
     <div class="flex items-center gap-4">
       <BackButton />
-
-      <div class="flex min-w-0 items-center gap-2 text-sm">
-        <a
-          href="/planes"
-          class="text-neutral-500 transition-colors hover:text-primary"
-        >
-          Planes de Intervención
-        </a>
-
-        <span class="text-neutral-400">&rsaquo;</span>
-
-        <span class="truncate font-medium text-neutral-900">
-          {plan?.nombre ?? 'Detalle del plan'}
-        </span>
-      </div>
+      <a href="/planes" class="text-sm text-neutral-500 hover:text-primary">Planes de Intervención</a>
+      <span class="text-neutral-400">›</span>
+      <span id="plan-breadcrumb" class="truncate text-sm font-medium text-neutral-900">Detalle</span>
     </div>
   </Fragment>
 
-  <section class="space-y-6">
-    {mostrarCarga && (
-      <Card>
-        <div
-          class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center"
-          role="status"
-          aria-live="polite"
-        >
-          <h1 class="text-lg font-semibold text-neutral-900">
-            Cargando plan...
-          </h1>
-          <p class="mt-2 text-sm text-neutral-500">
-            Estamos obteniendo la información del plan de intervención.
-          </p>
+  <section data-id-plan={idPlan} class="space-y-6">
+    <p id="detalle-estado" role="status" aria-live="polite">Cargando plan…</p>
+    <div id="detalle-error" hidden role="alert" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
+
+    <div id="detalle-plan" hidden class="space-y-6">
+      <div>
+        <p class="mb-1 text-sm font-medium text-primary">Gestión de intervenciones</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 data-plan="nombre" class="text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
+          <span data-plan="estado" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"></span>
         </div>
-      </Card>
-    )}
-
-    {mostrarError && (
-      <Card>
-        <div
-          class="rounded-xl border border-dashed border-red-200 bg-red-50 p-8 text-center"
-          role="alert"
-        >
-          <h1 class="text-lg font-semibold text-red-800">
-            No fue posible cargar el plan
-          </h1>
-          <p class="mt-2 text-sm text-red-700">
-            Ocurrió un error al obtener la información. Intenta nuevamente más tarde.
-          </p>
-        </div>
-      </Card>
-    )}
-
-    {!mostrarCarga && !mostrarError && !plan && (
-      <Card>
-        <div
-          class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center"
-          role="status"
-        >
-          <h1 class="text-lg font-semibold text-neutral-900">
-            Plan no encontrado
-          </h1>
-          <p class="mt-2 text-sm text-neutral-500">
-            El plan solicitado no existe en los datos de demostración disponibles.
-          </p>
-        </div>
-      </Card>
-    )}
-
-    {!mostrarCarga && !mostrarError && plan && (
-      <div class="space-y-6">
-        <div>
-          <p class="mb-1 text-sm font-medium text-primary">
-            Gestión institucional
-          </p>
-
-          <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
-              {plan.nombre}
-            </h1>
-
-            <span
-              class:list={[
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
-                estadoClass(plan.estado),
-              ]}
-            >
-              <span aria-hidden="true">●</span>
-              {plan.estado}
-            </span>
-          </div>
-
-          <p class="mt-2 text-sm text-neutral-500">
-            {plan.organizacion}
-            <span class="mx-1">·</span>
-            {plan.periodo}
-          </p>
-        </div>
-
-        <Card>
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-neutral-900">
-              Información general
-            </h2>
-            <p class="mt-1 text-sm text-neutral-500">
-              Datos principales del plan de intervención.
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {camposGenerales.map((campo) => (
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  {campo.etiqueta}
-                </p>
-                <p class="mt-1 break-words text-sm font-medium text-neutral-900">
-                  {campo.valor}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {entidadesRelacionadas.map((entidad) => (
-            <Card>
-              <div class="mb-5">
-                <h2 class="text-lg font-semibold text-neutral-900">
-                  {entidad.titulo}
-                </h2>
-                <p class="mt-1 text-sm text-neutral-500">
-                  {entidad.descripcion}
-                </p>
-              </div>
-
-              <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  {entidad.etiqueta}
-                </p>
-                <p class="mt-2 break-words text-sm font-medium text-neutral-900">
-                  {entidad.valor}
-                </p>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        <Card>
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-neutral-900">
-              Objetivos del plan
-            </h2>
-            <p class="mt-1 text-sm text-neutral-500">
-              Propósito general y objetivos específicos de la intervención.
-            </p>
-          </div>
-
-          <div class="space-y-6">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                Objetivo general
-              </p>
-              <p class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
-                {plan.objetivo}
-              </p>
-            </div>
-
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                Objetivos específicos
-              </p>
-
-              {plan.objetivosEspecificos.length > 0 && (
-                <ul class="mt-3 space-y-3">
-                  {plan.objetivosEspecificos.map((objetivo) => (
-                    <li class="flex items-start gap-3 text-sm leading-6 text-neutral-700">
-                      <span
-                        class="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                      <span>{objetivo}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {plan.objetivosEspecificos.length === 0 && (
-                <p class="mt-2 text-sm text-neutral-500">
-                  No hay objetivos específicos disponibles.
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 class="text-lg font-semibold text-neutral-900">
-                Acciones asociadas
-              </h2>
-              <p class="mt-1 text-sm text-neutral-500">
-                Actividades contempladas en el plan de intervención.
-              </p>
-            </div>
-
-            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
-              {plan.acciones.length}
-              {plan.acciones.length === 1 ? ' acción' : ' acciones'}
-            </span>
-          </div>
-
-          {plan.acciones.length > 0 && (
-            <div class="space-y-4">
-              {plan.acciones.map((accion, indice) => (
-                <article class="rounded-xl border border-neutral-200 p-4 transition-colors hover:bg-neutral-50">
-                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="flex min-w-0 items-start gap-3">
-                      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                        {indice + 1}
-                      </div>
-
-                      <div class="min-w-0">
-                        <h3 class="break-words text-sm font-semibold text-neutral-900">
-                          {accion.nombre}
-                        </h3>
-                        <p class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-600">
-                          {accion.descripcion}
-                        </p>
-                      </div>
-                    </div>
-
-                    <span
-                      class:list={[
-                        'ml-12 inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold sm:ml-0',
-                        estadoClass(accion.estado),
-                      ]}
-                    >
-                      <span aria-hidden="true">●</span>
-                      {accion.estado}
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-
-          {plan.acciones.length === 0 && (
-            <div class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
-              <h3 class="text-sm font-semibold text-neutral-800">
-                No hay acciones asociadas
-              </h3>
-              <p class="mt-2 text-sm text-neutral-500">
-                Este plan todavía no tiene acciones registradas.
-              </p>
-            </div>
-          )}
-        </Card>
+        <p data-plan="resumen" class="mt-2 text-sm text-neutral-500"></p>
       </div>
-    )}
+
+      <Card>
+        <h2 class="mb-5 text-lg font-semibold text-neutral-900">Información general</h2>
+        <dl class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Organización</dt><dd data-plan="organizacion" class="mt-1 text-sm font-medium"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Programa</dt><dd data-plan="programa" class="mt-1 text-sm font-medium"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Responsable</dt><dd data-plan="responsable_nombre" class="mt-1 text-sm font-medium"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Fecha de inicio</dt><dd data-plan="fecha_inicio" class="mt-1 text-sm font-medium"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Fecha de término</dt><dd data-plan="fecha_termino" class="mt-1 text-sm font-medium"></dd></div>
+        </dl>
+      </Card>
+
+      <Card>
+        <h2 class="mb-5 text-lg font-semibold text-neutral-900">Definición del plan</h2>
+        <dl class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Situación o necesidad</dt><dd data-plan="situacion_necesidad" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Objetivo general</dt><dd data-plan="objetivo_general" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Objetivos específicos</dt><dd data-plan="objetivos_especificos" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Resultado esperado</dt><dd data-plan="resultado_esperado" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
+        </dl>
+      </Card>
+
+      <Card>
+        <h2 class="text-lg font-semibold text-neutral-900">Acciones asociadas</h2>
+        <p class="mt-2 text-sm text-neutral-500">Las actividades del plan se incorporarán en la tarea independiente “Astro Actions para Acciones”.</p>
+      </Card>
+    </div>
   </section>
 </AppLayout>
+
+<script>
+  import { obtenerPlan } from '../../lib/planes/cliente';
+
+  const seccion = document.querySelector<HTMLElement>('[data-id-plan]')!;
+  const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
+  const error = document.querySelector<HTMLElement>('#detalle-error')!;
+  const contenido = document.querySelector<HTMLElement>('#detalle-plan')!;
+
+  function estadoPlan(inicio: string, termino: string) {
+    const hoy = new Date().toISOString().slice(0, 10);
+    if (termino < hoy) return { texto: 'Finalizado', clase: 'bg-neutral-100 text-neutral-600' };
+    if (inicio > hoy) return { texto: 'Pendiente', clase: 'bg-amber-50 text-amber-700' };
+    return { texto: 'En ejecución', clase: 'bg-emerald-50 text-emerald-700' };
+  }
+
+  void obtenerPlan(seccion.dataset.idPlan ?? '').then(plan => {
+    document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
+    const valores: Record<string, string> = {
+      nombre: plan.nombre,
+      resumen: `${plan.organizacion.nombre} · ${plan.fecha_inicio.slice(0, 4)}`,
+      organizacion: plan.organizacion.nombre,
+      programa: plan.programa.nombre,
+      responsable_nombre: plan.responsable_nombre,
+      fecha_inicio: new Date(`${plan.fecha_inicio}T00:00:00`).toLocaleDateString('es-CL'),
+      fecha_termino: new Date(`${plan.fecha_termino}T00:00:00`).toLocaleDateString('es-CL'),
+      situacion_necesidad: plan.situacion_necesidad,
+      objetivo_general: plan.objetivo_general,
+      objetivos_especificos: plan.objetivos_especificos,
+      resultado_esperado: plan.resultado_esperado,
+    };
+    for (const [campo, valor] of Object.entries(valores)) {
+      document.querySelector<HTMLElement>(`[data-plan="${campo}"]`)!.textContent = valor;
+    }
+    const etiqueta = document.querySelector<HTMLElement>('[data-plan="estado"]')!;
+    const calculado = estadoPlan(plan.fecha_inicio, plan.fecha_termino);
+    etiqueta.textContent = calculado.texto;
+    etiqueta.classList.add(...calculado.clase.split(' '));
+    estado.textContent = '';
+    contenido.hidden = false;
+  }).catch(fallo => {
+    estado.textContent = '';
+    error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar el plan.';
+    error.hidden = false;
+  });
+</script>

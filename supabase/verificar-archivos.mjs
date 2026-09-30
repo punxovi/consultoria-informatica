@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,15,'Se esperaban quince migraciones');
+assert.equal(files.length,19,'Se esperaban diecinueve migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -75,6 +75,7 @@ const allowedSecurityDefiner=new Set([
  '20260922111500_fge_programas_storage_rls.sql',
  '20260923020339_fge_auditoria_escrituras_autorizadas.sql',
  '20260925120000_fge_guardar_programa_completo.sql',
+ '20260928223251_fge_planes_actions_rls.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  if (/SECURITY DEFINER/i.test(sql[i])) {
@@ -96,6 +97,22 @@ assert.match(programasRlsSql,/CREATE POLICY programas_admin_insert/);
 assert.match(programasRlsSql,/CREATE POLICY storage_programas_admin_insert/);
 assert.match(programasRlsSql,/file_size_limit = 614400/);
 assert.match(programasRlsSql,/allowed_mime_types = ARRAY\['image\/jpeg', 'image\/png', 'image\/webp'\]/);
+const accesoApiProgramasSql=sql.find(s=>s.includes('Restablece los privilegios de Data API'));
+assert.ok(accesoApiProgramasSql,'Existe reparación de acceso Data API para Programas');
+assert.match(accesoApiProgramasSql,/GRANT SELECT, INSERT, UPDATE\s+ON TABLE public\.programas\s+TO authenticated/);
+assert.match(accesoApiProgramasSql,/GRANT SELECT, INSERT, UPDATE\s+ON TABLE public\.programa_lineas_accion\s+TO authenticated/);
+assert.match(accesoApiProgramasSql,/GRANT EXECUTE\s+ON FUNCTION public\.guardar_programa_completo\(jsonb, uuid, bigint\)\s+TO authenticated/);
+const sincronizacionProgramasSql=sql.find(s=>s.includes('Sincroniza una instancia que ya registró una versión anterior'));
+assert.ok(sincronizacionProgramasSql,'Existe sincronización de la RPC remota de Programas');
+assert.match(sincronizacionProgramasSql,/CREATE OR REPLACE FUNCTION public\.guardar_programa_completo/);
+assert.match(sincronizacionProgramasSql,/'lineas_accion', 'referencias_ods', 'referencias_esg'/);
+const planesRlsSql=sql.find(s=>s.includes('Acceso de las Astro Actions de Planes'));
+assert.ok(planesRlsSql,'Existe migración de acceso para Astro Actions de Planes');
+assert.match(planesRlsSql,/GRANT SELECT, INSERT, UPDATE ON TABLE public\.planes TO authenticated/);
+assert.match(planesRlsSql,/CREATE POLICY planes_lectura_roles/);
+assert.match(planesRlsSql,/CREATE POLICY planes_gestion_insert/);
+assert.match(planesRlsSql,/CREATE POLICY planes_gestion_update/);
+assert.match(planesRlsSql,/usuario_puede_gestionar_organizacion/);
 const auditoriaSql=sql.find(s=>s.includes('CREATE OR REPLACE FUNCTION fge_private.auditar_registro() RETURNS trigger'));
 assert.ok(auditoriaSql,'Existe corrección del trigger de auditoría');
 assert.match(auditoriaSql,/SECURITY DEFINER SET search_path = ''/);
@@ -145,5 +162,33 @@ const operacionesProgramasTest=readFileSync(join(root,'tests/database/008_operac
 for(const operacion of ['INSERT INTO public.programas','FROM public.programas','UPDATE public.programas']) {
  assert.ok(operacionesProgramasTest.includes(operacion),'Prueba de Programa: '+operacion);
 }
+const repositorioPlanes=readFileSync(join(root,'../frontend/src/lib/server/planes.ts'),'utf8');
+for(const operacion of ['listarPlanes','obtenerPlanPorId','crearPlan','actualizarPlan']) {
+ assert.match(repositorioPlanes,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Planes: '+operacion);
+}
+assert.match(repositorioPlanes,/organizacion:organizaciones/,'Planes incluyen Organización');
+assert.match(repositorioPlanes,/programa:programas/,'Planes incluyen Programa');
+assert.ok(!/service[_-]?role/i.test(repositorioPlanes),'Operaciones de Planes sin clave privilegiada');
+const operacionesPlanesTest=readFileSync(join(root,'tests/database/009_operaciones_planes.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.planes','FROM public.planes','UPDATE public.planes']) {
+ assert.ok(operacionesPlanesTest.includes(operacion),'Prueba de Plan: '+operacion);
+}
+const accionesRlsSql=sql.find(s=>s.includes('Astro Actions de Acciones asociadas a Planes'));
+assert.ok(accionesRlsSql,'Existe migración de acceso para Astro Actions de Acciones');
+assert.match(accionesRlsSql,/GRANT SELECT, INSERT, UPDATE ON TABLE public\.acciones TO authenticated/);
+assert.match(accionesRlsSql,/CREATE POLICY acciones_lectura_roles/);
+assert.match(accionesRlsSql,/CREATE POLICY acciones_gestion_insert/);
+assert.match(accionesRlsSql,/CREATE POLICY acciones_gestion_update/);
+assert.match(accionesRlsSql,/usuario_puede_gestionar_organizacion/);
+const repositorioAcciones=readFileSync(join(root,'../frontend/src/lib/server/acciones.ts'),'utf8');
+for(const operacion of ['listarAcciones','obtenerAccionPorId','crearAccion','actualizarAccion']) {
+ assert.match(repositorioAcciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Acciones: '+operacion);
+}
+assert.match(repositorioAcciones,/plan:planes/,'Acciones incluyen el Plan asociado');
+assert.ok(!/service[_-]?role/i.test(repositorioAcciones),'Operaciones de Acciones sin clave privilegiada');
+const operacionesAccionesTest=readFileSync(join(root,'tests/database/010_operaciones_acciones.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.acciones','FROM public.acciones','UPDATE public.acciones']) {
+ assert.ok(operacionesAccionesTest.includes(operacion),'Prueba de Acción: '+operacion);
+}
 const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
-console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
+console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,operaciones_planes:4,operaciones_acciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));

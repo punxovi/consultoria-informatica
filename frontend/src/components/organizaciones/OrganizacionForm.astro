@@ -105,7 +105,9 @@ const tiposOrganizacion = [
           name="telefono"
           label="Teléfono de contacto"
           type="tel"
-          placeholder="+56 9 1234 5678"
+          placeholder="Ej: 9 12345678"
+          hint="Máximo 15 números."
+          maxlength={25}
           required
         />
 
@@ -227,7 +229,7 @@ const tiposOrganizacion = [
           >
             Cancelar
           </Button>
-          <Button type="submit">
+          <Button id="guardar-organizacion" type="submit">
             {esEdicion ? 'Guardar cambios' : 'Guardar'}
           </Button>
         </div>
@@ -238,8 +240,10 @@ const tiposOrganizacion = [
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { actions, getActionPath } from 'astro:actions';
   import { parse } from 'devalue';
   import type { RespuestaActionOrganizacion } from '../../actions/organizaciones/organizaciones.handler';
+  import { actualizarOrganizacionSchema } from '../../actions/organizaciones/organizaciones.schema';
   import type { Organizacion } from '../../lib/server/organizaciones';
 
   const form = document.querySelector<HTMLFormElement>(
@@ -269,6 +273,10 @@ const tiposOrganizacion = [
   const inputOtro = document.querySelector<HTMLInputElement>(
     '#tipo_organizacion_otro',
   );
+  const inputTelefono = document.querySelector<HTMLInputElement>('#telefono');
+  const guardar = document.querySelector<HTMLButtonElement>(
+    '#guardar-organizacion',
+  );
 
   if (
     !form ||
@@ -276,7 +284,8 @@ const tiposOrganizacion = [
     !estado ||
     !error ||
     !recuperacion ||
-    !recargar
+    !recargar ||
+    !guardar
   ) {
     throw new Error('No se encontraron los elementos del formulario de organización.');
   }
@@ -290,6 +299,19 @@ const tiposOrganizacion = [
     supabaseUrl && supabaseAnonKey
       ? createClient(supabaseUrl, supabaseAnonKey)
       : null;
+  let versionActual: number | undefined;
+  let guardando = false;
+
+  inputTelefono?.addEventListener('input', () => {
+    let cantidadDigitos = 0;
+    inputTelefono.value = Array.from(inputTelefono.value)
+      .filter((caracter) => {
+        if (!/\d/.test(caracter)) return true;
+        cantidadDigitos += 1;
+        return cantidadDigitos <= 15;
+      })
+      .join('');
+  });
 
   function actualizarVisibilidadOtro() {
     const esOtra = selectTipo?.value === 'otra';
@@ -319,9 +341,9 @@ const tiposOrganizacion = [
     if (campo) campo.value = valor == null ? '' : String(valor);
   }
 
-  function seleccionarPais(nombre: string) {
+  function seleccionarPais(nombre: string, idPais: string) {
     const select = form!.querySelector<HTMLSelectElement>('#id_pais');
-    if (!select || !nombre) return;
+    if (!select || !nombre || !idPais) return;
 
     const normalizar = (valor: string) =>
       valor.trim().toLocaleLowerCase('es');
@@ -331,13 +353,14 @@ const tiposOrganizacion = [
     );
 
     if (opcion) {
-      select.value = opcion.value;
+      opcion.value = idPais;
+      select.value = idPais;
       return;
     }
 
-    const nuevaOpcion = new Option(nombre, nombre, true, true);
+    const nuevaOpcion = new Option(nombre, idPais, true, true);
     select.add(nuevaOpcion);
-    select.value = nombre;
+    select.value = idPais;
   }
 
   function precargarOrganizacion(organizacion: Organizacion) {
@@ -360,8 +383,42 @@ const tiposOrganizacion = [
       asignarValor(id, valor);
     }
 
-    seleccionarPais(organizacion.pais?.nombre ?? '');
+    seleccionarPais(
+      organizacion.pais?.nombre ?? '',
+      organizacion.id_pais,
+    );
+    versionActual = organizacion.version;
     actualizarVisibilidadOtro();
+  }
+
+  function obtenerValor(nombre: string) {
+    const campo = form!.elements.namedItem(nombre) as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement
+      | null;
+
+    return campo?.value ?? '';
+  }
+
+  function obtenerCambiosFormulario() {
+    const otro = obtenerValor('tipo_organizacion_otro').trim();
+
+    return {
+      id_pais: obtenerValor('id_pais'),
+      nombre: obtenerValor('nombre'),
+      nombre_representante: obtenerValor('nombre_representante'),
+      telefono: obtenerValor('telefono'),
+      correo: obtenerValor('correo'),
+      region_departamento: obtenerValor('region_departamento'),
+      comuna_municipio_ciudad: obtenerValor('comuna_municipio_ciudad'),
+      direccion: obtenerValor('direccion'),
+      publico_objetivo: obtenerValor('publico_objetivo'),
+      descripcion_breve: obtenerValor('descripcion_breve'),
+      tipo_organizacion: obtenerValor('tipo_organizacion'),
+      tipo_organizacion_otro: otro || null,
+      numero_beneficiarios: Number(obtenerValor('numero_beneficiarios')),
+    };
   }
 
   async function cargarOrganizacion() {
@@ -454,16 +511,113 @@ const tiposOrganizacion = [
     void cargarOrganizacion();
   });
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    if (!form!.reportValidity()) return;
+    if (guardando || !form!.reportValidity()) return;
 
-    console.warn(
-      esEdicion
-        ? 'La actualización de organizaciones aún no está conectada al backend.'
-        : 'La creación de organizaciones aún no está conectada al backend.',
-    );
+    error!.hidden = true;
+    recuperacion!.hidden = true;
+
+    if (!esEdicion) {
+      mostrarError(
+        'No fue posible guardar la organización',
+        'La creación de organizaciones aún no está conectada al formulario.',
+      );
+      return;
+    }
+
+    const validacion = actualizarOrganizacionSchema.safeParse({
+      id_organizacion: idOrganizacion,
+      version_esperada: versionActual,
+      cambios: obtenerCambiosFormulario(),
+    });
+
+    if (!validacion.success) {
+      mostrarError(
+        'Revisa los datos ingresados',
+        validacion.error.issues[0]?.message ??
+          'Hay campos que no cumplen el formato solicitado.',
+      );
+      return;
+    }
+
+    if (!supabase) {
+      mostrarError(
+        'No fue posible guardar los cambios',
+        'Faltan las variables públicas de configuración de Supabase.',
+      );
+      return;
+    }
+
+    guardando = true;
+    campos!.disabled = true;
+    guardar!.disabled = true;
+    guardar!.textContent = 'Guardando...';
+    estado!.textContent = 'Guardando cambios...';
+    form!.setAttribute('aria-busy', 'true');
+
+    try {
+      const { data, error: errorSesion } = await supabase.auth.getSession();
+
+      if (errorSesion) throw errorSesion;
+      if (!data.session) {
+        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
+      }
+
+      const respuesta = await fetch(
+        getActionPath(actions.actualizarOrganizacion),
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${data.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(validacion.data),
+        },
+      );
+
+      if (!respuesta.ok) {
+        const detalle = await respuesta.json().catch(() => null);
+        const mensajeValidacion = Array.isArray(detalle?.issues)
+          ? detalle.issues[0]?.message
+          : null;
+        throw new Error(
+          mensajeValidacion ?? 'No fue posible completar la actualización.',
+        );
+      }
+
+      const resultado = parse(
+        await respuesta.text(),
+      ) as RespuestaActionOrganizacion<Organizacion>;
+
+      if (!resultado.ok) {
+        throw new Error(resultado.mensaje);
+      }
+
+      estado!.textContent = 'Organización actualizada correctamente.';
+      window.location.replace(
+        `/organizaciones/${encodeURIComponent(resultado.datos.id_organizacion)}?resultado=actualizado`,
+      );
+    } catch (fallo) {
+      const mensaje =
+        fallo instanceof Error
+          ? fallo.message
+          : 'Ocurrió un error inesperado al guardar.';
+
+      mostrarError(
+        'No fue posible guardar los cambios',
+        mensaje,
+        mensaje.toLocaleLowerCase('es').includes('sesión'),
+      );
+      campos!.disabled = false;
+    } finally {
+      guardando = false;
+      guardar!.disabled = false;
+      guardar!.textContent = 'Guardar cambios';
+      form!.setAttribute('aria-busy', 'false');
+    }
   });
 
   if (esEdicion) {

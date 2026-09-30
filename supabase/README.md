@@ -2,10 +2,10 @@
 
 ## Esquema y migraciones
 
-Quince archivos de migración, con 27 tablas de aplicación y una tabla privada
+Diecinueve archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
-aplicación de esta nueva migración a una instancia remota queda pendiente;
-las verificaciones de esta tarea usan PostgreSQL embebido local.
+instancia remota debe tener aplicadas las migraciones hasta la reparación de
+acceso Data API; las verificaciones locales no sustituyen ese despliegue.
 
 | Migración | Contenido |
 |---|---|
@@ -23,8 +23,12 @@ las verificaciones de esta tarea usan PostgreSQL embebido local.
 | `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
 | `20260923151202_fge_programa_lineas_accion.sql` | Líneas propias por Programa, cada una con resultado esperado, auditoría y permisos. |
 | `20260925120000_fge_guardar_programa_completo.sql` | Guardado atómico del Programa y sus líneas con RLS, control de versión y archivado. |
+| `20260928220437_fge_reparar_acceso_api_programas.sql` | Restablece los privilegios Data API de Programas y líneas sin desactivar RLS. |
+| `20260928222053_fge_sincronizar_guardado_programas.sql` | Actualiza la RPC ya desplegada para aceptar referencias ODS/ESG y el contrato vigente del formulario. |
+| `20260928223251_fge_planes_actions_rls.sql` | Habilita lectura y gestión autorizada de Planes para las Astro Actions. |
+| `20260929090000_fge_acciones_actions_rls.sql` | Habilita lectura y gestión autorizada de Acciones según el Plan y país de la Organización. |
 
-La carpeta incluye configuración local, ocho archivos de pruebas pgTAP y
+La carpeta incluye configuración local, diez archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
 
 ## Datos iniciales de desarrollo (KAN-158)
@@ -121,14 +125,39 @@ Zod de creación exige al menos una línea nueva. Jira KAN-173 cita RF72, pero
 el requisito vigente para el resultado por línea es RF70; RF72 se refiere a
 mostrar Organización y Programa en las vistas de Planes.
 
+## Astro Actions de Planes
+
+`frontend/src/actions/planes` contiene los contratos Zod y las cuatro Actions
+para listar, consultar por ID, crear y actualizar Planes de Intervención. El
+repositorio `frontend/src/lib/server/planes.ts` utiliza el cliente Supabase de
+la sesión, devuelve la Organización y el Programa relacionados y aplica control
+de versión en las ediciones.
+
+La política RLS permite lectura a Administrador, Coordinador e Invitado. La
+escritura corresponde al Administrador y al Coordinador con alcance global o
+asignación en el país de la Organización. Las fechas se validan en Zod y en
+PostgreSQL; la fecha de término nunca puede ser anterior al inicio.
+
+## Astro Actions de Acciones
+
+`frontend/src/actions/acciones` expone las operaciones para listar, consultar
+por ID, crear y actualizar las actividades asociadas a un Plan. Los contratos
+Zod validan campos, estados, fechas y el motivo obligatorio de una cancelación.
+El repositorio `frontend/src/lib/server/acciones.ts` conserva respuestas
+estructuradas, control de versión y errores identificables.
+
+Supabase comprueba mediante FK y RLS que el Plan exista y permanezca activo.
+Administrador y Coordinador autorizado para el país de la Organización pueden
+crear o modificar Acciones; Invitado dispone únicamente de lectura.
+
 ## Estado de seguridad
 
 Todas las tablas tienen RLS activado y el almacenamiento es privado. La
 migración de Programas define políticas para consultar y administrar ese
 catálogo y sus imágenes. KAN-173 agrega permisos equivalentes para las líneas
 de acción. El trigger privado audita las escrituras autorizadas
-sin conceder INSERT directo al historial. Planes continúa sin acceso directo para clientes:
-esta corrección de relaciones no habilita por sí sola su CRUD.
+sin conceder INSERT directo al historial. Planes y Acciones se exponen mediante
+el cliente autenticado y permanecen protegidos por RLS.
 
 Falta implementar y probar los permisos por rol, país y operación, el acceso
 público al catálogo y la recepción de cotizaciones. La estructura actual no
@@ -144,7 +173,7 @@ npx.cmd --yes supabase@2.117.0 start
 npx.cmd --yes supabase@2.117.0 test db --local
 ```
 
-En una instalación nueva, el inicio aplica las catorce migraciones y luego el
+En una instalación nueva, el inicio aplica las diecinueve migraciones y luego el
 seed. Si ya existe una base local con migraciones anteriores, se puede
 reconstruir con el siguiente comando, que **borra los datos locales**; usarlo
 solo en una base de pruebas desechable, nunca en `fge-dev`:

@@ -76,11 +76,9 @@ const currentPath = Astro.url.pathname;
 </aside>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
+  import { getSupabaseClient } from '../../lib/supabase';
 
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   const toggle = document.getElementById('sidebar-toggle');
   const sidebar = document.getElementById('app-sidebar');
