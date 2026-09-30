@@ -1,4 +1,33 @@
-# Backend con Astro Actions
+# Backend FGE
+
+## Nueva base de servicios
+
+La separación progresiva del Frontend y Backend comienza en esta carpeta. La
+base incluye:
+
+- `gateway/`: entrada HTTP pública `/api/v1`, CORS, request ID y enrutamiento;
+- `services/auth/`: esqueleto independiente de autenticación;
+- `shared/`: contratos, configuración, errores, contexto de autenticación y
+  observabilidad reutilizables;
+- `dev.mjs`: ejecución conjunta del Gateway y Auth durante desarrollo.
+
+```bash
+# Desde la raíz del repositorio
+npm run test:architecture
+npm run dev:backend
+```
+
+El Gateway utiliza `http://127.0.0.1:4000` y Auth
+`http://127.0.0.1:4101` de forma predeterminada. Las variables disponibles se
+documentan en `backend/.env.example`.
+
+La decisión y sus límites están documentados en
+`docs/architecture/ADR-001-separacion-frontend-backend.md`.
+
+Las implementaciones que siguen bajo este encabezado continúan funcionando y
+no se retirarán hasta completar la migración y las pruebas de paridad.
+
+## Backend heredado con Astro Actions
 
 ## Programas integrados (KAN-176)
 
