@@ -82,7 +82,7 @@ import Input from '../components/ui/Input.astro';
   </main>
 
   <script>
-    import { supabase } from '../lib/supabase';
+    import { cambiarContrasena, prepararSesionRecuperacion } from '../lib/auth/cliente';
 
     const form = document.getElementById('password-form') as HTMLFormElement;
     const password = document.getElementById('password') as HTMLInputElement;
@@ -92,10 +92,28 @@ import Input from '../components/ui/Input.astro';
     const success = document.getElementById('success-alert') as HTMLDivElement;
     const expired = document.getElementById('expired-alert') as HTMLDivElement;
     const submit = document.getElementById('submit-btn') as HTMLButtonElement;
+    let recoveryReady = false;
+
+    submit.disabled = true;
+    prepararSesionRecuperacion()
+      .then((ready) => {
+        recoveryReady = ready;
+        if (ready) {
+          submit.disabled = false;
+        } else {
+          showExpiredLink();
+        }
+      })
+      .catch(() => showExpiredLink());
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       hideMessages();
+
+      if (!recoveryReady) {
+        showExpiredLink();
+        return;
+      }
 
       const value = password.value;
       const confirmation = confirmPassword.value;
@@ -127,13 +145,10 @@ import Input from '../components/ui/Input.astro';
       submit.textContent = 'Actualizando...';
       submit.disabled = true;
 
-// Actualización directa con Supabase desde el navegador
-      const { error } = await supabase.auth.updateUser({
-        password: value,
-      });
-
-      if (error) {
-        showError(error.message);
+      try {
+        await cambiarContrasena(value, confirmation);
+      } catch (error) {
+        showError(error instanceof Error ? error.message : 'No fue posible cambiar la contraseña.');
         submit.textContent = 'Cambiar contraseña';
         submit.disabled = false;
         return;

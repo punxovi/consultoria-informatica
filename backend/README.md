@@ -24,6 +24,9 @@ documentan en `backend/.env.example`.
 La decisión y sus límites están documentados en
 `docs/architecture/ADR-001-separacion-frontend-backend.md`.
 
+El dominio de autenticación ya está migrado. Sus endpoints, sesión y guía local
+se documentan en `docs/architecture/AUTH-MIGRATION.md`.
+
 Las implementaciones que siguen bajo este encabezado continúan funcionando y
 no se retirarán hasta completar la migración y las pruebas de paridad.
 

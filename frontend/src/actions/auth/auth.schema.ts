@@ -17,7 +17,7 @@ export const solicitarRecuperacionSchema = z
   .object({
     correo: emailSchema,
   })
-  .strict('No se permiten campos adicionales.');
+  .strict();
 
 /** Schema para cambiar la contraseña utilizando el flujo de recuperación. */
 export const cambiarContrasenaSchema = z
@@ -25,7 +25,7 @@ export const cambiarContrasenaSchema = z
     password: passwordSchema,
     confirmPassword: passwordSchema,
   })
-  .strict('No se permiten campos adicionales.')
+  .strict()
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Las contraseñas no coinciden.',
     path: ['confirmPassword'],
@@ -37,7 +37,7 @@ export const loginSchema = z
     correo: emailSchema,
     password: z.string({ error: 'La contraseña debe ser texto.' }).min(1, 'La contraseña es obligatoria.'),
   })
-  .strict('No se permiten campos adicionales.');
+  .strict();
 
 export type SolicitarRecuperacionInput = z.infer<typeof solicitarRecuperacionSchema>;
 export type CambiarContrasenaInput = z.infer<typeof cambiarContrasenaSchema>;

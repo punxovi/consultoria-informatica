@@ -1,13 +1,20 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { loadEnvFile } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+const backendDirectory = fileURLToPath(new URL('.', import.meta.url));
+const envFile = fileURLToPath(new URL('.env', import.meta.url));
+if (existsSync(envFile)) loadEnvFile(envFile);
 
 const procesos = [
   spawn(process.execPath, ['--watch', '--experimental-strip-types', 'gateway/src/main.ts'], {
-    cwd: new URL('.', import.meta.url),
+    cwd: backendDirectory,
     env: process.env,
     stdio: 'inherit',
   }),
   spawn(process.execPath, ['--watch', '--experimental-strip-types', 'services/auth/src/main.ts'], {
-    cwd: new URL('.', import.meta.url),
+    cwd: backendDirectory,
     env: process.env,
     stdio: 'inherit',
   }),

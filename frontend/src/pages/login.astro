@@ -73,12 +73,7 @@ import Input from '../components/ui/Input.astro';
   </main>
 
 <script>
-    import { createClient } from '@supabase/supabase-js';
-
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
-    );
+    import { AuthApiError, iniciarSesion } from '../lib/auth/cliente';
 
     const form = document.getElementById('login-form') as HTMLFormElement;
     const email = document.getElementById('email') as HTMLInputElement;
@@ -127,26 +122,19 @@ import Input from '../components/ui/Input.astro';
         submit.textContent = 'Verificando...';
         submit.disabled = true;
 
-        // Autenticación directa en el cliente para guardar la sesión en el navegador
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailValue,
-          password: passwordValue,
-        });
-
-        if (error || !data.session) {
-          handleFailedAttempt(emailValue);
-          submit.textContent = 'Iniciar sesión';
-          submit.disabled = false;
-          return;
-        }
+        await iniciarSesion(emailValue, passwordValue);
 
         // Éxito: limpiar registros de intentos fallidos y bloqueo
         localStorage.removeItem(`attempts_${emailValue}`);
         localStorage.removeItem(lockoutKey);
 
         window.location.href = '/dashboard';
-      } catch {
-        handleFailedAttempt(emailValue);
+      } catch (error) {
+        if (error instanceof AuthApiError && error.code !== 'CREDENCIALES_INVALIDAS') {
+          showError(error.message);
+        } else {
+          handleFailedAttempt(emailValue);
+        }
         submit.textContent = 'Iniciar sesión';
         submit.disabled = false;
       }
