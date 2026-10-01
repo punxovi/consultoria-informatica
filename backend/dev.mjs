@@ -33,6 +33,11 @@ const procesos = [
     env: process.env,
     stdio: 'inherit',
   }),
+  spawn(process.execPath, ['--watch', '--experimental-strip-types', 'services/insights/src/main.ts'], {
+    cwd: backendDirectory,
+    env: process.env,
+    stdio: 'inherit',
+  }),
 ];
 
 let finalizando = false;

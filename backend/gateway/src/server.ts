@@ -29,6 +29,9 @@ export function createGatewayServer(options: GatewayOptions = {}): Server {
     interventions:
       options.targets?.interventions ??
       readUrl('INTERVENTIONS_SERVICE_URL', 'http://127.0.0.1:4104'),
+    insights:
+      options.targets?.insights ??
+      readUrl('INSIGHTS_SERVICE_URL', 'http://127.0.0.1:4105'),
   };
 
   return createServer(async (request, response) => {

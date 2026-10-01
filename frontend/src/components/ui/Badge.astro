@@ -4,11 +4,12 @@
 // para personas con daltonismo).
 
 interface Props {
+  id?: string;
   variant?: 'success' | 'warning' | 'danger' | 'neutral' | 'info';
   class?: string;
 }
 
-const { variant = 'neutral', class: className = '' } = Astro.props;
+const { id, variant = 'neutral', class: className = '' } = Astro.props;
 
 const variants = {
   success: 'bg-success/10 text-success',
@@ -30,6 +31,7 @@ const shapes = {
 ---
 
 <span
+  id={id}
   class={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${variants[variant]} ${className}`}
 >
   <span aria-hidden="true">{shapes[variant]}</span>

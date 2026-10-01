@@ -7,6 +7,7 @@ export interface GatewayTargets {
   organizations: URL;
   programs: URL;
   interventions: URL;
+  insights: URL;
 }
 
 function responderJson(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -63,6 +64,15 @@ export async function routeRequest(
     if (incomingUrl.pathname === prefix || incomingUrl.pathname.startsWith(`${prefix}/`)) {
       const internalPath = incomingUrl.pathname.slice('/api'.length);
       const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.interventions);
+      await proxyRequest(request, response, targetUrl, requestId);
+      return;
+    }
+  }
+
+  for (const prefix of [`${API_PREFIX}/dashboard`, `${API_PREFIX}/reports`]) {
+    if (incomingUrl.pathname === prefix || incomingUrl.pathname.startsWith(`${prefix}/`)) {
+      const internalPath = incomingUrl.pathname.slice('/api'.length);
+      const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.insights);
       await proxyRequest(request, response, targetUrl, requestId);
       return;
     }

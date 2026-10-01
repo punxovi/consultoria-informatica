@@ -7,6 +7,7 @@ let authServer: Server;
 let organizationsServer: Server;
 let programsServer: Server;
 let interventionsServer: Server;
+let insightsServer: Server;
 let gatewayServer: Server;
 let gatewayUrl: string;
 
@@ -45,8 +46,14 @@ before(async () => {
     response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization }));
   });
   const interventionsUrl = await listen(interventionsServer);
+  insightsServer = createServer((request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ path: request.url, authorization: request.headers.authorization }));
+  });
+  const insightsUrl = await listen(insightsServer);
   gatewayServer = createGatewayServer({ targets: {
-    auth: authUrl, organizations: organizationsUrl, programs: programsUrl, interventions: interventionsUrl,
+    auth: authUrl, organizations: organizationsUrl, programs: programsUrl,
+    interventions: interventionsUrl, insights: insightsUrl,
   } });
   gatewayUrl = (await listen(gatewayServer)).origin;
 });
@@ -57,6 +64,7 @@ after(async () => {
     new Promise<void>((resolve) => organizationsServer.close(() => resolve())),
     new Promise<void>((resolve) => programsServer.close(() => resolve())),
     new Promise<void>((resolve) => interventionsServer.close(() => resolve())),
+    new Promise<void>((resolve) => insightsServer.close(() => resolve())),
     new Promise<void>((resolve) => gatewayServer.close(() => resolve())),
   ]);
 });
@@ -127,6 +135,15 @@ describe('API Gateway', () => {
       const body = await response.json();
       assert.equal(body.path, path.replace('/api', ''));
       assert.equal(body.authorization, 'Bearer sesion-intervenciones');
+    }
+  });
+
+  test('enruta Dashboard y Reportes al contexto de Insights', async () => {
+    for (const path of ['/api/v1/dashboard?id_pais=11111111-1111-4111-8111-111111111111', '/api/v1/reports/overview']) {
+      const response = await fetch(`${gatewayUrl}${path}`, { headers: { authorization: 'Bearer sesion-insights' } });
+      const body = await response.json();
+      assert.equal(body.path, path.replace('/api', ''));
+      assert.equal(body.authorization, 'Bearer sesion-insights');
     }
   });
 });
