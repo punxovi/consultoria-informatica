@@ -5,6 +5,7 @@ import { createGatewayServer } from '../src/server.ts';
 
 let authServer: Server;
 let organizationsServer: Server;
+let programsServer: Server;
 let gatewayServer: Server;
 let gatewayUrl: string;
 
@@ -33,7 +34,12 @@ before(async () => {
     response.end(JSON.stringify({ path: request.url, authorization: request.headers.authorization }));
   });
   const organizationsUrl = await listen(organizationsServer);
-  gatewayServer = createGatewayServer({ targets: { auth: authUrl, organizations: organizationsUrl } });
+  programsServer = createServer((request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization }));
+  });
+  const programsUrl = await listen(programsServer);
+  gatewayServer = createGatewayServer({ targets: { auth: authUrl, organizations: organizationsUrl, programs: programsUrl } });
   gatewayUrl = (await listen(gatewayServer)).origin;
 });
 
@@ -41,6 +47,7 @@ after(async () => {
   await Promise.all([
     new Promise<void>((resolve) => authServer.close(() => resolve())),
     new Promise<void>((resolve) => organizationsServer.close(() => resolve())),
+    new Promise<void>((resolve) => programsServer.close(() => resolve())),
     new Promise<void>((resolve) => gatewayServer.close(() => resolve())),
   ]);
 });
@@ -91,5 +98,17 @@ describe('API Gateway', () => {
     const body = await response.json();
     assert.equal(body.path, '/v1/organizations?incluir_archivadas=false');
     assert.equal(body.authorization, 'Bearer sesion-organizaciones');
+  });
+
+  test('enruta Programas conservando método y sesión', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/programs/22222222-2222-4222-8222-222222222222`, {
+      method: 'PATCH',
+      headers: { authorization: 'Bearer sesion-programas', 'content-type': 'application/json' },
+      body: JSON.stringify({ cambios: { nombre: 'Programa' } }),
+    });
+    const body = await response.json();
+    assert.equal(body.path, '/v1/programs/22222222-2222-4222-8222-222222222222');
+    assert.equal(body.method, 'PATCH');
+    assert.equal(body.authorization, 'Bearer sesion-programas');
   });
 });

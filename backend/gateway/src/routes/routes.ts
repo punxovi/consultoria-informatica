@@ -5,6 +5,7 @@ import { proxyRequest } from '../clients/proxy.ts';
 export interface GatewayTargets {
   auth: URL;
   organizations: URL;
+  programs: URL;
 }
 
 function responderJson(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -42,6 +43,17 @@ export async function routeRequest(
   ) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
     const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
+  const programsPrefix = `${API_PREFIX}/programs`;
+  if (
+    incomingUrl.pathname === programsPrefix ||
+    incomingUrl.pathname.startsWith(`${programsPrefix}/`)
+  ) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.programs);
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }

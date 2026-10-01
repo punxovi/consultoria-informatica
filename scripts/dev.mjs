@@ -23,6 +23,11 @@ const processes = [
     env: process.env,
     stdio: 'inherit',
   }),
+  spawn(process.execPath, ['--experimental-strip-types', 'backend/services/programs/src/main.ts'], {
+    cwd: root,
+    env: process.env,
+    stdio: 'inherit',
+  }),
   spawn(process.execPath, ['node_modules/astro/bin/astro.mjs', 'dev'], {
     cwd: join(root, 'frontend'),
     env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1' },

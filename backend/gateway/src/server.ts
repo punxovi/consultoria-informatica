@@ -23,6 +23,9 @@ export function createGatewayServer(options: GatewayOptions = {}): Server {
     organizations:
       options.targets?.organizations ??
       readUrl('ORGANIZATIONS_SERVICE_URL', 'http://127.0.0.1:4102'),
+    programs:
+      options.targets?.programs ??
+      readUrl('PROGRAMS_SERVICE_URL', 'http://127.0.0.1:4103'),
   };
 
   return createServer(async (request, response) => {
