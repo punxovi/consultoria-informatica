@@ -1,21 +1,53 @@
-import { actions, getActionPath } from 'astro:actions';
-import type { CrearAccionInput, ActualizarAccionInput } from '../../actions/acciones/acciones.schema';
-import type { Accion } from '../server/acciones';
+import type { ActualizarAccionInput, CrearAccionInput } from '../../actions/acciones/acciones.schema';
+import type { Accion, EstadoAccion } from '../server/acciones';
+import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
-// Planes y Acciones comparten el contrato de respuesta de las Astro Actions.
-import { ErrorSolicitudPlan, solicitarPlan } from '../planes/transporte';
 
-async function solicitar<T>(ruta: string, entrada: unknown): Promise<T> {
-  const { data: { session }, error } = await getSupabaseClient().auth.getSession();
-  if (error || !session) throw new ErrorSolicitudPlan('SESION', 'Tu sesión expiró. Vuelve a iniciar sesión.');
-  return solicitarPlan<T>(ruta, entrada, session.access_token);
+const API_BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
+const transport = createApiTransport(API_BASE_URL);
+export class ErrorSolicitudAccion extends Error {
+  constructor(readonly codigo: string, message: string) { super(message); this.name = 'ErrorSolicitudAccion'; }
 }
 
-export const listarAcciones = (idPlan: string) =>
-  solicitar<Accion[]>(getActionPath(actions.listarAcciones), { id_plan: idPlan });
-export const obtenerAccion = (idAccion: string) =>
-  solicitar<Accion>(getActionPath(actions.obtenerAccionPorId), { id_accion: idAccion });
-export const crearAccion = (entrada: CrearAccionInput) =>
-  solicitar<Accion>(getActionPath(actions.crearAccion), entrada);
-export const actualizarAccion = (entrada: ActualizarAccionInput) =>
-  solicitar<Accion>(getActionPath(actions.actualizarAccion), entrada);
+async function token(): Promise<string> {
+  const { data, error } = await getSupabaseClient().auth.getSession();
+  if (error || !data.session) throw new ErrorSolicitudAccion('SESION', 'Tu sesión expiró. Vuelve a iniciar sesión.');
+  return data.session.access_token;
+}
+
+async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+  try { return (await transport.request<T>(path, { ...options, accessToken: await token() })).data; }
+  catch (error) {
+    if (error instanceof ErrorSolicitudAccion) throw error;
+    if (error instanceof ApiError) throw new ErrorSolicitudAccion(error.status === 401 ? 'SESION' : error.code, error.message);
+    throw new ErrorSolicitudAccion('CONEXION', 'No se pudo conectar con el servicio de Acciones.');
+  }
+}
+
+export async function listarAcciones(filtros: {
+  idPlan?: string; estado?: EstadoAccion; incluirArchivadas?: boolean;
+} | string = {}): Promise<Accion[]> {
+  if (typeof filtros === 'string') filtros = { idPlan: filtros };
+  const params = new URLSearchParams();
+  if (filtros.idPlan) params.set('id_plan', filtros.idPlan);
+  if (filtros.estado) params.set('estado', filtros.estado);
+  if (filtros.incluirArchivadas) params.set('incluir_archivadas', 'true');
+  const query = params.size ? `?${params}` : '';
+  return (await request<{ actions: Accion[] }>(`/api/v1/actions${query}`)).actions;
+}
+export async function obtenerAccion(id: string): Promise<Accion> {
+  return (await request<{ action: Accion }>(`/api/v1/actions/${encodeURIComponent(id)}`)).action;
+}
+export async function crearAccion(datos: CrearAccionInput): Promise<Accion> {
+  return (await request<{ action: Accion }>('/api/v1/actions', { method: 'POST', body: datos })).action;
+}
+export async function actualizarAccion(datos: ActualizarAccionInput): Promise<Accion> {
+  const { id_accion, ...body } = datos;
+  return (await request<{ action: Accion }>(`/api/v1/actions/${encodeURIComponent(id_accion)}`, { method: 'PATCH', body })).action;
+}
+
+export async function archivarAccion(id: string, versionEsperada: number): Promise<void> {
+  await request(`/api/v1/actions/${encodeURIComponent(id)}`, {
+    method: 'DELETE', body: { version_esperada: versionEsperada },
+  });
+}

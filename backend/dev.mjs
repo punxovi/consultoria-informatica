@@ -28,6 +28,11 @@ const procesos = [
     env: process.env,
     stdio: 'inherit',
   }),
+  spawn(process.execPath, ['--watch', '--experimental-strip-types', 'services/interventions/src/main.ts'], {
+    cwd: backendDirectory,
+    env: process.env,
+    stdio: 'inherit',
+  }),
 ];
 
 let finalizando = false;

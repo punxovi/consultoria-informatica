@@ -23,7 +23,7 @@ export const recibirDatosPruebaSchema = z
       .min(1, 'El mensaje es obligatorio.')
       .max(500, 'El mensaje no puede superar los 500 caracteres.'),
   })
-  .strict('No se permiten campos adicionales.');
+  .strict();
 
 export type RecibirDatosPruebaInput = z.infer<
   typeof recibirDatosPruebaSchema
