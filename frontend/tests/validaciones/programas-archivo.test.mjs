@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
-import { archivarProgramaSchema } from '../../src/actions/programas/programas.schema.ts';
+import { archivarProgramaSchema } from '../../src/lib/validaciones/programas.ts';
 
 it('el archivo requiere UUID y versión positiva, y rechaza campos adicionales', () => {
   const entrada = { id_programa: '17200000-0000-4000-8000-000000000001', version_esperada: 1 };

@@ -1,5 +1,5 @@
-import type { ProgramaConLineas } from '../../actions/programas/programas.handler';
-import type { ActualizarProgramaInput, CrearProgramaInput } from '../../actions/programas/programas.schema';
+import type { ProgramaConLineas } from '../modelos/programas';
+import type { ActualizarProgramaInput, CrearProgramaInput } from '../validaciones/programas';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { ErrorSolicitudPrograma } from './transporte';

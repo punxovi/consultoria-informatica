@@ -12,7 +12,7 @@ El paso 4 separa el catálogo de Programas Institucionales del servidor Astro. E
 - Validación de campos, tipos, límites, líneas duplicadas y cuerpos no permitidos.
 - Propagación del token de Supabase para que las políticas RLS sigan decidiendo el acceso.
 
-Las páginas, componentes y estilos de Astro se mantienen. El módulo de imágenes continúa temporalmente en el frontend porque pertenece al dominio transversal de archivos y almacenamiento, previsto para una etapa posterior. Las Astro Actions antiguas se conservan durante la transición como respaldo, pero las pantallas de Programas ya no las invocan.
+Las páginas, componentes y estilos de Astro se mantienen. El módulo de imágenes continúa en el frontend porque pertenece al dominio transversal de archivos y almacenamiento. Las Astro Actions y repositorios antiguos de Programas fueron retirados después de comprobar la paridad del servicio.
 
 ## Rutas
 

@@ -4,7 +4,7 @@ import type {
   FiltrosOrganizaciones,
   Organizacion,
   PaisResumen,
-} from '../server/organizaciones.ts';
+} from '../modelos/organizaciones.ts';
 import { getSupabaseClient } from '../supabase.ts';
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 

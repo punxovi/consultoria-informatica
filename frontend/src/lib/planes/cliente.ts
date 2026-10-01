@@ -1,6 +1,7 @@
-import type { CrearPlanInput, ActualizarPlanInput } from '../../actions/planes/planes.schema';
-import type { Plan, OrganizacionParaPlan } from '../server/planes';
-import type { ProgramaConLineas } from '../../actions/programas/programas.handler';
+import type { CrearPlanInput, ActualizarPlanInput } from '../validaciones/planes';
+import type { Organizacion } from '../modelos/organizaciones';
+import type { Plan } from '../modelos/planes';
+import type { ProgramaConLineas } from '../modelos/programas';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { listarOrganizaciones } from '../organizaciones/cliente';
 import { listarProgramas } from '../programas/cliente';

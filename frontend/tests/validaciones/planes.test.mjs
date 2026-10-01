@@ -6,7 +6,7 @@ import {
   formatearErroresPlan,
   listarPlanesSchema,
   obtenerPlanPorIdSchema,
-} from '../../src/actions/planes/planes.schema.ts';
+} from '../../src/lib/validaciones/planes.ts';
 
 const planValido = {
   id_organizacion: '10000000-0000-4000-8000-000000000001',

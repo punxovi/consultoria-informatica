@@ -1,14 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-export type EstadoFiltro = 'activo' | 'inactivo' | 'todos';
-
-export interface OrganizacionMock {
-  id: string;
-  nombre: string;
-  rut: string;
-  estado: string;
-}
-
 export interface UserRole {
   codigo: string;
   alcance: string;
@@ -33,21 +24,6 @@ export function getSupabaseClient(): SupabaseClient {
 
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
   return supabaseClient;
-}
-
-/** Obtiene organizaciones desde la RPC pública autorizada por el backend. */
-export async function getOrganizacionesMock(
-  estadoFiltro: EstadoFiltro = 'todos',
-): Promise<OrganizacionMock[]> {
-  const { data, error } = await getSupabaseClient().rpc('get_organizaciones_mock', {
-    estado_filtro: estadoFiltro,
-  });
-
-  if (error) {
-    throw new Error(`No se pudieron cargar las organizaciones: ${error.message}`);
-  }
-
-  return (data ?? []) as OrganizacionMock[];
 }
 
 /** Obtiene los roles asignados al usuario autenticado actual. */

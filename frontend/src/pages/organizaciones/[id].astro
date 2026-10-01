@@ -354,7 +354,7 @@ const idOrganizacion = Astro.params.id ?? '';
 
 <script>
   import { OrganizacionesApiError, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
-  import type { Organizacion } from '../../lib/server/organizaciones';
+  import type { Organizacion } from '../../lib/modelos/organizaciones';
 
   const estado = document.querySelector<HTMLElement>('#estado-organizacion')!;
   const ficha = document.querySelector<HTMLElement>('#ficha-organizacion')!;

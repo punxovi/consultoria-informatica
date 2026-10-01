@@ -2,7 +2,8 @@
 
 ## Estado
 
-Aceptada para implementación incremental desde `sprint-4`.
+Implementada. La migración incremental finalizó con el retiro del backend
+heredado de Astro.
 
 ## Contexto
 
@@ -25,24 +26,23 @@ mientras los dominios se extraen de forma gradual.
 5. Supabase continuará como plataforma de datos. Cada servicio será dueño de
    sus consultas, migraciones y permisos, sin acceder a repositorios de otro
    dominio.
-6. Las Astro Actions permanecerán activas hasta que el servicio equivalente
-   alcance paridad funcional y pase QA.
+6. Las Astro Actions se retirarían cuando el servicio equivalente alcanzara
+   paridad funcional y pasara QA. Esta condición ya se cumplió.
 
 ## Consecuencias
 
 - El Gateway se convierte en la única entrada pública al Backend.
 - Los servicios pueden probarse y desplegarse de manera independiente.
-- Durante la transición existirán temporalmente dos transportes: Astro Actions
-  y HTTP. Esto es deliberado y evita un cambio total sin posibilidad de
-  reversión.
+- El transporte HTTP del Gateway es la única entrada de operaciones de negocio.
 - No se permitirá que una página visual defina por sí sola un microservicio;
   las páginas relacionadas comparten el servicio de su dominio.
 
-## Alcance de la base inicial
+## Resultado final
 
 - Workspace npm en la raíz.
 - API Gateway con salud, CORS, request ID, respuestas uniformes y proxy Auth.
 - Contratos y utilidades compartidas sin dependencias externas.
-- Servicio Auth con salud y capacidades. Sus operaciones funcionales responden
-  `501 AUTH_PENDIENTE_MIGRACION` hasta el paso dedicado a autenticación.
-- Ningún cambio en páginas, componentes, estilos o Astro Actions existentes.
+- Servicios independientes de Auth, Organizaciones, Programas, Intervenciones
+  e Insights.
+- Frontend sin Astro Actions ni repositorios de base de datos duplicados.
+- Rutas, componentes y estilos visuales preservados.

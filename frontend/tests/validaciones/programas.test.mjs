@@ -8,7 +8,7 @@ import {
   lineaAccionProgramaSchema,
   listarProgramasSchema,
   obtenerProgramaPorIdSchema,
-} from '../../src/actions/programas/index.ts';
+} from '../../src/lib/validaciones/programas.ts';
 
 const programaValido = {
   nombre: '  Programa de Formalización  ',
@@ -200,7 +200,7 @@ describe('schemas Zod de Programas', () => {
     );
   });
 
-  it('entrega errores claros y estables para las Actions', () => {
+  it('entrega errores claros y estables para los formularios', () => {
     const validacion = actualizarProgramaSchema.safeParse({
       id_programa: 'id-invalido',
       cambios: {

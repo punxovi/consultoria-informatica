@@ -9,6 +9,6 @@ El API Gateway publica dos espacios independientes:
 
 El servicio corre en el puerto `4104`, propaga el token de la sesión a Supabase y conserva las políticas RLS, auditoría y control de versión existentes. Valida UUID, textos, fechas, estados, filtros, campos adicionales y el motivo obligatorio de una acción cancelada.
 
-Las pantallas actuales de Planes usan el Gateway sin cambiar su HTML ni sus estilos. Sus catálogos obtienen Organizaciones y Programas mediante los microservicios ya migrados. El cliente de Acciones queda preparado para la interfaz visual posterior; las Astro Actions antiguas permanecen temporalmente como respaldo de transición.
+Las pantallas actuales de Planes usan el Gateway sin cambiar su HTML ni sus estilos. Sus catálogos obtienen Organizaciones y Programas mediante los microservicios ya migrados. El cliente de Acciones queda preparado para la interfaz visual posterior; las Astro Actions antiguas fueron retiradas.
 
 `npm run dev` inicia el servicio junto al resto de la plataforma. También puede ejecutarse de forma aislada con `npm run dev:interventions`.

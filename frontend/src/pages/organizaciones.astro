@@ -229,9 +229,9 @@ import Select from '../components/ui/Select.astro';
 </AppLayout>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
   import { listarOrganizaciones } from '../lib/organizaciones/cliente';
-  import type { Organizacion } from '../lib/server/organizaciones';
+  import { listarProgramas } from '../lib/programas/cliente';
+  import type { Organizacion } from '../lib/modelos/organizaciones';
 
   const lista = document.querySelector<HTMLDivElement>(
     '#organizaciones-lista',
@@ -282,15 +282,6 @@ import Select from '../components/ui/Select.astro';
     );
   }
 
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Faltan las variables de configuración de Supabase.');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
   // Dataset completo tal como llegó del backend; los filtros (RF18) se
   // aplican en el cliente sobre esta copia.
   let todasLasOrganizaciones: Organizacion[] = [];
@@ -332,13 +323,10 @@ import Select from '../components/ui/Select.astro';
   }
 
   async function cargarProgramasDisponibles() {
-    const { data, error } = await supabase
-      .from('programas')
-      .select('id_programa, nombre')
-      .is('archived_at', null)
-      .order('nombre', { ascending: true });
-
-    if (error) {
+    let programas: Awaited<ReturnType<typeof listarProgramas>>;
+    try {
+      programas = await listarProgramas();
+    } catch {
       if (hintPrograma) {
         hintPrograma.textContent =
           'No se pudo cargar el catálogo de programas. La selección aún no filtra organizaciones.';
@@ -354,7 +342,7 @@ import Select from '../components/ui/Select.astro';
     opcionTodos.textContent = 'Todos los programas';
     selectPrograma.append(opcionTodos);
 
-    for (const programa of data ?? []) {
+    for (const programa of programas) {
       const opcion = document.createElement('option');
       opcion.value = programa.id_programa;
       opcion.textContent = programa.nombre;

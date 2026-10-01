@@ -4,7 +4,7 @@ import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 import BackButton from '../../components/ui/BackButton.astro';
-import { obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
+import { obtenerProgramaPorIdSchema } from '../../lib/validaciones/programas';
 
 const { id } = Astro.params;
 const idValido = obtenerProgramaPorIdSchema.safeParse({ id_programa: id }).success;
@@ -88,7 +88,7 @@ const secciones = [
   import { obtenerImagen } from '../../lib/programas/imagen';
   import { getUserRoles } from '../../lib/supabase';
   import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
-  import { obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
+  import { obtenerProgramaPorIdSchema } from '../../lib/validaciones/programas';
 
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-programa')!;
   const raiz = document.querySelector<HTMLElement>('#programa-detalle')!;

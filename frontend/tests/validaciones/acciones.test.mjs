@@ -6,7 +6,7 @@ import {
   formatearErroresAccion,
   listarAccionesSchema,
   obtenerAccionPorIdSchema,
-} from '../../src/actions/acciones/acciones.schema.ts';
+} from '../../src/lib/validaciones/acciones.ts';
 
 const accionValida = {
   id_plan: '30000000-0000-4000-8000-000000000001',

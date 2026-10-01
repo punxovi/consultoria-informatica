@@ -23,9 +23,8 @@ login o una renovación, el Frontend almacena la sesión con Supabase JS. Esto e
 necesario mientras Organizaciones, Programas, Planes y Acciones utilizan el
 Bearer del navegador para aplicar RLS.
 
-Las Astro Actions de Auth siguen presentes temporalmente como código heredado,
-pero las tres pantallas de autenticación, el layout protegido y el Sidebar ya
-consumen el nuevo cliente HTTP.
+Las Astro Actions de Auth fueron retiradas. Las tres pantallas de autenticación,
+el layout protegido y el Sidebar consumen el cliente HTTP del servicio.
 
 ## Ejecución local
 

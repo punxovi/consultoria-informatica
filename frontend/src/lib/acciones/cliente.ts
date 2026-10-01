@@ -1,5 +1,5 @@
-import type { ActualizarAccionInput, CrearAccionInput } from '../../actions/acciones/acciones.schema';
-import type { Accion, EstadoAccion } from '../server/acciones';
+import type { ActualizarAccionInput, CrearAccionInput } from '../validaciones/acciones';
+import type { Accion, EstadoAccion } from '../modelos/acciones';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 

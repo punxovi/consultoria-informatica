@@ -7,7 +7,7 @@ import {
   listarOrganizacionesSchema,
   organizacionSchema,
   obtenerOrganizacionPorIdSchema,
-} from '../../src/actions/organizaciones/organizaciones.schema.ts';
+} from '../../src/lib/validaciones/organizaciones.ts';
 
 const organizacionValida = {
   id_pais: '10000000-0000-4000-8000-000000000001',

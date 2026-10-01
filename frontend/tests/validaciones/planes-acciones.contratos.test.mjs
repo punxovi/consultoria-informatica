@@ -1,9 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearPlanSchema, actualizarPlanSchema, listarPlanesSchema } from '../../src/actions/planes/planes.schema.ts';
-import { crearAccionSchema, actualizarAccionSchema, listarAccionesSchema } from '../../src/actions/acciones/acciones.schema.ts';
-import { actualizarPlan, listarPlanes, listarOrganizacionesParaPlan } from '../../src/lib/server/planes.ts';
-import { actualizarAccion } from '../../src/lib/server/acciones.ts';
+import { crearPlanSchema, actualizarPlanSchema, listarPlanesSchema } from '../../src/lib/validaciones/planes.ts';
+import { crearAccionSchema, actualizarAccionSchema, listarAccionesSchema } from '../../src/lib/validaciones/acciones.ts';
 
 const id = '84000000-0000-4000-8000-000000000001';
 const plan = { id_organizacion:id,id_programa:id,nombre:'Plan',situacion_necesidad:'Necesidad',objetivo_general:'Objetivo',objetivos_especificos:'Talleres',resultado_esperado:'Resultado',responsable_nombre:'Responsable',periodo_anual:2026,fecha_inicio:'2026-12-01',fecha_termino:'2027-03-01' };
@@ -33,25 +31,9 @@ test('edición parcial conserva campos omitidos y permite limpiar descripción e
   assert.equal(actualizarAccionSchema.safeParse({id_accion:id,version_esperada:2,cambios:{estado:'cancelada',observacion_motivo:null}}).success,false);
 });
 
-test('las dos ediciones exigen versión también al invocar el repositorio', async () => {
-  const noEscribir = {from(){throw new Error('No debe emitir ninguna escritura');}};
+test('las dos ediciones exigen una versión válida', () => {
   for (const version_esperada of [undefined,0,-1,1.5,NaN]) {
     assert.equal(actualizarPlanSchema.safeParse({id_plan:id,version_esperada,cambios:{nombre:'Otro'}}).success,false);
     assert.equal(actualizarAccionSchema.safeParse({id_accion:id,version_esperada,cambios:{nombre:'Otro'}}).success,false);
-    await assert.rejects(actualizarPlan(noEscribir,id,{nombre:'Otro'},version_esperada),{codigo:'RESTRICCION_INCUMPLIDA'});
-    await assert.rejects(actualizarAccion(noEscribir,id,{nombre:'Otro'},version_esperada),{codigo:'RESTRICCION_INCUMPLIDA'});
   }
-});
-
-test('consulta de Planes propaga el filtro anual y selecciona el campo', async () => {
-  const calls = []; const query = {select(s){calls.push(['select',s]);return this;},order(){return this;},is(){return this;},eq(k,v){calls.push([k,v]);return this;},then(resolve){return Promise.resolve({data:[],error:null}).then(resolve);}};
-  await listarPlanes({from(){return query;}},{periodoAnual:2026});
-  assert.ok(calls.some(([k,v])=>k==='periodo_anual' && v===2026));
-  assert.match(calls[0][1],/periodo_anual/);
-});
-
-test('selector de Organización consulta solo identidad, país y nombre de entidades activas', async () => {
-  const calls=[]; const q={select(s){calls.push(['select',s]);return this;},is(k,v){calls.push(['is',k,v]);return this;},order(k){calls.push(['order',k]);return Promise.resolve({data:[],error:null});}};
-  assert.deepEqual(await listarOrganizacionesParaPlan({from(tabla){assert.equal(tabla,'organizaciones');return q;}}),[]);
-  assert.deepEqual(calls,[['select','id_organizacion,id_pais,nombre'],['is','archived_at',null],['order','nombre']]);
 });

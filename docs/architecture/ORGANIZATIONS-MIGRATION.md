@@ -27,8 +27,8 @@ acceso efectivo.
 - `infrastructure`: consultas PostgREST y traducción de errores de base de datos.
 - `http`: autenticación Bearer, rutas y respuestas estables.
 
-Las Astro Actions anteriores permanecen temporalmente como respaldo durante
-la migración, pero las páginas de Organizaciones ya no las consumen.
+Las Astro Actions y el repositorio Supabase anterior fueron retirados después
+de comprobar la paridad del servicio.
 
 ## Ejecución local
 

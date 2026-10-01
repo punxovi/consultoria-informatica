@@ -242,14 +242,14 @@ const tiposOrganizacion = [
   import {
     actualizarOrganizacionSchema,
     crearOrganizacionSchema,
-  } from '../../actions/organizaciones/organizaciones.schema';
+  } from '../../lib/validaciones/organizaciones';
   import {
     actualizarOrganizacion,
     crearOrganizacion,
     listarPaisesOrganizaciones,
     obtenerOrganizacion,
   } from '../../lib/organizaciones/cliente';
-  import type { Organizacion } from '../../lib/server/organizaciones';
+  import type { Organizacion } from '../../lib/modelos/organizaciones';
 
   const form = document.querySelector<HTMLFormElement>(
     '#form-organizacion',
