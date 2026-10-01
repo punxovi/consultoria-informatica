@@ -20,6 +20,9 @@ export function createGatewayServer(options: GatewayOptions = {}): Server {
   const allowedOrigins = new Set(options.allowedOrigins ?? frontendOrigins());
   const targets: GatewayTargets = {
     auth: options.targets?.auth ?? readUrl('AUTH_SERVICE_URL', 'http://127.0.0.1:4101'),
+    organizations:
+      options.targets?.organizations ??
+      readUrl('ORGANIZATIONS_SERVICE_URL', 'http://127.0.0.1:4102'),
   };
 
   return createServer(async (request, response) => {

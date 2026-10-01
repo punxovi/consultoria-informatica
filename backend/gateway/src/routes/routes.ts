@@ -4,6 +4,7 @@ import { proxyRequest } from '../clients/proxy.ts';
 
 export interface GatewayTargets {
   auth: URL;
+  organizations: URL;
 }
 
 function responderJson(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -30,6 +31,17 @@ export async function routeRequest(
   if (incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`)) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
     const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.auth);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
+  const organizationsPrefix = `${API_PREFIX}/organizations`;
+  if (
+    incomingUrl.pathname === organizationsPrefix ||
+    incomingUrl.pathname.startsWith(`${organizationsPrefix}/`)
+  ) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }

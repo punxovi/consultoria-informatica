@@ -230,40 +230,39 @@ import Select from '../components/ui/Select.astro';
 
 <script>
   import { createClient } from '@supabase/supabase-js';
-  import { parse } from 'devalue';
-  import type { RespuestaActionOrganizacion } from '../actions/organizaciones/organizaciones.handler';
+  import { listarOrganizaciones } from '../lib/organizaciones/cliente';
   import type { Organizacion } from '../lib/server/organizaciones';
 
   const lista = document.querySelector<HTMLDivElement>(
     '#organizaciones-lista',
-  );
+  )!;
 
   const totalElement = document.querySelector<HTMLParagraphElement>(
     '#total-organizaciones',
-  );
+  )!;
 
   const activasElement = document.querySelector<HTMLParagraphElement>(
     '#organizaciones-activas',
-  );
+  )!;
 
   const inactivasElement = document.querySelector<HTMLParagraphElement>(
     '#organizaciones-inactivas',
-  );
+  )!;
 
   const contadorElement = document.querySelector<HTMLParagraphElement>(
     '#contador-resultados',
-  );
+  )!;
 
   const inputBusqueda = document.querySelector<HTMLInputElement>(
     '#buscar-organizacion',
-  );
+  )!;
 
   const selectPais = document.querySelector<HTMLSelectElement>(
     '#filtro-pais',
-  );
+  )!;
   const selectPrograma = document.querySelector<HTMLSelectElement>(
     '#filtro-programa',
-  );
+  )!;
   const hintPrograma = document.querySelector<HTMLParagraphElement>(
     '#filtro-programa-hint',
   );
@@ -549,38 +548,8 @@ import Select from '../components/ui/Select.astro';
     mostrarMensaje('Cargando organizaciones...');
 
     try {
-      const { data, error } = await supabase.auth.getSession();
-
-      if (error) throw error;
-      if (!data.session) {
-        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
-      }
-
       void cargarProgramasDisponibles();
-
-      const respuesta = await fetch('/_actions/listarOrganizaciones', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!respuesta.ok) {
-        throw new Error('No fue posible consultar las organizaciones.');
-      }
-
-      const resultado = parse(
-        await respuesta.text(),
-      ) as RespuestaActionOrganizacion<Organizacion[]>;
-
-      if (!resultado.ok) {
-        throw new Error(resultado.mensaje);
-      }
-
-      const datos = resultado.datos;
+      const datos = await listarOrganizaciones();
 
       todasLasOrganizaciones = datos;
       actualizarResumen(datos);

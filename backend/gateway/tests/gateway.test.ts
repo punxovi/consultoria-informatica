@@ -4,6 +4,7 @@ import { after, before, describe, test } from 'node:test';
 import { createGatewayServer } from '../src/server.ts';
 
 let authServer: Server;
+let organizationsServer: Server;
 let gatewayServer: Server;
 let gatewayUrl: string;
 
@@ -27,13 +28,19 @@ before(async () => {
     }));
   });
   const authUrl = await listen(authServer);
-  gatewayServer = createGatewayServer({ targets: { auth: authUrl } });
+  organizationsServer = createServer((request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ path: request.url, authorization: request.headers.authorization }));
+  });
+  const organizationsUrl = await listen(organizationsServer);
+  gatewayServer = createGatewayServer({ targets: { auth: authUrl, organizations: organizationsUrl } });
   gatewayUrl = (await listen(gatewayServer)).origin;
 });
 
 after(async () => {
   await Promise.all([
     new Promise<void>((resolve) => authServer.close(() => resolve())),
+    new Promise<void>((resolve) => organizationsServer.close(() => resolve())),
     new Promise<void>((resolve) => gatewayServer.close(() => resolve())),
   ]);
 });
@@ -75,5 +82,14 @@ describe('API Gateway', () => {
     assert.equal(response.status, 404);
     assert.equal(body.ok, false);
     assert.equal(body.error.code, 'RUTA_NO_ENCONTRADA');
+  });
+
+  test('enruta Organizaciones con filtros y sesión', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations?incluir_archivadas=false`, {
+      headers: { authorization: 'Bearer sesion-organizaciones' },
+    });
+    const body = await response.json();
+    assert.equal(body.path, '/v1/organizations?incluir_archivadas=false');
+    assert.equal(body.authorization, 'Bearer sesion-organizaciones');
   });
 });

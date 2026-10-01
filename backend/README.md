@@ -27,6 +27,10 @@ La decisión y sus límites están documentados en
 El dominio de autenticación ya está migrado. Sus endpoints, sesión y guía local
 se documentan en `docs/architecture/AUTH-MIGRATION.md`.
 
+El dominio de Organizaciones también está migrado detrás del Gateway. Incluye
+listado, detalle, creación, actualización y el catálogo de países requerido por
+el formulario. Ver `docs/architecture/ORGANIZATIONS-MIGRATION.md`.
+
 Las implementaciones que siguen bajo este encabezado continúan funcionando y
 no se retirarán hasta completar la migración y las pruebas de paridad.
 

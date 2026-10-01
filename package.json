@@ -18,9 +18,10 @@
     "dev:backend": "node backend/dev.mjs",
     "dev:gateway": "npm run dev --workspace=@fge/api-gateway",
     "dev:auth": "npm run dev --workspace=@fge/auth-service",
+    "dev:organizations": "npm run dev --workspace=@fge/organizations-service",
     "test": "npm run test:architecture && npm run test --workspace=frontend",
-    "test:architecture": "npm run test --workspace=@fge/contracts && npm run test --workspace=@fge/api-gateway && npm run test --workspace=@fge/auth-service",
-    "check:architecture": "npm run check --workspace=@fge/contracts && npm run check --workspace=@fge/api-gateway && npm run check --workspace=@fge/auth-service",
+    "test:architecture": "npm run test --workspace=@fge/contracts && npm run test --workspace=@fge/api-gateway && npm run test --workspace=@fge/auth-service && npm run test --workspace=@fge/organizations-service",
+    "check:architecture": "npm run check --workspace=@fge/contracts && npm run check --workspace=@fge/api-gateway && npm run check --workspace=@fge/auth-service && npm run check --workspace=@fge/organizations-service",
     "build:frontend": "npm run build --workspace=frontend"
   }
 }

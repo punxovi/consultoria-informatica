@@ -70,7 +70,7 @@ export const camposOrganizacionSchema = z
         'El número de beneficiarios no puede superar 10000000.',
       ),
   })
-  .strict('No se permiten campos adicionales en la organización.');
+  .strict();
 
 function validarTipoOtro(
   datos: {
@@ -116,13 +116,13 @@ export const listarOrganizacionesSchema = z
       .boolean({ error: 'incluir_archivadas debe ser booleano.' })
       .default(false),
   })
-  .strict('No se permiten filtros adicionales.');
+  .strict();
 
 export const obtenerOrganizacionPorIdSchema = z
   .object({
     id_organizacion: uuid('La organización'),
   })
-  .strict('No se permiten campos adicionales.');
+  .strict();
 
 export const crearOrganizacionSchema = organizacionSchema;
 
@@ -149,7 +149,7 @@ export const actualizarOrganizacionSchema = z
       .optional(),
     cambios: cambiosOrganizacionSchema,
   })
-  .strict('No se permiten campos adicionales.');
+  .strict();
 
 export type ListarOrganizacionesInput = z.infer<
   typeof listarOrganizacionesSchema
