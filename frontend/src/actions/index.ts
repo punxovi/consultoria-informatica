@@ -1,4 +1,5 @@
 import { recibirDatosPrueba } from './prueba/recibir-datos.action';
+import { archivarPlanAction, archivarAccionAction } from './archivo.action';
 import {
   actualizarOrganizacionAction,
   crearOrganizacionAction,
@@ -32,6 +33,8 @@ import {
  * desde este objeto para que Astro genere el cliente tipado correspondiente.
  */
 export const server = {
+  archivarPlan: archivarPlanAction,
+  archivarAccion: archivarAccionAction,
   actualizarAccion: actualizarAccionAction,
   actualizarOrganizacion: actualizarOrganizacionAction,
   crearAccion: crearAccionAction,

@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button.astro';
 import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
 import AccionesPlan from '../../components/acciones/AccionesPlan.astro';
+import EliminarRegistro from '../../components/ui/EliminarRegistro.astro';
 
 const idPlan = Astro.params.id ?? '';
 ---
@@ -32,6 +33,7 @@ const idPlan = Astro.params.id ?? '';
         </div>
         <p data-plan="resumen" class="mt-2 text-sm text-neutral-500"></p>
         <div class="mt-4"><Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">Editar plan</Button></div>
+        <div class="mt-3"><EliminarRegistro tipo="plan" id={idPlan} regreso="/planes?resultado=eliminado" /></div>
       </div>
 
       <Card>
@@ -78,6 +80,7 @@ const idPlan = Astro.params.id ?? '';
   }
 
   void obtenerPlan(seccion.dataset.idPlan ?? '').then(plan => {
+    document.querySelector<HTMLElement>('#eliminar-registro')!.dataset.version = String(plan.version);
     document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
     const valores: Record<string, string> = {
       nombre: plan.nombre,

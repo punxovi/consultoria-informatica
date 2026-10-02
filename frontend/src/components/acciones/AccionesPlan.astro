@@ -84,8 +84,11 @@ const { idPlan } = Astro.props;
       listado.setAttribute('aria-busy', 'false');
     }
   }
-  if (new URLSearchParams(location.search).get('resultado') === 'accion-guardada') {
-    document.querySelector<HTMLElement>('#accion-confirmacion')!.hidden = false;
+  const resultado = new URLSearchParams(location.search).get('resultado');
+  if (resultado === 'accion-guardada' || resultado === 'accion-eliminada') {
+    const confirmacion = document.querySelector<HTMLElement>('#accion-confirmacion')!;
+    confirmacion.textContent = resultado === 'accion-eliminada' ? 'Acción eliminada correctamente.' : 'Acción guardada correctamente.';
+    confirmacion.hidden = false;
     history.replaceState(null, '', `${location.pathname}#acciones-plan`);
   }
   recargar.addEventListener('click', () => void cargar());

@@ -2,6 +2,7 @@
 import Button from '../../../../components/ui/Button.astro';
 import Card from '../../../../components/ui/Card.astro';
 import AccionLayout from '../../../../layouts/AccionLayout.astro';
+import EliminarRegistro from '../../../../components/ui/EliminarRegistro.astro';
 const idPlan = Astro.params.id ?? '';
 const idAccion = Astro.params.idAccion ?? '';
 ---
@@ -33,6 +34,7 @@ const idAccion = Astro.params.idAccion ?? '';
           <div class="md:col-span-2"><dt class="text-sm font-semibold text-neutral-500">Resultado esperado</dt><dd data-accion="resultado_esperado" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
         </dl>
       </Card>
+      <EliminarRegistro tipo="accion" id={idAccion} regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`} />
     </div>
   </section>
 </AccionLayout>
@@ -57,6 +59,7 @@ const idAccion = Astro.params.idAccion ?? '';
     try {
       const accion = await obtenerAccion(seccion.dataset.idAccion!);
       if (accion.id_plan !== seccion.dataset.idPlan) throw new Error('La acción solicitada no pertenece a este plan.');
+      document.querySelector<HTMLElement>('#eliminar-registro')!.dataset.version = String(accion.version);
       const datos: Record<string, string> = {
         nombre: accion.nombre, plan: accion.plan.nombre, estado: etiquetaEstado(accion.estado),
         responsable_nombre: accion.responsable_nombre,
