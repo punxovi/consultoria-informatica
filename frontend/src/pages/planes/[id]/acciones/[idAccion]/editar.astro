@@ -1,0 +1,9 @@
+---
+import AccionForm from '../../../../../components/acciones/AccionForm.astro';
+import AccionLayout from '../../../../../layouts/AccionLayout.astro';
+const idPlan = Astro.params.id ?? '';
+const idAccion = Astro.params.idAccion ?? '';
+---
+<AccionLayout idPlan={idPlan} title="Editar acción">
+  <AccionForm idPlan={idPlan} idAccion={idAccion} />
+</AccionLayout>

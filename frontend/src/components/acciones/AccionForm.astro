@@ -1,0 +1,180 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import { estadosSeleccionables } from '../../lib/acciones/presentacion';
+interface Props { idPlan: string; idAccion?: string }
+const { idPlan, idAccion = '' } = Astro.props;
+const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
+---
+
+<section class="mx-auto max-w-4xl space-y-6">
+  <div>
+    <p class="text-sm font-medium text-primary">Acciones del plan</p>
+    <h1 class="mt-1 text-2xl font-bold md:text-3xl">{idAccion ? 'Editar acción' : 'Crear acción'}</h1>
+    <p id="accion-contexto" class="mt-2 break-words text-sm text-neutral-600"></p>
+    <p class="mt-2 text-sm text-neutral-500">Los campos marcados con * son obligatorios.</p>
+  </div>
+  <a href={volver} class="inline-flex min-h-[48px] items-center text-primary underline">Volver a las acciones del plan</a>
+  <p id="accion-estado" role="status" aria-live="polite">Cargando formulario…</p>
+  <div id="accion-error" hidden role="alert" tabindex="-1" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
+  <div id="accion-reintentar" hidden><Button id="recargar-accion" variant="outline">Recargar datos</Button></div>
+  <form id="accion-form" data-id-plan={idPlan} data-id-accion={idAccion} novalidate aria-busy="true">
+    <fieldset id="accion-campos" disabled>
+      <Card>
+        <div class="space-y-6">
+          <h2 class="text-lg font-semibold">Información de la acción</h2>
+          <Input id="nombre" label="Nombre de la acción" required maxlength={150} />
+          <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Input id="fecha_inicio" type="date" label="Fecha de inicio" required />
+            <Input id="fecha_termino" type="date" label="Fecha de término" required />
+          </div>
+          <div class="space-y-1.5">
+            <label for="estado" class="block text-sm font-medium">Estado <span class="text-danger">*</span></label>
+            <select id="estado" name="estado" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:ring-2 focus:ring-primary">
+              {estadosSeleccionables.map(({ valor, etiqueta }) => <option value={valor}>{etiqueta}</option>)}
+            </select>
+            <p class="text-sm text-neutral-500">La etiqueta “Vencida” se calcula según la fecha de término; no se selecciona manualmente.</p>
+          </div>
+          <div class="space-y-1.5">
+            <label id="motivo-label" for="observacion_motivo" class="block text-sm font-medium">Observaciones (opcional)</label>
+            <textarea id="observacion_motivo" name="observacion_motivo" rows="4" maxlength="3000" class="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:ring-2 focus:ring-primary"></textarea>
+          </div>
+          <div class="space-y-1.5">
+            <label for="resultado_esperado" class="block text-sm font-medium">Resultado esperado (opcional)</label>
+            <textarea id="resultado_esperado" name="resultado_esperado" rows="4" maxlength="5000" class="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:ring-2 focus:ring-primary"></textarea>
+          </div>
+          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button href={volver} variant="outline">Cancelar</Button>
+            <Button id="guardar-accion" type="submit">Guardar acción</Button>
+          </div>
+        </div>
+      </Card>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  import { crearAccionSchema } from '../../actions/acciones/acciones.schema';
+  import { actualizarAccion, crearAccion, obtenerAccion } from '../../lib/acciones/cliente';
+  import { obtenerPlan } from '../../lib/planes/cliente';
+  import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
+  import { estadosSeleccionables } from '../../lib/acciones/presentacion';
+  const form = document.querySelector<HTMLFormElement>('#accion-form')!;
+  const campos = document.querySelector<HTMLFieldSetElement>('#accion-campos')!;
+  const estadoCarga = document.querySelector<HTMLElement>('#accion-estado')!;
+  const error = document.querySelector<HTMLElement>('#accion-error')!;
+  const reintentar = document.querySelector<HTMLElement>('#accion-reintentar')!;
+  const guardar = document.querySelector<HTMLButtonElement>('#guardar-accion')!;
+  const selectEstado = document.querySelector<HTMLSelectElement>('#estado')!;
+  const motivo = document.querySelector<HTMLTextAreaElement>('#observacion_motivo')!;
+  const idPlan = form.dataset.idPlan!;
+  const idAccion = form.dataset.idAccion ?? '';
+  let version: number | undefined;
+  let enviando = false;
+  const schema = crearAccionSchema.refine(datos => estadosSeleccionables.some(item => item.valor === datos.estado), {
+    path: ['estado'], message: 'Selecciona uno de los cuatro estados disponibles.',
+  });
+
+  function actualizarMotivo() {
+    motivo.required = selectEstado.value === 'cancelada';
+    document.querySelector('#motivo-label')!.textContent = motivo.required ? 'Motivo de cancelación *' : 'Observaciones (opcional)';
+  }
+  function limpiarErrores() {
+    error.hidden = true;
+    form.querySelectorAll('[data-error-campo]').forEach(elemento => elemento.remove());
+    form.querySelectorAll('[aria-invalid="true"]').forEach(elemento => {
+      elemento.setAttribute('aria-invalid', 'false');
+      elemento.removeAttribute('aria-describedby');
+    });
+  }
+  function mostrarError(mensaje: string, detalles: { campo: string; mensaje: string }[] = []) {
+    error.textContent = mensaje;
+    for (const detalle of detalles) {
+      const control = form.elements.namedItem(detalle.campo.replace(/^cambios\./, ''));
+      if (!(control instanceof HTMLElement) || control.getAttribute('aria-invalid') === 'true') continue;
+      const aviso = document.createElement('p');
+      aviso.id = `${control.id}-validacion`;
+      aviso.dataset.errorCampo = '';
+      aviso.className = 'mt-1 text-sm text-red-800';
+      aviso.textContent = detalle.mensaje;
+      control.setAttribute('aria-invalid', 'true');
+      control.setAttribute('aria-describedby', aviso.id);
+      control.after(aviso);
+    }
+    error.hidden = false;
+    error.focus();
+  }
+  async function cargar() {
+    limpiarErrores();
+    reintentar.hidden = true;
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estadoCarga.textContent = 'Cargando formulario…';
+    try {
+      const [plan, accion] = await Promise.all([obtenerPlan(idPlan), idAccion ? obtenerAccion(idAccion) : Promise.resolve(null)]);
+      if (accion && accion.id_plan !== idPlan) throw new Error('La acción solicitada no pertenece a este plan.');
+      document.querySelector('#accion-contexto')!.textContent = `${plan.nombre} · ${plan.organizacion.nombre} · ${plan.programa.nombre}`;
+      selectEstado.querySelector('[data-legado]')?.remove();
+      if (accion) {
+        version = accion.version;
+        if (accion.estado === 'atrasada') {
+          const anterior = new Option('Atrasada (anterior): selecciona un estado actual', 'atrasada');
+          anterior.disabled = true;
+          anterior.dataset.legado = '';
+          selectEstado.add(anterior);
+        }
+        for (const [campo, valor] of Object.entries(accion)) {
+          const control = form.elements.namedItem(campo);
+          if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement) control.value = String(valor ?? '');
+        }
+      }
+      actualizarMotivo();
+      campos.disabled = false;
+      guardar.disabled = false;
+      estadoCarga.textContent = 'Formulario listo.';
+    } catch (fallo) {
+      estadoCarga.textContent = '';
+      mostrarError(fallo instanceof Error ? fallo.message : 'No fue posible cargar el formulario.');
+      reintentar.hidden = false;
+    } finally {
+      form.setAttribute('aria-busy', 'false');
+    }
+  }
+  form.addEventListener('submit', async evento => {
+    evento.preventDefault();
+    if (enviando || campos.disabled || guardar.disabled) return;
+    limpiarErrores();
+    const validacion = schema.safeParse({ ...Object.fromEntries(new FormData(form)), id_plan: idPlan });
+    if (!validacion.success) {
+      mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => ({
+        campo: issue.path.join('.'), mensaje: issue.path[0] === 'observacion_motivo' && !motivo.value.trim() && motivo.required ? 'Debe ingresar un motivo para cancelar la acción.' : issue.message,
+      })));
+      return;
+    }
+    enviando = true;
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estadoCarga.textContent = 'Guardando acción…';
+    try {
+      if (idAccion) await actualizarAccion({ id_accion: idAccion, version_esperada: version, cambios: validacion.data });
+      else await crearAccion(validacion.data);
+      location.assign(`/planes/${encodeURIComponent(idPlan)}?resultado=accion-guardada#acciones-plan`);
+    } catch (fallo) {
+      mostrarError(fallo instanceof Error ? fallo.message : 'No fue posible guardar la acción.', fallo instanceof ErrorSolicitudPlan ? fallo.campos : []);
+      campos.disabled = false;
+      enviando = false;
+      form.setAttribute('aria-busy', 'false');
+      estadoCarga.textContent = '';
+      if (fallo instanceof ErrorSolicitudPlan && fallo.codigo === 'CONFLICTO_CONCURRENCIA') {
+        guardar.disabled = true;
+        reintentar.hidden = false;
+        estadoCarga.textContent = 'Tus cambios siguen en el formulario. Al recargar se reemplazarán por la versión guardada.';
+      }
+    }
+  });
+  selectEstado.addEventListener('change', actualizarMotivo);
+  document.querySelector('#recargar-accion')!.addEventListener('click', () => void cargar());
+  void cargar();
+</script>

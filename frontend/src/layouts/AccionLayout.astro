@@ -1,0 +1,17 @@
+---
+import AppLayout from './AppLayout.astro';
+import { mainNavItems } from '../config/nav';
+interface Props { idPlan: string; title: string }
+const { idPlan, title } = Astro.props;
+---
+<AppLayout title={title} navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <Fragment slot="breadcrumb">
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="/planes" class="text-primary hover:underline">Planes de Intervención</a>
+      <span aria-hidden="true">›</span>
+      <a href={`/planes/${encodeURIComponent(idPlan)}#acciones-plan`} class="text-primary hover:underline">Acciones del plan</a>
+      <span aria-hidden="true">›</span><span>{title}</span>
+    </div>
+  </Fragment>
+  <slot />
+</AppLayout>

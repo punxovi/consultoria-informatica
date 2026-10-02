@@ -3,6 +3,7 @@ import BackButton from '../../components/ui/BackButton.astro';
 import Card from '../../components/ui/Card.astro';
 import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
+import AccionesPlan from '../../components/acciones/AccionesPlan.astro';
 
 const idPlan = Astro.params.id ?? '';
 ---
@@ -53,8 +54,7 @@ const idPlan = Astro.params.id ?? '';
       </Card>
 
       <Card>
-        <h2 class="text-lg font-semibold text-neutral-900">Acciones asociadas</h2>
-        <p class="mt-2 text-sm text-neutral-500">Las actividades del plan se incorporarán en la tarea independiente “Astro Actions para Acciones”.</p>
+        <AccionesPlan idPlan={idPlan} />
       </Card>
     </div>
   </section>
