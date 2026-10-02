@@ -5,5 +5,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
 <AppLayout title="Crear plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <Fragment slot="breadcrumb">
+    <a href="/planes" class="text-primary hover:underline">Planes de Intervención</a>
+    <span aria-hidden="true">›</span><span>Crear plan</span>
+  </Fragment>
   <PlanForm />
 </AppLayout>
