@@ -60,6 +60,7 @@ const textos = [
               <div class="md:col-span-2">
                 <Input id="nombre" label="Nombre del plan" required maxlength={150} />
               </div>
+              <Input id="periodo_anual" label="Período anual (año)" type="number" required hint="Año al que corresponde el plan." />
               <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
               <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Input id="fecha_inicio" label="Fecha de inicio" type="date" required />
@@ -204,7 +205,7 @@ const textos = [
     if (enviando || campos.disabled || guardar.disabled) return;
     limpiarValidacion();
     const datos = Object.fromEntries(new FormData(form).entries());
-    const validacion = crearPlanSchema.safeParse(datos);
+    const validacion = crearPlanSchema.safeParse({ ...datos, periodo_anual: Number(datos.periodo_anual) });
     if (!validacion.success) {
       marcarCampos(validacion.error.issues.map(issue => ({ campo: issue.path.join('.'), mensaje: issue.message })));
       mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => issue.message));
@@ -217,6 +218,7 @@ const textos = [
     estado.textContent = 'Guardando plan…';
     try {
       if (idPlan) {
+        if (version === undefined) throw new Error('Recarga el plan antes de editarlo.');
         await actualizarPlan({ id_plan: idPlan, version_esperada: version, cambios: validacion.data });
       } else {
         await crearPlan(validacion.data);

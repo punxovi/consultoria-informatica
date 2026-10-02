@@ -7,7 +7,7 @@ const idAccion = '17600000-0000-4000-8000-000000000002';
 const rutaPlan = `/planes/${idPlan}`;
 const rutaAccion = `${rutaPlan}/acciones/${idAccion}`;
 const plan = {
-  id_plan: idPlan, nombre: 'Plan comunitario', version: 2,
+  id_plan: idPlan, nombre: 'Plan comunitario', version: 2, periodo_anual: 2026,
   organizacion: { nombre: 'Organización de prueba' }, programa: { nombre: 'Programa de prueba' },
   fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31', responsable_nombre: 'Responsable',
   situacion_necesidad: 'Necesidad', objetivo_general: 'Objetivo', objetivos_especificos: 'Talleres', resultado_esperado: 'Comunidad capacitada',
@@ -16,7 +16,7 @@ let acciones, solicitudes, fallo, demorar;
 test.beforeEach(async ({ context }) => {
   acciones = [{ id_accion: idAccion, id_plan: idPlan, nombre: 'Taller comunitario', responsable_nombre: 'María',
     fecha_inicio: '2020-01-01', fecha_termino: '2020-02-01', estado: 'en_desarrollo',
-    observacion_motivo: null, resultado_esperado: 'Vecinos capacitados', version: 4, plan: { id_plan: idPlan, nombre: plan.nombre } }];
+    descripcion: 'Formación comunitaria', observacion_motivo: null, resultado_esperado: 'Vecinos capacitados', version: 4, plan: { id_plan: idPlan, nombre: plan.nombre } }];
   solicitudes = []; fallo = ''; demorar = false;
   await context.addInitScript(() => localStorage.setItem('sb-127-auth-token', JSON.stringify({
     access_token: 'qa-admin', refresh_token: 'qa-refresh', expires_at: Math.floor(Date.now()/1000)+3600,
@@ -48,6 +48,7 @@ test('lista por plan y abre detalle con estado y vencimiento', async ({ page }) 
   await page.getByRole('link', { name: 'Ver detalle', exact: true }).click();
   await expect(page.locator('[data-accion="nombre"]')).toHaveText('Taller comunitario');
   await expect(page.locator('[data-accion="estado"]')).toHaveText('En desarrollo');
+  await expect(page.locator('[data-accion="descripcion"]')).toHaveText('Formación comunitaria');
   await expect(page.locator('#accion-vencida')).toBeVisible();
   await expect(page.locator('[data-accion="responsable_nombre"]')).toHaveText('María');
   expect(errores).toEqual([]);
@@ -63,6 +64,7 @@ test('crea sin evidencias, valida fechas y cancelación, bloquea doble envío y 
   await page.getByRole('button', { name: 'Guardar acción' }).click();
   await expect(page.locator('[aria-invalid="true"]')).toHaveCount(4);
   await page.locator('#nombre').fill('Jornada de formación');
+  await page.locator('#descripcion').fill('Taller para vecinos');
   await page.locator('#responsable_nombre').fill('Pedro');
   await page.locator('#fecha_inicio').fill('2026-10-10');
   await page.locator('#fecha_termino').fill('2026-10-01');
@@ -80,6 +82,7 @@ test('crea sin evidencias, valida fechas y cancelación, bloquea doble envío y 
   await expect(page.locator('#acciones-listado h3')).toHaveText('Jornada de formación');
   expect(solicitudes.filter(s => s.nombre === 'crearAccion')).toHaveLength(1);
   expect(solicitudes.find(s => s.nombre === 'crearAccion').entrada.id_plan).toBe(idPlan);
+  expect(solicitudes.find(s => s.nombre === 'crearAccion').entrada.descripcion).toBe('Taller para vecinos');
 });
 
 test('edita, conserva cambios ante conflicto y vuelve al listado de acciones', async ({ page }) => {

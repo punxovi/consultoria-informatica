@@ -1,7 +1,6 @@
 import { actions, getActionPath } from 'astro:actions';
 import type { CrearPlanInput, ActualizarPlanInput } from '../../actions/planes/planes.schema';
-import type { Organizacion } from '../server/organizaciones';
-import type { Plan } from '../server/planes';
+import type { Plan, OrganizacionParaPlan } from '../server/planes';
 import type { ProgramaConLineas } from '../../actions/programas/programas.handler';
 import { getSupabaseClient } from '../supabase';
 import { ErrorSolicitudPlan, solicitarPlan } from './transporte';
@@ -29,7 +28,7 @@ export const actualizarPlan = (datos: ActualizarPlanInput) =>
   solicitar<Plan>(getActionPath(actions.actualizarPlan), datos);
 
 export const listarOrganizacionesParaPlan = () =>
-  solicitar<Organizacion[]>(getActionPath(actions.listarOrganizaciones), {});
+  solicitar<OrganizacionParaPlan[]>(getActionPath(actions.listarOrganizacionesParaPlan), {});
 
 export const listarProgramasParaPlan = () =>
   solicitar<ProgramaConLineas[]>(getActionPath(actions.listarProgramas), {});

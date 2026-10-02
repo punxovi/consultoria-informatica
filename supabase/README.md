@@ -2,7 +2,7 @@
 
 ## Esquema y migraciones
 
-Diecinueve archivos de migración, con 27 tablas de aplicación y una tabla privada
+Veintitrés archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
 instancia remota debe tener aplicadas las migraciones hasta la reparación de
 acceso Data API; las verificaciones locales no sustituyen ese despliegue.
@@ -22,11 +22,16 @@ acceso Data API; las verificaciones locales no sustituyen ese despliegue.
 | `20260923014926_fge_relaciones_planes_programas.sql` | Programas institucionales independientes; cada plan relaciona organización y programa. |
 | `20260923020339_fge_auditoria_escrituras_autorizadas.sql` | Audita escrituras autorizadas sin conceder inserción directa al historial privado. |
 | `20260923151202_fge_programa_lineas_accion.sql` | Líneas propias por Programa, cada una con resultado esperado, auditoría y permisos. |
+| `20260924120000_fge_programas_referencias.sql` | Referencias ODS/ESG de Programas. |
 | `20260925120000_fge_guardar_programa_completo.sql` | Guardado atómico del Programa y sus líneas con RLS, control de versión y archivado. |
 | `20260928220437_fge_reparar_acceso_api_programas.sql` | Restablece los privilegios Data API de Programas y líneas sin desactivar RLS. |
 | `20260928222053_fge_sincronizar_guardado_programas.sql` | Actualiza la RPC ya desplegada para aceptar referencias ODS/ESG y el contrato vigente del formulario. |
 | `20260928223251_fge_planes_actions_rls.sql` | Habilita lectura y gestión autorizada de Planes para las Astro Actions. |
 | `20260929090000_fge_acciones_actions_rls.sql` | Habilita lectura y gestión autorizada de Acciones según el Plan y país de la Organización. |
+| `20261002010000_fge_archivar_planes_acciones.sql` | Archivo atómico de Planes y Acciones. |
+| `20261002225129_fge_planes_periodo_anual.sql` | Período anual obligatorio y lectura mínima de Organizaciones para Planes. |
+| `20261002225133_fge_acciones_descripcion_estados.sql` | Descripción y cuatro estados de Acciones. |
+| `20261002225137_fge_auditoria_planes_acciones.sql` | Contexto de auditoría de Planes y Acciones. |
 
 La carpeta incluye configuración local, diez archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.
@@ -223,3 +228,10 @@ Documentación técnica consultada:
 La revisión estática no sustituye las pruebas pgTAP ni una comprobación de
 datos antes y después de aplicar la migración. Para ejecutar los ocho archivos
 pgTAP completos en local se necesita Docker.
+
+## SCRUM-84 y SCRUM-87
+
+Planes incorpora período anual obligatorio y Acciones descripción opcional y cuatro estados.
+Las tres migraciones nuevas conservan el historial aplicado y requieren correspondencias
+confirmadas si hay datos previos sin año o con estado Atrasada. El diagnóstico de solo
+lectura está en preflight-scrum-84-87.sql.

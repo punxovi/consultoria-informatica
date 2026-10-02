@@ -19,6 +19,7 @@ export interface Plan {
   objetivos_especificos: string;
   resultado_esperado: string;
   responsable_nombre: string;
+  periodo_anual: number;
   fecha_inicio: string;
   fecha_termino: string;
   created_at: string;
@@ -31,6 +32,20 @@ export interface Plan {
   programa: EntidadRelacionadaPlan;
 }
 
+export interface OrganizacionParaPlan {
+  id_organizacion: string;
+  id_pais: string;
+  nombre: string;
+}
+
+/** Catálogo mínimo sujeto a RLS para asociar la Organización a un Plan. */
+export async function listarOrganizacionesParaPlan(cliente: SupabaseClient): Promise<OrganizacionParaPlan[]> {
+  const { data, error } = await cliente.from('organizaciones')
+    .select('id_organizacion,id_pais,nombre').is('archived_at', null).order('nombre');
+  if (error) throw convertirError(error);
+  return (data ?? []) as OrganizacionParaPlan[];
+}
+
 export interface CrearPlanPersistencia {
   id_organizacion: string;
   id_programa: string;
@@ -40,6 +55,7 @@ export interface CrearPlanPersistencia {
   objetivos_especificos: string;
   resultado_esperado: string;
   responsable_nombre: string;
+  periodo_anual: number;
   fecha_inicio: string;
   fecha_termino: string;
 }
@@ -49,6 +65,7 @@ export type ActualizarPlanPersistencia = Partial<CrearPlanPersistencia>;
 export interface FiltrosPlanes {
   idOrganizacion?: string;
   idPrograma?: string;
+  periodoAnual?: number;
   incluirArchivados?: boolean;
 }
 
@@ -87,6 +104,7 @@ const CAMPOS_PLAN = `
   objetivos_especificos,
   resultado_esperado,
   responsable_nombre,
+  periodo_anual,
   fecha_inicio,
   fecha_termino,
   created_at,
@@ -141,6 +159,7 @@ export async function listarPlanes(
   if (!filtros.incluirArchivados) consulta = consulta.is('archived_at', null);
   if (filtros.idOrganizacion) consulta = consulta.eq('id_organizacion', filtros.idOrganizacion);
   if (filtros.idPrograma) consulta = consulta.eq('id_programa', filtros.idPrograma);
+  if (filtros.periodoAnual !== undefined) consulta = consulta.eq('periodo_anual', filtros.periodoAnual);
   const { data, error } = await consulta;
   if (error) throw convertirError(error);
   return (data ?? []).map(comoPlan);
@@ -168,18 +187,19 @@ export async function actualizarPlan(
   cliente: SupabaseClient,
   idPlan: string,
   cambios: ActualizarPlanPersistencia,
-  versionEsperada?: number,
+  versionEsperada: number,
 ): Promise<Plan> {
+  if (!Number.isSafeInteger(versionEsperada) || versionEsperada < 1) {
+    throw new ErrorOperacionPlan('RESTRICCION_INCUMPLIDA', 'Debes indicar una versión vigente para editar el plan.');
+  }
   let consulta = cliente.from('planes').update(cambios).eq('id_plan', idPlan).is('archived_at', null);
-  if (versionEsperada !== undefined) consulta = consulta.eq('version', versionEsperada);
+  consulta = consulta.eq('version', versionEsperada);
   const { data, error } = await consulta.select(CAMPOS_PLAN).maybeSingle();
   if (error) throw convertirError(error);
   if (!data) {
     throw new ErrorOperacionPlan(
-      versionEsperada === undefined ? 'NO_ENCONTRADO' : 'CONFLICTO_CONCURRENCIA',
-      versionEsperada === undefined
-        ? 'El plan solicitado no existe.'
-        : 'El plan fue modificado por otra sesión. Recarga los datos antes de guardar.',
+      'CONFLICTO_CONCURRENCIA',
+      'El plan ya no está disponible con esa versión. Recarga los datos antes de guardar.',
     );
   }
   return comoPlan(data);

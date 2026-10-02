@@ -38,18 +38,27 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','98000000-0000-4000-8000-000000000001',true);
 
 SELECT lives_ok($q$
-  INSERT INTO public.planes(
+  INSERT INTO public.planes(periodo_anual,
     id_plan,id_organizacion,id_programa,nombre,situacion_necesidad,
     objetivo_general,objetivos_especificos,resultado_esperado,
     responsable_nombre,fecha_inicio,fecha_termino
   ) SELECT
-    '98200000-0000-4000-8000-000000000001',
+    2026,'98200000-0000-4000-8000-000000000001',
     '98100000-0000-4000-8000-000000000001',id_programa,'Plan ADMIN','Necesidad',
     'Objetivo','Objetivos','Resultado','Responsable','2026-01-01','2026-12-31'
   FROM public.programas WHERE archived_at IS NULL ORDER BY nombre LIMIT 1
 $q$,'Administrador puede crear un Plan');
 
 SELECT is((SELECT count(*) FROM public.planes WHERE id_plan='98200000-0000-4000-8000-000000000001'),1::bigint,'Plan puede listarse y consultarse');
+
+SELECT is((SELECT periodo_anual FROM public.planes WHERE id_plan='98200000-0000-4000-8000-000000000001'),2026::smallint,'Plan conserva año explícito');
+SELECT throws_ok($q$UPDATE public.planes SET periodo_anual=NULL WHERE id_plan='98200000-0000-4000-8000-000000000001'$q$,'23502',NULL,'Plan exige período anual');
+SELECT throws_ok($q$UPDATE public.planes SET periodo_anual=0 WHERE id_plan='98200000-0000-4000-8000-000000000001'$q$,'23514',NULL,'Plan rechaza año inválido');
+WITH cambio AS (UPDATE public.planes SET periodo_anual=2027 WHERE id_plan='98200000-0000-4000-8000-000000000001' AND version=1 RETURNING id_plan) SELECT is((SELECT count(*) FROM cambio),1::bigint,'Edición con versión vigente persiste');
+WITH cambio AS (UPDATE public.planes SET periodo_anual=2028 WHERE id_plan='98200000-0000-4000-8000-000000000001' AND version=1 RETURNING id_plan) SELECT is((SELECT count(*) FROM cambio),0::bigint,'Edición con versión antigua no sobrescribe');
+SELECT is((SELECT periodo_anual FROM public.planes WHERE id_plan='98200000-0000-4000-8000-000000000001'),2027::smallint,'Año editado puede consultarse después');
+SELECT is((SELECT org.nombre FROM public.planes plan JOIN public.organizaciones org USING(id_organizacion) WHERE plan.id_plan='98200000-0000-4000-8000-000000000001'),'Organización Planes CL','Consulta incluye la Organización relacionada');
+SELECT throws_ok($q$SELECT telefono FROM public.organizaciones$q$,'42501',NULL,'Consulta de Planes no abre campos ajenos de Organización');
 
 SELECT throws_ok($q$
   UPDATE public.planes SET fecha_termino='2025-12-31'
@@ -79,11 +88,11 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','98000000-0000-4000-8000-000000000004',true);
 SELECT is((SELECT count(*) FROM public.planes WHERE id_plan='98200000-0000-4000-8000-000000000001'),1::bigint,'Invitado puede consultar Planes activos');
 SELECT throws_ok($q$
-  INSERT INTO public.planes(
+  INSERT INTO public.planes(periodo_anual,
     id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,
     objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino
   ) SELECT
-    '98100000-0000-4000-8000-000000000001',id_programa,'Plan de Invitado',
+    2026,'98100000-0000-4000-8000-000000000001',id_programa,'Plan de Invitado',
     'Necesidad','Objetivo','Objetivos','Resultado','Responsable','2026-01-01','2026-12-31'
   FROM public.programas WHERE archived_at IS NULL ORDER BY nombre LIMIT 1
 $q$,'42501',NULL,'Invitado no puede crear Planes');
@@ -98,5 +107,6 @@ SET LOCAL ROLE anon;
 SELECT throws_ok($q$SELECT count(*) FROM public.planes$q$,'42501',NULL,'Anónimo no puede consultar Planes');
 RESET ROLE;
 
+SELECT ok(EXISTS(SELECT 1 FROM fge_private.historial_cambios WHERE tabla_afectada='planes' AND id_usuario='98000000-0000-4000-8000-000000000002' AND codigo_rol='COORD' AND id_pais=(SELECT id_pais FROM public.paises WHERE codigo_iso='CL') AND id_asignacion IS NOT NULL),'Auditoría conserva rol y país ejercidos');
 SELECT * FROM finish();
 ROLLBACK;

@@ -21,17 +21,17 @@ INSERT INTO public.programas(id_programa,nombre,descripcion,objetivo_general,obj
 VALUES ('20000000-0000-0000-0000-000000000001','Programa institucional','Prueba','Prueba','Prueba','Prueba','Prueba');
 INSERT INTO public.programas(id_programa,nombre,descripcion,objetivo_general,objetivos_especificos,componentes_linea_accion,resultados_esperados)
 VALUES ('20000000-0000-0000-0000-000000000002','Otro programa institucional','Prueba','Prueba','Prueba','Prueba','Prueba');
-INSERT INTO public.planes(id_plan,id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino)
+INSERT INTO public.planes(periodo_anual,id_plan,id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino)
 VALUES
-  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Plan Chile','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01'),
-  ('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','Plan Uruguay','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01'),
-  ('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','Otro plan Chile','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01');
+  (2026,'30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Plan Chile','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01'),
+  (2026,'30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','Plan Uruguay','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01'),
+  (2026,'30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','Otro plan Chile','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01');
 SELECT is((SELECT count(*) FROM public.planes WHERE id_programa='20000000-0000-0000-0000-000000000001'),2::bigint,'Un programa institucional puede servir a varias organizaciones');
 SELECT is((SELECT count(DISTINCT id_organizacion) FROM public.planes WHERE id_programa='20000000-0000-0000-0000-000000000001'),2::bigint,'Cada plan conserva su propia organización');
 SELECT is((SELECT count(DISTINCT id_programa) FROM public.planes WHERE id_organizacion='10000000-0000-0000-0000-000000000001'),2::bigint,'Una organización puede tener planes de distintos programas');
-SELECT throws_ok($q$INSERT INTO public.planes(id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES ('20000000-0000-0000-0000-000000000001','Sin organización','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23502',NULL,'Plan requiere organización');
-SELECT throws_ok($q$INSERT INTO public.planes(id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES ('ffffffff-ffff-ffff-ffff-ffffffffffff','20000000-0000-0000-0000-000000000001','Organización inexistente','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23503',NULL,'Plan no admite organización inexistente');
-SELECT throws_ok($q$INSERT INTO public.planes(id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES ('10000000-0000-0000-0000-000000000001','ffffffff-ffff-ffff-ffff-ffffffffffff','Programa inexistente','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23503',NULL,'Plan no admite programa inexistente');
+SELECT throws_ok($q$INSERT INTO public.planes(periodo_anual,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES (2026,'20000000-0000-0000-0000-000000000001','Sin organización','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23502',NULL,'Plan requiere organización');
+SELECT throws_ok($q$INSERT INTO public.planes(periodo_anual,id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES (2026,'ffffffff-ffff-ffff-ffff-ffffffffffff','20000000-0000-0000-0000-000000000001','Organización inexistente','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23503',NULL,'Plan no admite organización inexistente');
+SELECT throws_ok($q$INSERT INTO public.planes(periodo_anual,id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino) VALUES (2026,'10000000-0000-0000-0000-000000000001','ffffffff-ffff-ffff-ffff-ffffffffffff','Programa inexistente','Necesidad','Objetivo','Objetivos','Resultado','Persona','2026-09-01','2026-10-01')$q$,'23503',NULL,'Plan no admite programa inexistente');
 INSERT INTO public.acciones(id_accion,id_plan,nombre,responsable_nombre,fecha_inicio,fecha_termino)
 VALUES ('40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','Acción','Persona','2026-09-01','2026-09-10');
 
@@ -104,8 +104,8 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.planes'::regcla
 SELECT ok(NOT has_table_privilege('anon','public.planes','SELECT') AND has_table_privilege('authenticated','public.planes','SELECT'),'Lectura de planes solo para sesiones autenticadas');
 SELECT ok(has_table_privilege('authenticated','public.planes','INSERT') AND has_table_privilege('authenticated','public.planes','UPDATE') AND NOT has_table_privilege('authenticated','public.planes','DELETE'),'Gestión de planes sin borrado físico');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.acciones'::regclass),'RLS habilitada: acciones');
-SELECT ok(NOT has_table_privilege('anon','public.acciones','SELECT') AND NOT has_table_privilege('authenticated','public.acciones','SELECT'),'Sin lectura cliente: acciones');
-SELECT ok(NOT has_table_privilege('authenticated','public.acciones','INSERT') AND NOT has_table_privilege('authenticated','public.acciones','UPDATE') AND NOT has_table_privilege('authenticated','public.acciones','DELETE'),'Sin escritura cliente: acciones');
+SELECT ok(NOT has_table_privilege('anon','public.acciones','SELECT') AND has_table_privilege('authenticated','public.acciones','SELECT'),'Lectura de Acciones controlada por RLS');
+SELECT ok(has_table_privilege('authenticated','public.acciones','INSERT') AND has_table_privilege('authenticated','public.acciones','UPDATE') AND NOT has_table_privilege('authenticated','public.acciones','DELETE'),'Gestión de Acciones sin borrado físico');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.actas'::regclass),'RLS habilitada: actas');
 SELECT ok(NOT has_table_privilege('anon','public.actas','SELECT') AND NOT has_table_privilege('authenticated','public.actas','SELECT'),'Sin lectura cliente: actas');
 SELECT ok(NOT has_table_privilege('authenticated','public.actas','INSERT') AND NOT has_table_privilege('authenticated','public.actas','UPDATE') AND NOT has_table_privilege('authenticated','public.actas','DELETE'),'Sin escritura cliente: actas');
@@ -128,7 +128,7 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.archivos'::regc
 SELECT ok(NOT has_table_privilege('anon','public.archivos','SELECT') AND has_table_privilege('authenticated','public.archivos','SELECT'),'Lectura cliente autenticada controlada por RLS: archivos');
 SELECT ok(has_table_privilege('authenticated','public.archivos','INSERT') AND has_table_privilege('authenticated','public.archivos','UPDATE') AND NOT has_table_privilege('authenticated','public.archivos','DELETE'),'Escritura autenticada controlada por RLS: archivos');
 SELECT is((SELECT public FROM storage.buckets WHERE id='fge-archivos'),false,'Bucket privado');
-SELECT is((SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='organizaciones'),0::bigint,'No se inventan políticas de roles');
+SELECT is((SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='organizaciones' AND policyname='organizaciones_lectura_planes'),1::bigint,'Lectura mínima de Organizaciones para Planes tiene RLS');
 SET LOCAL ROLE anon;
 SELECT throws_ok($q$SELECT * FROM public.organizaciones$q$,'42501',NULL,'Anon no accede');
 RESET ROLE;

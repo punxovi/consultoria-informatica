@@ -20,7 +20,7 @@ export const listarAccionesAction = defineAction({
   input: listarAccionesSchema,
   handler: async (input, context) => {
     try {
-      return await manejarListarAcciones(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarListarAcciones(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorAccion<Accion[]>(error);
     }
@@ -32,7 +32,7 @@ export const obtenerAccionPorIdAction = defineAction({
   input: obtenerAccionPorIdSchema,
   handler: async (input, context) => {
     try {
-      return await manejarObtenerAccionPorId(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarObtenerAccionPorId(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorAccion<Accion>(error);
     }
@@ -44,7 +44,7 @@ export const crearAccionAction = defineAction({
   input: crearAccionSchema,
   handler: async (input, context) => {
     try {
-      return await manejarCrearAccion(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarCrearAccion(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorAccion<Accion>(error);
     }
@@ -56,7 +56,7 @@ export const actualizarAccionAction = defineAction({
   input: actualizarAccionSchema,
   handler: async (input, context) => {
     try {
-      return await manejarActualizarAccion(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarActualizarAccion(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorAccion<Accion>(error);
     }

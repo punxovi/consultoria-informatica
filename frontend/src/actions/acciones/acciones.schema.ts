@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const estadosAccion = [
   'no_iniciada',
   'en_desarrollo',
-  'atrasada',
   'cancelada',
   'cumplida',
 ] as const;
@@ -19,8 +18,8 @@ const textoObligatorio = (campo: string, maximo: number) =>
 
 const textoOpcional = (campo: string, maximo: number) =>
   z.union([z.string({ error: `${campo} debe ser texto.` }).trim().max(maximo), z.null()])
-    .optional()
-    .transform((valor) => valor === '' || valor === undefined ? null : valor);
+    .transform((valor) => valor === '' ? null : valor)
+    .optional();
 
 const fechaISO = (campo: string) =>
   z.string({ error: `${campo} debe ser texto.` })
@@ -38,6 +37,7 @@ const camposAccionBase = z.object({
   fecha_inicio: fechaISO('La fecha de inicio'),
   fecha_termino: fechaISO('La fecha de término'),
   estado: z.enum(estadosAccion, { error: 'El estado de la acción no es válido.' }),
+  descripcion: textoOpcional('La descripción', 5000),
   observacion_motivo: textoOpcional('La observación o motivo', 3000),
   resultado_esperado: textoOpcional('El resultado esperado', 5000),
 }).strict();
@@ -45,6 +45,7 @@ const camposAccionBase = z.object({
 function validarReglas(
   datos: { fecha_inicio?: string; fecha_termino?: string; estado?: string; observacion_motivo?: string | null },
   contexto: z.RefinementCtx,
+  parcial = false,
 ) {
   if (datos.fecha_inicio && datos.fecha_termino && datos.fecha_termino < datos.fecha_inicio) {
     contexto.addIssue({
@@ -53,7 +54,7 @@ function validarReglas(
       message: 'La fecha de término no puede ser anterior a la fecha de inicio.',
     });
   }
-  if (datos.estado === 'cancelada' && !datos.observacion_motivo?.trim()) {
+  if (datos.estado === 'cancelada' && (!parcial || datos.observacion_motivo !== undefined) && !datos.observacion_motivo?.trim()) {
     contexto.addIssue({
       code: 'custom',
       path: ['observacion_motivo'],
@@ -80,15 +81,14 @@ const cambiosAccionSchema = camposAccionBase.partial().superRefine((datos, conte
   if (Object.keys(datos).length === 0) {
     contexto.addIssue({ code: 'custom', message: 'Debes enviar al menos un campo para actualizar.' });
   }
-  validarReglas(datos, contexto);
+  validarReglas(datos, contexto, true);
 });
 
 export const actualizarAccionSchema = z.object({
   id_accion: uuid('La acción'),
   version_esperada: z.number({ error: 'La versión esperada debe ser numérica.' })
     .int('La versión esperada debe ser entera.')
-    .positive('La versión esperada debe ser mayor que cero.')
-    .optional(),
+    .positive('La versión esperada debe ser mayor que cero.'),
   cambios: cambiosAccionSchema,
 }).strict();
 

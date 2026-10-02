@@ -99,7 +99,7 @@ import AppLayout from '../layouts/AppLayout.astro';
         tarjeta.querySelector('h3')!.textContent = plan.nombre;
         tarjeta.querySelector<HTMLElement>('[data-organizacion]')!.textContent = plan.organizacion.nombre;
         tarjeta.querySelector<HTMLElement>('[data-programa]')!.textContent = plan.programa.nombre;
-        tarjeta.querySelector<HTMLElement>('[data-periodo]')!.textContent = periodo(plan.fecha_inicio, plan.fecha_termino);
+        tarjeta.querySelector<HTMLElement>('[data-periodo]')!.textContent = `${plan.periodo_anual} · ${periodo(plan.fecha_inicio, plan.fecha_termino)}`;
         const etiqueta = tarjeta.querySelector<HTMLElement>('[data-estado]')!;
         const estadoPlan = obtenerEstado(plan.fecha_inicio, plan.fecha_termino);
         etiqueta.textContent = estadoPlan.texto;

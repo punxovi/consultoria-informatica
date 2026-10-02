@@ -8,8 +8,6 @@ export const estadosSeleccionables = [
 ] as const;
 
 export function etiquetaEstado(estado: EstadoAccion): string {
-  // El backend anterior admite este estado: se conserva para leer datos existentes.
-  if (estado === 'atrasada') return 'Atrasada (registro anterior)';
   return estadosSeleccionables.find(item => item.valor === estado)?.etiqueta ?? estado;
 }
 

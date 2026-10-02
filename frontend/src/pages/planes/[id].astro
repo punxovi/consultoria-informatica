@@ -41,6 +41,7 @@ const idPlan = Astro.params.id ?? '';
         <dl class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <div><dt class="text-xs font-semibold uppercase text-neutral-500">Organización</dt><dd data-plan="organizacion" class="mt-1 text-sm font-medium"></dd></div>
           <div><dt class="text-xs font-semibold uppercase text-neutral-500">Programa</dt><dd data-plan="programa" class="mt-1 text-sm font-medium"></dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Período anual</dt><dd data-plan="periodo_anual" class="mt-1 text-sm font-medium"></dd></div>
           <div><dt class="text-xs font-semibold uppercase text-neutral-500">Responsable</dt><dd data-plan="responsable_nombre" class="mt-1 text-sm font-medium"></dd></div>
           <div><dt class="text-xs font-semibold uppercase text-neutral-500">Fecha de inicio</dt><dd data-plan="fecha_inicio" class="mt-1 text-sm font-medium"></dd></div>
           <div><dt class="text-xs font-semibold uppercase text-neutral-500">Fecha de término</dt><dd data-plan="fecha_termino" class="mt-1 text-sm font-medium"></dd></div>
@@ -84,9 +85,10 @@ const idPlan = Astro.params.id ?? '';
     document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
     const valores: Record<string, string> = {
       nombre: plan.nombre,
-      resumen: `${plan.organizacion.nombre} · ${plan.fecha_inicio.slice(0, 4)}`,
+      resumen: `${plan.organizacion.nombre} · ${plan.periodo_anual}`,
       organizacion: plan.organizacion.nombre,
       programa: plan.programa.nombre,
+      periodo_anual: String(plan.periodo_anual),
       responsable_nombre: plan.responsable_nombre,
       fecha_inicio: new Date(`${plan.fecha_inicio}T00:00:00`).toLocaleDateString('es-CL'),
       fecha_termino: new Date(`${plan.fecha_termino}T00:00:00`).toLocaleDateString('es-CL'),

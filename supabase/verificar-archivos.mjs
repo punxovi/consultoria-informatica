@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,19,'Se esperaban diecinueve migraciones');
+assert.equal(files.length,23,'Se esperaban veintitrés migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -76,6 +76,8 @@ const allowedSecurityDefiner=new Set([
  '20260923020339_fge_auditoria_escrituras_autorizadas.sql',
  '20260925120000_fge_guardar_programa_completo.sql',
  '20260928223251_fge_planes_actions_rls.sql',
+ '20261002010000_fge_archivar_planes_acciones.sql',
+ '20261002225137_fge_auditoria_planes_acciones.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  if (/SECURITY DEFINER/i.test(sql[i])) {
@@ -192,3 +194,12 @@ for(const operacion of ['INSERT INTO public.acciones','FROM public.acciones','UP
 }
 const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
 console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,operaciones_planes:4,operaciones_acciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
+
+// SCRUM-84/87: contratos nuevos y acceso mínimo de las relaciones.
+assert.match(allSql,/periodo_anual BETWEEN 1 AND 9999/);
+assert.match(allSql,/ALTER COLUMN periodo_anual SET NOT NULL/);
+assert.match(allSql,/GRANT SELECT \(id_organizacion, id_pais, nombre, archived_at\) ON public\.organizaciones/);
+assert.match(allSql,/CREATE POLICY organizaciones_lectura_planes/);
+assert.match(allSql,/ADD COLUMN descripcion text/);
+assert.match(allSql,/CREATE FUNCTION fge_private\.auditar_plan_accion\(\)/);
+assert.match(allSql,/REVOKE ALL ON FUNCTION fge_private\.auditar_plan_accion\(\) FROM PUBLIC, anon, authenticated/);

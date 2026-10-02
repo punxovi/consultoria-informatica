@@ -30,6 +30,7 @@ const idAccion = Astro.params.idAccion ?? '';
           <div><dt class="text-sm font-semibold text-neutral-500">Responsable</dt><dd data-accion="responsable_nombre" class="mt-1 break-words"></dd></div>
           <div><dt class="text-sm font-semibold text-neutral-500">Fecha de inicio</dt><dd data-accion="fecha_inicio" class="mt-1"></dd></div>
           <div><dt class="text-sm font-semibold text-neutral-500">Fecha de término</dt><dd data-accion="fecha_termino" class="mt-1"></dd></div>
+          <div class="md:col-span-2"><dt class="text-sm font-semibold text-neutral-500">Descripción</dt><dd data-accion="descripcion" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
           <div class="md:col-span-2"><dt id="motivo-titulo" class="text-sm font-semibold text-neutral-500">Observaciones</dt><dd data-accion="observacion_motivo" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
           <div class="md:col-span-2"><dt class="text-sm font-semibold text-neutral-500">Resultado esperado</dt><dd data-accion="resultado_esperado" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
         </dl>
@@ -62,6 +63,7 @@ const idAccion = Astro.params.idAccion ?? '';
       document.querySelector<HTMLElement>('#eliminar-registro')!.dataset.version = String(accion.version);
       const datos: Record<string, string> = {
         nombre: accion.nombre, plan: accion.plan.nombre, estado: etiquetaEstado(accion.estado),
+        descripcion: accion.descripcion || 'Sin descripción registrada.',
         responsable_nombre: accion.responsable_nombre,
         fecha_inicio: mostrarFecha(accion.fecha_inicio), fecha_termino: mostrarFecha(accion.fecha_termino),
         observacion_motivo: accion.observacion_motivo || 'Sin observaciones.',

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { stringify } from 'devalue';
 const id = '17600000-0000-4000-8000-000000000001';
-const plan = { id_plan:id,nombre:'Plan prueba',version:3,organizacion:{nombre:'Organización'},programa:{nombre:'Programa'},fecha_inicio:'2026-01-01',fecha_termino:'2026-12-31',responsable_nombre:'Responsable',objetivo_general:'Objetivo',objetivos_especificos:'Objetivos',situacion_necesidad:'Necesidad',resultado_esperado:'Resultado' };
+const plan = { periodo_anual:2026,id_plan:id,nombre:'Plan prueba',version:3,organizacion:{nombre:'Organización'},programa:{nombre:'Programa'},fecha_inicio:'2026-01-01',fecha_termino:'2026-12-31',responsable_nombre:'Responsable',objetivo_general:'Objetivo',objetivos_especificos:'Objetivos',situacion_necesidad:'Necesidad',resultado_esperado:'Resultado' };
 const accion = { id_accion:id,id_plan:id,nombre:'Acción prueba',version:2,plan:{nombre:'Plan prueba'},estado:'no_iniciada',responsable_nombre:'Responsable',fecha_inicio:'2026-01-01',fecha_termino:'2026-12-31' };
 let borrado, peticiones, fallo;
 test.beforeEach(async ({ context }) => {

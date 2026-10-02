@@ -7,7 +7,7 @@ export const usuarios = {
 };
 
 /** PostgreSQL embebido con migraciones reales; Auth y Storage solo tienen su soporte mínimo. */
-export async function crearBaseProgramas() {
+export async function crearBaseProgramas({ planesAcciones = true } = {}) {
   const db = new PGlite();
   await db.exec(`
     CREATE ROLE anon; CREATE ROLE authenticated;
@@ -32,6 +32,13 @@ export async function crearBaseProgramas() {
     '20260925120000_fge_guardar_programa_completo.sql',
     '20260928222053_fge_sincronizar_guardado_programas.sql',
     '20260928223251_fge_planes_actions_rls.sql',
+    '20260929090000_fge_acciones_actions_rls.sql',
+    '20261002010000_fge_archivar_planes_acciones.sql',
+    ...(planesAcciones ? [
+      '20261002225129_fge_planes_periodo_anual.sql',
+      '20261002225133_fge_acciones_descripcion_estados.sql',
+      '20261002225137_fge_auditoria_planes_acciones.sql',
+    ] : []),
   ];
   for (const nombre of migraciones) {
     await db.exec(await readFile(new URL(`../../../supabase/migrations/${nombre}`, import.meta.url), 'utf8'));
