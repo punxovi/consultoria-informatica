@@ -1,0 +1,16 @@
+---
+import PlanForm from '../../../components/planes/PlanForm.astro';
+import { mainNavItems } from '../../../config/nav';
+import AppLayout from '../../../layouts/AppLayout.astro';
+const idPlan = Astro.params.id ?? '';
+---
+
+<AppLayout title="Editar plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <Fragment slot="breadcrumb">
+    <a href="/planes" class="text-primary hover:underline">Planes de Intervención</a>
+    <span aria-hidden="true">›</span>
+    <a href={`/planes/${encodeURIComponent(idPlan)}`} class="text-primary hover:underline">Detalle</a>
+    <span aria-hidden="true">›</span><span>Editar plan</span>
+  </Fragment>
+  <PlanForm idPlan={idPlan} />
+</AppLayout>

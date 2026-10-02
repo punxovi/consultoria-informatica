@@ -1,0 +1,88 @@
+---
+import Button from '../../../../components/ui/Button.astro';
+import Card from '../../../../components/ui/Card.astro';
+import AccionLayout from '../../../../layouts/AccionLayout.astro';
+import EliminarRegistro from '../../../../components/ui/EliminarRegistro.astro';
+const idPlan = Astro.params.id ?? '';
+const idAccion = Astro.params.idAccion ?? '';
+---
+<AccionLayout idPlan={idPlan} title="Detalle de acción">
+  <section id="accion-detalle" data-id-plan={idPlan} data-id-accion={idAccion} class="mx-auto max-w-4xl space-y-6">
+    <a href={`/planes/${encodeURIComponent(idPlan)}#acciones-plan`} class="inline-flex min-h-[48px] items-center text-primary underline">Volver a las acciones del plan</a>
+    <p id="detalle-estado" role="status" aria-live="polite">Cargando acción…</p>
+    <p id="detalle-error" hidden role="alert" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></p>
+    <div id="detalle-reintentar" hidden><Button id="recargar-accion" variant="outline">Reintentar carga</Button></div>
+    <div id="detalle-contenido" hidden class="space-y-6">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-primary">Acciones del plan</p>
+          <h1 data-accion="nombre" class="mt-1 break-words text-2xl font-bold md:text-3xl"></h1>
+          <p data-accion="plan" class="mt-2 break-words text-neutral-600"></p>
+        </div>
+        <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(idAccion)}/editar`} variant="outline">Editar acción</Button>
+      </div>
+      <Card>
+        <div class="mb-6 flex flex-wrap gap-3">
+          <span data-accion="estado" class="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"></span>
+          <span id="accion-vencida" hidden class="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Vencida</span>
+        </div>
+        <dl class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div><dt class="text-sm font-semibold text-neutral-500">Responsable</dt><dd data-accion="responsable_nombre" class="mt-1 break-words"></dd></div>
+          <div><dt class="text-sm font-semibold text-neutral-500">Fecha de inicio</dt><dd data-accion="fecha_inicio" class="mt-1"></dd></div>
+          <div><dt class="text-sm font-semibold text-neutral-500">Fecha de término</dt><dd data-accion="fecha_termino" class="mt-1"></dd></div>
+          <div class="md:col-span-2"><dt id="motivo-titulo" class="text-sm font-semibold text-neutral-500">Observaciones</dt><dd data-accion="observacion_motivo" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
+          <div class="md:col-span-2"><dt class="text-sm font-semibold text-neutral-500">Resultado esperado</dt><dd data-accion="resultado_esperado" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
+        </dl>
+      </Card>
+      <EliminarRegistro tipo="accion" id={idAccion} regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`} />
+    </div>
+  </section>
+</AccionLayout>
+
+<script>
+  import { obtenerAccion } from '../../../../lib/acciones/cliente';
+  import { etiquetaEstado, estaVencida, mostrarFecha } from '../../../../lib/acciones/presentacion';
+  const seccion = document.querySelector<HTMLElement>('#accion-detalle')!;
+  const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
+  const error = document.querySelector<HTMLElement>('#detalle-error')!;
+  const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
+  const reintentar = document.querySelector<HTMLElement>('#detalle-reintentar')!;
+  let cargando = false;
+  async function cargar() {
+    if (cargando) return;
+    cargando = true;
+    seccion.setAttribute('aria-busy', 'true');
+    contenido.hidden = true;
+    reintentar.hidden = true;
+    error.hidden = true;
+    estado.textContent = 'Cargando acción…';
+    try {
+      const accion = await obtenerAccion(seccion.dataset.idAccion!);
+      if (accion.id_plan !== seccion.dataset.idPlan) throw new Error('La acción solicitada no pertenece a este plan.');
+      document.querySelector<HTMLElement>('#eliminar-registro')!.dataset.version = String(accion.version);
+      const datos: Record<string, string> = {
+        nombre: accion.nombre, plan: accion.plan.nombre, estado: etiquetaEstado(accion.estado),
+        responsable_nombre: accion.responsable_nombre,
+        fecha_inicio: mostrarFecha(accion.fecha_inicio), fecha_termino: mostrarFecha(accion.fecha_termino),
+        observacion_motivo: accion.observacion_motivo || 'Sin observaciones.',
+        resultado_esperado: accion.resultado_esperado || 'Sin resultado esperado registrado.',
+      };
+      for (const [campo, valor] of Object.entries(datos)) seccion.querySelector(`[data-accion="${campo}"]`)!.textContent = valor;
+      document.querySelector('#motivo-titulo')!.textContent = accion.estado === 'cancelada' ? 'Motivo de cancelación' : 'Observaciones';
+      document.querySelector<HTMLElement>('#accion-vencida')!.hidden = !estaVencida(accion);
+      contenido.hidden = false;
+      estado.textContent = '';
+    } catch (fallo) {
+      estado.textContent = '';
+      error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar la acción.';
+      error.hidden = false;
+      reintentar.hidden = false;
+    } finally {
+      cargando = false;
+      seccion.setAttribute('aria-busy', 'false');
+    }
+  }
+  document.querySelector('#recargar-accion')!.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
+  void cargar();
+</script>

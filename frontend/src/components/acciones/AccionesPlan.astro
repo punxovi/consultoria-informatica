@@ -1,0 +1,97 @@
+---
+import Button from '../ui/Button.astro';
+interface Props { idPlan: string }
+const { idPlan } = Astro.props;
+---
+
+<section id="acciones-plan" data-plan={idPlan} aria-labelledby="acciones-titulo" class="space-y-5">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 id="acciones-titulo" class="text-lg font-semibold text-neutral-900">Acciones del plan</h2>
+      <p class="mt-1 text-sm text-neutral-500">Organiza las actividades y consulta su avance.</p>
+    </div>
+    <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/nueva`}>Crear acción</Button>
+  </div>
+  <p id="accion-confirmacion" hidden role="status" class="rounded-lg border border-primary bg-primary/5 p-4 text-primary">Acción guardada correctamente.</p>
+  <p id="acciones-estado" role="status" aria-live="polite">Cargando acciones…</p>
+  <p id="acciones-error" hidden role="alert" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></p>
+  <Button id="recargar-acciones" variant="outline">Actualizar acciones</Button>
+  <div id="acciones-listado" aria-busy="true" class="grid grid-cols-1 gap-4"></div>
+</section>
+
+<template id="plantilla-accion">
+  <article class="min-w-0 space-y-4 rounded-xl border border-neutral-200 p-4 md:p-5">
+    <div class="flex flex-wrap items-center gap-3">
+      <h3 class="min-w-0 break-words text-lg font-semibold"></h3>
+      <span data-estado class="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"></span>
+      <span data-vencida hidden class="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Vencida</span>
+    </div>
+    <dl class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+      <div><dt class="font-medium text-neutral-500">Responsable</dt><dd data-responsable class="mt-1 break-words"></dd></div>
+      <div><dt class="font-medium text-neutral-500">Fecha de inicio</dt><dd data-inicio class="mt-1"></dd></div>
+      <div><dt class="font-medium text-neutral-500">Fecha de término</dt><dd data-termino class="mt-1"></dd></div>
+    </dl>
+    <div class="flex flex-wrap gap-3">
+      <a data-detalle class="inline-flex min-h-[48px] items-center rounded-lg border border-primary px-4 text-primary hover:bg-primary/5">Ver detalle</a>
+      <a data-editar class="inline-flex min-h-[48px] items-center rounded-lg px-4 text-primary underline">Editar acción</a>
+    </div>
+  </article>
+</template>
+
+<script>
+  import { listarAcciones } from '../../lib/acciones/cliente';
+  import { etiquetaEstado, estaVencida, mostrarFecha } from '../../lib/acciones/presentacion';
+  const seccion = document.querySelector<HTMLElement>('#acciones-plan')!;
+  const idPlan = seccion.dataset.plan!;
+  const listado = document.querySelector<HTMLElement>('#acciones-listado')!;
+  const estado = document.querySelector<HTMLElement>('#acciones-estado')!;
+  const error = document.querySelector<HTMLElement>('#acciones-error')!;
+  const recargar = document.querySelector<HTMLButtonElement>('#recargar-acciones')!;
+  const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-accion')!;
+  let cargando = false;
+
+  async function cargar() {
+    if (cargando) return;
+    cargando = true;
+    recargar.disabled = true;
+    listado.setAttribute('aria-busy', 'true');
+    listado.replaceChildren();
+    error.hidden = true;
+    estado.textContent = 'Cargando acciones…';
+    try {
+      const acciones = await listarAcciones(idPlan);
+      for (const accion of acciones) {
+        const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
+        tarjeta.querySelector('h3')!.textContent = accion.nombre;
+        tarjeta.querySelector('[data-estado]')!.textContent = etiquetaEstado(accion.estado);
+        tarjeta.querySelector<HTMLElement>('[data-vencida]')!.hidden = !estaVencida(accion);
+        tarjeta.querySelector('[data-responsable]')!.textContent = accion.responsable_nombre;
+        tarjeta.querySelector('[data-inicio]')!.textContent = mostrarFecha(accion.fecha_inicio);
+        tarjeta.querySelector('[data-termino]')!.textContent = mostrarFecha(accion.fecha_termino);
+        const ruta = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(accion.id_accion)}`;
+        tarjeta.querySelector<HTMLAnchorElement>('[data-detalle]')!.href = ruta;
+        tarjeta.querySelector<HTMLAnchorElement>('[data-editar]')!.href = `${ruta}/editar`;
+        listado.append(tarjeta);
+      }
+      estado.textContent = acciones.length ? `${acciones.length} ${acciones.length === 1 ? 'acción registrada' : 'acciones registradas'}.` : 'Este plan todavía no tiene acciones. Puedes crear la primera cuando lo necesites.';
+    } catch (fallo) {
+      estado.textContent = '';
+      error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar las acciones.';
+      error.hidden = false;
+    } finally {
+      cargando = false;
+      recargar.disabled = false;
+      listado.setAttribute('aria-busy', 'false');
+    }
+  }
+  const resultado = new URLSearchParams(location.search).get('resultado');
+  if (resultado === 'accion-guardada' || resultado === 'accion-eliminada') {
+    const confirmacion = document.querySelector<HTMLElement>('#accion-confirmacion')!;
+    confirmacion.textContent = resultado === 'accion-eliminada' ? 'Acción eliminada correctamente.' : 'Acción guardada correctamente.';
+    confirmacion.hidden = false;
+    history.replaceState(null, '', `${location.pathname}#acciones-plan`);
+  }
+  recargar.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
+  void cargar();
+</script>

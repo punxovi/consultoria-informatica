@@ -1,0 +1,62 @@
+---
+import Button from './Button.astro';
+interface Props { tipo: 'plan' | 'accion'; id: string; regreso: string }
+const { tipo, id, regreso } = Astro.props;
+const nombre = tipo === 'plan' ? 'plan' : 'acción';
+---
+<div id="eliminar-registro" data-tipo={tipo} data-id={id} data-regreso={regreso} class="space-y-3">
+  <Button id="abrir-eliminar" variant="danger">Eliminar {nombre}</Button>
+  <dialog id="confirmar-eliminar" aria-labelledby="eliminar-titulo" class="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-xl border border-neutral-200 p-6 shadow-xl backdrop:bg-black/40">
+    <h2 id="eliminar-titulo" class="text-xl font-bold">¿Eliminar este {nombre}?</h2>
+    <p class="mt-3 text-neutral-700">{tipo === 'plan' ? 'El plan y todas sus acciones dejarán de aparecer en los listados. Se conservará su historial.' : 'La acción dejará de aparecer en el plan. Se conservará su historial.'}</p>
+    <p id="eliminar-error" hidden role="alert" class="mt-3 text-red-800"></p>
+    <p id="eliminar-estado" role="status" aria-live="polite" class="mt-3"></p>
+    <div class="mt-5 flex flex-wrap justify-end gap-3">
+      <Button id="cancelar-eliminar" variant="outline">Cancelar</Button>
+      <Button id="aceptar-eliminar" variant="danger">Confirmar eliminación</Button>
+    </div>
+  </dialog>
+</div>
+<script>
+  import { actions, getActionPath } from 'astro:actions';
+  import { getSupabaseClient } from '../../lib/supabase';
+  import { solicitarPlan, ErrorSolicitudPlan } from '../../lib/planes/transporte';
+  const raiz = document.querySelector<HTMLElement>('#eliminar-registro')!;
+  const dialogo = document.querySelector<HTMLDialogElement>('#confirmar-eliminar')!;
+  const confirmar = document.querySelector<HTMLButtonElement>('#aceptar-eliminar')!;
+  const cancelar = document.querySelector<HTMLButtonElement>('#cancelar-eliminar')!;
+  const error = document.querySelector<HTMLElement>('#eliminar-error')!;
+  const estado = document.querySelector<HTMLElement>('#eliminar-estado')!;
+  let enviando = false;
+  document.querySelector('#abrir-eliminar')!.addEventListener('click', () => {
+    error.hidden = true;
+    estado.textContent = '';
+    dialogo.showModal();
+    cancelar.focus();
+  });
+  cancelar.addEventListener('click', () => { if (!enviando) dialogo.close(); });
+  dialogo.addEventListener('cancel', evento => { if (enviando) evento.preventDefault(); });
+  confirmar.addEventListener('click', async () => {
+    if (enviando) return;
+    const version = Number(raiz.dataset.version);
+    if (!Number.isInteger(version) || version < 1) return;
+    enviando = true;
+    confirmar.disabled = cancelar.disabled = true;
+    error.hidden = true;
+    estado.textContent = 'Eliminando…';
+    try {
+      const { data: { session } } = await getSupabaseClient().auth.getSession();
+      if (!session) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+      const action = raiz.dataset.tipo === 'plan' ? actions.archivarPlan : actions.archivarAccion;
+      await solicitarPlan(getActionPath(action), { id: raiz.dataset.id, version_esperada: version }, session.access_token);
+      location.assign(raiz.dataset.regreso!);
+    } catch (fallo) {
+      estado.textContent = '';
+      error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible eliminar.';
+      error.hidden = false;
+      enviando = false;
+      cancelar.disabled = false;
+      confirmar.disabled = fallo instanceof ErrorSolicitudPlan && fallo.codigo === 'CONFLICTO_CONCURRENCIA';
+    }
+  });
+</script>

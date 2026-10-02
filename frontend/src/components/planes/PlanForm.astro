@@ -4,6 +4,9 @@ import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
 
+interface Props { idPlan?: string }
+const { idPlan = '' } = Astro.props;
+
 const textos = [
   { id: 'situacion_necesidad', label: 'Situación o necesidad', max: 5000 },
   { id: 'objetivo_general', label: 'Objetivo general', max: 3000 },
@@ -17,7 +20,7 @@ const textos = [
     <BackButton class="mt-1 shrink-0" />
     <div>
       <p class="text-sm font-medium text-primary">Planes de Intervención</p>
-      <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Crear plan</h1>
+      <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">{idPlan ? 'Editar plan' : 'Crear plan'}</h1>
       <p class="mt-2 text-sm text-neutral-500">
         Registra el plan, su organización, programa, objetivos y período de ejecución.
       </p>
@@ -28,8 +31,10 @@ const textos = [
     Cargando organizaciones y programas…
   </p>
   <div id="plan-errores" role="alert" tabindex="-1" hidden class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
+  <div id="plan-reintentar" hidden><Button id="recargar-plan" variant="outline">Reintentar carga</Button></div>
+  <a href="/planes" class="inline-flex min-h-[48px] items-center text-primary underline">Volver al listado de planes</a>
 
-  <form id="plan-form" novalidate aria-busy="true">
+  <form id="plan-form" data-id-plan={idPlan} novalidate aria-busy="true">
     <fieldset id="plan-campos" disabled>
       <Card class="w-full md:p-6">
         <div class="space-y-8">
@@ -84,7 +89,7 @@ const textos = [
 
 <script>
   import { crearPlanSchema } from '../../actions/planes/planes.schema';
-  import { crearPlan, listarOrganizacionesParaPlan, listarProgramasParaPlan } from '../../lib/planes/cliente';
+  import { crearPlan, actualizarPlan, obtenerPlan, listarOrganizacionesParaPlan, listarProgramasParaPlan } from '../../lib/planes/cliente';
   import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
 
   const form = document.querySelector<HTMLFormElement>('#plan-form')!;
@@ -94,6 +99,34 @@ const textos = [
   const guardar = document.querySelector<HTMLButtonElement>('#guardar-plan')!;
   const selectOrganizacion = document.querySelector<HTMLSelectElement>('#id_organizacion')!;
   const selectPrograma = document.querySelector<HTMLSelectElement>('#id_programa')!;
+  const idPlan = form.dataset.idPlan ?? '';
+  let version: number | undefined;
+  let enviando = false;
+  const reintentar = document.querySelector<HTMLElement>('#plan-reintentar')!;
+
+  function limpiarValidacion() {
+    errores.hidden = true;
+    form.querySelectorAll('[data-error-campo]').forEach(elemento => elemento.remove());
+    form.querySelectorAll('[aria-invalid="true"]').forEach(elemento => {
+      elemento.setAttribute('aria-invalid', 'false');
+      elemento.removeAttribute('aria-describedby');
+    });
+  }
+
+  function marcarCampos(detalles: { campo: string; mensaje: string }[]) {
+    for (const { campo, mensaje } of detalles) {
+      const control = form.elements.namedItem(campo.replace(/^cambios\./, ''));
+      if (!(control instanceof HTMLElement) || control.getAttribute('aria-invalid') === 'true') continue;
+      const aviso = document.createElement('p');
+      aviso.id = `${control.id}-validacion`;
+      aviso.dataset.errorCampo = '';
+      aviso.className = 'mt-1 text-sm text-red-800';
+      aviso.textContent = mensaje;
+      control.setAttribute('aria-invalid', 'true');
+      control.setAttribute('aria-describedby', aviso.id);
+      control.after(aviso);
+    }
+  }
 
   function mostrarError(mensaje: string, detalles: string[] = []) {
     errores.replaceChildren();
@@ -116,55 +149,97 @@ const textos = [
   }
 
   async function cargarCatalogos() {
+    reintentar.hidden = true;
+    limpiarValidacion();
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estado.textContent = idPlan ? 'Cargando plan, organizaciones y programas…' : 'Cargando organizaciones y programas…';
     try {
-      const [organizaciones, programas] = await Promise.all([
+      const [organizaciones, programas, plan] = await Promise.all([
         listarOrganizacionesParaPlan(),
         listarProgramasParaPlan(),
+        idPlan ? obtenerPlan(idPlan) : Promise.resolve(null),
       ]);
+      selectOrganizacion.length = 1;
+      selectPrograma.length = 1;
       for (const organizacion of organizaciones) {
         selectOrganizacion.add(new Option(organizacion.nombre, organizacion.id_organizacion));
       }
       for (const programa of programas) {
         selectPrograma.add(new Option(programa.nombre, programa.id_programa));
       }
+      if (plan) {
+        version = plan.version;
+        // Conserva el vínculo histórico si el catálogo ya no incluye esta entidad.
+        if (!organizaciones.some(item => item.id_organizacion === plan.id_organizacion)) {
+          selectOrganizacion.add(new Option(`${plan.organizacion.nombre} (actual, no disponible)`, plan.id_organizacion));
+        }
+        if (!programas.some(item => item.id_programa === plan.id_programa)) {
+          selectPrograma.add(new Option(`${plan.programa.nombre} (actual, no disponible)`, plan.id_programa));
+        }
+        for (const [campo, valor] of Object.entries(plan)) {
+          const control = form.elements.namedItem(campo);
+          if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement) {
+            control.value = String(valor ?? '');
+          }
+        }
+      }
       campos.disabled = false;
       form.setAttribute('aria-busy', 'false');
-      estado.textContent = organizaciones.length && programas.length
+      estado.textContent = (plan || (organizaciones.length && programas.length))
         ? 'Formulario listo.'
         : 'Necesitas al menos una organización y un programa registrados para crear el plan.';
-      guardar.disabled = !organizaciones.length || !programas.length;
+      guardar.disabled = !plan && (!organizaciones.length || !programas.length);
     } catch (error) {
       estado.textContent = '';
       mostrarError(error instanceof Error ? error.message : 'No fue posible preparar el formulario.');
+      reintentar.hidden = false;
+    } finally {
+      form.setAttribute('aria-busy', 'false');
     }
   }
 
   form.addEventListener('submit', async (evento) => {
     evento.preventDefault();
-    errores.hidden = true;
+    if (enviando || campos.disabled || guardar.disabled) return;
+    limpiarValidacion();
     const datos = Object.fromEntries(new FormData(form).entries());
     const validacion = crearPlanSchema.safeParse(datos);
     if (!validacion.success) {
+      marcarCampos(validacion.error.issues.map(issue => ({ campo: issue.path.join('.'), mensaje: issue.message })));
       mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => issue.message));
       return;
     }
 
+    enviando = true;
     campos.disabled = true;
     form.setAttribute('aria-busy', 'true');
     estado.textContent = 'Guardando plan…';
     try {
-      await crearPlan(validacion.data);
+      if (idPlan) {
+        await actualizarPlan({ id_plan: idPlan, version_esperada: version, cambios: validacion.data });
+      } else {
+        await crearPlan(validacion.data);
+      }
       window.location.assign('/planes?resultado=guardado');
     } catch (error) {
       const detalles = error instanceof ErrorSolicitudPlan
         ? error.campos.map(campo => campo.mensaje)
         : [];
+      if (error instanceof ErrorSolicitudPlan) marcarCampos(error.campos);
       mostrarError(error instanceof Error ? error.message : 'No fue posible guardar el plan.', detalles);
       campos.disabled = false;
       form.setAttribute('aria-busy', 'false');
       estado.textContent = '';
+      enviando = false;
+      if (error instanceof ErrorSolicitudPlan && error.codigo === 'CONFLICTO_CONCURRENCIA') {
+        reintentar.hidden = false;
+        estado.textContent = 'Tus cambios siguen en el formulario. Al recargar se reemplazarán por la versión guardada.';
+        guardar.disabled = true;
+      }
     }
   });
 
+  document.querySelector('#recargar-plan')!.addEventListener('click', () => void cargarCatalogos());
   void cargarCatalogos();
 </script>
