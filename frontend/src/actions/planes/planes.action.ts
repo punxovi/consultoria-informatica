@@ -1,11 +1,13 @@
 import { defineAction } from 'astro:actions';
-import type { Plan } from '../../lib/server/planes';
+import { z } from 'zod';
+import type { Plan, OrganizacionParaPlan } from '../../lib/server/planes';
 import { crearClienteSupabaseParaAction } from '../../lib/server/supabase-actions';
 import {
   crearRespuestaErrorPlan,
   manejarActualizarPlan,
   manejarCrearPlan,
   manejarListarPlanes,
+  manejarListarOrganizacionesParaPlan,
   manejarObtenerPlanPorId,
 } from './planes.handler';
 import {
@@ -15,12 +17,24 @@ import {
   obtenerPlanPorIdSchema,
 } from './planes.schema';
 
+export const listarOrganizacionesParaPlanAction = defineAction({
+  accept: 'json',
+  input: z.object({}).strict(),
+  handler: async (_input, context) => {
+    try {
+      return await manejarListarOrganizacionesParaPlan(crearClienteSupabaseParaAction(context.request));
+    } catch (error) {
+      return crearRespuestaErrorPlan<OrganizacionParaPlan[]>(error);
+    }
+  },
+});
+
 export const listarPlanesAction = defineAction({
   accept: 'json',
   input: listarPlanesSchema,
   handler: async (input, context) => {
     try {
-      return await manejarListarPlanes(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarListarPlanes(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorPlan<Plan[]>(error);
     }
@@ -32,7 +46,7 @@ export const obtenerPlanPorIdAction = defineAction({
   input: obtenerPlanPorIdSchema,
   handler: async (input, context) => {
     try {
-      return await manejarObtenerPlanPorId(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarObtenerPlanPorId(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorPlan<Plan>(error);
     }
@@ -44,7 +58,7 @@ export const crearPlanAction = defineAction({
   input: crearPlanSchema,
   handler: async (input, context) => {
     try {
-      return await manejarCrearPlan(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarCrearPlan(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorPlan<Plan>(error);
     }
@@ -56,7 +70,7 @@ export const actualizarPlanAction = defineAction({
   input: actualizarPlanSchema,
   handler: async (input, context) => {
     try {
-      return await manejarActualizarPlan(crearClienteSupabaseParaAction(context.request), input);
+      return await manejarActualizarPlan(crearClienteSupabaseParaAction(context.request, context.clientAddress), input);
     } catch (error) {
       return crearRespuestaErrorPlan<Plan>(error);
     }

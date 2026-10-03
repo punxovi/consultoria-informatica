@@ -25,6 +25,10 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
         <div class="space-y-6">
           <h2 class="text-lg font-semibold">Información de la acción</h2>
           <Input id="nombre" label="Nombre de la acción" required maxlength={150} />
+          <div class="space-y-1.5">
+            <label for="descripcion" class="block text-sm font-medium">Descripción (opcional)</label>
+            <textarea id="descripcion" name="descripcion" rows="4" maxlength="5000" class="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:ring-2 focus:ring-primary"></textarea>
+          </div>
           <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
             <Input id="fecha_inicio" type="date" label="Fecha de inicio" required />
@@ -116,15 +120,8 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
       const [plan, accion] = await Promise.all([obtenerPlan(idPlan), idAccion ? obtenerAccion(idAccion) : Promise.resolve(null)]);
       if (accion && accion.id_plan !== idPlan) throw new Error('La acción solicitada no pertenece a este plan.');
       document.querySelector('#accion-contexto')!.textContent = `${plan.nombre} · ${plan.organizacion.nombre} · ${plan.programa.nombre}`;
-      selectEstado.querySelector('[data-legado]')?.remove();
       if (accion) {
         version = accion.version;
-        if (accion.estado === 'atrasada') {
-          const anterior = new Option('Atrasada (anterior): selecciona un estado actual', 'atrasada');
-          anterior.disabled = true;
-          anterior.dataset.legado = '';
-          selectEstado.add(anterior);
-        }
         for (const [campo, valor] of Object.entries(accion)) {
           const control = form.elements.namedItem(campo);
           if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement) control.value = String(valor ?? '');
@@ -158,7 +155,10 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
     form.setAttribute('aria-busy', 'true');
     estadoCarga.textContent = 'Guardando acción…';
     try {
-      if (idAccion) await actualizarAccion({ id_accion: idAccion, version_esperada: version, cambios: validacion.data });
+      if (idAccion) {
+        if (version === undefined) throw new Error('Recarga la acción antes de editarla.');
+        await actualizarAccion({ id_accion: idAccion, version_esperada: version, cambios: validacion.data });
+      }
       else await crearAccion(validacion.data);
       location.assign(`/planes/${encodeURIComponent(idPlan)}?resultado=accion-guardada#acciones-plan`);
     } catch (fallo) {

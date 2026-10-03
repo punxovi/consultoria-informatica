@@ -20,6 +20,11 @@ const fechaISO = (campo: string) =>
       return !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === valor;
     }, `${campo} debe ser una fecha válida.`);
 
+const periodoAnual = z.number({ error: 'El período anual debe ser un año numérico.' })
+  .int('El período anual debe ser entero.')
+  .min(1, 'El período anual debe ser mayor que cero.')
+  .max(9999, 'El período anual no puede superar 9999.');
+
 export const camposPlanSchema = z
   .object({
     id_organizacion: uuid('La organización'),
@@ -30,6 +35,7 @@ export const camposPlanSchema = z
     objetivos_especificos: textoObligatorio('Los objetivos específicos', 5000),
     resultado_esperado: textoObligatorio('El resultado esperado', 5000),
     responsable_nombre: textoObligatorio('El responsable', 150),
+    periodo_anual: periodoAnual,
     fecha_inicio: fechaISO('La fecha de inicio'),
     fecha_termino: fechaISO('La fecha de término'),
   })
@@ -58,6 +64,7 @@ export const listarPlanesSchema = z
   .object({
     id_organizacion: uuid('La organización').optional(),
     id_programa: uuid('El programa').optional(),
+    periodo_anual: periodoAnual.optional(),
     incluir_archivados: z.boolean({ error: 'incluir_archivados debe ser booleano.' }).default(false),
   })
   .strict();
@@ -79,8 +86,7 @@ export const actualizarPlanSchema = z
     version_esperada: z
       .number({ error: 'La versión esperada debe ser numérica.' })
       .int('La versión esperada debe ser entera.')
-      .positive('La versión esperada debe ser mayor que cero.')
-      .optional(),
+      .positive('La versión esperada debe ser mayor que cero.'),
     cambios: cambiosPlanSchema,
   })
   .strict();

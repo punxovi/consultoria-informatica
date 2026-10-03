@@ -1,6 +1,6 @@
 import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 
-export type EstadoAccion = 'no_iniciada' | 'en_desarrollo' | 'atrasada' | 'cancelada' | 'cumplida';
+export type EstadoAccion = 'no_iniciada' | 'en_desarrollo' | 'cancelada' | 'cumplida';
 
 export interface PlanResumenAccion {
   id_plan: string;
@@ -17,6 +17,7 @@ export interface Accion {
   fecha_inicio: string;
   fecha_termino: string;
   estado: EstadoAccion;
+  descripcion: string | null;
   observacion_motivo: string | null;
   resultado_esperado: string | null;
   created_at: string;
@@ -35,6 +36,7 @@ export interface CrearAccionPersistencia {
   fecha_inicio: string;
   fecha_termino: string;
   estado: EstadoAccion;
+  descripcion?: string | null;
   observacion_motivo?: string | null;
   resultado_esperado?: string | null;
 }
@@ -79,6 +81,7 @@ const CAMPOS_ACCION = `
   fecha_inicio,
   fecha_termino,
   estado,
+  descripcion,
   observacion_motivo,
   resultado_esperado,
   created_at,
@@ -163,18 +166,19 @@ export async function actualizarAccion(
   cliente: SupabaseClient,
   idAccion: string,
   cambios: ActualizarAccionPersistencia,
-  versionEsperada?: number,
+  versionEsperada: number,
 ): Promise<Accion> {
+  if (!Number.isSafeInteger(versionEsperada) || versionEsperada < 1) {
+    throw new ErrorOperacionAccion('RESTRICCION_INCUMPLIDA', 'Debes indicar una versión vigente para editar la acción.');
+  }
   let consulta = cliente.from('acciones').update(cambios).eq('id_accion', idAccion).is('archived_at', null);
-  if (versionEsperada !== undefined) consulta = consulta.eq('version', versionEsperada);
+  consulta = consulta.eq('version', versionEsperada);
   const { data, error } = await consulta.select(CAMPOS_ACCION).maybeSingle();
   if (error) throw convertirError(error);
   if (!data) {
     throw new ErrorOperacionAccion(
-      versionEsperada === undefined ? 'NO_ENCONTRADA' : 'CONFLICTO_CONCURRENCIA',
-      versionEsperada === undefined
-        ? 'La acción solicitada no existe.'
-        : 'La acción fue modificada por otra sesión. Recarga los datos antes de guardar.',
+      'CONFLICTO_CONCURRENCIA',
+      'La acción ya no está disponible con esa versión. Recarga los datos antes de guardar.',
     );
   }
   return comoAccion(data);

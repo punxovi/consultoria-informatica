@@ -32,12 +32,12 @@ FROM public.paises WHERE codigo_iso='CL';
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','99000000-0000-4000-8000-000000000001',true);
 
-INSERT INTO public.planes(
+INSERT INTO public.planes(periodo_anual,
   id_plan,id_organizacion,id_programa,nombre,situacion_necesidad,
   objetivo_general,objetivos_especificos,resultado_esperado,
   responsable_nombre,fecha_inicio,fecha_termino
 )
-SELECT '99200000-0000-4000-8000-000000000001','99100000-0000-4000-8000-000000000001',
+SELECT 2026,'99200000-0000-4000-8000-000000000001','99100000-0000-4000-8000-000000000001',
   id_programa,'Plan para Acciones','Necesidad','Objetivo','Objetivos','Resultado',
   'Responsable','2026-01-01','2026-12-31'
 FROM public.programas WHERE archived_at IS NULL ORDER BY nombre LIMIT 1;
@@ -45,15 +45,22 @@ FROM public.programas WHERE archived_at IS NULL ORDER BY nombre LIMIT 1;
 SELECT lives_ok($q$
   INSERT INTO public.acciones(
     id_accion,id_plan,nombre,responsable_nombre,fecha_inicio,fecha_termino,
-    estado,resultado_esperado
+    estado,resultado_esperado,descripcion
   ) VALUES (
     '99300000-0000-4000-8000-000000000001','99200000-0000-4000-8000-000000000001',
-    'Taller comunitario','Responsable','2026-02-01','2026-03-01','no_iniciada','Participantes capacitados'
+    'Taller comunitario','Responsable','2026-02-01','2026-03-01','no_iniciada','Participantes capacitados','Taller de formación'
   )
 $q$,'Administrador puede crear una Acción para un Plan válido');
 
 SELECT is((SELECT count(*) FROM public.acciones WHERE id_plan='99200000-0000-4000-8000-000000000001'),1::bigint,'La Acción puede listarse por Plan');
 SELECT is((SELECT nombre FROM public.acciones WHERE id_accion='99300000-0000-4000-8000-000000000001'),'Taller comunitario','La Acción puede consultarse por ID');
+SELECT is((SELECT descripcion FROM public.acciones WHERE id_accion='99300000-0000-4000-8000-000000000001'),'Taller de formación','Descripción propia queda persistida');
+SELECT throws_ok($q$UPDATE public.acciones SET estado='atrasada' WHERE id_accion='99300000-0000-4000-8000-000000000001'$q$,'23514',NULL,'RF36 rechaza quinto estado');
+SELECT throws_ok($q$UPDATE public.acciones SET estado='vencida' WHERE id_accion='99300000-0000-4000-8000-000000000001'$q$,'23514',NULL,'Vencida no es estado asignable');
+WITH cambio AS (UPDATE public.acciones SET descripcion='Descripción editada' WHERE id_accion='99300000-0000-4000-8000-000000000001' AND version=1 RETURNING id_accion) SELECT is((SELECT count(*) FROM cambio),1::bigint,'Edición de descripción persiste con versión vigente');
+WITH cambio AS (UPDATE public.acciones SET descripcion='Cambio antiguo' WHERE id_accion='99300000-0000-4000-8000-000000000001' AND version=1 RETURNING id_accion) SELECT is((SELECT count(*) FROM cambio),0::bigint,'Versión antigua no sobrescribe Acción');
+SELECT is((SELECT descripcion FROM public.acciones WHERE id_accion='99300000-0000-4000-8000-000000000001'),'Descripción editada','Descripción editada puede consultarse después');
+
 SELECT throws_ok($q$
   UPDATE public.acciones SET fecha_termino='2025-01-01'
   WHERE id_accion='99300000-0000-4000-8000-000000000001'

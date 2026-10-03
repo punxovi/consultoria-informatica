@@ -20,6 +20,7 @@ const plan = {
   objetivos_especificos: 'Objetivos',
   resultado_esperado: 'Resultado',
   responsable_nombre: 'Ana Pérez',
+  periodo_anual: 2026,
   fecha_inicio: '2026-03-01',
   fecha_termino: '2026-12-15',
   version: 1,
@@ -36,6 +37,7 @@ const entrada = {
   objetivos_especificos: plan.objetivos_especificos,
   resultado_esperado: plan.resultado_esperado,
   responsable_nombre: plan.responsable_nombre,
+  periodo_anual: plan.periodo_anual,
   fecha_inicio: plan.fecha_inicio,
   fecha_termino: plan.fecha_termino,
 };
@@ -59,6 +61,7 @@ describe('handlers de Astro Actions de Planes', () => {
     assert.deepEqual(recibidos, {
       idOrganizacion: plan.id_organizacion,
       idPrograma: plan.id_programa,
+      periodoAnual: undefined,
       incluirArchivados: false,
     });
     assert.equal(respuesta.ok, true);

@@ -9,7 +9,7 @@ test('vencimiento es una condición por fecha, no un estado seleccionable', () =
   for (const estado of ['cumplida', 'cancelada']) assert.equal(estaVencida({ estado, fecha_termino: '2026-09-01' }, '2026-10-02'), false);
   assert.equal(estadosSeleccionables.length, 4);
   assert.equal(estadosSeleccionables.some(item => item.valor === 'atrasada'), false);
-  assert.equal(etiquetaEstado('atrasada'), 'Atrasada (registro anterior)');
+  assert.equal(etiquetaEstado('no_iniciada'), 'No iniciada');
 });
 
 test('el día local no cambia al convertirlo a UTC', () => {

@@ -17,8 +17,8 @@ test('archivo con permisos reales: ADMIN, COORD por país, versiones, cascada y 
     const planes = [];
     for (const org of organizaciones.rows) {
       const plan = await comoUsuario(db, 'ADMIN', tx => tx.query(`INSERT INTO public.planes
-        (id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino)
-        SELECT $1,id_programa,$2,'Necesidad','Objetivo','Objetivos','Resultado','Responsable','2026-01-01','2026-12-31'
+        (periodo_anual,id_organizacion,id_programa,nombre,situacion_necesidad,objetivo_general,objetivos_especificos,resultado_esperado,responsable_nombre,fecha_inicio,fecha_termino)
+        SELECT 2026,$1,id_programa,$2,'Necesidad','Objetivo','Objetivos','Resultado','Responsable','2026-01-01','2026-12-31'
         FROM public.programas WHERE archived_at IS NULL LIMIT 1 RETURNING *`, [org.id_organizacion, org.nombre]));
       const accion = await comoUsuario(db, 'ADMIN', tx => tx.query(`INSERT INTO public.acciones
         (id_plan,nombre,responsable_nombre,fecha_inicio,fecha_termino) VALUES ($1,'Acción','Responsable','2026-01-01','2026-12-01') RETURNING *`, [plan.rows[0].id_plan]));

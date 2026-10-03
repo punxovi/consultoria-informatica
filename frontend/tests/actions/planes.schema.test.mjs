@@ -17,6 +17,7 @@ const planValido = {
   objetivos_especificos: ' Capacitar al equipo ',
   resultado_esperado: ' Equipo fortalecido ',
   responsable_nombre: ' Ana Pérez ',
+  periodo_anual: 2026,
   fecha_inicio: '2026-03-01',
   fecha_termino: '2026-12-15',
 };

@@ -4,7 +4,7 @@ import { stringify } from 'devalue';
 // Pruebas de interfaz: las respuestas de Actions están simuladas, sin tocar Supabase.
 const id = '17600000-0000-4000-8000-000000000001';
 const datos = {
-  id_organizacion: id, id_programa: id, nombre: 'Plan comunitario',
+  id_organizacion: id, id_programa: id, nombre: 'Plan comunitario', periodo_anual: 2026,
   responsable_nombre: 'Responsable de prueba', fecha_inicio: '2026-10-01', fecha_termino: '2026-12-30',
   situacion_necesidad: 'Necesidad detectada', objetivo_general: 'Fortalecer la comunidad',
   objetivos_especificos: 'Realizar talleres', resultado_esperado: 'Participantes capacitados',
@@ -25,7 +25,7 @@ test.beforeEach(async ({ context }) => {
       await route.fulfill({ contentType: 'application/json+devalue', body: stringify({ ok: false, codigo: fallo, mensaje: 'El plan fue modificado por otra sesión. Recarga los datos antes de guardar.', datos: null }) }); return;
     }
     if (nombre === 'actualizarPlan') plan = { ...plan, ...entrada.cambios, version: plan.version + 1 };
-    const respuesta = nombre === 'listarOrganizaciones' ? [{ id_organizacion: id, nombre: 'Organización de prueba' }]
+    const respuesta = nombre === 'listarOrganizacionesParaPlan' ? [{ id_organizacion: id, nombre: 'Organización de prueba' }]
       : nombre === 'listarProgramas' ? [{ id_programa: id, nombre: 'Programa de prueba' }]
       : nombre === 'listarPlanes' ? [plan] : plan;
     await route.fulfill({ contentType: 'application/json+devalue', body: stringify({ ok: true, datos: respuesta }) });
@@ -36,10 +36,10 @@ test('valida creación, guarda sin acciones y confirma en el listado', async ({ 
   await page.goto('/planes/nuevo');
   await expect(page.locator('#guardar-plan')).toBeEnabled();
   await page.getByRole('button', { name: 'Guardar plan' }).click();
-  await expect(page.locator('[aria-invalid="true"]')).toHaveCount(10);
+  await expect(page.locator('[aria-invalid="true"]')).toHaveCount(11);
   for (const [campo, valor] of Object.entries(datos)) {
     if (campo.startsWith('id_')) await page.locator(`#${campo}`).selectOption(valor);
-    else await page.locator(`#${campo}`).fill(valor);
+    else await page.locator(`#${campo}`).fill(String(valor));
   }
   await page.locator('#fecha_termino').fill('2026-09-01');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
@@ -68,6 +68,7 @@ test('edita datos precargados con versión y conserva cambios ante conflicto', a
   await page.getByRole('button', { name: 'Guardar plan' }).click();
   await expect(page.locator('#plan-confirmacion')).toBeVisible();
   expect(solicitudes.filter(s => s.nombre === 'actualizarPlan').at(-1).entrada.version_esperada).toBe(3);
+  expect(solicitudes.filter(s => s.nombre === 'actualizarPlan').at(-1).entrada.cambios.periodo_anual).toBe(2026);
   await page.goto(`/planes/${id}/editar`);
   await expect(page.locator('#nombre')).toHaveValue('Plan actualizado');
   await page.getByRole('link', { name: 'Cancelar', exact: true }).click();

@@ -4,6 +4,8 @@ import {
   crearPlan,
   ErrorOperacionPlan,
   listarPlanes,
+  listarOrganizacionesParaPlan,
+  type OrganizacionParaPlan,
   obtenerPlanPorId,
   type Plan,
 } from '../../lib/server/planes.ts';
@@ -14,7 +16,7 @@ import type {
   ObtenerPlanPorIdInput,
 } from './planes.schema.ts';
 
-export type CodigoExitoPlan = 'PLANES_LISTADOS' | 'PLAN_OBTENIDO' | 'PLAN_CREADO' | 'PLAN_ACTUALIZADO';
+export type CodigoExitoPlan = 'ORGANIZACIONES_PLAN_LISTADAS' | 'PLANES_LISTADOS' | 'PLAN_OBTENIDO' | 'PLAN_CREADO' | 'PLAN_ACTUALIZADO';
 export type CodigoErrorActionPlan =
   | 'NO_ENCONTRADO'
   | 'ORGANIZACION_NO_EXISTE'
@@ -66,6 +68,10 @@ async function ejecutar<T>(
   }
 }
 
+export function manejarListarOrganizacionesParaPlan(cliente: SupabaseClient) {
+  return ejecutar<OrganizacionParaPlan[]>('ORGANIZACIONES_PLAN_LISTADAS', 'Las organizaciones fueron consultadas correctamente.', () => listarOrganizacionesParaPlan(cliente));
+}
+
 export function manejarListarPlanes(
   cliente: SupabaseClient,
   input: ListarPlanesInput,
@@ -75,6 +81,7 @@ export function manejarListarPlanes(
     operaciones.listar(cliente, {
       idOrganizacion: input.id_organizacion,
       idPrograma: input.id_programa,
+      periodoAnual: input.periodo_anual,
       incluirArchivados: input.incluir_archivados,
     }),
   );

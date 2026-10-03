@@ -17,7 +17,7 @@ export class ErrorConfiguracionSupabase extends Error {
  * Si el Frontend envía un Bearer token, se reenvía a Supabase y RLS decide
  * qué filas y operaciones están permitidas para esa sesión.
  */
-export function crearClienteSupabaseParaAction(request: Request): SupabaseClient {
+export function crearClienteSupabaseParaAction(request: Request, ipOrigen?: string): SupabaseClient {
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
@@ -31,6 +31,9 @@ export function crearClienteSupabaseParaAction(request: Request): SupabaseClient
   if (authorization) {
     headers.Authorization = authorization;
   }
+
+  // Contexto del adaptador de servidor; no reenviar el header declarado por el navegador.
+  if (ipOrigen && ipOrigen.length <= 45 && /^[0-9a-f:.]+$/i.test(ipOrigen)) headers['X-FGE-IP-Origen'] = ipOrigen;
 
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers },

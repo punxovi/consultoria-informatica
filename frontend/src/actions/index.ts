@@ -18,6 +18,7 @@ import {
   actualizarPlanAction,
   crearPlanAction,
   listarPlanesAction,
+  listarOrganizacionesParaPlanAction,
   obtenerPlanPorIdAction,
 } from './planes/planes.action';
 import {
@@ -51,6 +52,7 @@ export const server = {
   actualizarPlan: actualizarPlanAction,
   crearPlan: crearPlanAction,
   listarPlanes: listarPlanesAction,
+  listarOrganizacionesParaPlan: listarOrganizacionesParaPlanAction,
   obtenerPlanPorId: obtenerPlanPorIdAction,
   recibirDatosPrueba,
   solicitarRecuperacion: authActions.solicitarRecuperacion,
