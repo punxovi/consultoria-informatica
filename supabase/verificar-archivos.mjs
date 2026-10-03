@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,23,'Se esperaban veintitrés migraciones');
+assert.equal(files.length,24,'Se esperaban veinticuatro migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -77,6 +77,7 @@ const allowedSecurityDefiner=new Set([
  '20260925120000_fge_guardar_programa_completo.sql',
  '20260928223251_fge_planes_actions_rls.sql',
  '20261002010000_fge_archivar_planes_acciones.sql',
+ '20261002120000_fge_reforzar_rls_planes_acciones.sql',
  '20261002225137_fge_auditoria_planes_acciones.sql',
 ]);
 for (let i=0;i<files.length;i++) {
@@ -182,6 +183,13 @@ assert.match(accionesRlsSql,/CREATE POLICY acciones_lectura_roles/);
 assert.match(accionesRlsSql,/CREATE POLICY acciones_gestion_insert/);
 assert.match(accionesRlsSql,/CREATE POLICY acciones_gestion_update/);
 assert.match(accionesRlsSql,/usuario_puede_gestionar_organizacion/);
+const refuerzoRlsSql=sql.find(s=>s.includes('Refuerza RLS de Planes y Acciones'));
+assert.ok(refuerzoRlsSql,'Existe refuerzo RLS territorial para Planes y Acciones');
+assert.match(refuerzoRlsSql,/usuario_tiene_cobertura_pais/);
+assert.match(refuerzoRlsSql,/usuario_puede_consultar_organizacion/);
+assert.match(refuerzoRlsSql,/permisos_temporales/);
+assert.match(refuerzoRlsSql,/DROP POLICY IF EXISTS planes_lectura_roles/);
+assert.match(refuerzoRlsSql,/DROP POLICY IF EXISTS acciones_lectura_roles/);
 const repositorioAcciones=readFileSync(join(root,'../frontend/src/lib/server/acciones.ts'),'utf8');
 for(const operacion of ['listarAcciones','obtenerAccionPorId','crearAccion','actualizarAccion']) {
  assert.match(repositorioAcciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Acciones: '+operacion);
