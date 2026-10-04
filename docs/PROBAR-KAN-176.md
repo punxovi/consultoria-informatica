@@ -1,6 +1,9 @@
 # KAN-176 — Integración de Programas
 
-Rama: `feature/KAN-176-integrar-programas`. Base del futuro PR: **`sprint-3`**.
+Rama: `feature/KAN-176-integrar-modulo`. Base del futuro PR: **`sprint-3`**.
+
+Actualización del 3 de octubre de 2026: integración completada y ampliación de
+las pruebas de carga, errores, inexistencia, permisos y reintentos de imagen.
 
 ## Qué se implementó
 
@@ -12,6 +15,10 @@ Rama: `feature/KAN-176-integrar-programas`. Base del futuro PR: **`sprint-3`**.
 - Estados de carga, guardado, errores por campo/backend, sesión expirada, reintentos, catálogo vacío y programa inexistente.
 - Gestión de líneas: agregar, modificar y retirar. Los programas nuevos requieren entre 1 y 50 pares completos, sin nombres repetidos.
 - Los programas antiguos sin líneas estructuradas mantienen sus componentes y resultados generales y permiten editar sus campos sin inventar asociaciones entre esos textos.
+- El orden de las líneas se guarda en `programa_lineas_accion.orden` y se conserva al consultar, editar, agregar y retirar líneas.
+- Si el programa se guarda y falla la imagen, el formulario conserva ID y versión. Un reintento sin cambios de texto solo procesa la imagen; si se cambian los textos, se actualiza el mismo programa.
+- Los errores al consultar o descargar la imagen se muestran con un botón de reintento. Una consulta fallida del programa oculta el detalle anterior y sus controles.
+- Al recargar datos después de un conflicto se descartan también la imagen local y el retiro pendiente, previa confirmación del usuario.
 
 Se reutilizaron los contratos y el registro de Actions de la referencia local
 `origin/feature/KAN-171-Actions-Programas`, y la estructura básica del formulario
@@ -29,6 +36,11 @@ políticas. Las consultas de la aplicación siguen excluyendo líneas archivadas
 
 ## Pruebas automatizadas
 
+La migración adicional `20261003200000_fge_programas_orden_lineas.sql` incorpora
+la posición de cada línea y actualiza la RPC. Conserva identidades, textos,
+archivo lógico y el orden visible de los datos existentes. Debe aplicarse antes
+de usar esta versión del repositorio, porque las lecturas incluyen `orden`.
+
 Desde la raíz:
 
 ```powershell
@@ -38,6 +50,7 @@ npm ci
 npm test
 npm run build
 npm run test:e2e
+npm run test:e2e:imagenes
 ```
 
 `npm test` ejecuta validaciones, handlers, transporte y pruebas SQL con PGlite
@@ -52,11 +65,18 @@ las migraciones del módulo en PostgreSQL embebido. Auth y el transporte HTTP de
 Supabase son simulados; algunos errores y retardos se inyectan deliberadamente.
 No leen ni modifican el Supabase remoto, ni cambian `frontend/.env`.
 
+`npm run test:e2e:programas` ejecuta solo los 13 casos de integración de Programas.
+`npm run test:e2e:imagenes` ejecuta los casos de imágenes y guardados parciales;
+las conversiones utilizan el navegador real y Storage se simula. El servidor de
+pruebas se inicia y cierra mediante IPC, incluido Windows.
+
 ## Preparación para comprobar manualmente con Supabase
 
 1. Usa una instancia con las migraciones anteriores del repositorio, incluida
    `20260923151202_fge_programa_lineas_accion.sql`.
-2. Aplica `20260925120000_fge_guardar_programa_completo.sql` en esa instancia.
+2. Aplica las migraciones pendientes en orden, hasta
+   `20261003200000_fge_programas_orden_lineas.sql`, incluidas las reparaciones
+   de permisos y sincronización de la RPC de septiembre.
    En Supabase local, inicia los servicios con `npx supabase start` desde la raíz
    y aplica las pendientes con `npx supabase migration up --local`.
 3. Configura `frontend/.env` con `PUBLIC_SUPABASE_URL` y
@@ -75,6 +95,16 @@ select
 ```
 
 Ambos valores deben ser distintos de `NULL`.
+
+También debe existir `public.programa_lineas_accion.orden`:
+
+```sql
+select column_name, data_type
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'programa_lineas_accion'
+  and column_name = 'orden';
+```
 
 ## Comprobar los criterios de aceptación
 
@@ -110,18 +140,25 @@ inexistencia. Una falla de conexión muestra un error de consulta diferente.
 
 ## Alcance de la verificación
 
-Resultado obtenido: **44/44 pruebas unitarias y SQL, 9/9 pruebas de navegador,
-build correcto y revisión estática de migraciones correcta**.
+Resultado del 3 de octubre de 2026: **102/102 pruebas unitarias y SQL,
+23/23 pruebas de navegador de la suite principal (13 de Programas),
+16/16 pruebas de imágenes y guardados parciales, build correcto y revisión
+estática de migraciones correcta**.
 
-Pruebas: `npm test`, `npm run test:e2e` y `npm run build`. La comprobación
+La prueba SQL adicional verifica el orden después de crear, modificar, agregar
+y retirar líneas. Otra aplica la migración sobre datos existentes, incluidos
+registros archivados, y comprueba que conserva sus identidades y contenidos.
+
+Pruebas: `npm test`, `npm run test:e2e`, `npm run test:e2e:imagenes` y
+`npm run build`. La comprobación
 estática de migraciones se ejecuta desde la raíz con
 `node supabase/verificar-archivos.mjs`.
 
 El chequeo global `npm run astro -- check --minimumSeverity error` detecta
-**45 errores preexistentes**, fuera de Programas: schemas Zod de Organizaciones
-y Prueba, props de `Input.astro` y referencias DOM posiblemente nulas en
-Organizaciones. No es una comprobación global aprobada; el build sí compila.
-Los errores de tipado del schema de Programas se corrigieron.
+**49 errores fuera de Programas**, presentes antes de estos cambios: Auth,
+Organizaciones, Prueba, `Input.astro` y páginas de sesión/contraseña. La revisión
+inicial detectaba 57. Se corrigieron los 8 del módulo de Programas; la comprobación
+global de tipos todavía no está aprobada. El build sí compila.
 
 No se ejecutó Supabase completo con Docker ni un inicio de sesión real contra
 una instancia remota. La prueba manual anterior cubre esa última comprobación
@@ -130,7 +167,7 @@ una vez aplicada la migración.
 ## Tu pull request
 
 Selecciona **base: `sprint-3`** y
-**compare: `feature/KAN-176-integrar-programas`**.
+**compare: `feature/KAN-176-integrar-modulo`**.
 
 Título sugerido: `feat(KAN-176): integrar Programas con backend`.
 
@@ -139,7 +176,9 @@ Descripción sugerida:
 > Integra listado, detalle, creación y edición de Programas con Astro Actions
 > autenticadas. Guarda el programa y sus líneas en una transacción, conserva los
 > textos anteriores y añade estados de carga, errores, inexistencia y conflictos
-> de edición. Requiere `20260925120000_fge_guardar_programa_completo.sql`.
+> de edición. Conserva el orden de las líneas y recupera guardados parciales de
+> imagen sin duplicar programas. Requiere las migraciones hasta
+> `20261003200000_fge_programas_orden_lineas.sql`.
 >
 > Validación: pruebas unitarias/SQL, navegador y build. El chequeo global de tipos
 > mantiene errores previos fuera de Programas. Ver `docs/PROBAR-KAN-176.md`.

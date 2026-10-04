@@ -2,10 +2,11 @@
 
 ## Esquema y migraciones
 
-Veintitrés archivos de migración, con 27 tablas de aplicación y una tabla privada
+Veinticinco archivos de migración, con 27 tablas de aplicación y una tabla privada
 de auditoría. KAN-176 incorpora el guardado transaccional de Programas. La
-instancia remota debe tener aplicadas las migraciones hasta la reparación de
-acceso Data API; las verificaciones locales no sustituyen ese despliegue.
+instancia remota debe tener aplicadas las migraciones hasta
+`20261003200000_fge_programas_orden_lineas.sql`; las verificaciones locales no
+sustituyen ese despliegue.
 
 | Migración | Contenido |
 |---|---|
@@ -29,9 +30,11 @@ acceso Data API; las verificaciones locales no sustituyen ese despliegue.
 | `20260928223251_fge_planes_actions_rls.sql` | Habilita lectura y gestión autorizada de Planes para las Astro Actions. |
 | `20260929090000_fge_acciones_actions_rls.sql` | Habilita lectura y gestión autorizada de Acciones según el Plan y país de la Organización. |
 | `20261002010000_fge_archivar_planes_acciones.sql` | Archivo atómico de Planes y Acciones. |
+| `20261002120000_fge_reforzar_rls_planes_acciones.sql` | Refuerzo de permisos de Planes y Acciones. |
 | `20261002225129_fge_planes_periodo_anual.sql` | Período anual obligatorio y lectura mínima de Organizaciones para Planes. |
 | `20261002225133_fge_acciones_descripcion_estados.sql` | Descripción y cuatro estados de Acciones. |
 | `20261002225137_fge_auditoria_planes_acciones.sql` | Contexto de auditoría de Planes y Acciones. |
+| `20261003200000_fge_programas_orden_lineas.sql` | Conserva la posición de las líneas en el guardado transaccional y las consultas del módulo de Programas. |
 
 La carpeta incluye configuración local, diez archivos de pruebas pgTAP y
 `verificar-archivos.mjs` para comprobaciones estáticas.

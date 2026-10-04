@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { stringify } from 'devalue';
+import { stringify, parse } from 'devalue';
 
 async function sesion(context, rol = 'ADMIN') {
   await context.addInitScript(rol => {
@@ -19,7 +19,7 @@ async function completar(page, nombre = 'Programa de prueba de integración') {
 }
 async function nuevo(page) {
   await page.goto('/programas/nuevo');
-  await expect(page.locator('#programa-campos')).toBeEnabled();
+  await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', false);
 }
 test.beforeEach(async ({ context }) => sesion(context));
 
@@ -27,8 +27,8 @@ test('lista programas de la base, crea, edita, retira líneas y persiste al reca
   const fallos = []; page.on('pageerror', error => fallos.push(error.message));
   await page.goto('/programas');
   await expect(page.locator('#programas-listado article')).toHaveCount(6);
-  await page.getByRole('link', { name: 'Crear programa' }).click();
-  await expect(page.locator('#programa-campos')).toBeEnabled();
+  await page.getByRole('link', { name: '+ Nuevo programa', exact: true }).click();
+  await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', false);
   await page.getByRole('button', { name: 'Guardar programa' }).click();
   await expect(page.locator('[aria-invalid="true"]')).toHaveCount(6);
   await completar(page);
@@ -53,7 +53,7 @@ test('lista programas de la base, crea, edita, retira líneas y persiste al reca
   await expect(page.locator('#detalle-lineas dd')).toHaveText(['Organizaciones fortalecidas']);
   await page.reload();
   await expect(page.locator('#detalle-nombre')).toHaveText('Programa actualizado');
-  await page.getByRole('link', { name: '← Volver a programas' }).click();
+  await page.getByRole('link', { name: 'Volver al listado', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Programa actualizado' })).toBeVisible();
   expect(fallos).toEqual([]);
 });
@@ -98,7 +98,7 @@ test('catálogo vacío, UUID inexistente, ID inválido y error de detalle son es
   await expect(page.locator('#programas-error')).toBeHidden();
   await page.goto('/programas/00000000-0000-4000-8000-000000000000');
   await expect(page.locator('#detalle-estado')).toHaveText('Programa no encontrado');
-  await expect(page.locator('#detalle-reintentar')).toBeHidden();
+  await expect(page.locator('#programa-recuperacion')).toBeHidden();
   const respuesta = await page.goto('/programas/id-invalido');
   expect(respuesta.status()).toBe(404);
   await expect(page.locator('#detalle-estado')).toHaveText('Programa no encontrado');
@@ -125,7 +125,7 @@ test('un guardado lento bloquea dobles envíos y un error conserva los campos', 
   expect(llamadas).toBe(1); liberar();
   await expect(page.locator('#programa-errores')).toHaveText('Permiso de escritura revocado');
   await expect(page.locator('#nombre')).toHaveValue('Guardado lento');
-  await expect(page.locator('#programa-campos')).toBeEnabled();
+  await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', false);
   await page.unroute('**/_actions/crearPrograma**');
   await page.locator('#guardar-programa').click();
   await expect(page.locator('#detalle-nombre')).toHaveText('Guardado lento');
@@ -158,7 +158,7 @@ test('coordinador consulta y el backend rechaza creación y edición aunque se f
   await expect(page.locator('#crear-programa-panel')).toBeHidden();
   await page.locator('#programas-listado a').first().click();
   await expect(page.locator('#detalle-contenido')).toBeVisible();
-  await expect(page.locator('#editar-programa-panel')).toBeHidden();
+  await expect(page.locator('#editar-programa-enlace')).toBeHidden();
   await page.goto('/programas/nuevo');
   await expect(page.locator('#unauthorized-message')).toBeVisible();
   const respuesta = await page.request.post('/_actions/crearPrograma', {
@@ -190,4 +190,76 @@ test('la sesión expirada conserva el borrador y no envía una creación anónim
   await expect(page.locator('#programa-errores')).toContainText('sesión expiró');
   await expect(page.locator('#nombre')).toHaveValue('Borrador con sesión expirada');
   expect(llamadas).toBe(0);
+});
+
+test('detalle y edición muestran carga y no habilitan campos antes de consultar', async ({ page }) => {
+  await page.goto('/programas');
+  const enlace = page.locator('#programas-listado a').first();
+  await expect(enlace).toBeVisible();
+  const ruta = await enlace.getAttribute('href');
+  let liberar;
+  let espera = new Promise(resolve => { liberar = resolve; });
+  await page.route('**/_actions/obtenerProgramaPorId**', async route => { await espera; await route.continue(); });
+  await page.goto(ruta);
+  await expect(page.locator('#detalle-estado')).toHaveText('Cargando programa…');
+  await expect(page.locator('#programa-detalle')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#detalle-contenido')).toBeHidden();
+  liberar();
+  await expect(page.locator('#detalle-contenido')).toBeVisible();
+  espera = new Promise(resolve => { liberar = resolve; });
+  await page.goto(`${ruta}/editar`);
+  await expect(page.locator('#programa-estado')).toHaveText('Cargando formulario…');
+  await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', true);
+  await expect(page.locator('#nombre')).toBeDisabled();
+  liberar();
+  await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', false);
+});
+
+test('edición de un programa inexistente o ID inválido mantiene el formulario deshabilitado', async ({ page }) => {
+  for (const id of ['00000000-0000-4000-8000-000000000000', 'id-invalido']) {
+    const respuesta = await page.goto(`/programas/${id}/editar`);
+    if (id === 'id-invalido') expect(respuesta.status()).toBe(404);
+    await expect(page.locator('#programa-estado')).toHaveText('Programa no encontrado');
+    await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', true);
+    await expect(page.locator('#guardar-programa')).toBeDisabled();
+    await expect(page.locator('#programa-recuperacion')).toBeHidden();
+  }
+});
+
+test('las Actions reales validan entradas y rechazan una edición forzada de COORD', async ({ page }) => {
+  const crear = await page.request.post('/_actions/crearPrograma', {
+    headers: { Authorization: 'Bearer qa-admin' }, data: { nombre: '', lineas_accion: [] },
+  });
+  expect(crear.status()).toBe(400);
+  const validacion = await crear.json();
+  expect(validacion.issues.some(issue => issue.path[0] === 'nombre')).toBe(true);
+  await page.goto('/programas');
+  const enlace = page.locator('#programas-listado a').first();
+  await expect(enlace).toBeVisible();
+  const id = (await enlace.getAttribute('href')).split('/')[2];
+  const editar = await page.request.post('/_actions/actualizarPrograma', {
+    headers: { Authorization: 'Bearer qa-coord' },
+    data: { id_programa: id, version_esperada: 1, cambios: { nombre: 'Intento no autorizado' } },
+  });
+  expect(parse(await editar.text())).toMatchObject({ ok: false, codigo: 'SIN_PERMISO' });
+});
+
+test('un error de detalle permite reintentar y una recarga inexistente oculta el contenido anterior', async ({ page }) => {
+  await page.goto('/programas');
+  const enlace = page.locator('#programas-listado a').first();
+  await expect(enlace).toBeVisible();
+  const ruta = await enlace.getAttribute('href');
+  await page.route('**/_actions/obtenerProgramaPorId**', route => route.fulfill({ status: 503, body: 'Fallo temporal' }));
+  await page.goto(ruta);
+  await expect(page.locator('#detalle-error')).toBeVisible();
+  await page.unroute('**/_actions/obtenerProgramaPorId**');
+  await page.locator('#recargar-programa').click();
+  await expect(page.locator('#detalle-contenido')).toBeVisible();
+  await page.route('**/_actions/obtenerProgramaPorId**', route => route.fulfill({
+    body: stringify({ ok: false, codigo: 'NO_ENCONTRADO', mensaje: 'El programa solicitado no existe.', datos: null }),
+  }));
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect(page.locator('#detalle-estado')).toHaveText('Programa no encontrado');
+  await expect(page.locator('#detalle-contenido')).toBeHidden();
+  await expect(page.locator('#editar-programa-enlace')).toBeHidden();
 });

@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -12,10 +13,5 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: 'node tests/helpers/programas-servidor.mjs',
-    url: 'http://127.0.0.1:4326/programas',
-    reuseExistingServer: false,
-    timeout: 60000,
-  },
+  globalSetup: fileURLToPath(new URL('./tests/helpers/iniciar-servidor-e2e.mjs', import.meta.url)),
 });

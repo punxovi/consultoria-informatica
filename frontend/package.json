@@ -12,6 +12,8 @@
     "start": "node ./dist/server/entry.mjs",
     "test": "node --experimental-strip-types --test tests/actions/*.test.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:programas": "playwright test programas.spec.mjs",
+    "test:e2e:imagenes": "playwright test --config scripts/qa-imagenes.config.mjs",
     "astro": "astro"
   },
   "dependencies": {

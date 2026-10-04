@@ -4,9 +4,10 @@ import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 import BackButton from '../../components/ui/BackButton.astro';
+import { obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
 
 const { id } = Astro.params;
-const idValido = Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+const idValido = obtenerProgramaPorIdSchema.safeParse({ id_programa: id }).success;
 if (!idValido) Astro.response.status = 404;
 const secciones = [ 
   ['objetivo_general', 'Objetivo general'], 
@@ -44,6 +45,11 @@ const secciones = [
         <div id="editar-programa-enlace" hidden><Button href={`/programas/${id}/editar`}>Editar programa</Button></div>
       </div>
       <img id="detalle-imagen" hidden alt="Imagen representativa del programa" class="max-h-80 max-w-full rounded-xl object-contain" />
+      <p id="detalle-imagen-estado" role="status" aria-live="polite"></p>
+      <div id="detalle-imagen-recuperacion" hidden class="space-y-3">
+        <p id="detalle-imagen-error" role="alert" class="rounded-lg bg-red-50 p-4 text-red-800"></p>
+        <Button id="reintentar-imagen" variant="outline">Reintentar imagen</Button>
+      </div>
       <div class="grid gap-5 md:grid-cols-2">
         {secciones.map(([campo, titulo]) => (
           <Card>
@@ -82,25 +88,76 @@ const secciones = [
   import { obtenerImagen } from '../../lib/programas/imagen';
   import { getUserRoles } from '../../lib/supabase';
   import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
+  import { obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
 
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-programa')!;
+  const raiz = document.querySelector<HTMLElement>('#programa-detalle')!;
+  const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
+  const imagen = document.querySelector<HTMLImageElement>('#detalle-imagen')!;
+  const imagenEstado = document.querySelector<HTMLElement>('#detalle-imagen-estado')!;
+  const imagenError = document.querySelector<HTMLElement>('#detalle-imagen-error')!;
+  const imagenRecuperacion = document.querySelector<HTMLElement>('#detalle-imagen-recuperacion')!;
+  const reintentarImagen = document.querySelector<HTMLButtonElement>('#reintentar-imagen')!;
   let cargando = false;
+  let secuenciaImagen = 0;
+
+  function mostrarErrorImagen(mensaje: string) {
+    imagen.hidden = true;
+    imagenEstado.textContent = '';
+    imagenError.textContent = mensaje;
+    imagenRecuperacion.hidden = false;
+  }
+
+  async function cargarImagen() {
+    const solicitud = ++secuenciaImagen;
+    reintentarImagen.disabled = true;
+    imagenRecuperacion.hidden = true;
+    imagen.hidden = true;
+    imagen.removeAttribute('src');
+    imagenEstado.textContent = 'Cargando imagen…';
+    try {
+      const url = await obtenerImagen(raiz.dataset.id!);
+      if (solicitud !== secuenciaImagen) return;
+      if (!url) { imagenEstado.textContent = ''; return; }
+      imagen.onload = () => { if (solicitud === secuenciaImagen) imagenEstado.textContent = ''; };
+      imagen.onerror = () => {
+        if (solicitud === secuenciaImagen) mostrarErrorImagen('No se pudo cargar la imagen actual. Vuelve a intentarlo.');
+      };
+      imagen.src = url;
+      imagen.hidden = false;
+    } catch (fallo) {
+      if (solicitud === secuenciaImagen) {
+        mostrarErrorImagen(fallo instanceof Error ? fallo.message : 'No se pudo cargar la imagen actual.');
+      }
+    } finally {
+      if (solicitud === secuenciaImagen) reintentarImagen.disabled = false;
+    }
+  }
+  reintentarImagen.addEventListener('click', () => void cargarImagen());
 
   async function cargar() {
     if (cargando) return;
     cargando = true; recargar.disabled = true;
     
-    const raiz = document.querySelector<HTMLElement>('#programa-detalle')!;
-    const estado = document.querySelector('#detalle-estado')!;
-    const error = document.querySelector('#detalle-error')!;
+    const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
+    const error = document.querySelector<HTMLElement>('#detalle-error')!;
     const recuperacion = document.querySelector<HTMLElement>('#programa-recuperacion')!;
     
     estado.textContent = 'Cargando programa…';
     error.hidden = true;
     recuperacion.hidden = true;
+    raiz.setAttribute('aria-busy', 'true');
+    contenido.hidden = true;
+    document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = true;
+    document.querySelector<HTMLElement>('#eliminar-programa-panel')!.hidden = true;
+    document.querySelector<HTMLElement>('#programa-confirmacion')!.hidden = true;
+    ++secuenciaImagen;
+    imagen.hidden = true;
+    imagen.removeAttribute('src');
+    imagenRecuperacion.hidden = true;
 
     try {
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raiz.dataset.id!)) {
+      if (!obtenerProgramaPorIdSchema.safeParse({ id_programa: raiz.dataset.id }).success) {
         throw new ErrorSolicitudPrograma('NO_ENCONTRADO', 'Programa no encontrado.');
       }
       const programa = await obtenerPrograma(raiz.dataset.id!);
@@ -109,11 +166,11 @@ const secciones = [
       document.querySelector('#programa-breadcrumb')!.textContent = programa.nombre;
       
       raiz.querySelectorAll<HTMLElement>('[data-campo]').forEach(el => { 
-        el.textContent = String((programa as any)[el.dataset.campo as string] || 'Sin referencias registradas.'); 
+        el.textContent = String(programa[el.dataset.campo as keyof typeof programa] || 'Sin referencias registradas.');
       });
 
-      document.querySelector('#detalle-componentes')!.textContent = (programa as any).componentes_linea_accion || '';
-      document.querySelector('#detalle-resultados')!.textContent = (programa as any).resultados_esperados || '';
+      document.querySelector('#detalle-componentes')!.textContent = programa.componentes_linea_accion || '';
+      document.querySelector('#detalle-resultados')!.textContent = programa.resultados_esperados || '';
       
       const lineas = document.querySelector('#detalle-lineas')!;
       lineas.replaceChildren();
@@ -132,9 +189,11 @@ const secciones = [
       if (new URLSearchParams(window.location.search).get('resultado') === 'guardado') {
         confirmacion.textContent = 'Programa guardado correctamente.';
         confirmacion.hidden = false;
+        history.replaceState(null, '', `/programas/${programa.id_programa}`);
       }
 
-      document.querySelector<HTMLElement>('#detalle-contenido')!.hidden = false;
+      contenido.hidden = false;
+      document.title = `${programa.nombre} | Programas`;
       estado.textContent = '';
       
       const roles = await getUserRoles();
@@ -143,7 +202,9 @@ const secciones = [
         document.querySelector<HTMLElement>('#eliminar-programa-panel')!.hidden = false;
         const boton = document.querySelector<HTMLButtonElement>('#eliminar-programa')!;
         const mensaje = document.querySelector<HTMLElement>('#eliminar-estado')!;
-        boton.addEventListener('click', async () => {
+        boton.disabled = false;
+        mensaje.textContent = '';
+        boton.onclick = async () => {
           if (boton.disabled || !confirm(`¿Eliminar «${programa.nombre}» del catálogo activo? Sus planes y archivos se conservarán.`)) return;
           boton.disabled = true;
           mensaje.textContent = 'Eliminando programa…';
@@ -157,22 +218,19 @@ const secciones = [
             mensaje.textContent = error instanceof Error ? error.message : 'No se pudo eliminar el programa.';
             boton.disabled = false;
           }
-        });
+        };
       }
-      try {
-        const imagen = await obtenerImagen(programa.id_programa);
-        if (imagen) { const el = document.querySelector<HTMLImageElement>('#detalle-imagen')!; el.src = imagen; el.hidden = false; }
-      } catch {
-        document.querySelector<HTMLImageElement>('#detalle-imagen')!.hidden = true;
-      }
+      void cargarImagen();
     } catch (fallo) { 
       const inexistente = fallo instanceof ErrorSolicitudPrograma && fallo.codigo === 'NO_ENCONTRADO';
       estado.textContent = inexistente ? 'Programa no encontrado' : 'No fue posible cargar el programa';
       error.textContent = fallo instanceof Error ? fallo.message : 'Vuelve a intentarlo.';
       error.hidden = false; recuperacion.hidden = inexistente;
+      contenido.hidden = true;
       document.title = estado.textContent;
     } finally {
       cargando = false; recargar.disabled = false;
+      raiz.setAttribute('aria-busy', 'false');
     }
   }
 
