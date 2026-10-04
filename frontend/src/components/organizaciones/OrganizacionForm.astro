@@ -243,7 +243,10 @@ const tiposOrganizacion = [
   import { actions, getActionPath } from 'astro:actions';
   import { parse } from 'devalue';
   import type { RespuestaActionOrganizacion } from '../../actions/organizaciones/organizaciones.handler';
-  import { actualizarOrganizacionSchema } from '../../actions/organizaciones/organizaciones.schema';
+  import {
+    actualizarOrganizacionSchema,
+    crearOrganizacionSchema,
+  } from '../../actions/organizaciones/organizaciones.schema';
   import type { Organizacion } from '../../lib/server/organizaciones';
 
   const form = document.querySelector<HTMLFormElement>(
@@ -519,32 +522,44 @@ const tiposOrganizacion = [
     error!.hidden = true;
     recuperacion!.hidden = true;
 
-    if (!esEdicion) {
-      mostrarError(
-        'No fue posible guardar la organización',
-        'La creación de organizaciones aún no está conectada al formulario.',
-      );
-      return;
-    }
+    let rutaAction = '';
+    let cuerpoPeticion = '';
 
-    const validacion = actualizarOrganizacionSchema.safeParse({
-      id_organizacion: idOrganizacion,
-      version_esperada: versionActual,
-      cambios: obtenerCambiosFormulario(),
-    });
+    if (esEdicion) {
+      const validacion = actualizarOrganizacionSchema.safeParse({
+        id_organizacion: idOrganizacion,
+        version_esperada: versionActual,
+        cambios: obtenerCambiosFormulario(),
+      });
 
-    if (!validacion.success) {
-      mostrarError(
-        'Revisa los datos ingresados',
-        validacion.error.issues[0]?.message ??
-          'Hay campos que no cumplen el formato solicitado.',
-      );
-      return;
+      if (!validacion.success) {
+        mostrarError(
+          'Revisa los datos ingresados',
+          validacion.error.issues[0]?.message ??
+            'Hay campos que no cumplen el formato solicitado.',
+        );
+        return;
+      }
+      rutaAction = getActionPath(actions.actualizarOrganizacion);
+      cuerpoPeticion = JSON.stringify(validacion.data);
+    } else {
+      const validacion = crearOrganizacionSchema.safeParse(obtenerCambiosFormulario());
+
+      if (!validacion.success) {
+        mostrarError(
+          'Revisa los datos ingresados',
+          validacion.error.issues[0]?.message ??
+            'Hay campos que no cumplen el formato solicitado.',
+        );
+        return;
+      }
+      rutaAction = getActionPath(actions.crearOrganizacion);
+      cuerpoPeticion = JSON.stringify(validacion.data);
     }
 
     if (!supabase) {
       mostrarError(
-        'No fue posible guardar los cambios',
+        'No fue posible guardar',
         'Faltan las variables públicas de configuración de Supabase.',
       );
       return;
@@ -554,7 +569,7 @@ const tiposOrganizacion = [
     campos!.disabled = true;
     guardar!.disabled = true;
     guardar!.textContent = 'Guardando...';
-    estado!.textContent = 'Guardando cambios...';
+    estado!.textContent = esEdicion ? 'Guardando cambios...' : 'Creando organización...';
     form!.setAttribute('aria-busy', 'true');
 
     try {
@@ -566,7 +581,7 @@ const tiposOrganizacion = [
       }
 
       const respuesta = await fetch(
-        getActionPath(actions.actualizarOrganizacion),
+        rutaAction,
         {
           method: 'POST',
           headers: {
@@ -574,7 +589,7 @@ const tiposOrganizacion = [
             Authorization: `Bearer ${data.session.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(validacion.data),
+          body: cuerpoPeticion,
         },
       );
 
@@ -596,9 +611,9 @@ const tiposOrganizacion = [
         throw new Error(resultado.mensaje);
       }
 
-      estado!.textContent = 'Organización actualizada correctamente.';
+      estado!.textContent = esEdicion ? 'Organización actualizada correctamente.' : 'Organización creada correctamente.';
       window.location.replace(
-        `/organizaciones/${encodeURIComponent(resultado.datos.id_organizacion)}?resultado=actualizado`,
+        `/organizaciones/${encodeURIComponent(resultado.datos.id_organizacion)}?resultado=${esEdicion ? 'actualizado' : 'creado'}`,
       );
     } catch (fallo) {
       const mensaje =
