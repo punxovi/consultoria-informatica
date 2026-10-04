@@ -30,7 +30,7 @@ const servidor = createServer(async (req, res) => {
       const id = url.searchParams.get('id_programa')?.replace(/^eq\./, '');
       const consulta = await comoUsuario(db, rol, tx => tx.query(
         `SELECT * FROM public.${tabla} WHERE archived_at IS NULL ${id ? 'AND id_programa = $1' : ''}
-          ORDER BY ${tabla === 'programas' ? 'nombre, id_programa' : 'created_at, id_linea_accion'}`,
+          ORDER BY ${tabla === 'programas' ? 'nombre, id_programa' : 'orden, created_at, id_linea_accion'}`,
         id ? [id] : [],
       ));
       responder(200, consulta.rows.map(fila => ({ ...fila, version: Number(fila.version) }))); return;
@@ -58,3 +58,6 @@ const cerrar = async () => {
 };
 process.on('SIGTERM', cerrar);
 process.on('SIGINT', cerrar);
+process.on('message', mensaje => { if (mensaje.tipo === 'cerrar') void cerrar(); });
+process.on('disconnect', cerrar);
+process.send?.({ tipo: 'listo' });

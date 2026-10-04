@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,24,'Se esperaban veinticuatro migraciones');
+assert.equal(files.length,25,'Se esperaban veinticinco migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([

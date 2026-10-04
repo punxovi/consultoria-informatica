@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { before, after, it } from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { crearBaseProgramas, guardar, comoUsuario, usuarios } from '../helpers/programas-db.mjs';
 
 let db;
@@ -11,6 +12,43 @@ const entrada = () => ({
     { linea_accion: 'Formación', resultado_esperado: 'Equipo capacitado' },
     { linea_accion: 'Acompañamiento', resultado_esperado: 'Organización fortalecida' },
   ],
+});
+
+it('conserva el orden de las líneas al crear, modificar, agregar y retirar', async () => {
+  const lineas = Array.from({ length: 10 }, (_, i) => ({
+    linea_accion: `Línea ${i + 1}`, resultado_esperado: `Resultado ${i + 1}`,
+  }));
+  const creado = await guardar(db, { ...entrada(), lineas_accion: lineas });
+  const pares = filas => filas.map(({ linea_accion, resultado_esperado }) => ({ linea_accion, resultado_esperado }));
+  assert.deepEqual(pares(creado.lineas_accion), lineas);
+  const reordenadas = [
+    lineas[7], { ...lineas[0], resultado_esperado: 'Resultado actualizado' },
+    { linea_accion: 'Línea agregada', resultado_esperado: 'Resultado nuevo' }, lineas[3],
+  ];
+  const actualizado = await guardar(db, { lineas_accion: reordenadas }, creado.id_programa, creado.version);
+  assert.deepEqual(pares(actualizado.lineas_accion), reordenadas);
+  const consulta = await comoUsuario(db, 'COORD', tx => tx.query(
+    'SELECT * FROM public.programa_lineas_accion WHERE id_programa = $1 AND archived_at IS NULL ORDER BY orden, created_at, id_linea_accion',
+    [creado.id_programa],
+  ));
+  assert.deepEqual(pares(consulta.rows), reordenadas);
+  assert.equal(actualizado.componentes_linea_accion, reordenadas.map(l => l.linea_accion).join('\n'));
+  assert.equal(actualizado.resultados_esperados, reordenadas.map(l => l.resultado_esperado).join('\n'));
+});
+
+it('la migración de orden conserva datos existentes, identidades y archivo lógico', async () => {
+  const anterior = await crearBaseProgramas({ ordenLineas: false });
+  try {
+    const programa = await guardar(anterior, entrada());
+    await anterior.query('UPDATE public.programa_lineas_accion SET archived_at = now() WHERE id_linea_accion = $1',
+      [programa.lineas_accion[0].id_linea_accion]);
+    const seleccionar = orden => anterior.query(`SELECT id_linea_accion, linea_accion, resultado_esperado, archived_at
+      FROM public.programa_lineas_accion WHERE id_programa = $1 ORDER BY ${orden}`, [programa.id_programa]);
+    const antes = await seleccionar('created_at, id_linea_accion');
+    await anterior.exec(await readFile(new URL('../../../supabase/migrations/20261003200000_fge_programas_orden_lineas.sql', import.meta.url), 'utf8'));
+    assert.deepEqual((await seleccionar('orden')).rows, antes.rows);
+    await assert.rejects(anterior.query('UPDATE public.programa_lineas_accion SET orden = -1'), error => error.code === '23514');
+  } finally { await anterior.close(); }
 });
 
 it('crea, consulta y actualiza pares con auditoría y versión', async () => {

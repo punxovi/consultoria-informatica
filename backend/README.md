@@ -11,6 +11,9 @@ Las lecturas consultan programas y líneas activos. Las escrituras usan
 `public.guardar_programa_completo(jsonb, uuid, bigint)`, una RPC con permisos
 del invocador que guarda todo en una transacción y controla la versión esperada.
 Requiere la migración `20260925120000_fge_guardar_programa_completo.sql`.
+La versión actual requiere también las migraciones posteriores hasta
+`20261003200000_fge_programas_orden_lineas.sql`, que conserva el orden de las
+líneas mediante su campo `orden` y actualiza la RPC con permisos del invocador.
 
 Los errores de dominio incluyen `NO_ENCONTRADO`, `CONFLICTO_CONCURRENCIA`,
 `SIN_PERMISO`, `RESTRICCION_INCUMPLIDA` y `ERROR_BASE_DATOS`. Zod entrega

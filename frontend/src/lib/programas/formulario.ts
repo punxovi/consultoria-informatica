@@ -21,8 +21,9 @@ function iniciar(form: HTMLFormElement) {
   const quitarContenedor = document.querySelector<HTMLElement>('#quitar-imagen-contenedor');
   const imagenCambio = document.querySelector<HTMLElement>('#imagen-cambio');
   
-  const id = form.dataset.id || '';
+  let id = form.dataset.id || '';
   let version: number | undefined;
+  let ultimoContenidoGuardado: string | null = null;
   let permiteSinLineas = false;
   let modificado = false;
   let ocupado = false;
@@ -35,6 +36,21 @@ function iniciar(form: HTMLFormElement) {
   
   const nombres = ['nombre', 'objetivo_general', 'objetivos_especificos', 'descripcion', 'referencias_ods', 'referencias_esg'] as const;
   const campo = (nombre: string) => form.elements.namedItem(nombre) as HTMLInputElement | HTMLTextAreaElement | null;
+
+  function restablecerImagen() {
+    ++secuenciaImagen;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = '';
+    imagenPendiente = null;
+    imagenGuardadaUrl = null;
+    quitarImagenPendiente = false;
+    imagenInvalida = false;
+    if (imagen) imagen.value = '';
+    if (preview) { preview.hidden = true; preview.removeAttribute('src'); }
+    if (quitarContenedor) quitarContenedor.hidden = true;
+    if (imagenCambio) imagenCambio.textContent = '';
+    guardar.disabled = false;
+  }
 
   function limpiarErrores() {
     errores.classList.add('hidden');
@@ -153,6 +169,7 @@ function iniciar(form: HTMLFormElement) {
     });
 
     imagen.addEventListener('change', async () => {
+      limpiarErrores();
       const solicitud = ++secuenciaImagen;
       imagenPendiente = null;
       imagenInvalida = false;
@@ -219,21 +236,32 @@ function iniciar(form: HTMLFormElement) {
     let guardado = false;
     try {
       const datos = validacion.data;
-      const programa = 'id_programa' in datos ? await actualizarPrograma(datos) : await crearPrograma(datos);
-      
-      let nuevoId = programa.id_programa;
+      const contenido = JSON.stringify('id_programa' in datos ? datos.cambios : datos);
+      // Si solo falló la imagen, reintentar esa fase sin volver a guardar los textos.
+      // Si el usuario los cambió, se actualiza el mismo programa con su nueva versión.
+      if (contenido !== ultimoContenidoGuardado) {
+        const programa = 'id_programa' in datos ? await actualizarPrograma(datos) : await crearPrograma(datos);
+        id = programa.id_programa;
+        version = programa.version;
+        permiteSinLineas = programa.lineas_accion.length === 0;
+        numerar();
+        form.dataset.id = id;
+        ultimoContenidoGuardado = contenido;
+        history.replaceState(null, '', `/programas/${id}/editar`);
+        document.querySelector('#programa-form-titulo')!.textContent = 'Editar programa';
+      }
       
       if (imagenPendiente) {
         estado.textContent = 'Programa guardado. Subiendo imagen…';
-        await guardarImagen(nuevoId, imagenPendiente, imagen?.files?.[0]?.name || 'imagen.webp');
+        await guardarImagen(id, imagenPendiente, imagen?.files?.[0]?.name || 'imagen.webp');
       } else if (quitarImagenPendiente) {
         estado.textContent = 'Programa guardado. Quitando imagen…';
-        await quitarImagen(nuevoId);
+        await quitarImagen(id);
       }
       
       modificado = false; ocupado = false; guardado = true;
       estado.textContent = 'Programa guardado correctamente.';
-      window.location.replace(`/programas/${nuevoId}?resultado=guardado`);
+      window.location.replace(`/programas/${id}?resultado=guardado`);
     } catch (error) {
       estado.textContent = '';
       campos.disabled = false;
@@ -267,14 +295,16 @@ function iniciar(form: HTMLFormElement) {
       if (id) {
         const programa = await obtenerPrograma(id);
         version = programa.version;
-        nombres.forEach(nombre => { const c = campo(nombre); if(c) c.value = (programa as any)[nombre] || ''; });
+        ultimoContenidoGuardado = null;
+        restablecerImagen();
+        nombres.forEach(nombre => { const c = campo(nombre); if(c) c.value = programa[nombre] || ''; });
         permiteSinLineas = programa.lineas_accion.length === 0;
         lineas.replaceChildren(); programa.lineas_accion.forEach(nuevaLinea);
         const legado = document.querySelector<HTMLElement>('#programa-legado');
         if (legado) {
           legado.hidden = !permiteSinLineas;
-          document.querySelector('#legado-componentes')!.textContent = (programa as any).componentes_linea_accion || '';
-          document.querySelector('#legado-resultados')!.textContent = (programa as any).resultados_esperados || '';
+          document.querySelector('#legado-componentes')!.textContent = programa.componentes_linea_accion || '';
+          document.querySelector('#legado-resultados')!.textContent = programa.resultados_esperados || '';
         }
         try {
           const url = await obtenerImagen(id);
@@ -284,6 +314,7 @@ function iniciar(form: HTMLFormElement) {
       } else if (!lineas.children.length) {
         nuevaLinea();
       }
+      numerar();
       modificado = false; campos.disabled = false; estado.textContent = '';
     } catch (error) {
       const inexistente = error instanceof ErrorSolicitudPrograma && error.codigo === 'NO_ENCONTRADO';

@@ -46,7 +46,8 @@ describe('operaciones de líneas de acción de Programas', () => {
       ['eq', 'id_programa', linea.id_programa],
     ]);
     assert.ok(cliente.llamadas.some(([tipo, campo]) => tipo === 'is' && campo === 'archived_at'));
-    assert.equal(cliente.llamadas.filter(([tipo]) => tipo === 'order').length, 2);
+    assert.deepEqual(cliente.llamadas.filter(([tipo]) => tipo === 'order').map(([, campo]) => campo),
+      ['orden', 'created_at', 'id_linea_accion']);
   });
 
   it('crea una línea con su resultado esperado sin usar otra tabla', async () => {

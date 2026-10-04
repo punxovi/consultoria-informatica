@@ -5,6 +5,7 @@ export interface LineaAccionPrograma {
   id_programa: string;
   linea_accion: string;
   resultado_esperado: string;
+  orden: number;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -53,6 +54,7 @@ const CAMPOS_LINEA_ACCION = `
   id_programa,
   linea_accion,
   resultado_esperado,
+  orden,
   created_at,
   updated_at,
   created_by,
@@ -107,6 +109,7 @@ export async function listarLineasAccionPrograma(
     .select(CAMPOS_LINEA_ACCION)
     .eq('id_programa', idPrograma)
     .is('archived_at', null)
+    .order('orden', { ascending: true })
     .order('created_at', { ascending: true })
     .order('id_linea_accion', { ascending: true });
 
