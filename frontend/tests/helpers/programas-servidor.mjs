@@ -3,6 +3,8 @@
 import { createServer } from 'node:http';
 import { dev } from 'astro';
 import { crearBaseProgramas, comoUsuario, guardar } from './programas-db.mjs';
+import { createProgramsServer } from '../../../backend/services/programs/src/server.ts';
+import { createGatewayServer } from '../../../backend/gateway/src/server.ts';
 
 const db = await crearBaseProgramas();
 const servidor = createServer(async (req, res) => {
@@ -43,6 +45,15 @@ const servidor = createServer(async (req, res) => {
 await new Promise(resolve => servidor.listen(54329, '127.0.0.1', resolve));
 process.env.PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54329';
 process.env.PUBLIC_SUPABASE_ANON_KEY = 'qa-anon-key';
+process.env.SUPABASE_URL = process.env.PUBLIC_SUPABASE_URL;
+process.env.SUPABASE_ANON_KEY = process.env.PUBLIC_SUPABASE_ANON_KEY;
+const programas = createProgramsServer();
+await new Promise(resolve => programas.listen(4103, '127.0.0.1', resolve));
+const gateway = createGatewayServer({
+  allowedOrigins: ['http://127.0.0.1:4326'],
+  targets: { programs: 'http://127.0.0.1:4103' },
+});
+await new Promise(resolve => gateway.listen(4000, '127.0.0.1', resolve));
 const astro = await dev({ server: { host: '127.0.0.1', port: 4326 } });
 let cerrando = false;
 const cerrar = async () => {
@@ -51,8 +62,14 @@ const cerrar = async () => {
   const salidaForzada = setTimeout(() => process.exit(0), 1500);
   salidaForzada.unref();
   servidor.closeAllConnections?.();
+  gateway.closeAllConnections?.();
+  programas.closeAllConnections?.();
   await astro.stop().catch(() => {});
-  await new Promise(resolve => servidor.close(resolve));
+  await Promise.all([
+    new Promise(resolve => servidor.close(resolve)),
+    new Promise(resolve => gateway.close(resolve)),
+    new Promise(resolve => programas.close(resolve)),
+  ]);
   await db.close().catch(() => {});
   process.exit(0);
 };

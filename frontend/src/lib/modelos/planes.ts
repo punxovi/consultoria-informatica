@@ -17,6 +17,7 @@ export interface Plan {
   objetivos_especificos: string;
   resultado_esperado: string;
   responsable_nombre: string;
+  periodo_anual: number;
   fecha_inicio: string;
   fecha_termino: string;
   created_at: string;

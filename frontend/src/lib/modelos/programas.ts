@@ -3,6 +3,7 @@ export interface LineaAccionPrograma {
   id_programa: string;
   linea_accion: string;
   resultado_esperado: string;
+  orden: number;
   created_at: string;
   updated_at: string;
   created_by: string | null;

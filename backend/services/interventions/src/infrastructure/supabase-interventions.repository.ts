@@ -7,7 +7,7 @@ interface RepositoryOptions { supabaseUrl: string; anonKey: string; fetchImpl?: 
 const PLAN_FIELDS = [
   'id_plan', 'id_organizacion', 'id_programa', 'nombre', 'situacion_necesidad',
   'objetivo_general', 'objetivos_especificos', 'resultado_esperado', 'responsable_nombre',
-  'fecha_inicio', 'fecha_termino', 'created_at', 'updated_at', 'created_by', 'updated_by',
+  'periodo_anual', 'fecha_inicio', 'fecha_termino', 'created_at', 'updated_at', 'created_by', 'updated_by',
   'archived_at', 'version',
   'organizacion:organizaciones!planes_id_organizacion_fkey(id:id_organizacion,id_pais,nombre)',
   'programa:programas!planes_id_programa_fkey(id:id_programa,nombre)',
@@ -15,7 +15,7 @@ const PLAN_FIELDS = [
 
 const ACTION_FIELDS = [
   'id_accion', 'id_plan', 'nombre', 'responsable_nombre', 'fecha_inicio', 'fecha_termino',
-  'estado', 'observacion_motivo', 'resultado_esperado', 'created_at', 'updated_at',
+  'estado', 'descripcion', 'observacion_motivo', 'resultado_esperado', 'created_at', 'updated_at',
   'created_by', 'updated_by', 'archived_at', 'version',
   'plan:planes!acciones_id_plan_fkey(id_plan,id_organizacion,id_programa,nombre)',
 ].join(',');
@@ -40,6 +40,14 @@ function databaseError(kind: 'plan' | 'action', status: number, body: unknown): 
         ? 'Revisa las fechas y los campos obligatorios del plan.'
         : 'Revisa las fechas, el estado y los campos obligatorios de la acción.',
       400,
+      detail,
+    );
+  }
+  if (code === '40001') {
+    return new ServiceError(
+      'CONFLICTO_CONCURRENCIA',
+      'El registro cambió o ya fue eliminado. Recarga antes de volver a intentarlo.',
+      409,
       detail,
     );
   }
@@ -106,18 +114,30 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
     return body.map(action);
   }
 
+  async function archiveRecord(kind: 'plan' | 'action', token: string, id: string, version: number): Promise<void> {
+    await request(kind, `rpc/archivar_${kind === 'plan' ? 'plan' : 'accion'}_seguro`, token, {
+      method: 'POST',
+      headers: { prefer: 'return=minimal' },
+      body: JSON.stringify({ p_id: id, p_version: version }),
+    });
+  }
+
   const plans: PlansRepository = {
     list(token, filters: PlanFilters) {
       const params = new URLSearchParams({ order: 'fecha_inicio.desc' });
       if (!filters.includeArchived) params.set('archived_at', 'is.null');
       if (filters.organizationId) params.set('id_organizacion', `eq.${filters.organizationId}`);
       if (filters.programId) params.set('id_programa', `eq.${filters.programId}`);
+      if (filters.annualPeriod !== undefined) params.set('periodo_anual', `eq.${filters.annualPeriod}`);
       return planRows(token, params);
     },
     async getById(token, id) {
       const rows = await planRows(token, new URLSearchParams({ id_plan: `eq.${id}`, archived_at: 'is.null', limit: '1' }));
       if (!rows[0]) throw new ServiceError('NO_ENCONTRADO', 'El plan solicitado no existe.', 404);
       return rows[0];
+    },
+    archive(token, id, version) {
+      return archiveRecord('plan', token, id, version);
     },
     async create(token, fields) {
       const rows = await planRows(token, new URLSearchParams(), {
@@ -161,6 +181,9 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
       if (!rows[0]) throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible crear la acción.', 502);
       return rows[0];
     },
+    archive(token, id, version) {
+      return archiveRecord('action', token, id, version);
+    },
     async update(token, id, input: UpdateActionInput) {
       const params = new URLSearchParams({ id_accion: `eq.${id}`, archived_at: 'is.null' });
       if (input.expectedVersion !== undefined) params.set('version', `eq.${input.expectedVersion}`);
@@ -184,8 +207,8 @@ function unavailableRepositories(): { plans: PlansRepository; actions: ActionsRe
     throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Intervenciones no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.', 503);
   };
   return {
-    plans: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable },
-    actions: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable },
+    plans: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable, archive: unavailable },
+    actions: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable, archive: unavailable },
   };
 }
 

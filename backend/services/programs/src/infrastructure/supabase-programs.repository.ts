@@ -22,7 +22,7 @@ const PROGRAM_FIELDS = [
 
 const LINE_FIELDS = [
   'id_linea_accion', 'id_programa', 'linea_accion', 'resultado_esperado',
-  'created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at', 'version',
+  'orden', 'created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at', 'version',
 ].join(',');
 
 function record(value: unknown): Record<string, unknown> {
@@ -121,7 +121,7 @@ export function createSupabaseProgramsRepository(options: RepositoryOptions): Pr
       select: LINE_FIELDS,
       id_programa: `eq.${programId}`,
       archived_at: 'is.null',
-      order: 'created_at.asc,id_linea_accion.asc',
+      order: 'orden.asc,id_linea_accion.asc',
     });
     const body = await request(`programa_lineas_accion?${params}`, accessToken);
     if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió líneas inválidas.', 502);

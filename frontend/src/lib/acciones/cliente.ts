@@ -2,11 +2,12 @@ import type { ActualizarAccionInput, CrearAccionInput } from '../validaciones/ac
 import type { Accion, EstadoAccion } from '../modelos/acciones';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
+import { ErrorSolicitudPlan } from '../planes/transporte';
 
 const API_BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
 const transport = createApiTransport(API_BASE_URL);
-export class ErrorSolicitudAccion extends Error {
-  constructor(readonly codigo: string, message: string) { super(message); this.name = 'ErrorSolicitudAccion'; }
+export class ErrorSolicitudAccion extends ErrorSolicitudPlan {
+  constructor(codigo: string, message: string) { super(codigo, message); this.name = 'ErrorSolicitudAccion'; }
 }
 
 async function token(): Promise<string> {

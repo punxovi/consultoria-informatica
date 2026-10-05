@@ -1,7 +1,6 @@
 export type EstadoAccion =
   | 'no_iniciada'
   | 'en_desarrollo'
-  | 'atrasada'
   | 'cancelada'
   | 'cumplida';
 
@@ -20,6 +19,7 @@ export interface Accion {
   fecha_inicio: string;
   fecha_termino: string;
   estado: EstadoAccion;
+  descripcion: string | null;
   observacion_motivo: string | null;
   resultado_esperado: string | null;
   created_at: string;

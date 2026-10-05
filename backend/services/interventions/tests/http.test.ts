@@ -13,11 +13,11 @@ const action = { id_accion: actionId, id_plan: planId, nombre: 'Acción QA' };
 const application: InterventionsApplication = {
   plans: {
     async list() { return [plan] as never; }, async getById() { return plan as never; },
-    async create() { return plan as never; }, async update() { return plan as never; },
+    async create() { return plan as never; }, async update() { return plan as never; }, async archive() {},
   },
   actions: {
     async list() { return [action] as never; }, async getById() { return action as never; },
-    async create() { return action as never; }, async update() { return action as never; },
+    async create() { return action as never; }, async update() { return action as never; }, async archive() {},
   },
 };
 let server: Server;
@@ -36,7 +36,7 @@ after(async () => new Promise<void>((resolve) => server.close(() => resolve())))
 const validPlan = {
   id_organizacion: orgId, id_programa: programId, nombre: 'Plan QA', situacion_necesidad: 'Necesidad',
   objetivo_general: 'Objetivo', objetivos_especificos: 'Objetivos', resultado_esperado: 'Resultado',
-  responsable_nombre: 'Responsable', fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31',
+  responsable_nombre: 'Responsable', periodo_anual: 2026, fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31',
 };
 const validAction = {
   id_plan: planId, nombre: 'Acción QA', responsable_nombre: 'Responsable',
@@ -56,6 +56,9 @@ describe('servicio HTTP de Intervenciones', () => {
     assert.equal((await fetch(`${baseUrl}/v1/plans/${planId}`, {
       method: 'PATCH', headers, body: JSON.stringify({ version_esperada: 1, cambios: { nombre: 'Plan editado' } }),
     })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/v1/plans/${planId}`, {
+      method: 'DELETE', headers, body: JSON.stringify({ version_esperada: 2 }),
+    })).status, 200);
   });
   test('expone CRUD disponible de Acciones', async () => {
     assert.equal((await fetch(`${baseUrl}/v1/actions?id_plan=${planId}`, { headers })).status, 200);
@@ -63,6 +66,9 @@ describe('servicio HTTP de Intervenciones', () => {
     assert.equal((await fetch(`${baseUrl}/v1/actions`, { method: 'POST', headers, body: JSON.stringify(validAction) })).status, 201);
     assert.equal((await fetch(`${baseUrl}/v1/actions/${actionId}`, {
       method: 'PATCH', headers, body: JSON.stringify({ cambios: { estado: 'cumplida' } }),
+    })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/v1/actions/${actionId}`, {
+      method: 'DELETE', headers, body: JSON.stringify({ version_esperada: 2 }),
     })).status, 200);
   });
   test('rechaza entradas inválidas antes de persistir', async () => {

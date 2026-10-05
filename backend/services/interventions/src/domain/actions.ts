@@ -1,19 +1,19 @@
 import { booleanQuery, date, expectedVersion, invalid, objectInput, optionalText, requiredText, uuid } from './validation.ts';
 
-export const ACTION_STATES = ['no_iniciada', 'en_desarrollo', 'atrasada', 'cancelada', 'cumplida'] as const;
+export const ACTION_STATES = ['no_iniciada', 'en_desarrollo', 'cancelada', 'cumplida'] as const;
 export type ActionState = typeof ACTION_STATES[number];
 export interface ActionPlanSummary { id_plan: string; id_organizacion: string; id_programa: string; nombre: string }
 export interface InterventionAction {
   id_accion: string; id_plan: string; nombre: string; responsable_nombre: string;
   fecha_inicio: string; fecha_termino: string; estado: ActionState;
-  observacion_motivo: string | null; resultado_esperado: string | null;
+  descripcion: string | null; observacion_motivo: string | null; resultado_esperado: string | null;
   created_at: string; updated_at: string; created_by: string | null; updated_by: string | null;
   archived_at: string | null; version: number; plan: ActionPlanSummary;
 }
 export interface ActionFields {
   id_plan: string; nombre: string; responsable_nombre: string; fecha_inicio: string;
   fecha_termino: string; estado: ActionState; observacion_motivo?: string | null;
-  resultado_esperado?: string | null;
+  descripcion?: string | null; resultado_esperado?: string | null;
 }
 export interface ActionFilters { planId?: string; state?: ActionState; includeArchived: boolean }
 export interface UpdateActionInput { expectedVersion?: number; changes: Partial<ActionFields> }
@@ -22,11 +22,12 @@ export interface ActionsRepository {
   getById(token: string, id: string): Promise<InterventionAction>;
   create(token: string, fields: ActionFields): Promise<InterventionAction>;
   update(token: string, id: string, input: UpdateActionInput): Promise<InterventionAction>;
+  archive(token: string, id: string, expectedVersion: number): Promise<void>;
 }
 
 const FIELDS = [
   'id_plan', 'nombre', 'responsable_nombre', 'fecha_inicio', 'fecha_termino',
-  'estado', 'observacion_motivo', 'resultado_esperado',
+  'estado', 'descripcion', 'observacion_motivo', 'resultado_esperado',
 ] as const;
 type Field = typeof FIELDS[number];
 
@@ -43,6 +44,7 @@ function parseField(name: Field, value: unknown): ActionFields[Field] {
     case 'fecha_inicio': return date(value, 'La fecha de inicio');
     case 'fecha_termino': return date(value, 'La fecha de término');
     case 'estado': return state(value);
+    case 'descripcion': return optionalText(value, 'La descripción', 5000);
     case 'observacion_motivo': return optionalText(value, 'La observación o motivo', 3000);
     case 'resultado_esperado': return optionalText(value, 'El resultado esperado', 5000);
   }
@@ -62,7 +64,7 @@ export function parseActionFields(value: unknown): ActionFields {
   const result: Record<string, unknown> = {};
   for (const name of FIELDS) {
     if (name === 'estado' && input[name] === undefined) result[name] = 'no_iniciada';
-    else if ((name === 'observacion_motivo' || name === 'resultado_esperado') && input[name] === undefined) result[name] = null;
+    else if ((name === 'descripcion' || name === 'observacion_motivo' || name === 'resultado_esperado') && input[name] === undefined) result[name] = null;
     else result[name] = parseField(name, input[name]);
   }
   validateRules(result as Partial<ActionFields>);

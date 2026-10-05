@@ -5,7 +5,7 @@ import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type { InterventionsApplication } from '../application/interventions-service.ts';
 import { parseActionFields, parseActionFilters, parseActionUpdate } from '../domain/actions.ts';
 import { parsePlanFields, parsePlanFilters, parsePlanUpdate } from '../domain/plans.ts';
-import { uuid } from '../domain/validation.ts';
+import { expectedVersion, invalid, objectInput, uuid } from '../domain/validation.ts';
 import { readJsonBody } from './body.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -22,6 +22,13 @@ function tokenFrom(request: IncomingMessage): string {
   return context.accessToken;
 }
 
+function parseArchiveInput(value: unknown): number {
+  const input = objectInput(value, ['version_esperada']);
+  const version = expectedVersion(input.version_esperada);
+  if (version === undefined) return invalid('La versión esperada es obligatoria.');
+  return version;
+}
+
 export async function routeInterventions(
   request: IncomingMessage,
   response: ServerResponse,
@@ -36,8 +43,8 @@ export async function routeInterventions(
     if (request.method === 'GET' && ['/v1/plans/capabilities', '/v1/actions/capabilities'].includes(url.pathname)) {
       respond(response, 200, success('INTERVENCIONES_MIGRADAS', 'El servicio de Planes y Acciones está disponible.', {
         migrated: true,
-        plans: ['list', 'detail', 'create', 'update'],
-        actions: ['list', 'detail', 'create', 'update'],
+        plans: ['list', 'detail', 'create', 'update', 'archive'],
+        actions: ['list', 'detail', 'create', 'update', 'archive'],
       }), requestId); return;
     }
 
@@ -63,6 +70,10 @@ export async function routeInterventions(
         const plan = await application.plans.update(token, id, parsePlanUpdate(await readJsonBody(request)));
         respond(response, 200, success('PLAN_ACTUALIZADO', 'El plan fue actualizado correctamente.', { plan }), requestId); return;
       }
+      if (request.method === 'DELETE') {
+        await application.plans.archive(token, id, parseArchiveInput(await readJsonBody(request)));
+        respond(response, 200, success('PLAN_ARCHIVADO', 'El plan fue eliminado correctamente.', { id_plan: id }), requestId); return;
+      }
     }
 
     if (url.pathname === '/v1/actions') {
@@ -85,6 +96,10 @@ export async function routeInterventions(
       if (request.method === 'PATCH') {
         const action = await application.actions.update(token, id, parseActionUpdate(await readJsonBody(request)));
         respond(response, 200, success('ACCION_ACTUALIZADA', 'La acción fue actualizada correctamente.', { action }), requestId); return;
+      }
+      if (request.method === 'DELETE') {
+        await application.actions.archive(token, id, parseArchiveInput(await readJsonBody(request)));
+        respond(response, 200, success('ACCION_ARCHIVADA', 'La acción fue eliminada correctamente.', { id_accion: id }), requestId); return;
       }
     }
     respond(response, 404, failure('RUTA_NO_ENCONTRADA', 'La ruta solicitada no existe.', requestId), requestId);

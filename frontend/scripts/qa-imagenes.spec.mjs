@@ -1,7 +1,6 @@
 // QA: UI y Actions reales; PostgreSQL embebido; transporte de archivos simulado.
 // Desde frontend: npx playwright test --config scripts/qa-imagenes.config.mjs
 import { test, expect } from '@playwright/test';
-import { parse } from 'devalue';
 
 const origen = 'http://127.0.0.1:54329';
 
@@ -11,7 +10,10 @@ async function preparar(context) {
     expires_at: Math.floor(Date.now() / 1000) + 3600,
     user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.test', user_metadata: {} },
   })));
-  const estado = {
+  await context.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    ok: true, code: 'SESION_VALIDA', message: 'Sesión de QA válida.',
+    data: { authenticated: true, user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.test' } },
+  } }));  const estado = {
     objetos: new Map(), archivos: [], subidas: [],
     fallarSubida: false, fallarRegistro: false, fallarConsulta: false,
     fallarRetiro: false, fallarLimpieza: false, eliminaciones: 0,
@@ -151,7 +153,7 @@ for (const mime of ['image/gif', 'image/svg+xml', 'application/pdf']) {
     const storage = await preparar(context);
     await nuevo(page, `QA rechazo ${mime}`);
     let creaciones = 0;
-    page.on('request', req => { if (req.url().includes('/_actions/crearPrograma')) creaciones++; });
+    page.on('request', req => { if (req.url().endsWith('/api/v1/programs') && req.method() === 'POST') creaciones++; });
     await page.locator('#imagen').setInputFiles({ name: 'archivo-invalido', mimeType: mime, buffer: Buffer.from('QA') });
     await expect(page.locator('#programa-errores')).toContainText('JPG, PNG o WebP');
     await page.locator('#guardar-programa').click();
@@ -175,15 +177,15 @@ test('reintenta imagen fallida al crear sin duplicar el programa', async ({ page
   await nuevo(page, 'QA reintento creación');
   await seleccionar(page, await imagen(page, 'image/png'));
   let creaciones = 0;
-  page.on('request', req => { if (req.url().includes('/_actions/crearPrograma')) creaciones++; });
+  page.on('request', req => { if (req.url().endsWith('/api/v1/programs') && req.method() === 'POST') creaciones++; });
   storage.fallarSubida = true;
   await page.locator('#guardar-programa').click();
   await expect(page.locator('#programa-errores')).toContainText('imagen no se pudo subir');
   storage.fallarSubida = false;
   await page.locator('#guardar-programa').click();
   await expect(page.locator('#programa-confirmacion')).toBeVisible();
-  const respuesta = await page.request.post('/_actions/listarProgramas', { headers: { Authorization: 'Bearer qa-admin' }, data: {} });
-  const datos = parse(await respuesta.text()).datos;
+  const respuesta = await page.request.get('http://127.0.0.1:4000/api/v1/programs', { headers: { Authorization: 'Bearer qa-admin' } });
+  const datos = (await respuesta.json()).data.programs;
   const duplicados = datos.filter(p => p.nombre === 'QA reintento creación');
   console.log('Reintento creación:', JSON.stringify({ creaciones, programas: duplicados.map(p => p.id_programa) }));
   expect(creaciones, 'El segundo intento debe reutilizar el programa creado').toBe(1);
@@ -198,7 +200,7 @@ test('reintenta imagen fallida al editar usando la versión actualizada', async 
   await page.goto(`${new URL(page.url()).pathname}/editar`);
   await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', false);
   const ediciones = [];
-  page.on('request', req => { if (req.url().includes('/_actions/actualizarPrograma')) ediciones.push(req.postDataJSON()); });
+  page.on('request', req => { if (/\/api\/v1\/programs\/[^/]+$/.test(new URL(req.url()).pathname) && req.method() === 'PATCH') ediciones.push(req.postDataJSON()); });
   await seleccionar(page, await imagen(page, 'image/png'));
   storage.fallarSubida = true;
   await page.locator('#guardar-programa').click();
@@ -288,11 +290,11 @@ test('recargar tras un conflicto descarta también la imagen seleccionada', asyn
   await page.goto(`${ruta}/editar`);
   await expect(page.locator('#programa-campos')).toHaveJSProperty('disabled', false);
   await seleccionar(page, await imagen(page, 'image/png'));
-  const respuesta = await page.request.post('/_actions/actualizarPrograma', {
+  const respuesta = await page.request.patch(`http://127.0.0.1:4000/api/v1/programs/${ruta.split('/')[2]}`, {
     headers: { Authorization: 'Bearer qa-admin' },
-    data: { id_programa: ruta.split('/')[2], version_esperada: 1, cambios: { nombre: 'Cambio de otra sesión' } },
+    data: { version_esperada: 1, cambios: { nombre: 'Cambio de otra sesión' } },
   });
-  expect(parse(await respuesta.text()).ok).toBe(true);
+  expect((await respuesta.json()).ok).toBe(true);
   await page.locator('#guardar-programa').click();
   await expect(page.locator('#programa-errores')).toContainText('otra sesión');
   page.once('dialog', dialog => dialog.accept());

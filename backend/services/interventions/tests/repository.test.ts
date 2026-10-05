@@ -38,6 +38,23 @@ describe('repositorio Supabase de Intervenciones', () => {
     assert.equal(calls[0].method, 'PATCH');
     assert.equal(calls[1].method, 'POST');
   });
+  test('filtra por período y archiva mediante las RPC seguras', async () => {
+    const calls: Array<{ url: string; method?: string; body?: string | null }> = [];
+    const repositories = createSupabaseInterventionsRepositories({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async (input, init) => {
+        const url = String(input); calls.push({ url, method: init?.method, body: init?.body?.toString() });
+        return url.includes('/rpc/') ? Response.json(planId) : Response.json([plan]);
+      },
+    });
+    await repositories.plans.list('token', { annualPeriod: 2026, includeArchived: false });
+    await repositories.plans.archive('token', planId, 3);
+    await repositories.actions.archive('token', action.id_accion, 4);
+    assert.match(calls[0].url, /periodo_anual=eq\.2026/);
+    assert.match(calls[1].url, /rpc\/archivar_plan_seguro/);
+    assert.equal(calls[1].body, JSON.stringify({ p_id: planId, p_version: 3 }));
+    assert.match(calls[2].url, /rpc\/archivar_accion_seguro/);
+  });
   test('traduce relaciones y permisos a errores estables', async () => {
     const foreignKey = createSupabaseInterventionsRepositories({
       supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
