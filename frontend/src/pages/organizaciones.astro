@@ -229,41 +229,40 @@ import Select from '../components/ui/Select.astro';
 </AppLayout>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
-  import { parse } from 'devalue';
-  import type { RespuestaActionOrganizacion } from '../actions/organizaciones/organizaciones.handler';
-  import type { Organizacion } from '../lib/server/organizaciones';
+  import { listarOrganizaciones } from '../lib/organizaciones/cliente';
+  import { listarProgramas } from '../lib/programas/cliente';
+  import type { Organizacion } from '../lib/modelos/organizaciones';
 
   const lista = document.querySelector<HTMLDivElement>(
     '#organizaciones-lista',
-  );
+  )!;
 
   const totalElement = document.querySelector<HTMLParagraphElement>(
     '#total-organizaciones',
-  );
+  )!;
 
   const activasElement = document.querySelector<HTMLParagraphElement>(
     '#organizaciones-activas',
-  );
+  )!;
 
   const inactivasElement = document.querySelector<HTMLParagraphElement>(
     '#organizaciones-inactivas',
-  );
+  )!;
 
   const contadorElement = document.querySelector<HTMLParagraphElement>(
     '#contador-resultados',
-  );
+  )!;
 
   const inputBusqueda = document.querySelector<HTMLInputElement>(
     '#buscar-organizacion',
-  );
+  )!;
 
   const selectPais = document.querySelector<HTMLSelectElement>(
     '#filtro-pais',
-  );
+  )!;
   const selectPrograma = document.querySelector<HTMLSelectElement>(
     '#filtro-programa',
-  );
+  )!;
   const hintPrograma = document.querySelector<HTMLParagraphElement>(
     '#filtro-programa-hint',
   );
@@ -282,15 +281,6 @@ import Select from '../components/ui/Select.astro';
       'No se encontraron los elementos necesarios del listado de organizaciones.',
     );
   }
-
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Faltan las variables de configuración de Supabase.');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   // Dataset completo tal como llegó del backend; los filtros (RF18) se
   // aplican en el cliente sobre esta copia.
@@ -333,13 +323,10 @@ import Select from '../components/ui/Select.astro';
   }
 
   async function cargarProgramasDisponibles() {
-    const { data, error } = await supabase
-      .from('programas')
-      .select('id_programa, nombre')
-      .is('archived_at', null)
-      .order('nombre', { ascending: true });
-
-    if (error) {
+    let programas: Awaited<ReturnType<typeof listarProgramas>>;
+    try {
+      programas = await listarProgramas();
+    } catch {
       if (hintPrograma) {
         hintPrograma.textContent =
           'No se pudo cargar el catálogo de programas. La selección aún no filtra organizaciones.';
@@ -355,7 +342,7 @@ import Select from '../components/ui/Select.astro';
     opcionTodos.textContent = 'Todos los programas';
     selectPrograma.append(opcionTodos);
 
-    for (const programa of data ?? []) {
+    for (const programa of programas) {
       const opcion = document.createElement('option');
       opcion.value = programa.id_programa;
       opcion.textContent = programa.nombre;
@@ -549,38 +536,8 @@ import Select from '../components/ui/Select.astro';
     mostrarMensaje('Cargando organizaciones...');
 
     try {
-      const { data, error } = await supabase.auth.getSession();
-
-      if (error) throw error;
-      if (!data.session) {
-        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
-      }
-
       void cargarProgramasDisponibles();
-
-      const respuesta = await fetch('/_actions/listarOrganizaciones', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!respuesta.ok) {
-        throw new Error('No fue posible consultar las organizaciones.');
-      }
-
-      const resultado = parse(
-        await respuesta.text(),
-      ) as RespuestaActionOrganizacion<Organizacion[]>;
-
-      if (!resultado.ok) {
-        throw new Error(resultado.mensaje);
-      }
-
-      const datos = resultado.datos;
+      const datos = await listarOrganizaciones();
 
       todasLasOrganizaciones = datos;
       actualizarResumen(datos);

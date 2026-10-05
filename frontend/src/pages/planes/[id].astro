@@ -13,7 +13,7 @@ const idPlan = Astro.params.id ?? '';
 <AppLayout title="Detalle del plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
   <Fragment slot="breadcrumb">
     <div class="flex items-center gap-4">
-      <BackButton />
+      <BackButton href="/planes" />
       <a href="/planes" class="text-sm text-neutral-500 hover:text-primary">Planes de Intervención</a>
       <span class="text-neutral-400">›</span>
       <span id="plan-breadcrumb" class="truncate text-sm font-medium text-neutral-900">Detalle</span>

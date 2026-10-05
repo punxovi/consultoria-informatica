@@ -1,4 +1,4 @@
-import { actualizarProgramaSchema, crearProgramaSchema, obtenerProgramaPorIdSchema } from '../../actions/programas/programas.schema';
+import { actualizarProgramaSchema, crearProgramaSchema, obtenerProgramaPorIdSchema } from '../validaciones/programas';
 import { getUserRoles } from '../supabase';
 import { actualizarPrograma, crearPrograma, obtenerPrograma } from './cliente';
 import { guardarImagen, obtenerImagen, optimizarImagen, quitarImagen } from './imagen';

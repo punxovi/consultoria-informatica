@@ -239,15 +239,17 @@ const tiposOrganizacion = [
 </section>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
-  import { actions, getActionPath } from 'astro:actions';
-  import { parse } from 'devalue';
-  import type { RespuestaActionOrganizacion } from '../../actions/organizaciones/organizaciones.handler';
   import {
     actualizarOrganizacionSchema,
     crearOrganizacionSchema,
-  } from '../../actions/organizaciones/organizaciones.schema';
-  import type { Organizacion } from '../../lib/server/organizaciones';
+  } from '../../lib/validaciones/organizaciones';
+  import {
+    actualizarOrganizacion,
+    crearOrganizacion,
+    listarPaisesOrganizaciones,
+    obtenerOrganizacion,
+  } from '../../lib/organizaciones/cliente';
+  import type { Organizacion } from '../../lib/modelos/organizaciones';
 
   const form = document.querySelector<HTMLFormElement>(
     '#form-organizacion',
@@ -277,6 +279,7 @@ const tiposOrganizacion = [
     '#tipo_organizacion_otro',
   );
   const inputTelefono = document.querySelector<HTMLInputElement>('#telefono');
+  const selectPais = document.querySelector<HTMLSelectElement>('#id_pais');
   const guardar = document.querySelector<HTMLButtonElement>(
     '#guardar-organizacion',
   );
@@ -288,20 +291,14 @@ const tiposOrganizacion = [
     !error ||
     !recuperacion ||
     !recargar ||
-    !guardar
+    !guardar ||
+    !selectPais
   ) {
     throw new Error('No se encontraron los elementos del formulario de organización.');
   }
 
   const esEdicion = form.dataset.modo === 'editar';
   const idOrganizacion = form.dataset.id ?? '';
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  const supabase =
-    supabaseUrl && supabaseAnonKey
-      ? createClient(supabaseUrl, supabaseAnonKey)
-      : null;
   let versionActual: number | undefined;
   let guardando = false;
 
@@ -345,25 +342,36 @@ const tiposOrganizacion = [
   }
 
   function seleccionarPais(nombre: string, idPais: string) {
-    const select = form!.querySelector<HTMLSelectElement>('#id_pais');
-    if (!select || !nombre || !idPais) return;
+    if (!nombre || !idPais) return;
 
     const normalizar = (valor: string) =>
       valor.trim().toLocaleLowerCase('es');
 
-    const opcion = Array.from(select.options).find(
+    const opcion = Array.from(selectPais!.options).find(
       (item) => normalizar(item.textContent ?? '') === normalizar(nombre),
     );
 
     if (opcion) {
       opcion.value = idPais;
-      select.value = idPais;
+      selectPais!.value = idPais;
       return;
     }
 
     const nuevaOpcion = new Option(nombre, idPais, true, true);
-    select.add(nuevaOpcion);
-    select.value = idPais;
+    selectPais!.add(nuevaOpcion);
+    selectPais!.value = idPais;
+  }
+
+  async function cargarPaises() {
+    const seleccionPrevia = selectPais!.value;
+    const paises = await listarPaisesOrganizaciones();
+    selectPais!.replaceChildren(new Option('Selecciona un país', '', true, false));
+    for (const pais of paises) {
+      selectPais!.add(new Option(pais.nombre, pais.id_pais));
+    }
+    if (paises.some((pais) => pais.id_pais === seleccionPrevia)) {
+      selectPais!.value = seleccionPrevia;
+    }
   }
 
   function precargarOrganizacion(organizacion: Organizacion) {
@@ -435,14 +443,6 @@ const tiposOrganizacion = [
       return;
     }
 
-    if (!supabase) {
-      mostrarError(
-        'No fue posible cargar la organización',
-        'Faltan las variables públicas de configuración de Supabase.',
-      );
-      return;
-    }
-
     estado!.textContent = 'Cargando organización...';
     error!.hidden = true;
     recuperacion!.hidden = true;
@@ -451,45 +451,8 @@ const tiposOrganizacion = [
     form!.setAttribute('aria-busy', 'true');
 
     try {
-      const { data, error: errorSesion } = await supabase.auth.getSession();
-
-      if (errorSesion) throw errorSesion;
-
-      if (!data.session) {
-        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
-      }
-
-      const respuesta = await fetch('/_actions/obtenerOrganizacionPorId', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id_organizacion: idOrganizacion,
-        }),
-      });
-
-      if (!respuesta.ok) {
-        throw new Error('No fue posible consultar la organización.');
-      }
-
-      const resultado = parse(
-        await respuesta.text(),
-      ) as RespuestaActionOrganizacion<Organizacion>;
-
-      if (!resultado.ok) {
-        mostrarError(
-          resultado.codigo === 'NO_ENCONTRADA'
-            ? 'Organización no encontrada'
-            : 'No fue posible cargar la organización',
-          resultado.mensaje,
-        );
-        return;
-      }
-
-      precargarOrganizacion(resultado.datos);
+      await cargarPaises();
+      precargarOrganizacion(await obtenerOrganizacion(idOrganizacion));
       campos!.disabled = false;
       form!.hidden = false;
       estado!.textContent = '';
@@ -522,45 +485,20 @@ const tiposOrganizacion = [
     error!.hidden = true;
     recuperacion!.hidden = true;
 
-    let rutaAction = '';
-    let cuerpoPeticion = '';
+    const datosFormulario = obtenerCambiosFormulario();
+    const validacion = esEdicion
+      ? actualizarOrganizacionSchema.safeParse({
+          id_organizacion: idOrganizacion,
+          version_esperada: versionActual,
+          cambios: datosFormulario,
+        })
+      : crearOrganizacionSchema.safeParse(datosFormulario);
 
-    if (esEdicion) {
-      const validacion = actualizarOrganizacionSchema.safeParse({
-        id_organizacion: idOrganizacion,
-        version_esperada: versionActual,
-        cambios: obtenerCambiosFormulario(),
-      });
-
-      if (!validacion.success) {
-        mostrarError(
-          'Revisa los datos ingresados',
-          validacion.error.issues[0]?.message ??
-            'Hay campos que no cumplen el formato solicitado.',
-        );
-        return;
-      }
-      rutaAction = getActionPath(actions.actualizarOrganizacion);
-      cuerpoPeticion = JSON.stringify(validacion.data);
-    } else {
-      const validacion = crearOrganizacionSchema.safeParse(obtenerCambiosFormulario());
-
-      if (!validacion.success) {
-        mostrarError(
-          'Revisa los datos ingresados',
-          validacion.error.issues[0]?.message ??
-            'Hay campos que no cumplen el formato solicitado.',
-        );
-        return;
-      }
-      rutaAction = getActionPath(actions.crearOrganizacion);
-      cuerpoPeticion = JSON.stringify(validacion.data);
-    }
-
-    if (!supabase) {
+    if (!validacion.success) {
       mostrarError(
-        'No fue posible guardar',
-        'Faltan las variables públicas de configuración de Supabase.',
+        'Revisa los datos ingresados',
+        validacion.error.issues[0]?.message ??
+          'Hay campos que no cumplen el formato solicitado.',
       );
       return;
     }
@@ -569,51 +507,25 @@ const tiposOrganizacion = [
     campos!.disabled = true;
     guardar!.disabled = true;
     guardar!.textContent = 'Guardando...';
-    estado!.textContent = esEdicion ? 'Guardando cambios...' : 'Creando organización...';
+    estado!.textContent = esEdicion ? 'Guardando cambios...' : 'Guardando organización...';
     form!.setAttribute('aria-busy', 'true');
 
     try {
-      const { data, error: errorSesion } = await supabase.auth.getSession();
+      const organizacion = esEdicion
+        ? await actualizarOrganizacion(
+            idOrganizacion,
+            datosFormulario as Parameters<typeof actualizarOrganizacion>[1],
+            versionActual,
+          )
+        : await crearOrganizacion(
+            datosFormulario as Parameters<typeof crearOrganizacion>[0],
+          );
 
-      if (errorSesion) throw errorSesion;
-      if (!data.session) {
-        throw new Error('Tu sesión ha expirado. Vuelve a iniciar sesión.');
-      }
-
-      const respuesta = await fetch(
-        rutaAction,
-        {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${data.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: cuerpoPeticion,
-        },
-      );
-
-      if (!respuesta.ok) {
-        const detalle = await respuesta.json().catch(() => null);
-        const mensajeValidacion = Array.isArray(detalle?.issues)
-          ? detalle.issues[0]?.message
-          : null;
-        throw new Error(
-          mensajeValidacion ?? 'No fue posible completar la actualización.',
-        );
-      }
-
-      const resultado = parse(
-        await respuesta.text(),
-      ) as RespuestaActionOrganizacion<Organizacion>;
-
-      if (!resultado.ok) {
-        throw new Error(resultado.mensaje);
-      }
-
-      estado!.textContent = esEdicion ? 'Organización actualizada correctamente.' : 'Organización creada correctamente.';
+      estado!.textContent = esEdicion
+        ? 'Organización actualizada correctamente.'
+        : 'Organización creada correctamente.';
       window.location.replace(
-        `/organizaciones/${encodeURIComponent(resultado.datos.id_organizacion)}?resultado=${esEdicion ? 'actualizado' : 'creado'}`,
+        `/organizaciones/${encodeURIComponent(organizacion.id_organizacion)}?resultado=${esEdicion ? 'actualizado' : 'creado'}`,
       );
     } catch (fallo) {
       const mensaje =
@@ -630,12 +542,23 @@ const tiposOrganizacion = [
     } finally {
       guardando = false;
       guardar!.disabled = false;
-      guardar!.textContent = 'Guardar cambios';
+      guardar!.textContent = esEdicion ? 'Guardar cambios' : 'Guardar';
       form!.setAttribute('aria-busy', 'false');
     }
   });
 
   if (esEdicion) {
     void cargarOrganizacion();
+  } else {
+    campos.disabled = true;
+    void cargarPaises()
+      .then(() => { campos.disabled = false; })
+      .catch((fallo) => {
+        mostrarError(
+          'No fue posible preparar el formulario',
+          fallo instanceof Error ? fallo.message : 'No se pudieron cargar los países.',
+          true,
+        );
+      });
   }
 </script>

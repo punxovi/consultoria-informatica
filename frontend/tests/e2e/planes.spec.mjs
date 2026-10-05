@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { stringify } from 'devalue';
 
-// Pruebas de interfaz: las respuestas de Actions están simuladas, sin tocar Supabase.
+// Pruebas de interfaz: las respuestas HTTP de los servicios están simuladas, sin tocar Supabase.
 const id = '17600000-0000-4000-8000-000000000001';
 const datos = {
   id_organizacion: id, id_programa: id, nombre: 'Plan comunitario', periodo_anual: 2026,
@@ -17,18 +16,30 @@ test.beforeEach(async ({ context }) => {
     access_token: 'qa-admin', refresh_token: 'qa-refresh', expires_at: Math.floor(Date.now()/1000)+3600,
     token_type: 'bearer', user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.test', user_metadata: {} },
   })));
-  await context.route('**/_actions/**', async route => {
-    const nombre = new URL(route.request().url()).pathname.split('/').filter(Boolean).pop();
-    const entrada = route.request().postDataJSON();
+  await context.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    ok: true, code: 'SESION_VALIDA', message: 'Sesión de QA válida.',
+    data: { authenticated: true, user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.test' } },
+  } }));
+  await context.route('**/api/v1/{organizations,programs,plans,plans/**}', async route => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const entrada = req.method() === 'GET' ? Object.fromEntries(url.searchParams) : req.postDataJSON();
+    const esDetalle = /^\/api\/v1\/plans\/[^/]+$/.test(url.pathname);
+    const nombre = url.pathname === '/api/v1/organizations' ? 'listarOrganizacionesParaPlan'
+      : url.pathname === '/api/v1/programs' ? 'listarProgramas'
+      : url.pathname === '/api/v1/plans' && req.method() === 'GET' ? 'listarPlanes'
+      : url.pathname === '/api/v1/plans' && req.method() === 'POST' ? 'crearPlan'
+      : esDetalle && req.method() === 'PATCH' ? 'actualizarPlan'
+      : esDetalle ? 'obtenerPlanPorId' : 'desconocido';
     solicitudes.push({ nombre, entrada });
     if (fallo && ['actualizarPlan', 'obtenerPlanPorId'].includes(nombre)) {
-      await route.fulfill({ contentType: 'application/json+devalue', body: stringify({ ok: false, codigo: fallo, mensaje: 'El plan fue modificado por otra sesión. Recarga los datos antes de guardar.', datos: null }) }); return;
+      await route.fulfill({ status: fallo === 'CONFLICTO_CONCURRENCIA' ? 409 : 502, json: { ok: false, error: { code: fallo, message: 'El plan fue modificado por otra sesión. Recarga los datos antes de guardar.' }, data: null } }); return;
     }
     if (nombre === 'actualizarPlan') plan = { ...plan, ...entrada.cambios, version: plan.version + 1 };
-    const respuesta = nombre === 'listarOrganizacionesParaPlan' ? [{ id_organizacion: id, nombre: 'Organización de prueba' }]
-      : nombre === 'listarProgramas' ? [{ id_programa: id, nombre: 'Programa de prueba' }]
-      : nombre === 'listarPlanes' ? [plan] : plan;
-    await route.fulfill({ contentType: 'application/json+devalue', body: stringify({ ok: true, datos: respuesta }) });
+    const data = nombre === 'listarOrganizacionesParaPlan' ? { organizations: [{ id_organizacion: id, nombre: 'Organización de prueba' }] }
+      : nombre === 'listarProgramas' ? { programs: [{ id_programa: id, nombre: 'Programa de prueba' }] }
+      : nombre === 'listarPlanes' ? { plans: [plan] } : { plan };
+    await route.fulfill({ json: { ok: true, code: 'QA_OK', message: 'Respuesta simulada.', data } });
   });
 });
 

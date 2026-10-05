@@ -63,7 +63,7 @@ import Input from '../components/ui/Input.astro';
   </main>
 
   <script>
-    import { actions } from 'astro:actions';
+    import { solicitarRecuperacion } from '../lib/auth/cliente';
 
     const form = document.getElementById('recovery-form') as HTMLFormElement;
     const email = document.getElementById('email') as HTMLInputElement;
@@ -91,10 +91,10 @@ import Input from '../components/ui/Input.astro';
       submit.textContent = 'Enviando...';
       submit.disabled = true;
 
-      const result = await actions.solicitarRecuperacion({ correo: value });
-
-      if (result.error) {
-        showError(error.message);
+      try {
+        await solicitarRecuperacion(value);
+      } catch (error) {
+        showError(error instanceof Error ? error.message : 'No fue posible enviar el enlace de recuperación.');
         submit.textContent = 'Enviar enlace de recuperación';
         submit.disabled = false;
         return;

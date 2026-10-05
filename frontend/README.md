@@ -1,100 +1,57 @@
 # Frontend - Fundación Gestionar Esperanzas
 
-Frontend de la aplicación web de la Fundación Gestionar Esperanzas (FGE).
+Aplicación web Astro de la Fundación Gestionar Esperanzas. El frontend conserva
+las rutas y el diseño del producto y consume el backend mediante el API Gateway
+`/api/v1`.
 
 ## Tecnologías
 
-- Astro
-- Astro Actions
-- TypeScript
-- Node.js
-- npm
-- Zod
+- Astro y TypeScript.
+- Tailwind CSS.
+- Zod para validación inmediata de formularios.
+- Supabase JS para conservar la sesión del navegador y el módulo de archivos.
 
-## Estructura del proyecto
+## Estructura
 
 ```text
-frontend/
-├── public/
-├── src/
-│   ├── assets/
-│   ├── actions/
-│   ├── components/
-│   ├── layouts/
-│   └── pages/
-├── package.json
-├── astro.config.mjs
-└── tsconfig.json
-
-Carpetas principales
-src/pages/: páginas y rutas de la aplicación.
-src/actions/: Actions del servidor, esquemas Zod y lógica asociada.
-src/components/: componentes reutilizables.
-src/layouts/: layouts reutilizables para las páginas.
-src/assets/: recursos utilizados por la aplicación.
-public/: archivos públicos y recursos estáticos.
-
-Instalación
-Desde la carpeta frontend/, ejecutar: npm install
-
-Ejecución local
-Desde la carpeta frontend/, ejecutar: npm run dev
-
-La aplicación estará disponible en: http://localhost:4321/
-
-## Consulta de organizaciones
-
-La página `/organizaciones` consume la RPC `get_organizaciones_mock` de
-Supabase y permite filtrar por `activo`, `inactivo` o `todos`.
-
-Antes de iniciarla, copia `.env.example` como `.env` y completa los valores
-públicos del proyecto:
-
-```powershell
-Copy-Item .env.example .env
+src/
+├── components/       Componentes visuales reutilizables
+├── layouts/          Estructuras de página y protección de sesión
+├── lib/
+│   ├── api/          Transporte HTTP común hacia el Gateway
+│   ├── modelos/      Contratos consumidos por las vistas
+│   ├── validaciones/ Schemas Zod de los formularios
+│   └── <dominio>/    Clientes de Auth, Organizaciones, Programas, Planes, etc.
+├── pages/            Rutas visuales Astro
+└── styles/           Estilos globales
 ```
 
-Solo se usan `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY`. No se debe
-agregar ni exponer una clave `service_role` en el frontend. La RPC debe estar
-autorizada por el backend para el rol que usará la aplicación.
+No existe un registro `src/actions`: las operaciones de negocio y los
+repositorios Supabase están en los microservicios de `backend/`.
 
-## Operaciones de organizaciones (KAN-159)
+## Configuración y ejecución
 
-`src/lib/server/organizaciones.ts` contiene las operaciones reutilizables para:
+`frontend/.env` debe contener la URL pública de Supabase, su clave `anon` y:
 
-- listar organizaciones activas, opcionalmente por país;
-- consultar una organización por UUID;
-- crear una organización;
-- actualizar una organización, con control de versión opcional.
+```env
+PUBLIC_API_BASE_URL=http://127.0.0.1:4000
+```
 
-Todas devuelven también el país relacionado y reciben un `SupabaseClient` ya
-configurado. Esto permite que las futuras Astro Actions inyecten el cliente de
-la sesión sin duplicar consultas ni exponer secretos. La capa no reemplaza las
-validaciones de entrada: PostgreSQL mantiene las restricciones definitivas y
-los esquemas Zod se incorporarán en la tarea correspondiente.
+Desde la raíz del repositorio:
 
-Los errores se exponen como `ErrorOperacionOrganizacion`, con códigos estables
-para registro inexistente, país inexistente, restricción, concurrencia, permiso
-y fallo general. El cliente recibido sigue sujeto a los privilegios y políticas
-RLS vigentes; esta tarea no abre accesos por sí sola.
+```powershell
+npm.cmd run dev
+```
 
-Pruebas del backend
-Desde la carpeta frontend/, ejecutar: npm test
+La aplicación estará disponible en `http://127.0.0.1:4321`.
 
-Compilación y ejecución del servidor standalone
-Desde la carpeta frontend/, ejecutar: npm run build y luego npm start
+## Pruebas
 
-La arquitectura y el contrato de las Actions están documentados en
-../backend/README.md.
+```powershell
+npm.cmd run test --workspace=frontend
+npm.cmd run build:frontend
+npm.cmd exec --workspace=frontend astro check
+```
 
-## Integración de Programas (KAN-176)
-
-Las rutas `/programas`, `/programas/[id]`, `/programas/nuevo` y
-`/programas/[id]/editar` consumen Actions autenticadas. La creación y edición
-requieren aplicar `20260925120000_fge_guardar_programa_completo.sql` en la
-instancia Supabase configurada. La guía [PROBAR-KAN-176](../docs/PROBAR-KAN-176.md)
-detalla lo implementado, la preparación y cómo comprobar cada criterio.
-
-`npm test` incluye PostgreSQL embebido; `npm run test:e2e` ejecuta los flujos en
-navegador con base temporal y Actions reales, sin modificar el Supabase remoto.
-
+Las pruebas del frontend cubren sus validaciones y clientes. Los casos de uso,
+permisos, repositorios y respuestas HTTP se prueban en el servicio responsable.

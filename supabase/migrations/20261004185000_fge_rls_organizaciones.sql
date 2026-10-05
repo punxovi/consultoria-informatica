@@ -2,6 +2,9 @@
 -- El Administrador puede gestionar en cualquier país.
 -- El Coordinador solo puede gestionar en los países donde tiene cobertura.
 
+BEGIN;
+
+DROP POLICY IF EXISTS organizaciones_gestion_insert ON public.organizaciones;
 CREATE POLICY organizaciones_gestion_insert
 ON public.organizaciones
 FOR INSERT
@@ -14,6 +17,7 @@ WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS organizaciones_gestion_update ON public.organizaciones;
 CREATE POLICY organizaciones_gestion_update
 ON public.organizaciones
 FOR UPDATE
@@ -32,3 +36,5 @@ WITH CHECK (
     AND fge_private.usuario_tiene_cobertura_pais(id_pais)
   )
 );
+
+COMMIT;

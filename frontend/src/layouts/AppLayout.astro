@@ -60,15 +60,14 @@ const hasBreadcrumb = Astro.slots.has('breadcrumb');
 </Layout>
 
 <script>
-  import { getSupabaseClient, getUserRoles } from '../lib/supabase';
-
-  const supabase = getSupabaseClient();
+  import { verificarSesion } from '../lib/auth/cliente';
+  import { getUserRoles } from '../lib/supabase';
 
   async function validateSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const hasSession = await verificarSesion();
     
     // Si no hay sesión activa, redirige de inmediato al login y elimina la ruta protegida del historial
-    if (!session) {
+    if (!hasSession) {
       window.location.replace('/login');
       return;
     }

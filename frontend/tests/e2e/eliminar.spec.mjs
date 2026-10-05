@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { stringify } from 'devalue';
 const id = '17600000-0000-4000-8000-000000000001';
 const plan = { periodo_anual:2026,id_plan:id,nombre:'Plan prueba',version:3,organizacion:{nombre:'Organización'},programa:{nombre:'Programa'},fecha_inicio:'2026-01-01',fecha_termino:'2026-12-31',responsable_nombre:'Responsable',objetivo_general:'Objetivo',objetivos_especificos:'Objetivos',situacion_necesidad:'Necesidad',resultado_esperado:'Resultado' };
 const accion = { id_accion:id,id_plan:id,nombre:'Acción prueba',version:2,plan:{nombre:'Plan prueba'},estado:'no_iniciada',responsable_nombre:'Responsable',fecha_inicio:'2026-01-01',fecha_termino:'2026-12-31' };
@@ -7,17 +6,27 @@ let borrado, peticiones, fallo;
 test.beforeEach(async ({ context }) => {
   borrado = false; peticiones = []; fallo = false;
   await context.addInitScript(() => localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:'qa-admin',refresh_token:'qa-refresh',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'17600000-0000-4000-8000-000000000001',email:'qa@example.test',user_metadata:{}}})));
-  await context.route('**/rest/v1/rpc/get_user_roles', route => route.fulfill({json:[{codigo:'ADMIN',alcance:'global',id_pais:null}]}));
-  await context.route('**/_actions/**', async route => {
-    const nombre = new URL(route.request().url()).pathname.split('/').filter(Boolean).pop();
+  await context.route('**/api/v1/auth/session', route => route.fulfill({json:{ok:true,code:'SESION_VALIDA',message:'Sesión de QA válida.',data:{authenticated:true,user:{id:'17600000-0000-4000-8000-000000000001',email:'qa@example.test'}}}}));  await context.route('**/rest/v1/rpc/get_user_roles', route => route.fulfill({json:[{codigo:'ADMIN',alcance:'global',id_pais:null}]}));
+  await context.route(/\/api\/v1\/(?:plans|actions)(?:\/.*)?(?:\?.*)?$/, async route => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const esPlan = url.pathname.startsWith('/api/v1/plans');
+    const esDetalle = /^\/api\/v1\/(plans|actions)\/[^/]+$/.test(url.pathname);
+    const nombre = esDetalle && req.method() === 'DELETE' ? (esPlan ? 'archivarPlan' : 'archivarAccion')
+      : !esDetalle ? (esPlan ? 'listarPlanes' : 'listarAcciones')
+      : esPlan ? 'obtenerPlanPorId' : 'obtenerAccionPorId';
     if (nombre.startsWith('archivar')) {
-      peticiones.push({ nombre, entrada:route.request().postDataJSON() });
+      peticiones.push({ nombre, entrada:req.postDataJSON() });
       await new Promise(resolve => setTimeout(resolve, 250));
-      if (fallo) return route.fulfill({contentType:'application/json+devalue',body:stringify({ok:false,codigo:'SIN_PERMISO',mensaje:'Tu usuario no tiene permiso para eliminar este registro.',datos:null})});
+      if (fallo) return route.fulfill({status:403,json:{ok:false,error:{code:'SIN_PERMISO',message:'Tu usuario no tiene permiso para eliminar este registro.'},data:null}});
       borrado = true;
     }
-    const datos = nombre === 'obtenerPlanPorId' ? plan : nombre === 'listarPlanes' ? (borrado ? [] : [plan]) : nombre === 'listarAcciones' ? (borrado ? [] : [accion]) : nombre === 'obtenerAccionPorId' ? accion : {id};
-    return route.fulfill({contentType:'application/json+devalue',body:stringify({ok:true,datos})});
+    const data = nombre === 'obtenerPlanPorId' ? {plan}
+      : nombre === 'listarPlanes' ? {plans:borrado ? [] : [plan]}
+      : nombre === 'listarAcciones' ? {actions:borrado ? [] : [accion]}
+      : nombre === 'obtenerAccionPorId' ? {action:accion}
+      : esPlan ? {id_plan:id} : {id_accion:id};
+    return route.fulfill({json:{ok:true,code:'QA_OK',message:'Respuesta simulada.',data}});
   });
 });
 
@@ -32,7 +41,7 @@ test('eliminar plan requiere confirmar, envía versión y vuelve al listado', as
   await expect(page.getByRole('button',{name:'Confirmar eliminación'})).toBeDisabled();
   await expect(page.locator('#plan-confirmacion')).toHaveText('Plan eliminado correctamente.');
   await expect(page.locator('#planes-listado article')).toHaveCount(0);
-  expect(peticiones).toEqual([{nombre:'archivarPlan',entrada:{id,version_esperada:3}}]);
+  expect(peticiones).toEqual([{nombre:'archivarPlan',entrada:{version_esperada:3}}]);
 });
 
 test('eliminar acción muestra rechazo sin perder detalle y permite reintentar', async ({ page }) => {
@@ -48,5 +57,5 @@ test('eliminar acción muestra rechazo sin perder detalle y permite reintentar',
   await page.getByRole('button',{name:'Confirmar eliminación'}).click();
   await expect(page.locator('#accion-confirmacion')).toHaveText('Acción eliminada correctamente.');
   await expect(page.locator('#acciones-listado article')).toHaveCount(0);
-  expect(peticiones.at(-1)).toEqual({nombre:'archivarAccion',entrada:{id,version_esperada:2}});
+  expect(peticiones.at(-1)).toEqual({nombre:'archivarAccion',entrada:{version_esperada:2}});
 });

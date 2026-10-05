@@ -18,9 +18,9 @@ const nombre = tipo === 'plan' ? 'plan' : 'acción';
   </dialog>
 </div>
 <script>
-  import { actions, getActionPath } from 'astro:actions';
-  import { getSupabaseClient } from '../../lib/supabase';
-  import { solicitarPlan, ErrorSolicitudPlan } from '../../lib/planes/transporte';
+  import { archivarAccion, ErrorSolicitudAccion } from '../../lib/acciones/cliente';
+  import { archivarPlan } from '../../lib/planes/cliente';
+  import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
   const raiz = document.querySelector<HTMLElement>('#eliminar-registro')!;
   const dialogo = document.querySelector<HTMLDialogElement>('#confirmar-eliminar')!;
   const confirmar = document.querySelector<HTMLButtonElement>('#aceptar-eliminar')!;
@@ -45,10 +45,8 @@ const nombre = tipo === 'plan' ? 'plan' : 'acción';
     error.hidden = true;
     estado.textContent = 'Eliminando…';
     try {
-      const { data: { session } } = await getSupabaseClient().auth.getSession();
-      if (!session) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
-      const action = raiz.dataset.tipo === 'plan' ? actions.archivarPlan : actions.archivarAccion;
-      await solicitarPlan(getActionPath(action), { id: raiz.dataset.id, version_esperada: version }, session.access_token);
+      if (raiz.dataset.tipo === 'plan') await archivarPlan(raiz.dataset.id!, version);
+      else await archivarAccion(raiz.dataset.id!, version);
       location.assign(raiz.dataset.regreso!);
     } catch (fallo) {
       estado.textContent = '';
@@ -56,7 +54,9 @@ const nombre = tipo === 'plan' ? 'plan' : 'acción';
       error.hidden = false;
       enviando = false;
       cancelar.disabled = false;
-      confirmar.disabled = fallo instanceof ErrorSolicitudPlan && fallo.codigo === 'CONFLICTO_CONCURRENCIA';
+      confirmar.disabled =
+        (fallo instanceof ErrorSolicitudPlan || fallo instanceof ErrorSolicitudAccion) &&
+        fallo.codigo === 'CONFLICTO_CONCURRENCIA';
     }
   });
 </script>

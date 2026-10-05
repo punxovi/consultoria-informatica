@@ -60,7 +60,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
 </section>
 
 <script>
-  import { crearAccionSchema } from '../../actions/acciones/acciones.schema';
+  import { crearAccionSchema } from '../../lib/validaciones/acciones';
   import { actualizarAccion, crearAccion, obtenerAccion } from '../../lib/acciones/cliente';
   import { obtenerPlan } from '../../lib/planes/cliente';
   import { ErrorSolicitudPlan } from '../../lib/planes/transporte';

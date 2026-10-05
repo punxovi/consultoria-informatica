@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,25,'Se esperaban veinticinco migraciones');
+assert.equal(files.length,27,'Se esperaban veintisiete migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -150,14 +150,14 @@ for(const operacion of ['INSERT INTO public.programa_lineas_accion','FROM public
 for(const estadoSql of ['23503','23514']) {
  assert.ok(operacionesTest.includes(`'${estadoSql}'`),'Prueba restricción SQLSTATE '+estadoSql);
 }
-const repositorioOrganizaciones=readFileSync(join(root,'../frontend/src/lib/server/organizaciones.ts'),'utf8');
-for(const operacion of ['listarOrganizaciones','obtenerOrganizacionPorId','crearOrganizacion','actualizarOrganizacion']) {
- assert.match(repositorioOrganizaciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada: '+operacion);
+const repositorioOrganizaciones=readFileSync(join(root,'../backend/services/organizations/src/infrastructure/supabase-organizations.repository.ts'),'utf8');
+for(const operacion of ['list','getById','create','update']) {
+ assert.match(repositorioOrganizaciones,new RegExp(`(?:async )?${operacion}\\(`),'Operación de Organizaciones: '+operacion);
 }
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
-const repositorioProgramas=readFileSync(join(root,'../frontend/src/lib/server/programas.ts'),'utf8');
-for(const operacion of ['listarProgramas','obtenerProgramaPorId','crearPrograma','actualizarPrograma']) {
- assert.match(repositorioProgramas,new RegExp(`export async function ${operacion}\\b`),'Operación exportada: '+operacion);
+const repositorioProgramas=readFileSync(join(root,'../backend/services/programs/src/infrastructure/supabase-programs.repository.ts'),'utf8');
+for(const operacion of ['list','getById','create','update']) {
+ assert.match(repositorioProgramas,new RegExp(`(?:async )?${operacion}\\(`),'Operación de Programas: '+operacion);
 }
 assert.ok(!repositorioProgramas.includes('id_organizacion'),'Programas sin FK directa a Organización');
 assert.ok(!/service[_-]?role/i.test(repositorioProgramas),'Operaciones de Programas sin clave privilegiada');
@@ -165,9 +165,9 @@ const operacionesProgramasTest=readFileSync(join(root,'tests/database/008_operac
 for(const operacion of ['INSERT INTO public.programas','FROM public.programas','UPDATE public.programas']) {
  assert.ok(operacionesProgramasTest.includes(operacion),'Prueba de Programa: '+operacion);
 }
-const repositorioPlanes=readFileSync(join(root,'../frontend/src/lib/server/planes.ts'),'utf8');
-for(const operacion of ['listarPlanes','obtenerPlanPorId','crearPlan','actualizarPlan']) {
- assert.match(repositorioPlanes,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Planes: '+operacion);
+const repositorioPlanes=readFileSync(join(root,'../backend/services/interventions/src/infrastructure/supabase-interventions.repository.ts'),'utf8');
+for(const operacion of ['list','getById','create','update']) {
+ assert.match(repositorioPlanes,new RegExp(`(?:async )?${operacion}\\(`),'Operación de Planes: '+operacion);
 }
 assert.match(repositorioPlanes,/organizacion:organizaciones/,'Planes incluyen Organización');
 assert.match(repositorioPlanes,/programa:programas/,'Planes incluyen Programa');
@@ -190,9 +190,9 @@ assert.match(refuerzoRlsSql,/usuario_puede_consultar_organizacion/);
 assert.match(refuerzoRlsSql,/permisos_temporales/);
 assert.match(refuerzoRlsSql,/DROP POLICY IF EXISTS planes_lectura_roles/);
 assert.match(refuerzoRlsSql,/DROP POLICY IF EXISTS acciones_lectura_roles/);
-const repositorioAcciones=readFileSync(join(root,'../frontend/src/lib/server/acciones.ts'),'utf8');
-for(const operacion of ['listarAcciones','obtenerAccionPorId','crearAccion','actualizarAccion']) {
- assert.match(repositorioAcciones,new RegExp(`export async function ${operacion}\\b`),'Operación exportada de Acciones: '+operacion);
+const repositorioAcciones=repositorioPlanes;
+for(const operacion of ['list','getById','create','update']) {
+ assert.match(repositorioAcciones,new RegExp(`(?:async )?${operacion}\\(`),'Operación de Acciones: '+operacion);
 }
 assert.match(repositorioAcciones,/plan:planes/,'Acciones incluyen el Plan asociado');
 assert.ok(!/service[_-]?role/i.test(repositorioAcciones),'Operaciones de Acciones sin clave privilegiada');

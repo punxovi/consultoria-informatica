@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { stringify } from 'devalue';
 
-// Pruebas de interfaz con Actions simuladas; no escriben en la base remota.
+// Pruebas de interfaz con servicios HTTP simulados; no escriben en la base remota.
 const idPlan = '17600000-0000-4000-8000-000000000001';
 const idAccion = '17600000-0000-4000-8000-000000000002';
 const rutaPlan = `/planes/${idPlan}`;
@@ -22,20 +21,36 @@ test.beforeEach(async ({ context }) => {
     access_token: 'qa-admin', refresh_token: 'qa-refresh', expires_at: Math.floor(Date.now()/1000)+3600,
     token_type: 'bearer', user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.test', user_metadata: {} },
   })));
+  await context.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    ok: true, code: 'SESION_VALIDA', message: 'Sesión de QA válida.',
+    data: { authenticated: true, user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.test' } },
+  } }));
   await context.route('**/rest/v1/rpc/get_user_roles', route => route.fulfill({ json: [{ codigo: 'ADMIN', alcance: 'global', id_pais: null }] }));
-  await context.route('**/_actions/**', async route => {
-    const nombre = new URL(route.request().url()).pathname.split('/').filter(Boolean).pop();
-    const entrada = route.request().postDataJSON();
+  await context.route(/\/api\/v1\/(?:plans|actions)(?:\/.*)?(?:\?.*)?$/, async route => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const entrada = req.method() === 'GET' ? Object.fromEntries(url.searchParams) : req.postDataJSON();
+    const planDetalle = /^\/api\/v1\/plans\/[^/]+$/.test(url.pathname);
+    const accionDetalle = /^\/api\/v1\/actions\/[^/]+$/.test(url.pathname);
+    const nombre = url.pathname === '/api/v1/plans' ? 'listarPlanes'
+      : planDetalle ? 'obtenerPlanPorId'
+      : url.pathname === '/api/v1/actions' && req.method() === 'GET' ? 'listarAcciones'
+      : url.pathname === '/api/v1/actions' && req.method() === 'POST' ? 'crearAccion'
+      : accionDetalle && req.method() === 'PATCH' ? 'actualizarAccion'
+      : accionDetalle ? 'obtenerAccionPorId' : 'desconocido';
     solicitudes.push({ nombre, entrada });
     if (demorar && nombre === 'crearAccion') await new Promise(resolve => setTimeout(resolve, 350));
     if (fallo && nombre !== 'obtenerPlanPorId') {
-      await route.fulfill({ contentType: 'application/json+devalue', body: stringify({ ok: false, codigo: fallo,
-        mensaje: fallo === 'CONFLICTO_CONCURRENCIA' ? 'La acción fue modificada por otra sesión. Recarga los datos antes de guardar.' : 'No fue posible cargar las acciones.', datos: null }) }); return;
+      await route.fulfill({ status: fallo === 'CONFLICTO_CONCURRENCIA' ? 409 : fallo === 'NO_ENCONTRADA' ? 404 : 502, json: { ok: false, error: { code: fallo,
+        message: fallo === 'CONFLICTO_CONCURRENCIA' ? 'La acción fue modificada por otra sesión. Recarga los datos antes de guardar.' : 'No fue posible cargar las acciones.' }, data: null } }); return;
     }
     if (nombre === 'crearAccion') acciones.push({ ...entrada, id_accion: idAccion, version: 1, plan: { id_plan: idPlan, nombre: plan.nombre } });
     if (nombre === 'actualizarAccion') acciones[0] = { ...acciones[0], ...entrada.cambios, version: acciones[0].version + 1 };
-    const datos = nombre === 'obtenerPlanPorId' ? plan : nombre === 'listarAcciones' ? acciones : nombre === 'crearAccion' ? acciones.at(-1) : acciones[0];
-    await route.fulfill({ contentType: 'application/json+devalue', body: stringify({ ok: true, datos }) });
+    const data = nombre === 'listarPlanes' ? { plans: [plan] }
+      : nombre === 'obtenerPlanPorId' ? { plan }
+      : nombre === 'listarAcciones' ? { actions: acciones }
+      : { action: nombre === 'crearAccion' ? acciones.at(-1) : acciones[0] };
+    await route.fulfill({ json: { ok: true, code: 'QA_OK', message: 'Respuesta simulada.', data } });
   });
 });
 
@@ -132,11 +147,21 @@ test('formulario y detalle caben en móvil; cancelar no guarda', async ({ page }
   await expect(page.locator('#nombre')).toHaveValue('Taller comunitario');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('#nombre').fill('No guardar');
-  await page.getByRole('link', { name: 'Cancelar', exact: true }).click();
+  await page.getByRole('link', { name: 'Cancelar', exact: true }).click({ force: true });
   await expect(page.locator('#acciones-listado article')).toHaveCount(1);
   expect(solicitudes.some(s => s.nombre === 'actualizarAccion')).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('link', { name: 'Ver detalle', exact: true }).click();
   await expect(page.locator('#detalle-contenido')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('cancelar la creación y usar la flecha vuelve al listado sin formar un bucle', async ({ page }) => {
+  await page.goto(rutaPlan);
+  await page.getByRole('link', { name: 'Crear acción', exact: true }).click();
+  await expect(page).toHaveURL(`${rutaPlan}/acciones/nueva`);
+  await page.getByRole('link', { name: 'Cancelar', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${rutaPlan}(?:#acciones-plan)?$`));
+  await page.getByRole('link', { name: 'Volver al listado' }).click();
+  await expect(page).toHaveURL(/\/planes$/);
 });

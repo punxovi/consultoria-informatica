@@ -1,0 +1,30 @@
+{
+  "name": "fge-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "frontend",
+    "backend/gateway",
+    "backend/services/*",
+    "backend/shared/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "node backend/dev.mjs",
+    "dev:gateway": "npm run dev --workspace=@fge/api-gateway",
+    "dev:auth": "npm run dev --workspace=@fge/auth-service",
+    "dev:organizations": "npm run dev --workspace=@fge/organizations-service",
+    "dev:programs": "npm run dev --workspace=@fge/programs-service",
+    "dev:interventions": "npm run dev --workspace=@fge/interventions-service",
+    "dev:insights": "npm run dev --workspace=@fge/insights-service",
+    "test": "npm run test:architecture && npm run test --workspace=frontend",
+    "test:architecture": "npm run test --workspace=@fge/contracts && npm run test --workspace=@fge/api-gateway && npm run test --workspace=@fge/auth-service && npm run test --workspace=@fge/organizations-service && npm run test --workspace=@fge/programs-service && npm run test --workspace=@fge/interventions-service && npm run test --workspace=@fge/insights-service",
+    "check:architecture": "npm run check --workspace=@fge/contracts && npm run check --workspace=@fge/api-gateway && npm run check --workspace=@fge/auth-service && npm run check --workspace=@fge/organizations-service && npm run check --workspace=@fge/programs-service && npm run check --workspace=@fge/interventions-service && npm run check --workspace=@fge/insights-service",
+    "build:frontend": "npm run build --workspace=frontend"
+  }
+}
