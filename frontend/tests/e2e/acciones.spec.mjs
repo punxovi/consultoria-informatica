@@ -32,7 +32,8 @@ test.beforeEach(async ({ context }) => {
     const entrada = req.method() === 'GET' ? Object.fromEntries(url.searchParams) : req.postDataJSON();
     const planDetalle = /^\/api\/v1\/plans\/[^/]+$/.test(url.pathname);
     const accionDetalle = /^\/api\/v1\/actions\/[^/]+$/.test(url.pathname);
-    const nombre = planDetalle ? 'obtenerPlanPorId'
+    const nombre = url.pathname === '/api/v1/plans' ? 'listarPlanes'
+      : planDetalle ? 'obtenerPlanPorId'
       : url.pathname === '/api/v1/actions' && req.method() === 'GET' ? 'listarAcciones'
       : url.pathname === '/api/v1/actions' && req.method() === 'POST' ? 'crearAccion'
       : accionDetalle && req.method() === 'PATCH' ? 'actualizarAccion'
@@ -45,7 +46,8 @@ test.beforeEach(async ({ context }) => {
     }
     if (nombre === 'crearAccion') acciones.push({ ...entrada, id_accion: idAccion, version: 1, plan: { id_plan: idPlan, nombre: plan.nombre } });
     if (nombre === 'actualizarAccion') acciones[0] = { ...acciones[0], ...entrada.cambios, version: acciones[0].version + 1 };
-    const data = nombre === 'obtenerPlanPorId' ? { plan }
+    const data = nombre === 'listarPlanes' ? { plans: [plan] }
+      : nombre === 'obtenerPlanPorId' ? { plan }
       : nombre === 'listarAcciones' ? { actions: acciones }
       : { action: nombre === 'crearAccion' ? acciones.at(-1) : acciones[0] };
     await route.fulfill({ json: { ok: true, code: 'QA_OK', message: 'Respuesta simulada.', data } });
@@ -152,4 +154,14 @@ test('formulario y detalle caben en móvil; cancelar no guarda', async ({ page }
   await page.getByRole('link', { name: 'Ver detalle', exact: true }).click();
   await expect(page.locator('#detalle-contenido')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('cancelar la creación y usar la flecha vuelve al listado sin formar un bucle', async ({ page }) => {
+  await page.goto(rutaPlan);
+  await page.getByRole('link', { name: 'Crear acción', exact: true }).click();
+  await expect(page).toHaveURL(`${rutaPlan}/acciones/nueva`);
+  await page.getByRole('link', { name: 'Cancelar', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${rutaPlan}(?:#acciones-plan)?$`));
+  await page.getByRole('link', { name: 'Volver al listado' }).click();
+  await expect(page).toHaveURL(/\/planes$/);
 });
