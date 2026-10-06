@@ -1,0 +1,879 @@
+---
+const camposTexto = [
+  {
+    id: 'mision',
+    label: 'Misión de la organización',
+    placeholder: 'Describe la misión de la organización...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'vision',
+    label: 'Visión de la organización',
+    placeholder: 'Describe la visión de la organización...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'caracteristicas-infraestructura',
+    label: 'Características de infraestructura',
+    placeholder: 'Describe las características de la infraestructura...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'espacios-disponibles',
+    label: 'Espacios disponibles',
+    placeholder: 'Describe los espacios disponibles...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'recursos-existentes',
+    label: 'Recursos existentes',
+    placeholder: 'Describe los recursos existentes...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'danos-detectados',
+    label: 'Daños detectados',
+    placeholder: 'Describe los daños detectados...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'necesidades-prioritarias',
+    label: 'Necesidades prioritarias',
+    placeholder: 'Describe las necesidades prioritarias...',
+    required: true,
+    maxLength: 500,
+  },
+  {
+    id: 'observaciones',
+    label: 'Observaciones generales',
+    placeholder: 'Ingresa observaciones generales...',
+    required: true,
+    maxLength: 1000,
+  },
+];
+---
+
+<div class="space-y-6" id="diagnostico-organizacion">
+
+  <!-- Encabezado -->
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h2 class="text-lg font-semibold text-neutral-900">
+        Diagnóstico de la organización
+      </h2>
+
+      <p class="mt-1 text-sm text-neutral-500">
+        Información utilizada para conocer la situación actual,
+        necesidades y condiciones de la organización.
+      </p>
+    </div>
+
+    <div id="contenedor-boton-diagnostico">
+      <button
+        id="btn-registrar-diagnostico"
+        type="button"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      >
+        Registrar diagnóstico
+      </button>
+    </div>
+  </div>
+
+  <!-- Estado: sin diagnóstico -->
+  <section id="estado-sin-diagnostico">
+    <div class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
+      <div
+        class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"
+        aria-hidden="true"
+      >
+        <span class="text-xl">+</span>
+      </div>
+
+      <h3 class="mt-4 text-base font-semibold text-neutral-900">
+        No hay un diagnóstico registrado
+      </h3>
+
+      <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-neutral-500">
+        Esta organización todavía no cuenta con un diagnóstico.
+        Registra la información para comenzar a gestionar sus necesidades
+        y condiciones actuales.
+      </p>
+    </div>
+  </section>
+
+  <!-- Formulario -->
+  <section id="formulario-diagnostico" class="hidden">
+    <form id="form-diagnostico" novalidate class="space-y-6">
+
+      <!-- Información institucional -->
+      <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div class="mb-6">
+          <h3 class="text-base font-semibold text-neutral-900">
+            Información institucional
+          </h3>
+
+          <p class="mt-1 text-sm text-neutral-500">
+            Completa la misión y visión de la organización.
+            Los campos marcados con <span class="text-red-600">*</span>
+            son obligatorios.
+          </p>
+        </div>
+
+        <div class="space-y-6">
+          {
+            camposTexto.slice(0, 2).map((campo) => (
+              <div>
+                <label
+                  for={campo.id}
+                  class="block text-sm font-semibold text-neutral-700"
+                >
+                  {campo.label}
+                  {campo.required && (
+                    <span class="ml-1 text-red-600" aria-hidden="true">*</span>
+                  )}
+                </label>
+
+                <textarea
+                  id={campo.id}
+                  name={campo.id}
+                  rows="4"
+                  maxlength={campo.maxLength}
+                  required={campo.required}
+                  placeholder={campo.placeholder}
+                  class="mt-2 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                ></textarea>
+
+                <div class="mt-1 flex justify-between gap-4">
+                  <p
+                    id={`${campo.id}-error`}
+                    class="text-xs text-red-600"
+                    aria-live="polite"
+                  ></p>
+
+                  <p class="ml-auto text-xs text-neutral-400">
+                    Máximo {campo.maxLength} caracteres
+                  </p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- Infraestructura -->
+      <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div class="mb-6">
+          <h3 class="text-base font-semibold text-neutral-900">
+            Infraestructura y espacios
+          </h3>
+
+          <p class="mt-1 text-sm text-neutral-500">
+            Información sobre las condiciones físicas y espacios disponibles.
+          </p>
+        </div>
+
+        <div class="space-y-6">
+
+          <!-- Espacio físico -->
+          <div>
+            <span class="block text-sm font-semibold text-neutral-700">
+              ¿Existe un espacio físico?
+            </span>
+
+            <p class="mt-1 text-xs text-neutral-500">
+              Este campo es opcional.
+            </p>
+
+            <div class="mt-3 flex flex-wrap gap-6">
+              <label class="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="tiene-espacio-fisico"
+                  value="si"
+                  class="h-4 w-4 border-neutral-300 text-primary focus:ring-primary"
+                />
+                <span class="text-sm text-neutral-700">Sí</span>
+              </label>
+
+              <label class="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="tiene-espacio-fisico"
+                  value="no"
+                  class="h-4 w-4 border-neutral-300 text-primary focus:ring-primary"
+                />
+                <span class="text-sm text-neutral-700">No</span>
+              </label>
+            </div>
+          </div>
+
+          {
+            camposTexto.slice(2, 4).map((campo) => (
+              <div>
+                <label
+                  for={campo.id}
+                  class="block text-sm font-semibold text-neutral-700"
+                >
+                  {campo.label}
+                  {campo.required && (
+                    <span class="ml-1 text-red-600" aria-hidden="true">*</span>
+                  )}
+                </label>
+
+                <textarea
+                  id={campo.id}
+                  name={campo.id}
+                  rows="4"
+                  maxlength={campo.maxLength}
+                  required={campo.required}
+                  placeholder={campo.placeholder}
+                  class="mt-2 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                ></textarea>
+
+                <div class="mt-1 flex justify-between gap-4">
+                  <p
+                    id={`${campo.id}-error`}
+                    class="text-xs text-red-600"
+                    aria-live="polite"
+                  ></p>
+
+                  <p class="ml-auto text-xs text-neutral-400">
+                    Máximo {campo.maxLength} caracteres
+                  </p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- Recursos y necesidades -->
+      <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div class="mb-6">
+          <h3 class="text-base font-semibold text-neutral-900">
+            Recursos, daños y necesidades
+          </h3>
+
+          <p class="mt-1 text-sm text-neutral-500">
+            Describe los recursos disponibles, daños identificados y
+            principales necesidades de la organización.
+          </p>
+        </div>
+
+        <div class="space-y-6">
+          {
+            camposTexto.slice(4, 7).map((campo) => (
+              <div>
+                <label
+                  for={campo.id}
+                  class="block text-sm font-semibold text-neutral-700"
+                >
+                  {campo.label}
+                  {campo.required && (
+                    <span class="ml-1 text-red-600" aria-hidden="true">*</span>
+                  )}
+                </label>
+
+                <textarea
+                  id={campo.id}
+                  name={campo.id}
+                  rows="4"
+                  maxlength={campo.maxLength}
+                  required={campo.required}
+                  placeholder={campo.placeholder}
+                  class="mt-2 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                ></textarea>
+
+                <div class="mt-1 flex justify-between gap-4">
+                  <p
+                    id={`${campo.id}-error`}
+                    class="text-xs text-red-600"
+                    aria-live="polite"
+                  ></p>
+
+                  <p class="ml-auto text-xs text-neutral-400">
+                    Máximo {campo.maxLength} caracteres
+                  </p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- Observaciones -->
+      <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div class="mb-6">
+          <h3 class="text-base font-semibold text-neutral-900">
+            Observaciones generales
+          </h3>
+
+          <p class="mt-1 text-sm text-neutral-500">
+            Agrega cualquier información adicional relevante para el diagnóstico.
+          </p>
+        </div>
+
+        <label
+          for="observaciones"
+          class="block text-sm font-semibold text-neutral-700"
+        >
+          Observaciones generales
+          <span class="ml-1 text-red-600" aria-hidden="true">*</span>
+        </label>
+
+        <textarea
+          id="observaciones"
+          name="observaciones"
+          rows="5"
+          maxlength="1000"
+          required
+          placeholder="Ingresa observaciones generales..."
+          class="mt-2 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+        ></textarea>
+
+        <div class="mt-1 flex justify-between gap-4">
+          <p
+            id="observaciones-error"
+            class="text-xs text-red-600"
+            aria-live="polite"
+          ></p>
+
+          <p class="ml-auto text-xs text-neutral-400">
+            Máximo 1000 caracteres
+          </p>
+        </div>
+      </div>
+
+      <!-- Raciones -->
+      <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div class="mb-6">
+          <h3 class="text-base font-semibold text-neutral-900">
+            Información de raciones
+          </h3>
+
+          <p class="mt-1 text-sm text-neutral-500">
+            Completa esta información cuando corresponda a un comedor solidario
+            o merendero.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+          <div>
+            <label
+              for="raciones"
+              class="block text-sm font-semibold text-neutral-700"
+            >
+              Número de raciones entregadas
+            </label>
+
+            <input
+              id="raciones"
+              name="raciones"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Ej: 150"
+              class="mt-2 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+
+            <p
+              id="raciones-error"
+              class="mt-1 text-xs text-red-600"
+              aria-live="polite"
+            ></p>
+          </div>
+
+          <div>
+            <label
+              for="periodo-raciones"
+              class="block text-sm font-semibold text-neutral-700"
+            >
+              Periodicidad
+            </label>
+
+            <select
+              id="periodo-raciones"
+              name="periodo-raciones"
+              class="mt-2 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">Seleccionar periodicidad</option>
+              <option value="diaria">Diaria</option>
+              <option value="semanal">Semanal</option>
+              <option value="mensual">Mensual</option>
+            </select>
+
+            <p
+              id="periodo-raciones-error"
+              class="mt-1 text-xs text-red-600"
+              aria-live="polite"
+            ></p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Mensajes -->
+      <div
+        id="mensaje-formulario"
+        class="hidden rounded-lg border px-4 py-3 text-sm"
+        role="alert"
+        aria-live="polite"
+      ></div>
+
+      <!-- Acciones -->
+      <div class="flex flex-col-reverse gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:justify-end">
+
+        <button
+          id="btn-cancelar-diagnostico"
+          type="button"
+          class="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          Cancelar
+        </button>
+
+        <button
+          id="btn-guardar-diagnostico"
+          type="submit"
+          class="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          Guardar diagnóstico
+        </button>
+
+      </div>
+
+    </form>
+  </section>
+
+  <!-- Estado: diagnóstico registrado -->
+  <section id="diagnostico-registrado" class="hidden space-y-6">
+
+    <div class="flex flex-col gap-3 rounded-xl border border-success/20 bg-success/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-neutral-900">
+          Diagnóstico registrado
+        </p>
+
+        <p class="mt-1 text-sm text-neutral-500">
+          Última actualización:
+          <span id="fecha-actualizacion-diagnostico">Pendiente</span>
+        </p>
+      </div>
+    
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 class="mb-6 text-base font-semibold text-neutral-900">
+        Información institucional
+      </h3>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Misión
+          </p>
+          <p id="resumen-mision" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Visión
+          </p>
+          <p id="resumen-vision" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 class="mb-6 text-base font-semibold text-neutral-900">
+        Infraestructura y espacios
+      </h3>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Espacio físico
+          </p>
+          <p id="resumen-espacio-fisico" class="mt-2 text-sm text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Características de infraestructura
+          </p>
+          <p id="resumen-caracteristicas-infraestructura" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div class="md:col-span-2">
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Espacios disponibles
+          </p>
+          <p id="resumen-espacios-disponibles" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 class="mb-6 text-base font-semibold text-neutral-900">
+        Recursos, daños y necesidades
+      </h3>
+
+      <div class="space-y-6">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Recursos existentes
+          </p>
+          <p id="resumen-recursos-existentes" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Daños detectados
+          </p>
+          <p id="resumen-danos-detectados" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Necesidades prioritarias
+          </p>
+          <p id="resumen-necesidades-prioritarias" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Observaciones generales
+          </p>
+          <p id="resumen-observaciones" class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+            —
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 class="mb-6 text-base font-semibold text-neutral-900">
+        Información de raciones
+      </h3>
+
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Raciones entregadas
+          </p>
+          <p id="resumen-raciones" class="mt-2 text-sm text-neutral-700">
+            —
+          </p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Periodicidad
+          </p>
+          <p id="resumen-periodo-raciones" class="mt-2 text-sm text-neutral-700">
+            —
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+  const contenedor = document.querySelector<HTMLElement>(
+    '#diagnostico-organizacion',
+  );
+
+  const estadoSinDiagnostico = document.querySelector<HTMLElement>(
+    '#estado-sin-diagnostico',
+  );
+
+  const formularioDiagnostico = document.querySelector<HTMLElement>(
+    '#formulario-diagnostico',
+  );
+
+  const diagnosticoRegistrado = document.querySelector<HTMLElement>(
+    '#diagnostico-registrado',
+  );
+
+  const form = document.querySelector<HTMLFormElement>(
+    '#form-diagnostico',
+  );
+
+  const btnRegistrar = document.querySelector<HTMLButtonElement>(
+    '#btn-registrar-diagnostico',
+  );
+
+  const btnCancelar = document.querySelector<HTMLButtonElement>(
+    '#btn-cancelar-diagnostico',
+  );
+
+  const mensajeFormulario = document.querySelector<HTMLElement>(
+    '#mensaje-formulario',
+  );
+
+  if (
+    !contenedor ||
+    !estadoSinDiagnostico ||
+    !formularioDiagnostico ||
+    !diagnosticoRegistrado ||
+    !form ||
+    !btnRegistrar ||
+    !btnCancelar ||
+    !mensajeFormulario
+  ) {
+    throw new Error('No se pudo inicializar el componente de diagnóstico.');
+  }
+
+  function mostrarFormulario() {
+    estadoSinDiagnostico.classList.add('hidden');
+    diagnosticoRegistrado.classList.add('hidden');
+    formularioDiagnostico.classList.remove('hidden');
+
+    mensajeFormulario.classList.add('hidden');
+
+    window.scrollTo({
+      top: contenedor.offsetTop,
+      behavior: 'smooth',
+    });
+  }
+
+  function mostrarEstadoSinDiagnostico() {
+    estadoSinDiagnostico.classList.remove('hidden');
+    formularioDiagnostico.classList.add('hidden');
+    diagnosticoRegistrado.classList.add('hidden');
+
+    form.reset();
+    limpiarErrores();
+  }
+
+  function mostrarDiagnosticoRegistrado() {
+    estadoSinDiagnostico.classList.add('hidden');
+    formularioDiagnostico.classList.add('hidden');
+    diagnosticoRegistrado.classList.remove('hidden');
+  }
+
+  function limpiarErrores() {
+    form.querySelectorAll<HTMLElement>('[id$="-error"]').forEach((elemento) => {
+      elemento.textContent = '';
+    });
+
+    form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+      '.border-red-500',
+    ).forEach((campo) => {
+      campo.classList.remove('border-red-500');
+      campo.classList.add('border-neutral-300');
+    });
+  }
+
+  function establecerError(
+    campo: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+    mensaje: string,
+  ) {
+    campo.classList.remove('border-neutral-300');
+    campo.classList.add('border-red-500');
+
+    const error = document.getElementById(`${campo.id}-error`);
+
+    if (error) {
+      error.textContent = mensaje;
+    }
+  }
+
+  function validarFormulario() {
+    limpiarErrores();
+
+    let valido = true;
+
+    const camposObligatorios = form.querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >('[required]');
+
+    camposObligatorios.forEach((campo) => {
+      if (!campo.value.trim()) {
+        establecerError(campo, 'Este campo es obligatorio.');
+        valido = false;
+      }
+    });
+
+    const raciones = document.querySelector<HTMLInputElement>('#raciones');
+
+    if (raciones?.value) {
+      const valor = Number(raciones.value);
+
+      if (!Number.isInteger(valor) || valor < 0) {
+        establecerError(
+          raciones,
+          'Ingresa un número entero mayor o igual a 0.',
+        );
+        valido = false;
+      }
+    }
+
+    return valido;
+  }
+
+  function obtenerDatosFormulario() {
+    const datos = new FormData(form);
+
+    return {
+      mision: String(datos.get('mision') ?? '').trim(),
+      vision: String(datos.get('vision') ?? '').trim(),
+      tiene_espacio_fisico:
+        String(datos.get('tiene-espacio-fisico') ?? '') || null,
+      caracteristicas_infraestructura: String(
+        datos.get('caracteristicas-infraestructura') ?? '',
+      ).trim(),
+      espacios_disponibles: String(
+        datos.get('espacios-disponibles') ?? '',
+      ).trim(),
+      recursos_existentes: String(
+        datos.get('recursos-existentes') ?? '',
+      ).trim(),
+      danos_detectados: String(
+        datos.get('danos-detectados') ?? '',
+      ).trim(),
+      necesidades_prioritarias: String(
+        datos.get('necesidades-prioritarias') ?? '',
+      ).trim(),
+      observaciones: String(
+        datos.get('observaciones') ?? '',
+      ).trim(),
+      raciones: datos.get('raciones')
+        ? Number(datos.get('raciones'))
+        : null,
+      periodo_raciones:
+        String(datos.get('periodo-raciones') ?? '') || null,
+    };
+  }
+
+  function mostrarResumen(datos: ReturnType<typeof obtenerDatosFormulario>) {
+    const asignar = (id: string, valor: string | number | null) => {
+      const elemento = document.getElementById(id);
+
+      if (elemento) {
+        elemento.textContent =
+          valor === null || valor === '' ? 'Sin información' : String(valor);
+      }
+    };
+
+    asignar('resumen-mision', datos.mision);
+    asignar('resumen-vision', datos.vision);
+
+    asignar(
+      'resumen-espacio-fisico',
+      datos.tiene_espacio_fisico === 'si'
+        ? 'Sí'
+        : datos.tiene_espacio_fisico === 'no'
+          ? 'No'
+          : 'Sin información',
+    );
+
+    asignar(
+      'resumen-caracteristicas-infraestructura',
+      datos.caracteristicas_infraestructura,
+    );
+
+    asignar(
+      'resumen-espacios-disponibles',
+      datos.espacios_disponibles,
+    );
+
+    asignar(
+      'resumen-recursos-existentes',
+      datos.recursos_existentes,
+    );
+
+    asignar(
+      'resumen-danos-detectados',
+      datos.danos_detectados,
+    );
+
+    asignar(
+      'resumen-necesidades-prioritarias',
+      datos.necesidades_prioritarias,
+    );
+
+    asignar('resumen-observaciones', datos.observaciones);
+
+    asignar(
+      'resumen-raciones',
+      datos.raciones !== null ? datos.raciones : 'Sin información',
+    );
+
+    asignar(
+      'resumen-periodo-raciones',
+      datos.periodo_raciones,
+    );
+
+    const fecha = document.getElementById(
+      'fecha-actualizacion-diagnostico',
+    );
+
+    if (fecha) {
+      fecha.textContent = new Intl.DateTimeFormat('es-CL', {
+        dateStyle: 'medium',
+      }).format(new Date());
+    }
+  }
+
+  btnRegistrar.addEventListener('click', mostrarFormulario);
+  btnCancelar.addEventListener('click', () => {
+    mostrarEstadoSinDiagnostico();
+  });
+
+  form.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+
+    if (!validarFormulario()) {
+      mensajeFormulario.className =
+        'rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700';
+      mensajeFormulario.textContent =
+        'Revisa los campos obligatorios antes de guardar.';
+      mensajeFormulario.classList.remove('hidden');
+
+      return;
+    }
+
+    const datos = obtenerDatosFormulario();
+
+    /*
+     * TODO:
+     * Cuando exista el endpoint de diagnóstico,
+     * esta sección será reemplazada por la llamada
+     * al cliente HTTP del frontend.
+     *
+     * Por ahora solamente mostramos el estado visual
+     * para validar la interfaz.
+     */
+
+    mostrarResumen(datos);
+    mostrarDiagnosticoRegistrado();
+
+    mensajeFormulario.classList.add('hidden');
+  });
+</script>
