@@ -1,0 +1,9 @@
+- Agregué la pestaña Expediente Legal dentro de la ficha de Organización.
+- Se pueden registrar, consultar y editar los antecedentes legales desde la interfaz.
+- Agregué los campos de personalidad jurídica y los tres documentos PDF opcionales, con validaciones y estados.
+- Incluí mensajes de carga, error y confirmación, además de cancelar la edición y adaptar el formulario a móvil.
+- Dejé el cliente HTTP preparado para conectar el backend y un modo demo para revisar la interfaz mientras falta el servicio. El demo no guarda datos reales ni sube archivos.
+- Agregué soporte multipart al transporte HTTP y un .gitignore raíz para no subir las dependencias.
+- Dejé la guía de entrega y pruebas en `docs/ENTREGA-SCRUM-99.md` y el contrato del backend en `docs/PROBAR-SCRUM-99.md`.
+- Pasaron 46 pruebas del frontend, 5 pruebas de navegador y la compilación. El chequeo global de tipos mantiene 17 errores previos ajenos a esta tarea.
+- Pendiente del backend: implementar las rutas, los permisos, la persistencia y el almacenamiento de PDF. La interfaz está preparada para esa conexión.

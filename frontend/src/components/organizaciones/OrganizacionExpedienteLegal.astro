@@ -1,0 +1,123 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import { tiposDocumento } from '../../lib/expediente-legal/modelo';
+interface Props { idOrganizacion: string }
+const { idOrganizacion } = Astro.props;
+---
+
+<section id="expediente-legal" data-organizacion={idOrganizacion} aria-labelledby="legal-titulo" class="space-y-6">
+  <div>
+    <h2 id="legal-titulo" class="text-xl font-semibold text-neutral-900">Expediente Legal</h2>
+    <p class="mt-2 text-sm text-neutral-500">Consulta y actualiza los antecedentes legales y documentos de la organización.</p>
+  </div>
+  <p id="legal-demo" hidden class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">Modo demostración: los cambios y archivos no se envían al servidor y se pierden al recargar la página.</p>
+  <p id="legal-carga" role="status" aria-live="polite">Cargando expediente legal…</p>
+  <p id="legal-error" hidden role="alert" tabindex="-1" class="rounded-lg border border-danger bg-red-50 p-4 text-red-800"></p>
+  <p id="legal-confirmacion" hidden role="status" class="rounded-lg border border-primary bg-primary/5 p-4 text-primary"></p>
+  <div id="legal-recarga" hidden><Button id="legal-reintentar" variant="outline">Reintentar carga</Button></div>
+
+  <div id="legal-vacio" hidden>
+    <Card>
+      <div class="space-y-4 py-4 text-center">
+        <h3 class="text-lg font-semibold">Sin antecedentes legales</h3>
+        <p class="text-neutral-500">Esta organización todavía no tiene un expediente legal registrado.</p>
+        <Button id="legal-registrar">Registrar antecedente legal</Button>
+      </div>
+    </Card>
+  </div>
+
+  <div id="legal-resumen" hidden class="space-y-5">
+    <Card>
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold">Antecedentes registrados</h3>
+        <Button id="legal-editar" variant="outline">Editar antecedentes</Button>
+      </div>
+      <dl class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {[
+          ['estado_personalidad_juridica', 'Personalidad jurídica'],
+          ['tipo_personalidad_juridica', 'Tipo de personalidad jurídica'],
+          ['numero_registro', 'Número de registro o identificación legal'],
+          ['fecha_constitucion', 'Fecha de constitución'],
+          ['vigencia_directiva', 'Vigencia de la directiva'],
+        ].map(([campo, etiqueta]) => (
+          <div class="min-w-0"><dt class="text-sm font-medium text-neutral-500">{etiqueta}</dt><dd data-legal-resumen={campo} class="mt-2 whitespace-pre-wrap break-words text-neutral-900"></dd></div>
+        ))}
+      </dl>
+      <p id="legal-actualizacion" class="mt-6 text-sm text-neutral-500"></p>
+    </Card>
+    <Card>
+      <h3 class="mb-4 text-lg font-semibold">Documentos del expediente</h3>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {tiposDocumento.map(({ id, nombre }) => (
+          <article class="min-w-0 rounded-lg border border-neutral-200 p-4">
+            <h4 class="font-medium">{nombre}</h4>
+            <p data-legal-estado={id} class="mt-3 text-sm font-semibold text-primary"></p>
+            <p data-legal-archivo={id} class="mt-2 break-words text-sm text-neutral-500"></p>
+          </article>
+        ))}
+      </div>
+    </Card>
+  </div>
+
+  <form id="legal-form" hidden novalidate class="space-y-5" aria-labelledby="legal-form-titulo">
+    <fieldset id="legal-campos" class="min-w-0 space-y-5">
+      <Card>
+        <h3 id="legal-form-titulo" class="text-lg font-semibold">Registrar antecedentes legales</h3>
+        <p class="mb-6 mt-2 text-sm text-neutral-500">Los campos marcados con * son obligatorios. Puedes guardar y completar los documentos más adelante.</p>
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div class="space-y-1.5">
+            <label for="legal-personalidad" class="text-sm font-medium">¿Posee personalidad jurídica? <span class="text-danger" aria-hidden="true">*</span></label>
+            <select id="legal-personalidad" name="estado_personalidad_juridica" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:ring-2 focus:ring-primary">
+              <option value="">Selecciona una opción</option><option value="si">Sí</option><option value="no">No</option><option value="en_proceso">En proceso</option>
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label for="legal-tipo" class="text-sm font-medium">Tipo de personalidad jurídica (opcional)</label>
+            <select id="legal-tipo" name="tipo_personalidad_juridica" class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:ring-2 focus:ring-primary">
+              <option value="">Sin especificar</option><option value="PJ">PJ</option><option value="ONG">ONG</option><option value="Fundación">Fundación</option>
+            </select>
+          </div>
+          <Input id="legal-registro" name="numero_registro" label="Número de registro o identificación legal (opcional)" maxlength={150} hint="RUT, CUIT u otro identificador, según el país." />
+          <Input id="legal-constitucion" name="fecha_constitucion" label="Fecha de constitución (opcional)" type="date" />
+          <div class="md:col-span-2"><Input id="legal-vigencia" name="vigencia_directiva" label="Vigencia de la directiva (opcional)" maxlength={300} /></div>
+        </div>
+      </Card>
+      <Card>
+        <h3 class="text-lg font-semibold">Documentos legales</h3>
+        <p class="mt-2 text-sm text-neutral-500">PDF de hasta 10 MB por documento. “Cargado” se asigna al guardar un archivo, no manualmente.</p>
+        <div class="mt-6 space-y-6">
+          {tiposDocumento.map(({ id, nombre }) => (
+            <div class="space-y-3 rounded-lg border border-neutral-200 p-4">
+              <h4 class="font-medium">{nombre}</h4>
+              <p data-documento-actual={id} class="break-words text-sm text-neutral-600"></p>
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="space-y-1.5">
+                  <label for={`legal-estado-${id}`} class="block text-sm">Estado del documento</label>
+                  <select id={`legal-estado-${id}`} data-documento-estado={id} class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2">
+                    <option value="pendiente">Pendiente</option><option value="no_aplica">No aplica</option><option value="cargado" disabled>Cargado</option>
+                  </select>
+                </div>
+                <div class="min-w-0 space-y-1.5">
+                  <label for={`legal-pdf-${id}`} class="block text-sm">Adjuntar o reemplazar PDF (opcional)</label>
+                  <input id={`legal-pdf-${id}`} data-documento-pdf={id} type="file" accept="application/pdf,.pdf" class="min-h-[48px] w-full min-w-0 text-sm file:mr-3 file:min-h-[48px] file:cursor-pointer file:rounded-lg file:border file:border-primary file:bg-white file:px-3 file:text-primary" />
+                  <button type="button" data-quitar-seleccion={id} hidden class="min-h-[48px] text-sm text-primary underline">Quitar archivo seleccionado</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <div class="flex flex-wrap justify-end gap-3">
+        <Button id="legal-cancelar" variant="outline">Cancelar</Button>
+        <Button id="legal-guardar" type="submit">Guardar antecedentes</Button>
+      </div>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  import { iniciarExpedienteLegal } from '../../lib/expediente-legal/interfaz';
+  void iniciarExpedienteLegal();
+</script>
