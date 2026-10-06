@@ -1,0 +1,3 @@
+# Dependencias instaladas desde la raíz del workspace
+node_modules/
+npm-debug.log*

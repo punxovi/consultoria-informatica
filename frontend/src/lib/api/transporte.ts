@@ -40,15 +40,16 @@ export function createApiTransport(apiBaseUrl: string, fetchImpl: typeof fetch =
       options: { method?: string; body?: unknown; accessToken?: string } = {},
     ): Promise<ApiSuccess<T>> {
       let response: Response;
+      const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
       try {
         response = await fetchImpl(`${baseUrl}${path}`, {
           method: options.method ?? 'GET',
           headers: {
             accept: 'application/json',
-            ...(options.body !== undefined ? { 'content-type': 'application/json' } : {}),
+            ...(options.body !== undefined && !multipart ? { 'content-type': 'application/json' } : {}),
             ...(options.accessToken ? { authorization: `Bearer ${options.accessToken}` } : {}),
           },
-          ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+          ...(options.body !== undefined ? { body: multipart ? options.body as FormData : JSON.stringify(options.body) } : {}),
         });
       } catch {
         throw new ApiError('SERVICIO_NO_DISPONIBLE', 'No fue posible conectar con el servicio.', 0);
