@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
 import OrganizacionExpedienteLegal from '../../components/organizaciones/OrganizacionExpedienteLegal.astro';
+import OrganizacionActas from '../../components/organizaciones/OrganizacionActas.astro';
 import { mainNavItems } from '../../config/nav';
 import OrganizacionDiagnostico from '../../components/organizaciones/OrganizacionDiagnostico.astro';
 import Card from '../../components/ui/Card.astro';
@@ -111,6 +112,14 @@ const idOrganizacion = Astro.params.id ?? '';
           class="tab-organizacion border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
         >
           Diagnóstico
+        </button>
+
+        <button
+          type="button"
+          data-tab="actas"
+          class="tab-organizacion border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
+        >
+          Actas de Reunión
         </button>
 
         <button
@@ -299,6 +308,11 @@ const idOrganizacion = Astro.params.id ?? '';
     <!-- Diagnóstico -->
     <div id="tab-diagnostico" class="contenido-tab hidden">
       <OrganizacionDiagnostico />
+    </div>
+
+    <!-- Actas de Reunión -->
+    <div id="tab-actas" class="contenido-tab hidden">
+      <OrganizacionActas idOrganizacion={idOrganizacion} />
     </div>
 
     <!-- Los programas usados por la organización se obtendrán de sus planes, sin relación directa Organización–Programa. -->
