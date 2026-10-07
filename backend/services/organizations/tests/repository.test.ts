@@ -62,4 +62,64 @@ describe('repositorio Supabase de Organizaciones', () => {
     await assert.rejects(denied.list('token', { includeArchived: false }),
       (error) => error instanceof ServiceError && error.code === 'SIN_PERMISO');
   });
+
+  test('consulta y guarda expediente legal, PDF privado y control de versión', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const rawLegal = {
+      id_informacion_legal: '33333333-3333-4333-8333-333333333333',
+      id_organizacion: organization.id_organizacion,
+      estado_personalidad_juridica: 'si', tipo_personalidad_juridica: 'PJ',
+      numero_registro: 'REG-1', fecha_constitucion: '2020-01-01', vigencia_directiva: 'Vigente',
+      version: 2, updated_at: '2026-10-07T00:00:00Z',
+      documentos: [
+        { tipo: 'identidad_representante', estado: 'cargado', archivo: { nombre_original: 'identidad.pdf' } },
+        { tipo: 'identificacion_legal', estado: 'no_aplica', archivo: null },
+        { tipo: 'estatutos', estado: 'pendiente', archivo: null },
+      ],
+    };
+    const repository = createSupabaseOrganizationsRepository({
+      supabaseUrl: 'https://proyecto.supabase.co', anonKey: 'key',
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        calls.push({ url, init });
+        if (url.includes('/storage/v1/object/')) return Response.json({ Key: 'ok' });
+        if (url.includes('/rest/v1/rpc/guardar_expediente_legal')) return Response.json(rawLegal.id_informacion_legal);
+        if (url.includes('/rest/v1/informacion_legal?')) return Response.json([rawLegal]);
+        if (url.includes('/rest/v1/organizaciones?')) return Response.json([organization]);
+        return Response.json({ code: 'unexpected' }, { status: 500 });
+      },
+    });
+    const input = {
+      fields: {
+        estado_personalidad_juridica: 'si' as const, tipo_personalidad_juridica: 'PJ' as const,
+        numero_registro: 'REG-1', fecha_constitucion: '2020-01-01', vigencia_directiva: 'Vigente',
+      },
+      documents: [
+        { tipo: 'identidad_representante' as const, estado: 'cargado' as const },
+        { tipo: 'identificacion_legal' as const, estado: 'no_aplica' as const },
+        { tipo: 'estatutos' as const, estado: 'pendiente' as const },
+      ],
+      files: {
+        identidad_representante: {
+          tipo: 'identidad_representante' as const, nombre: 'identidad.pdf',
+          mimeType: 'application/pdf' as const, bytes: new TextEncoder().encode('%PDF-1.4 QA'),
+        },
+      },
+    };
+
+    const saved = await repository.createLegalRecord('token', organization.id_organizacion, input);
+    assert.equal(saved.documentos[0].nombre_archivo, 'identidad.pdf');
+    assert.ok(calls.some(({ url }) => /storage\/v1\/object\/fge-expedientes-legales\/expedientes\/.+\.pdf$/.test(url)));
+    const rpc = calls.find(({ url }) => url.includes('rpc/guardar_expediente_legal'))!;
+    const rpcBody = JSON.parse(String(rpc.init?.body));
+    assert.equal(rpcBody.p_version_esperada, null);
+    assert.equal(rpcBody.p_datos.documentos[0].archivo.mime_type, 'application/pdf');
+
+    calls.length = 0;
+    await repository.updateLegalRecord('token', organization.id_organizacion, {
+      ...input, files: {}, expectedVersion: 2,
+    });
+    const updateRpc = calls.find(({ url }) => url.includes('rpc/guardar_expediente_legal'))!;
+    assert.equal(JSON.parse(String(updateRpc.init?.body)).p_version_esperada, 2);
+  });
 });

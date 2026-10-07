@@ -3,6 +3,7 @@ import type {
   OrganizationFilters,
   OrganizationsRepository,
   UpdateOrganizationInput,
+  SaveLegalRecordInput,
 } from '../domain/organizations.ts';
 
 export function createOrganizationsApplication(repository: OrganizationsRepository) {
@@ -21,6 +22,15 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     },
     listCountries(accessToken: string) {
       return repository.listCountries(accessToken);
+    },
+    getLegalRecord(accessToken: string, organizationId: string) {
+      return repository.getLegalRecord(accessToken, organizationId);
+    },
+    createLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput) {
+      return repository.createLegalRecord(accessToken, organizationId, input);
+    },
+    updateLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput) {
+      return repository.updateLegalRecord(accessToken, organizationId, input);
     },
   };
 }
