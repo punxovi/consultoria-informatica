@@ -17,6 +17,9 @@ if (!idOrganizacion) {
 }
 
 const organizacionId: string = idOrganizacion;
+const compromisos = import.meta.env.DEV
+  ? (await import('../compromisos/en-actas')).iniciarCompromisosEnActas(raiz, organizacionId)
+  : null;
 
 const buscar = <T extends HTMLElement>(
   selector: string,
@@ -268,6 +271,7 @@ const buscar = <T extends HTMLElement>(
     limpiarFormulario();
 
     actaEditando = acta;
+    compromisos?.reiniciar(!!acta);
 
     tituloFormulario.textContent = acta
       ? 'Editar acta de reunión'
@@ -363,6 +367,7 @@ const buscar = <T extends HTMLElement>(
     if (!acta) return;
 
     actaDetalle = acta;
+    compromisos?.detalle(id);
 
     ocultarTodo();
     detalle.hidden = false;
@@ -437,6 +442,11 @@ const buscar = <T extends HTMLElement>(
     const entrada = validarFormulario();
 
     if (!entrada) return;
+    if (!actaEditando && compromisos) {
+      const borradores = compromisos.obtener();
+      if (!borradores) return;
+      entrada.compromisos = borradores;
+    }
 
     btnGuardar.disabled = true;
     btnGuardar.textContent = actaEditando
@@ -469,6 +479,7 @@ const buscar = <T extends HTMLElement>(
         );
 
         registro = [...registro, nueva];
+        window.dispatchEvent(new CustomEvent('compromisos:demo-guardados'));
 
         mostrarMensaje(
           'success',
@@ -520,4 +531,10 @@ const buscar = <T extends HTMLElement>(
   if (!iniciado) {
     await cargar();
   }
+  window.addEventListener('compromisos:abrir-acta', async evento => {
+    const datos = (evento as CustomEvent<{ id: string; org: string }>).detail;
+    if (datos.org !== organizacionId || ocupado) return;
+    await cargar();
+    mostrarDetalle(datos.id);
+  });
 }

@@ -307,6 +307,15 @@ const fechaHoy = new Date().toISOString().split('T')[0];
         </div>
       </Card>
 
+      {import.meta.env.DEV && <Card>
+        <section id="actas-compromisos" class="space-y-4">
+          <h3 class="font-semibold">Compromisos del acta</h3>
+          <p class="text-sm text-neutral-600">Puedes agregar varios acuerdos antes de guardar. Quedan Pendientes y se consultan en Compromisos → Probar demostración. Estos datos son temporales y no se envían al servidor.</p>
+          <div data-borradores class="space-y-4"></div>
+          <Button id="actas-agregar-compromiso" variant="outline">Agregar compromiso al acta</Button>
+        </section>
+      </Card>}
+
       <div
         id="actas-mensaje"
         hidden
@@ -336,6 +345,10 @@ const fechaHoy = new Date().toISOString().split('T')[0];
 
   <!-- Detalle -->
   <div id="actas-detalle" hidden>
+    {import.meta.env.DEV && <Card>
+      <h3 class="font-semibold">Compromisos asociados (demostración)</h3>
+      <div id="actas-compromisos-detalle" class="mt-3"></div>
+    </Card>}
     <Card>
       <div class="flex flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
