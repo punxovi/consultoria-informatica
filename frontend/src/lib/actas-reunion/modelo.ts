@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CamposCompromiso } from '../compromisos/modelo';
 
 const texto = (max: number) =>
   z
@@ -38,6 +39,7 @@ export interface ActaReunion extends CamposActa {
 
 export interface GuardarActa {
   campos: CamposActa;
+  compromisos?: CamposCompromiso[];
 }
 
 export interface ServicioActasReunion {

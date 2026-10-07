@@ -2,6 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import OrganizacionExpedienteLegal from '../../components/organizaciones/OrganizacionExpedienteLegal.astro';
 import OrganizacionActas from '../../components/organizaciones/OrganizacionActas.astro';
+import OrganizacionCompromisos from '../../components/organizaciones/OrganizacionCompromisos.astro';
 import { mainNavItems } from '../../config/nav';
 import OrganizacionDiagnostico from '../../components/organizaciones/OrganizacionDiagnostico.astro';
 import Card from '../../components/ui/Card.astro';
@@ -122,6 +123,10 @@ const idOrganizacion = Astro.params.id ?? '';
           Actas de Reunión
         </button>
 
+        <button type="button" data-tab="compromisos" class="tab-organizacion min-h-[48px] border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary">
+          Compromisos
+        </button>
+
         <button
           type="button"
           data-tab="expediente-legal"
@@ -146,6 +151,10 @@ const idOrganizacion = Astro.params.id ?? '';
           Seguimiento
         </button>
       </nav>
+    </div>
+
+    <div id="tab-compromisos" class="contenido-tab hidden">
+      <OrganizacionCompromisos idOrganizacion={idOrganizacion} />
     </div>
 
     <div id="tab-expediente-legal" class="contenido-tab hidden">
