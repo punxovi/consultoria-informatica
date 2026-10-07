@@ -1,0 +1,448 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import Select from '../ui/Select.astro';
+
+interface Props {
+  idOrganizacion: string;
+}
+
+const { idOrganizacion } = Astro.props;
+
+const planes = [
+  {
+    value: 'plan-1',
+    label: 'Plan de apoyo comunitario 2026',
+  },
+  {
+    value: 'plan-2',
+    label: 'Plan de fortalecimiento institucional',
+  },
+  {
+    value: 'plan-3',
+    label: 'Plan de intervención social',
+  },
+];
+
+const acciones = [
+  {
+    value: 'accion-1',
+    label: 'Jornada de intervención comunitaria',
+  },
+  {
+    value: 'accion-2',
+    label: 'Entrega de recursos',
+  },
+  {
+    value: 'accion-3',
+    label: 'Seguimiento de beneficiarios',
+  },
+  {
+    value: 'accion-4',
+    label: 'Reunión de coordinación',
+  },
+];
+
+const usuarios = [
+  'Constanza Cauchupan',
+  'Gabriel Orellana',
+  'Benjamín Molina',
+  'Benjamín Miranda',
+  'Jorge Páez',
+  'Luis Bustamante',
+];
+
+const fechaHoy = new Date().toISOString().split('T')[0];
+---
+
+<section
+  id="actas-reunion"
+  data-organizacion={idOrganizacion}
+  class="space-y-6"
+  aria-labelledby="actas-titulo"
+>
+  <!-- Encabezado -->
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h2
+        id="actas-titulo"
+        class="text-xl font-semibold text-neutral-900"
+      >
+        Actas de Reunión
+      </h2>
+
+      <p class="mt-2 text-sm text-neutral-500">
+        Historial de reuniones y acuerdos registrados para esta organización.
+      </p>
+    </div>
+
+    <Button id="actas-nueva">
+      Registrar acta
+    </Button>
+  </div>
+
+  <!-- Error general -->
+  <p
+    id="actas-error"
+    hidden
+    role="alert"
+    class="rounded-lg border border-danger bg-red-50 p-4 text-sm text-red-800"
+  ></p>
+
+  <!-- Carga -->
+  <div id="actas-carga" hidden>
+    <Card>
+      <div class="py-8 text-center">
+        <div
+          class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-neutral-200 border-t-primary"
+          aria-hidden="true"
+        ></div>
+
+        <p class="mt-4 text-sm font-medium text-neutral-700">
+          Cargando actas...
+        </p>
+      </div>
+    </Card>
+  </div>
+
+  <!-- Estado vacío -->
+  <div id="actas-vacio" hidden>
+    <Card>
+      <div class="space-y-4 py-8 text-center">
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"
+          aria-hidden="true"
+        >
+          <span class="text-xl">+</span>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-neutral-900">
+            No hay actas registradas
+          </h3>
+
+          <p class="mt-2 text-sm text-neutral-500">
+            Todavía no existen actas de reunión asociadas a esta organización.
+          </p>
+        </div>
+      </div>
+    </Card>
+  </div>
+
+  <!-- Historial -->
+  <div id="actas-historial" hidden class="space-y-4">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="text-lg font-semibold text-neutral-900">
+        Historial de reuniones
+      </h3>
+
+      <p
+        id="cantidad-actas"
+        class="text-sm text-neutral-500"
+      ></p>
+    </div>
+
+    <div
+      id="lista-actas"
+      class="space-y-4"
+    ></div>
+  </div>
+
+  <!-- Formulario -->
+  <div id="actas-formulario-contenedor" hidden>
+    <form
+      id="actas-formulario"
+      novalidate
+      class="space-y-5"
+    >
+      <Card>
+        <div class="mb-6">
+          <h3
+            id="actas-formulario-titulo"
+            class="text-lg font-semibold text-neutral-900"
+          >
+            Registrar acta
+          </h3>
+
+          <p class="mt-2 text-sm text-neutral-500">
+            Completa los antecedentes de la reunión.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Select
+            id="actas-plan"
+            name="id_plan"
+            label="Plan relacionado"
+            options={planes}
+            placeholder="Selecciona un plan"
+            required
+          />
+
+          <Select
+            id="actas-accion"
+            name="id_accion"
+            label="Acción relacionada"
+            options={acciones}
+            placeholder="Selecciona una acción"
+          />
+        </div>
+
+        <div class="mt-5">
+          <Input
+            id="actas-fecha"
+            name="fecha_reunion"
+            label="Fecha de la reunión"
+            type="date"
+            required
+            value={fechaHoy}
+            hint="La fecha no puede ser posterior a la fecha actual."
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <h3 class="text-lg font-semibold text-neutral-900">
+          Asistentes
+        </h3>
+
+        <p class="mt-2 text-sm text-neutral-500">
+          Selecciona usuarios registrados y agrega asistentes externos cuando corresponda.
+        </p>
+
+        <div class="mt-5">
+          <label
+            for="actas-asistentes"
+            class="block text-sm font-medium text-neutral-800"
+          >
+            Usuarios del sistema
+            <span class="ml-0.5 text-danger" aria-hidden="true">*</span>
+          </label>
+
+          <select
+            id="actas-asistentes"
+            name="asistentes"
+            multiple
+            required
+            class="mt-1.5 min-h-[140px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            {
+              usuarios.map((usuario) => (
+                <option value={usuario}>{usuario}</option>
+              ))
+            }
+          </select>
+
+          <p class="mt-1.5 text-sm text-neutral-500">
+            Mantén presionada la tecla Ctrl para seleccionar más de una persona.
+          </p>
+
+          <p
+            id="error-asistentes-acta"
+            data-error-acta
+            hidden
+            class="mt-1 text-sm text-danger"
+          ></p>
+        </div>
+
+        <div class="mt-5">
+          <Input
+            id="actas-asistentes-externos"
+            name="asistentes_externos"
+            label="Asistentes externos"
+            placeholder="Ej: María González, representante de la organización"
+            hint="Opcional."
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <div class="space-y-5">
+          <div>
+            <label
+              for="actas-objetivo"
+              class="block text-sm font-medium text-neutral-800"
+            >
+              Objetivo de la reunión
+              <span class="ml-0.5 text-danger" aria-hidden="true">*</span>
+            </label>
+
+            <textarea
+              id="actas-objetivo"
+              name="objetivo"
+              required
+              rows="4"
+              placeholder="Describe el objetivo principal de la reunión..."
+              class="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+            ></textarea>
+
+            <p
+              id="error-objetivo-acta"
+              data-error-acta
+              hidden
+              class="mt-1 text-sm text-danger"
+            ></p>
+          </div>
+
+          <div>
+            <label
+              for="actas-observaciones"
+              class="block text-sm font-medium text-neutral-800"
+            >
+              Notas u observaciones
+              <span class="ml-1 text-sm font-normal text-neutral-500">
+                (opcional)
+              </span>
+            </label>
+
+            <textarea
+              id="actas-observaciones"
+              name="observaciones"
+              rows="5"
+              placeholder="Registra notas, acuerdos u observaciones relevantes..."
+              class="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+            ></textarea>
+          </div>
+        </div>
+      </Card>
+
+      <div
+        id="actas-mensaje"
+        hidden
+        class="rounded-lg px-4 py-3 text-sm"
+        role="alert"
+        aria-live="polite"
+      ></div>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button
+          id="actas-cancelar"
+          type="button"
+          variant="outline"
+        >
+          Cancelar
+        </Button>
+
+        <Button
+          id="actas-guardar"
+          type="submit"
+        >
+          Guardar acta
+        </Button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Detalle -->
+  <div id="actas-detalle" hidden>
+    <Card>
+      <div class="flex flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p class="text-sm font-medium text-primary">
+            Detalle del acta
+          </p>
+
+          <h3
+            class="mt-1 text-xl font-semibold text-neutral-900"
+          >
+            Acta de reunión
+          </h3>
+
+          <p
+            id="detalle-fecha"
+            class="mt-1 text-sm text-neutral-500"
+          ></p>
+        </div>
+
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <Button
+            id="actas-editar"
+            type="button"
+            variant="outline"
+          >
+            Editar
+          </Button>
+
+          <Button
+            id="actas-volver"
+            type="button"
+          >
+            Volver al historial
+          </Button>
+        </div>
+      </div>
+
+      <div class="mt-6 space-y-6">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Plan relacionado
+            </p>
+
+            <p
+              id="detalle-plan"
+              class="mt-1 text-sm text-neutral-900"
+            ></p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Acción relacionada
+            </p>
+
+            <p
+              id="detalle-accion"
+              class="mt-1 text-sm text-neutral-900"
+            ></p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Asistentes
+          </p>
+
+          <div
+            id="detalle-asistentes"
+            class="mt-2 flex flex-wrap gap-2"
+          ></div>
+
+          <p
+            id="detalle-asistentes-externos"
+            hidden
+            class="mt-3 text-sm text-neutral-700"
+          ></p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Objetivo de la reunión
+          </p>
+
+          <p
+            id="detalle-objetivo"
+            class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700"
+          ></p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Notas u observaciones
+          </p>
+
+          <p
+            id="detalle-observaciones"
+            class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700"
+          ></p>
+        </div>
+      </div>
+    </Card>
+  </div>
+</section>
+
+<script>
+  import { iniciarActasReunion } from '../../lib/actas-reunion/interfaz';
+
+  void iniciarActasReunion();
+</script>
