@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,29,'Se esperaban veintinueve migraciones');
+assert.equal(files.length,30,'Se esperaban treinta migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -176,6 +176,11 @@ for(const operacion of ['INSERT INTO public.informacion_legal','FROM public.info
 const diagnosticosTest=readFileSync(join(root,'tests/database/012_diagnosticos.test.sql'),'utf8');
 for(const operacion of ['INSERT INTO public.diagnosticos','FROM public.diagnosticos','UPDATE public.diagnosticos']) {
  assert.ok(diagnosticosTest.includes(operacion),'Prueba de Diagnósticos: '+operacion);
+}
+
+const actasTest=readFileSync(join(root,'tests/database/013_actas_reunion.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.actas','FROM public.actas','UPDATE public.actas']) {
+ assert.ok(actasTest.includes(operacion),'Prueba de Actas: '+operacion);
 }
 
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
