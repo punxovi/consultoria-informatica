@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,30,'Se esperaban treinta migraciones');
+assert.equal(files.length,31,'Se esperaban treinta y una migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -182,6 +182,11 @@ const actasTest=readFileSync(join(root,'tests/database/013_actas_reunion.test.sq
 for(const operacion of ['INSERT INTO public.actas','FROM public.actas','UPDATE public.actas']) {
  assert.ok(actasTest.includes(operacion),'Prueba de Actas: '+operacion);
 }
+
+const rlsSprint5Test=readFileSync(join(root,'tests/database/014_rls_sprint5.test.sql'),'utf8');
+assert.ok(rlsSprint5Test.includes('diagnosticos_lectura'),'Prueba de RLS: diagnosticos');
+assert.ok(rlsSprint5Test.includes('actas_lectura'),'Prueba de RLS: actas');
+assert.ok(rlsSprint5Test.includes('compromisos_lectura'),'Prueba de RLS: compromisos');
 
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
 const repositorioProgramas=readFileSync(join(root,'../backend/services/programs/src/infrastructure/supabase-programs.repository.ts'),'utf8');
