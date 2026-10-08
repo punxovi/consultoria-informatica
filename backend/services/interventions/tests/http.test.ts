@@ -6,10 +6,12 @@ import { createInterventionsServer } from '../src/server.ts';
 
 const planId = '33333333-3333-4333-8333-333333333333';
 const actionId = '44444444-4444-4444-8444-444444444444';
+const minuteId = '55555555-5555-4555-8555-555555555555';
 const orgId = '11111111-1111-4111-8111-111111111111';
 const programId = '22222222-2222-4222-8222-222222222222';
 const plan = { id_plan: planId, nombre: 'Plan QA' };
 const action = { id_accion: actionId, id_plan: planId, nombre: 'Acción QA' };
+const minute = { id_acta: minuteId, id_organizacion: orgId, id_plan: planId, objetivo: 'Reunión QA' };
 const application: InterventionsApplication = {
   plans: {
     async list() { return [plan] as never; }, async getById() { return plan as never; },
@@ -18,6 +20,10 @@ const application: InterventionsApplication = {
   actions: {
     async list() { return [action] as never; }, async getById() { return action as never; },
     async create() { return action as never; }, async update() { return action as never; }, async archive() {},
+  },
+  meetingMinutes: {
+    async list() { return [minute] as never; }, async getById() { return minute as never; },
+    async create() { return minute as never; }, async update() { return minute as never; },
   },
 };
 let server: Server;
@@ -41,6 +47,11 @@ const validPlan = {
 const validAction = {
   id_plan: planId, nombre: 'Acción QA', responsable_nombre: 'Responsable',
   fecha_inicio: '2026-02-01', fecha_termino: '2026-03-01',
+};
+const validMinute = {
+  id_organizacion: orgId, id_plan: planId, id_accion: actionId,
+  objetivo: 'Revisar avances', fecha_reunion: '2026-10-08',
+  asistentes: ['Coordinador'], asistentes_externos: '', observaciones: 'Acuerdos',
 };
 
 describe('servicio HTTP de Intervenciones', () => {
@@ -71,10 +82,30 @@ describe('servicio HTTP de Intervenciones', () => {
       method: 'DELETE', headers, body: JSON.stringify({ version_esperada: 2 }),
     })).status, 200);
   });
+  test('expone listado, detalle, creación y actualización de Actas', async () => {
+    const listed = await fetch(`${baseUrl}/v1/meeting-minutes?id_organizacion=${orgId}`, { headers });
+    assert.equal(listed.status, 200);
+    assert.equal((await listed.json()).code, 'ACTAS_LISTADAS');
+    assert.equal((await fetch(`${baseUrl}/v1/meeting-minutes/${minuteId}`, { headers })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/v1/meeting-minutes`, {
+      method: 'POST', headers, body: JSON.stringify(validMinute),
+    })).status, 201);
+    const updated = await fetch(`${baseUrl}/v1/meeting-minutes/${minuteId}`, {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ version_esperada: 1, cambios: { objetivo: 'Objetivo actualizado' } }),
+    });
+    assert.equal(updated.status, 200);
+    assert.equal((await updated.json()).code, 'ACTA_ACTUALIZADA');
+  });
   test('rechaza entradas inválidas antes de persistir', async () => {
     assert.equal((await fetch(`${baseUrl}/v1/plans/invalido`, { headers })).status, 400);
     assert.equal((await fetch(`${baseUrl}/v1/actions`, {
       method: 'POST', headers, body: JSON.stringify({ ...validAction, estado: 'cancelada' }),
     })).status, 400);
+    const invalidMinute = await fetch(`${baseUrl}/v1/meeting-minutes`, {
+      method: 'POST', headers, body: JSON.stringify({ ...validMinute, asistentes: [] }),
+    });
+    assert.equal(invalidMinute.status, 400);
+    assert.equal((await invalidMinute.json()).error.code, 'DATOS_INVALIDOS');
   });
 });

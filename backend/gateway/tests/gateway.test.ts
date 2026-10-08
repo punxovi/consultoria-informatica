@@ -129,8 +129,12 @@ describe('API Gateway', () => {
     assert.equal(body.authorization, 'Bearer sesion-programas');
   });
 
-  test('enruta Planes y Acciones al contexto de Intervenciones', async () => {
-    for (const path of ['/api/v1/plans?incluir_archivados=false', '/api/v1/actions?estado=atrasada']) {
+  test('enruta Planes, Acciones y Actas al contexto de Intervenciones', async () => {
+    for (const path of [
+      '/api/v1/plans?incluir_archivados=false',
+      '/api/v1/actions?estado=atrasada',
+      '/api/v1/meeting-minutes?id_organizacion=11111111-1111-4111-8111-111111111111',
+    ]) {
       const response = await fetch(`${gatewayUrl}${path}`, { headers: { authorization: 'Bearer sesion-intervenciones' } });
       const body = await response.json();
       assert.equal(body.path, path.replace('/api', ''));

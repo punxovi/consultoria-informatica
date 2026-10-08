@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,31,'Se esperaban treinta y una migraciones');
+assert.equal(files.length,32,'Se esperaban treinta y dos migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -182,6 +182,14 @@ const actasTest=readFileSync(join(root,'tests/database/013_actas_reunion.test.sq
 for(const operacion of ['INSERT INTO public.actas','FROM public.actas','UPDATE public.actas']) {
  assert.ok(actasTest.includes(operacion),'Prueba de Actas: '+operacion);
 }
+const actasApiSql=sql.find(s=>s.includes('operaciones que utiliza el servicio Backend'));
+assert.ok(actasApiSql,'Existe migración de acceso Data API para Actas');
+assert.match(actasApiSql,/GRANT SELECT, INSERT, UPDATE ON TABLE public\.actas TO authenticated/);
+assert.ok(!/GRANT[^;]*DELETE[^;]*public\.actas/i.test(actasApiSql),'Actas no habilita eliminación física');
+const actasApiTest=readFileSync(join(root,'tests/database/015_actas_api.test.sql'),'utf8');
+for(const operacion of ['SELECT','INSERT','UPDATE']) {
+ assert.ok(actasApiTest.includes(`'${operacion}'`),'Prueba de privilegio de Actas: '+operacion);
+}
 
 const rlsSprint5Test=readFileSync(join(root,'tests/database/014_rls_sprint5.test.sql'),'utf8');
 assert.ok(rlsSprint5Test.includes('diagnosticos_lectura'),'Prueba de RLS: diagnosticos');
@@ -206,6 +214,9 @@ for(const operacion of ['list','getById','create','update']) {
 assert.match(repositorioPlanes,/organizacion:organizaciones/,'Planes incluyen Organización');
 assert.match(repositorioPlanes,/programa:programas/,'Planes incluyen Programa');
 assert.ok(!/service[_-]?role/i.test(repositorioPlanes),'Operaciones de Planes sin clave privilegiada');
+assert.match(repositorioPlanes,/const meetingMinutes: MeetingMinutesRepository/,'Repositorio de Actas disponible');
+assert.match(repositorioPlanes,/validateMeetingMinuteRelations/,'Actas validan Organización, Plan y Acción');
+assert.match(repositorioPlanes,/`actas\?\$\{params\}`/,'Actas utilizan Supabase desde el Backend');
 const operacionesPlanesTest=readFileSync(join(root,'tests/database/009_operaciones_planes.test.sql'),'utf8');
 for(const operacion of ['INSERT INTO public.planes','FROM public.planes','UPDATE public.planes']) {
  assert.ok(operacionesPlanesTest.includes(operacion),'Prueba de Plan: '+operacion);

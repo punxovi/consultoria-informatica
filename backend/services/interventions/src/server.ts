@@ -7,7 +7,11 @@ import { createSupabaseInterventionsRepositoriesFromEnv } from './infrastructure
 
 export function createInterventionsServer(application?: InterventionsApplication): Server {
   const repositories = application ? undefined : createSupabaseInterventionsRepositoriesFromEnv();
-  const resolved = application ?? createInterventionsApplication(repositories!.plans, repositories!.actions);
+  const resolved = application ?? createInterventionsApplication(
+    repositories!.plans,
+    repositories!.actions,
+    repositories!.meetingMinutes,
+  );
   return createServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'interventions.request', { requestId, method: request.method, path: request.url });
