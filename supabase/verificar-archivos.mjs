@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,28,'Se esperaban veintiocho migraciones');
+assert.equal(files.length,29,'Se esperaban veintinueve migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -172,6 +172,12 @@ const expedienteTest=readFileSync(join(root,'tests/database/011_expediente_legal
 for(const operacion of ['INSERT INTO public.informacion_legal','FROM public.informacion_legal','UPDATE public.informacion_legal']) {
  assert.ok(expedienteTest.includes(operacion),'Prueba de Expediente Legal: '+operacion);
 }
+
+const diagnosticosTest=readFileSync(join(root,'tests/database/012_diagnosticos.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.diagnosticos','FROM public.diagnosticos','UPDATE public.diagnosticos']) {
+ assert.ok(diagnosticosTest.includes(operacion),'Prueba de Diagnósticos: '+operacion);
+}
+
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
 const repositorioProgramas=readFileSync(join(root,'../backend/services/programs/src/infrastructure/supabase-programs.repository.ts'),'utf8');
 for(const operacion of ['list','getById','create','update']) {
