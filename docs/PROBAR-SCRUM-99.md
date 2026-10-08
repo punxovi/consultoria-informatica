@@ -6,14 +6,12 @@ La ficha de Organización incorpora la pestaña **Expediente Legal**, con consul
 
 1. Desde la raíz del repositorio, ejecutar `npm run dev`. Esto inicia el frontend y los servicios HTTP necesarios para iniciar sesión y consultar organizaciones.
 2. Iniciar sesión y abrir la ficha de una organización.
-3. Para probar la interfaz mientras falta el servicio legal, agregar `?expediente=demo` al final de la dirección y abrir la pestaña **Expediente Legal**.
-4. Registrar antecedentes, seleccionar personalidad jurídica y probar los PDF. Guardar, consultar, editar y cancelar.
+3. Aplicar la migración `20261007120000_fge_expediente_legal.sql` en Supabase.
+4. Abrir la pestaña **Expediente Legal** de una Organización y registrar, consultar y editar sus antecedentes.
 
-La demostración solo está habilitada en desarrollo y muestra un aviso permanente. Los datos y archivos no se envían al servidor; se pierden al recargar. No es una alternativa de almacenamiento real.
+El parámetro `?expediente=demo` continúa disponible exclusivamente para revisar la interfaz sin modificar datos. Sin ese parámetro se utiliza el servicio real y la persistencia de Supabase descrita en `EXPEDIENTE-LEGAL-BASE-DATOS.md`.
 
-Sin ese parámetro se utiliza el cliente HTTP real. En la base de sprint-5 revisada (`e58c122`) todavía no existe el servicio legal: se muestra un error de servicio no disponible, sin presentar un expediente vacío ni confirmar un guardado inexistente. Esta tarea deja la interfaz y el cliente preparados; la persistencia real depende de implementar el contrato siguiente. No se requieren nuevas migraciones para probar la demostración.
-
-## Contrato HTTP propuesto para integrar el servicio
+## Contrato HTTP implementado
 
 Ruta: `/api/v1/organizations/:id/legal-record`, con `Authorization: Bearer <token>`.
 
@@ -29,7 +27,7 @@ Las respuestas de guardado devuelven el expediente completo: campos anteriores, 
 
 Errores: `{ ok: false, error: { code, message } }` con el estado HTTP correspondiente. Un 409 conserva el formulario y exige recargar antes de guardar de nuevo. Los errores de permisos o guardado conservan los valores ingresados.
 
-El servicio deberá comprobar permisos y acceso a la organización, validar contenido/tamaño real de PDF, almacenar documentos privados y resolver el guardado de datos y archivos sin confirmar operaciones incompletas. El estado Cargado debe verificarse en el servidor. El modelo y el cliente están separados de la interfaz para ajustar el contrato cuando exista el servicio definitivo.
+El servicio comprueba permisos y acceso a la Organización, valida contenido y tamaño real de PDF, almacena documentos privados y usa una función transaccional para guardar datos y metadatos. El estado Cargado se verifica nuevamente en el servidor.
 
 ## Verificación
 
@@ -37,6 +35,8 @@ Desde la raíz:
 
 ```sh
 npm run test --workspace=frontend
+npm run test --workspace=@fge/organizations-service
+npx --yes supabase@latest test db --local
 npm run test:e2e:expediente --workspace=frontend
 npm run build --workspace=frontend
 ```

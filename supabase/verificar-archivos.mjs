@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,27,'Se esperaban veintisiete migraciones');
+assert.equal(files.length,28,'Se esperaban veintiocho migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -31,7 +31,7 @@ for (let i=0;i<files.length;i++) {
 }
 const allSql=sql.join('\n');
 const tables=[...allSql.matchAll(/CREATE TABLE public\.(\w+) \(([\s\S]*?)\n\);/g)];
-assert.equal(tables.length,27,'27 tablas public');
+assert.equal(tables.length,28,'28 tablas public');
 const known=new Set();
 for(const [,name,body] of tables) {
  assert.ok(!known.has(name),'Tabla única');
@@ -69,6 +69,17 @@ const destinations=['id_organizacion','id_informacion_legal','id_programa','id_a
 for(const d of destinations) assert.ok(filesBody.includes(d+' uuid REFERENCES'),'FK anulable: '+d);
 assert.match(filesBody,/num_nonnulls\(id_organizacion,id_informacion_legal,id_programa,id_accion,id_donacion\) = 1/);
 assert.ok(!filesBody.includes('entidad_tipo'));
+const expedienteSql=sql.find(s=>s.includes('Expediente legal de Organizaciones'));
+assert.ok(expedienteSql,'Existe migración del expediente legal');
+assert.match(expedienteSql,/CREATE TABLE public\.documentos_informacion_legal/);
+assert.match(body('informacion_legal'),/REFERENCES public\.organizaciones\(id_organizacion\)/);
+assert.match(expedienteSql,/CREATE POLICY informacion_legal_lectura/);
+assert.match(expedienteSql,/CREATE POLICY informacion_legal_insert/);
+assert.match(expedienteSql,/CREATE POLICY informacion_legal_update/);
+assert.match(expedienteSql,/CREATE OR REPLACE FUNCTION public\.guardar_expediente_legal/);
+assert.match(expedienteSql,/SECURITY INVOKER/);
+assert.match(expedienteSql,/application\/pdf/);
+assert.match(expedienteSql,/10485760/);
 const allowedSecurityDefiner=new Set([
  '20260909192500_fge_trigger_perfiles.sql',
  '20260916143000_fge_obtener_roles_usuario.sql',
@@ -153,6 +164,13 @@ for(const estadoSql of ['23503','23514']) {
 const repositorioOrganizaciones=readFileSync(join(root,'../backend/services/organizations/src/infrastructure/supabase-organizations.repository.ts'),'utf8');
 for(const operacion of ['list','getById','create','update']) {
  assert.match(repositorioOrganizaciones,new RegExp(`(?:async )?${operacion}\\(`),'Operación de Organizaciones: '+operacion);
+}
+for(const operacion of ['getLegalRecord','createLegalRecord','updateLegalRecord']) {
+ assert.match(repositorioOrganizaciones,new RegExp(`(?:async )?${operacion}\\(`),'Operación de Expediente Legal: '+operacion);
+}
+const expedienteTest=readFileSync(join(root,'tests/database/011_expediente_legal.test.sql'),'utf8');
+for(const operacion of ['INSERT INTO public.informacion_legal','FROM public.informacion_legal','UPDATE public.informacion_legal']) {
+ assert.ok(expedienteTest.includes(operacion),'Prueba de Expediente Legal: '+operacion);
 }
 assert.ok(!/service[_-]?role/i.test(repositorioOrganizaciones),'Repositorio sin clave privilegiada');
 const repositorioProgramas=readFileSync(join(root,'../backend/services/programs/src/infrastructure/supabase-programs.repository.ts'),'utf8');
