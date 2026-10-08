@@ -8,8 +8,9 @@ import {
   parseOrganizationFilters,
   parseUpdateInput,
   parseUuid,
+  parseLegalRecordInput,
 } from '../domain/organizations.ts';
-import { readJsonBody } from './body.ts';
+import { readJsonBody, readMultipartBody } from './body.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -42,7 +43,7 @@ export async function routeOrganizations(
     if (request.method === 'GET' && url.pathname === '/v1/organizations/capabilities') {
       respond(response, 200, success('ORGANIZACIONES_MIGRADAS', 'El servicio de Organizaciones está disponible.', {
         migrated: true,
-        operations: ['list', 'detail', 'create', 'update', 'countries'],
+        operations: ['list', 'detail', 'create', 'update', 'countries', 'legal-record:get', 'legal-record:create', 'legal-record:update'],
       }), requestId);
       return;
     }
@@ -62,6 +63,28 @@ export async function routeOrganizations(
       const organization = await application.create(token, parseOrganizationFields(await readJsonBody(request)));
       respond(response, 201, success('ORGANIZACION_CREADA', 'La organización fue creada correctamente.', { organization }), requestId);
       return;
+    }
+
+    const legalMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/legal-record$/);
+    if (legalMatch) {
+      const id = parseUuid(decodeURIComponent(legalMatch[1]), 'La organización');
+      if (request.method === 'GET') {
+        const expediente = await application.getLegalRecord(token, id);
+        respond(response, 200, success('EXPEDIENTE_LEGAL_OBTENIDO', 'El expediente legal fue consultado correctamente.', { expediente }), requestId);
+        return;
+      }
+      if (request.method === 'POST') {
+        const input = await parseLegalRecordInput(await readMultipartBody(request), false);
+        const expediente = await application.createLegalRecord(token, id, input);
+        respond(response, 201, success('EXPEDIENTE_LEGAL_CREADO', 'El expediente legal fue creado correctamente.', { expediente }), requestId);
+        return;
+      }
+      if (request.method === 'PATCH') {
+        const input = await parseLegalRecordInput(await readMultipartBody(request), true);
+        const expediente = await application.updateLegalRecord(token, id, input);
+        respond(response, 200, success('EXPEDIENTE_LEGAL_ACTUALIZADO', 'El expediente legal fue actualizado correctamente.', { expediente }), requestId);
+        return;
+      }
     }
 
     const match = url.pathname.match(/^\/v1\/organizations\/([^/]+)$/);

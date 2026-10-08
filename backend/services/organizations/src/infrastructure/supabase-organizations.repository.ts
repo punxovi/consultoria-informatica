@@ -1,11 +1,17 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
+import { randomUUID } from 'node:crypto';
 import type {
   CountrySummary,
   Organization,
   OrganizationFields,
   OrganizationFilters,
   OrganizationsRepository,
+  LegalDocument,
+  LegalDocumentType,
+  LegalRecord,
+  SaveLegalRecordInput,
 } from '../domain/organizations.ts';
+import { LEGAL_DOCUMENT_TYPES } from '../domain/organizations.ts';
 
 interface RepositoryOptions {
   supabaseUrl: string;
@@ -34,6 +40,9 @@ function postgrestError(status: number, body: unknown): ServiceError {
   if (code === '23503') {
     return new ServiceError('PAIS_NO_EXISTE', 'El país indicado no existe o ya no está disponible.', 409, detail);
   }
+  if (code === 'P0002') return new ServiceError('NO_ENCONTRADO', 'El expediente legal solicitado no existe.', 404, detail);
+  if (code === '40001') return new ServiceError('CONFLICTO_CONCURRENCIA', 'El expediente fue modificado por otra sesión. Recarga antes de guardar.', 409, detail);
+  if (code === '23505') return new ServiceError('EXPEDIENTE_EXISTENTE', 'La Organización ya posee un expediente legal.', 409, detail);
   if (['23502', '23514', '22P02'].includes(code)) {
     return new ServiceError('RESTRICCION_INCUMPLIDA', 'La organización no cumple las restricciones de la base de datos.', 400, detail);
   }
@@ -41,6 +50,41 @@ function postgrestError(status: number, body: unknown): ServiceError {
     return new ServiceError('SIN_PERMISO', 'La sesión no tiene permiso para realizar esta operación.', status === 401 ? 401 : 403, detail);
   }
   return new ServiceError('ERROR_BASE_DATOS', 'No fue posible completar la operación de organizaciones.', 502, detail);
+}
+
+function legalRecord(value: unknown): LegalRecord {
+  const data = record(value);
+  if (typeof data.id_informacion_legal !== 'string' || typeof data.id_organizacion !== 'string'
+      || typeof data.version !== 'number' || typeof data.updated_at !== 'string') {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un expediente legal inválido.', 502);
+  }
+  const rawDocuments = Array.isArray(data.documentos) ? data.documentos : [];
+  const documents: LegalDocument[] = LEGAL_DOCUMENT_TYPES.map((tipo) => {
+    const raw = record(rawDocuments.find((item) => record(item).tipo === tipo));
+    const status = ['pendiente', 'no_aplica', 'cargado'].includes(String(raw.estado))
+      ? raw.estado as LegalDocument['estado']
+      : 'pendiente';
+    const archive = record(raw.archivo);
+    return {
+      tipo,
+      estado: status,
+      nombre_archivo: status === 'cargado' && typeof archive.nombre_original === 'string'
+        ? archive.nombre_original
+        : null,
+    };
+  });
+  return {
+    id_informacion_legal: data.id_informacion_legal,
+    id_organizacion: data.id_organizacion,
+    estado_personalidad_juridica: data.estado_personalidad_juridica as LegalRecord['estado_personalidad_juridica'],
+    tipo_personalidad_juridica: (data.tipo_personalidad_juridica ?? '') as LegalRecord['tipo_personalidad_juridica'],
+    numero_registro: typeof data.numero_registro === 'string' ? data.numero_registro : '',
+    fecha_constitucion: typeof data.fecha_constitucion === 'string' ? data.fecha_constitucion : '',
+    vigencia_directiva: typeof data.vigencia_directiva === 'string' ? data.vigencia_directiva : '',
+    version: data.version,
+    updated_at: data.updated_at,
+    documentos: documents,
+  };
 }
 
 function organization(value: unknown): Organization {
@@ -101,6 +145,98 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
     }
     return body.map(organization);
+  }
+
+  async function getLegalRecord(accessToken: string, organizationId: string): Promise<LegalRecord | null> {
+    await organizationRows(accessToken, new URLSearchParams({
+      id_organizacion: `eq.${organizationId}`, archived_at: 'is.null', limit: '1',
+    })).then((rows) => {
+      if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe.', 404);
+    });
+    const params = new URLSearchParams({
+      select: [
+        'id_informacion_legal', 'id_organizacion', 'estado_personalidad_juridica',
+        'tipo_personalidad_juridica', 'numero_registro', 'fecha_constitucion',
+        'vigencia_directiva', 'version', 'updated_at',
+        'documentos:documentos_informacion_legal(tipo,estado,archivo:archivos(nombre_original))',
+      ].join(','),
+      id_organizacion: `eq.${organizationId}`,
+      archived_at: 'is.null',
+      limit: '1',
+    });
+    const body = await request('informacion_legal', accessToken, params);
+    if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
+    return body[0] ? legalRecord(body[0]) : null;
+  }
+
+  async function storageRequest(
+    accessToken: string,
+    path: string,
+    init: RequestInit,
+  ): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetchImpl(`${baseUrl}/storage/v1/object/fge-expedientes-legales/${path}`, {
+        ...init,
+        headers: {
+          apikey: options.anonKey,
+          authorization: `Bearer ${accessToken}`,
+          ...init.headers,
+        },
+      });
+    } catch (error) {
+      throw new ServiceError('SUPABASE_NO_DISPONIBLE', 'No fue posible conectar con el almacenamiento.', 503, error);
+    }
+    if (!response.ok) {
+      let body: unknown = null;
+      try { body = await response.json(); } catch { body = null; }
+      throw postgrestError(response.status, body);
+    }
+  }
+
+  async function saveLegalRecord(
+    accessToken: string,
+    organizationId: string,
+    input: SaveLegalRecordInput,
+  ): Promise<LegalRecord> {
+    const uploaded: string[] = [];
+    const documents: Array<Record<string, unknown>> = [];
+    try {
+      for (const document of input.documents) {
+        const file = input.files[document.tipo];
+        let archive: Record<string, unknown> | undefined;
+        if (file) {
+          const path = `expedientes/${organizationId}/${document.tipo}/${randomUUID()}.pdf`;
+          await storageRequest(accessToken, path, {
+            method: 'POST',
+            headers: { 'content-type': 'application/pdf', 'x-upsert': 'false' },
+            body: file.bytes,
+          });
+          uploaded.push(path);
+          archive = {
+            ruta_objeto: path,
+            nombre_original: file.nombre,
+            mime_type: file.mimeType,
+            tamano_bytes: file.bytes.byteLength,
+          };
+        }
+        documents.push({ ...document, ...(archive ? { archivo: archive } : {}) });
+      }
+      await request('rpc/guardar_expediente_legal', accessToken, new URLSearchParams(), {
+        method: 'POST',
+        body: JSON.stringify({
+          p_id_organizacion: organizationId,
+          p_datos: { ...input.fields, documentos: documents },
+          p_version_esperada: input.expectedVersion ?? null,
+        }),
+      });
+    } catch (error) {
+      await Promise.allSettled(uploaded.map((path) => storageRequest(accessToken, path, { method: 'DELETE' })));
+      throw error;
+    }
+    const saved = await getLegalRecord(accessToken, organizationId);
+    if (!saved) throw new ServiceError('ERROR_BASE_DATOS', 'El expediente se guardó pero no pudo consultarse.', 502);
+    return saved;
   }
 
   return {
@@ -165,6 +301,13 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       }
       return body.map(country);
     },
+    getLegalRecord,
+    createLegalRecord(accessToken, organizationId, input) {
+      return saveLegalRecord(accessToken, organizationId, { ...input, expectedVersion: undefined });
+    },
+    updateLegalRecord(accessToken, organizationId, input) {
+      return saveLegalRecord(accessToken, organizationId, input);
+    },
   };
 }
 
@@ -182,6 +325,9 @@ function unconfiguredRepository(): OrganizationsRepository {
     create: unavailable,
     update: unavailable,
     listCountries: unavailable,
+    getLegalRecord: unavailable,
+    createLegalRecord: unavailable,
+    updateLegalRecord: unavailable,
   };
 }
 
