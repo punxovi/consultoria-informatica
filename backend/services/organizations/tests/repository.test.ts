@@ -122,4 +122,24 @@ describe('repositorio Supabase de Organizaciones', () => {
     const updateRpc = calls.find(({ url }) => url.includes('rpc/guardar_expediente_legal'))!;
     assert.equal(JSON.parse(String(updateRpc.init?.body)).p_version_esperada, 2);
   });
+
+  test('traduce errores de permisos y base de datos del expediente legal', async () => {
+    const denied = createSupabaseOrganizationsRepository({
+      supabaseUrl: 'https://proyecto.supabase.co', anonKey: 'key',
+      fetchImpl: async () => Response.json({ code: '42501' }, { status: 403 }),
+    });
+    await assert.rejects(
+      denied.getLegalRecord('token', organization.id_organizacion),
+      (error) => error instanceof ServiceError && error.code === 'SIN_PERMISO' && error.status === 403,
+    );
+
+    const databaseFailure = createSupabaseOrganizationsRepository({
+      supabaseUrl: 'https://proyecto.supabase.co', anonKey: 'key',
+      fetchImpl: async () => Response.json({ code: 'XX000' }, { status: 500 }),
+    });
+    await assert.rejects(
+      databaseFailure.getLegalRecord('token', organization.id_organizacion),
+      (error) => error instanceof ServiceError && error.code === 'ERROR_BASE_DATOS' && error.status === 502,
+    );
+  });
 });

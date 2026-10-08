@@ -3,6 +3,7 @@ import type { Server } from 'node:http';
 import { after, before, describe, test } from 'node:test';
 import type { OrganizationsApplication } from '../src/application/organizations-service.ts';
 import { createOrganizationsServer } from '../src/server.ts';
+import { ServiceError } from '../../../shared/errors/src/index.ts';
 
 const id = '22222222-2222-4222-8222-222222222222';
 const countryId = '11111111-1111-4111-8111-111111111111';
@@ -25,6 +26,9 @@ const legalRecord = {
 };
 let server: Server;
 let baseUrl: string;
+let legalCreateCalls = 0;
+let legalUpdateCalls = 0;
+let legalFailure: ServiceError | null = null;
 
 const application: OrganizationsApplication = {
   async list() { return [organization] as never; },
@@ -33,8 +37,16 @@ const application: OrganizationsApplication = {
   async update() { return organization as never; },
   async listCountries() { return [{ id_pais: countryId, codigo_iso: 'CL', nombre: 'Chile' }]; },
   async getLegalRecord() { return legalRecord as never; },
-  async createLegalRecord() { return legalRecord as never; },
-  async updateLegalRecord() { return { ...legalRecord, version: 2 } as never; },
+  async createLegalRecord() {
+    legalCreateCalls += 1;
+    if (legalFailure) throw legalFailure;
+    return legalRecord as never;
+  },
+  async updateLegalRecord() {
+    legalUpdateCalls += 1;
+    if (legalFailure) throw legalFailure;
+    return { ...legalRecord, version: 2 } as never;
+  },
 };
 
 before(async () => {
@@ -63,6 +75,22 @@ const validFields = {
   tipo_organizacion_otro: null,
   numero_beneficiarios: 10,
 };
+
+const validLegalData = {
+  estado_personalidad_juridica: 'si', tipo_personalidad_juridica: 'Fundación',
+  numero_registro: 'REG-1', fecha_constitucion: '2020-01-01', vigencia_directiva: 'Vigente',
+  documentos: [
+    { tipo: 'identidad_representante', estado: 'pendiente' },
+    { tipo: 'identificacion_legal', estado: 'no_aplica' },
+    { tipo: 'estatutos', estado: 'pendiente' },
+  ],
+};
+
+function legalForm(data: unknown): FormData {
+  const form = new FormData();
+  form.set('datos', JSON.stringify(data));
+  return form;
+}
 
 describe('servicio HTTP de Organizaciones', () => {
   test('publica salud y capacidades', async () => {
@@ -115,16 +143,12 @@ describe('servicio HTTP de Organizaciones', () => {
     assert.equal((await obtained.json()).data.expediente.id_informacion_legal, legalRecord.id_informacion_legal);
 
     const data = {
-      estado_personalidad_juridica: 'si', tipo_personalidad_juridica: 'Fundación',
-      numero_registro: 'REG-1', fecha_constitucion: '2020-01-01', vigencia_directiva: 'Vigente',
-      documentos: [
-        { tipo: 'identidad_representante', estado: 'cargado' },
-        { tipo: 'identificacion_legal', estado: 'no_aplica' },
-        { tipo: 'estatutos', estado: 'pendiente' },
-      ],
+      ...validLegalData,
+      documentos: validLegalData.documentos.map((document) => document.tipo === 'identidad_representante'
+        ? { ...document, estado: 'cargado' }
+        : document),
     };
-    const createForm = new FormData();
-    createForm.set('datos', JSON.stringify(data));
+    const createForm = legalForm(data);
     createForm.set('identidad_representante', new File(['%PDF-1.4\nQA'], 'identidad.pdf', { type: 'application/pdf' }));
     const created = await fetch(`${baseUrl}/v1/organizations/${id}/legal-record`, {
       method: 'POST', headers: { authorization: 'Bearer token' }, body: createForm,
@@ -132,8 +156,7 @@ describe('servicio HTTP de Organizaciones', () => {
     assert.equal(created.status, 201);
     assert.equal((await created.json()).code, 'EXPEDIENTE_LEGAL_CREADO');
 
-    const updateForm = new FormData();
-    updateForm.set('datos', JSON.stringify({ ...data, version_esperada: 1 }));
+    const updateForm = legalForm({ ...data, version_esperada: 1 });
     const updated = await fetch(`${baseUrl}/v1/organizations/${id}/legal-record`, {
       method: 'PATCH', headers: { authorization: 'Bearer token' }, body: updateForm,
     });
@@ -158,5 +181,57 @@ describe('servicio HTTP de Organizaciones', () => {
     });
     assert.equal(response.status, 400);
     assert.equal((await response.json()).error.code, 'DATOS_INVALIDOS');
+  });
+
+  test('aplica Zod antes de procesar registros y actualizaciones inválidas', async () => {
+    const createsBefore = legalCreateCalls;
+    const updatesBefore = legalUpdateCalls;
+    const invalidCases = [
+      { ...validLegalData, estado_personalidad_juridica: undefined },
+      { ...validLegalData, numero_registro: 123 },
+      { ...validLegalData, fecha_constitucion: '2999-01-01' },
+      { ...validLegalData, documentos: [validLegalData.documentos[0], validLegalData.documentos[0], validLegalData.documentos[2]] },
+      { ...validLegalData, campo_desconocido: true },
+    ];
+    for (const data of invalidCases) {
+      const response = await fetch(`${baseUrl}/v1/organizations/${id}/legal-record`, {
+        method: 'POST', headers: { authorization: 'Bearer token' }, body: legalForm(data),
+      });
+      assert.equal(response.status, 400);
+      const body = await response.json();
+      assert.equal(body.ok, false);
+      assert.equal(body.error.code, 'DATOS_INVALIDOS');
+      assert.equal(body.data, null);
+    }
+    const updateWithoutVersion = await fetch(`${baseUrl}/v1/organizations/${id}/legal-record`, {
+      method: 'PATCH', headers: { authorization: 'Bearer token' }, body: legalForm(validLegalData),
+    });
+    assert.equal(updateWithoutVersion.status, 400);
+    assert.equal((await updateWithoutVersion.json()).error.code, 'DATOS_INVALIDOS');
+    assert.equal(legalCreateCalls, createsBefore);
+    assert.equal(legalUpdateCalls, updatesBefore);
+  });
+
+  test('devuelve errores estructurados de permisos y base de datos', async () => {
+    try {
+      legalFailure = new ServiceError('SIN_PERMISO', 'La sesión no tiene permiso para realizar esta operación.', 403);
+      const denied = await fetch(`${baseUrl}/v1/organizations/${id}/legal-record`, {
+        method: 'POST', headers: { authorization: 'Bearer token' }, body: legalForm(validLegalData),
+      });
+      assert.equal(denied.status, 403);
+      assert.deepEqual((await denied.json()).error.code, 'SIN_PERMISO');
+
+      legalFailure = new ServiceError('ERROR_BASE_DATOS', 'No fue posible completar la operación.', 502);
+      const database = await fetch(`${baseUrl}/v1/organizations/${id}/legal-record`, {
+        method: 'POST', headers: { authorization: 'Bearer token' }, body: legalForm(validLegalData),
+      });
+      assert.equal(database.status, 502);
+      const body = await database.json();
+      assert.equal(body.ok, false);
+      assert.equal(body.error.code, 'ERROR_BASE_DATOS');
+      assert.equal(body.data, null);
+    } finally {
+      legalFailure = null;
+    }
   });
 });
