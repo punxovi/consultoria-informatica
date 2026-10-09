@@ -10,6 +10,9 @@ import type {
   LegalDocumentType,
   LegalRecord,
   SaveLegalRecordInput,
+  Diagnostico,
+  CamposDiagnostico,
+  EstadoDiagnostico,
 } from '../domain/organizations.ts';
 import { LEGAL_DOCUMENT_TYPES } from '../domain/organizations.ts';
 
@@ -40,11 +43,11 @@ function postgrestError(status: number, body: unknown): ServiceError {
   if (code === '23503') {
     return new ServiceError('PAIS_NO_EXISTE', 'El país indicado no existe o ya no está disponible.', 409, detail);
   }
-  if (code === 'P0002') return new ServiceError('NO_ENCONTRADO', 'El expediente legal solicitado no existe.', 404, detail);
-  if (code === '40001') return new ServiceError('CONFLICTO_CONCURRENCIA', 'El expediente fue modificado por otra sesión. Recarga antes de guardar.', 409, detail);
-  if (code === '23505') return new ServiceError('EXPEDIENTE_EXISTENTE', 'La Organización ya posee un expediente legal.', 409, detail);
+  if (code === 'P0002') return new ServiceError('NO_ENCONTRADO', 'El registro solicitado no existe.', 404, detail);
+  if (code === '40001') return new ServiceError('CONFLICTO_CONCURRENCIA', 'El registro fue modificado por otra sesión. Recarga antes de guardar.', 409, detail);
+  if (code === '23505') return new ServiceError('EXPEDIENTE_EXISTENTE', 'La Organización ya posee un registro legal.', 409, detail);
   if (['23502', '23514', '22P02'].includes(code)) {
-    return new ServiceError('RESTRICCION_INCUMPLIDA', 'La organización o compromiso no cumple las restricciones de la base de datos.', 400, detail);
+    return new ServiceError('RESTRICCION_INCUMPLIDA', 'La organización o elemento no cumple las restricciones de la base de datos.', 400, detail);
   }
   if (code === '42501' || status === 401 || status === 403) {
     return new ServiceError('SIN_PERMISO', 'La sesión no tiene permiso para realizar esta operación.', status === 401 ? 401 : 403, detail);
@@ -413,6 +416,87 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       }
       return rows[0];
     },
+
+    async listDiagnosticos(accessToken, orgId) {
+      const params = new URLSearchParams({
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+        order: 'created_at.desc',
+      });
+      const body = await request('diagnosticos', accessToken, params);
+      if (!Array.isArray(body)) {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
+      }
+      return body;
+    },
+
+    async createDiagnostico(accessToken, orgId, fields) {
+      const body = await request('diagnosticos', accessToken, new URLSearchParams(), {
+        method: 'POST',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({
+          id_organizacion: orgId,
+          titulo: fields.titulo,
+          descripcion: fields.descripcion,
+          estado: fields.estado ?? 'borrador',
+        }),
+      });
+      const rows = Array.isArray(body) ? body : [];
+      if (!rows[0]) {
+        throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible crear el diagnóstico.', 502);
+      }
+      return rows[0];
+    },
+
+    async getDiagnosticoById(accessToken, orgId, diagnosticoId) {
+      const params = new URLSearchParams({
+        id_diagnostico: `eq.${diagnosticoId}`,
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+        limit: '1',
+      });
+      const body = await request('diagnosticos', accessToken, params);
+      const rows = Array.isArray(body) ? body : [];
+      if (!rows[0]) {
+        throw new ServiceError('NO_ENCONTRADO', 'El diagnóstico solicitado no existe.', 404);
+      }
+      return rows[0];
+    },
+
+    async updateDiagnostico(accessToken, orgId, diagnosticoId, changes, expectedVersion) {
+      const actual = await this.getDiagnosticoById(accessToken, orgId, diagnosticoId);
+      if (expectedVersion !== undefined && (actual as any).version !== expectedVersion) {
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El diagnóstico fue modificado por otra sesión.', 409);
+      }
+
+      const updateData: Record<string, unknown> = {
+        version: ((actual as any).version ?? 1) + 1,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (changes.titulo !== undefined) updateData.titulo = changes.titulo;
+      if (changes.descripcion !== undefined) updateData.descripcion = changes.descripcion;
+      if (changes.estado !== undefined) updateData.estado = changes.estado;
+
+      const params = new URLSearchParams({
+        id_diagnostico: `eq.${diagnosticoId}`,
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+      });
+      if (expectedVersion !== undefined) params.set('version', `eq.${expectedVersion}`);
+
+      const body = await request('diagnosticos', accessToken, params, {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify(updateData),
+      });
+
+      const rows = Array.isArray(body) ? body : [];
+      if (!rows[0]) {
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El diagnóstico fue modificado por otra sesión o no existe.', 409);
+      }
+      return rows[0];
+    },
   };
 }
 
@@ -438,6 +522,10 @@ function unconfiguredRepository(): OrganizationsRepository {
     createCommitment: unavailable,
     getCommitmentById: unavailable,
     updateCommitment: unavailable,
+    listDiagnosticos: unavailable,
+    createDiagnostico: unavailable,
+    getDiagnosticoById: unavailable,
+    updateDiagnostico: unavailable,
   };
 }
 

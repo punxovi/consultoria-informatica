@@ -6,6 +6,8 @@ import type {
   SaveLegalRecordInput,
   CamposCompromiso,
   ActualizarCompromisoInput,
+  ActualizarDiagnosticoInput,
+  CamposDiagnostico,
 } from '../domain/organizations.ts';
 
 export function createOrganizationsApplication(repository: OrganizationsRepository) {
@@ -46,8 +48,20 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     getCommitmentById(accessToken: string, orgId: string, commitmentId: string) {
       return repository.getCommitmentById(accessToken, orgId, commitmentId);
     },
-    updateCommitment(accessToken: string, orgId: string, input: ActualizarCompromisoInput, commitmentId: string) {
+    updateCommitment(accessToken: string, orgId: string, commitmentId: string, input: ActualizarCompromisoInput) {
       return repository.updateCommitment(accessToken, orgId, commitmentId, input.cambios, input.versionEsperada);
+    },
+    listDiagnosticos(accessToken: string, orgId: string) {
+      return repository.listDiagnosticos(accessToken, orgId);
+    },
+    createDiagnostico(accessToken: string, orgId: string, fields: CamposDiagnostico) {
+      return repository.createDiagnostico(accessToken, orgId, fields);
+    },
+    getDiagnosticoById(accessToken: string, orgId: string, diagnosticoId: string) {
+      return repository.getDiagnosticoById(accessToken, orgId, diagnosticoId);
+    },
+    updateDiagnostico(accessToken: string, orgId: string, diagnosticoId: string, input: ActualizarDiagnosticoInput) {
+      return repository.updateDiagnostico(accessToken, orgId, diagnosticoId, input.cambios, input.versionEsperada);
     },
   };
 }
