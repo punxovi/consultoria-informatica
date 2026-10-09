@@ -11,6 +11,8 @@ import {
   parseLegalRecordInput,
   parseCamposCompromiso,
   parseActualizarCompromisoInput,
+  parseCamposDiagnostico,
+  parseActualizarDiagnosticoInput
 } from '../domain/organizations.ts';
 import { readJsonBody, readMultipartBody } from './body.ts';
 
@@ -156,6 +158,39 @@ export async function routeOrganizations(
         const organization = await application.update(token, id, parseUpdateInput(await readJsonBody(request)));
         respond(response, 200, success('ORGANIZACION_ACTUALIZADA', 'La organización fue actualizada correctamente.', { organization }), requestId);
         return;
+      }
+    }
+
+    // Rutas para Diagnósticos de una Organización
+    const diagnosticosMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/diagnosticos(?:\/([^/]+))?$/);
+    if (diagnosticosMatch) {
+      const orgId = parseUuid(decodeURIComponent(diagnosticosMatch[1]), 'La organización');
+      const diagnosticoId = diagnosticosMatch[2] ? parseUuid(decodeURIComponent(diagnosticosMatch[2]), 'El diagnóstico') : undefined;
+
+      if (!diagnosticoId) {
+        if (request.method === 'GET') {
+          const diagnosticos = await application.listDiagnosticos(token, orgId);
+          respond(response, 200, success('DIAGNOSTICOS_LISTADOS', 'Los diagnósticos fueron consultados correctamente.', { diagnosticos }), requestId);
+          return;
+        }
+        if (request.method === 'POST') {
+          const fields = parseCamposDiagnostico(await readJsonBody(request));
+          const diagnostico = await application.createDiagnostico(token, orgId, fields);
+          respond(response, 201, success('DIAGNOSTICO_CREADO', 'El diagnóstico fue creado correctamente.', { diagnostico }), requestId);
+          return;
+        }
+      } else {
+        if (request.method === 'GET') {
+          const diagnostico = await application.getDiagnosticoById(token, orgId, diagnosticoId);
+          respond(response, 200, success('DIAGNOSTICO_OBTENIDO', 'El diagnóstico fue consultado correctamente.', { diagnostico }), requestId);
+          return;
+        }
+        if (request.method === 'PATCH') {
+          const input = parseActualizarDiagnosticoInput(await readJsonBody(request));
+          const diagnostico = await application.updateDiagnostico(token, orgId, diagnosticoId, input);
+          respond(response, 200, success('DIAGNOSTICO_ACTUALIZADO', 'El diagnóstico fue actualizado correctamente.', { diagnostico }), requestId);
+          return;
+        }
       }
     }
 

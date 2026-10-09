@@ -10,6 +10,7 @@ import {
   type UpdateLegalRecordData,
 } from './legal-record.schemas.ts';
 import type { Compromiso, CamposCompromiso, ActualizarCompromisoInput, EstadoCompromiso } from './compromisos.ts';
+import type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput, EstadoDiagnostico } from './diagnosticos.ts';
 
 export {
   LEGAL_DOCUMENT_TYPES,
@@ -23,6 +24,9 @@ export {
   parseCamposCompromiso,
   parseActualizarCompromisoInput,
 } from './compromisos.ts';
+
+export type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput, EstadoDiagnostico };
+export { parseCamposDiagnostico, parseActualizarDiagnosticoInput } from './diagnosticos.ts';
 
 export const ORGANIZATION_TYPES = [
   'comedor_merendero',
@@ -147,7 +151,19 @@ export interface OrganizationsRepository {
     changes: Partial<CamposCompromiso> & { estado?: EstadoCompromiso },
     expectedVersion?: number,
   ): Promise<Compromiso>;
+  listDiagnosticos(accessToken: string, orgId: string): Promise<Diagnostico[]>;
+  createDiagnostico(accessToken: string, orgId: string, fields: CamposDiagnostico): Promise<Diagnostico>;
+  getDiagnosticoById(accessToken: string, orgId: string, diagnosticoId: string): Promise<Diagnostico>;
+  updateDiagnostico(
+    accessToken: string,
+    orgId: string,
+    diagnosticoId: string,
+    changes: Partial<CamposDiagnostico> & { estado?: EstadoDiagnostico },
+    expectedVersion?: number,
+  ): Promise<Diagnostico>;
 }
+
+
 
 const FIELD_NAMES = [
   'id_pais',
