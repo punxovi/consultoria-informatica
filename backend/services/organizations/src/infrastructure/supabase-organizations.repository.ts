@@ -44,12 +44,12 @@ function postgrestError(status: number, body: unknown): ServiceError {
   if (code === '40001') return new ServiceError('CONFLICTO_CONCURRENCIA', 'El expediente fue modificado por otra sesión. Recarga antes de guardar.', 409, detail);
   if (code === '23505') return new ServiceError('EXPEDIENTE_EXISTENTE', 'La Organización ya posee un expediente legal.', 409, detail);
   if (['23502', '23514', '22P02'].includes(code)) {
-    return new ServiceError('RESTRICCION_INCUMPLIDA', 'La organización no cumple las restricciones de la base de datos.', 400, detail);
+    return new ServiceError('RESTRICCION_INCUMPLIDA', 'La organización o compromiso no cumple las restricciones de la base de datos.', 400, detail);
   }
   if (code === '42501' || status === 401 || status === 403) {
     return new ServiceError('SIN_PERMISO', 'La sesión no tiene permiso para realizar esta operación.', status === 401 ? 401 : 403, detail);
   }
-  return new ServiceError('ERROR_BASE_DATOS', 'No fue posible completar la operación de organizaciones.', 502, detail);
+  return new ServiceError('ERROR_BASE_DATOS', 'No fue posible completar la operación en la base de datos.', 502, detail);
 }
 
 function legalRecord(value: unknown): LegalRecord {
@@ -301,18 +301,123 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       }
       return body.map(country);
     },
+
     getLegalRecord,
+
     createLegalRecord(accessToken, organizationId, input) {
       return saveLegalRecord(accessToken, organizationId, { ...input, expectedVersion: undefined });
     },
+
     updateLegalRecord(accessToken, organizationId, input) {
       return saveLegalRecord(accessToken, organizationId, input);
+    },
+
+    async listCommitments(accessToken, orgId, filtros) {
+      const params = new URLSearchParams({
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+        order: 'fecha_limite.asc',
+      });
+      if (filtros.id_acta) params.set('id_acta', `eq.${filtros.id_acta}`);
+      const body = await request('compromisos', accessToken, params);
+      if (!Array.isArray(body)) {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
+      }
+      return body;
+    },
+
+    async listCommitmentOrigins(accessToken, orgId) {
+      const params = new URLSearchParams({
+        id_organizacion: `eq.${orgId}`,
+        select: 'id_acta,nombre,id_plan,id_accion',
+      });
+      const body = await request('actas', accessToken, params).catch(() => []);
+      if (!Array.isArray(body)) return [];
+      return body;
+    },
+
+    async createCommitment(accessToken, orgId, fields) {
+      const body = await request('compromisos', accessToken, new URLSearchParams(), {
+        method: 'POST',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({
+          id_organizacion: orgId,
+          id_acta: fields.id_acta,
+          descripcion: fields.descripcion,
+          responsable_nombre: fields.responsable_nombre,
+          id_contacto_responsable: fields.id_contacto_responsable ?? null,
+          fecha_limite: fields.fecha_limite,
+          observaciones: fields.observaciones ?? null,
+          estado: 'pendiente',
+        }),
+      });
+      const rows = Array.isArray(body) ? body : [];
+      if (!rows[0]) {
+        throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible crear el compromiso.', 502);
+      }
+      return rows[0];
+    },
+
+    async getCommitmentById(accessToken, orgId, commitmentId) {
+      const params = new URLSearchParams({
+        id_compromiso: `eq.${commitmentId}`,
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+        limit: '1',
+      });
+      const body = await request('compromisos', accessToken, params);
+      const rows = Array.isArray(body) ? body : [];
+      if (!rows[0]) {
+        throw new ServiceError('NO_ENCONTRADO', 'El compromiso solicitado no existe.', 404);
+      }
+      return rows[0];
+    },
+
+    async updateCommitment(accessToken, orgId, commitmentId, changes, expectedVersion) {
+      const actual = await this.getCommitmentById(accessToken, orgId, commitmentId);
+      if (expectedVersion !== undefined && (actual as any).version !== expectedVersion) {
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El compromiso fue modificado por otra sesión.', 409);
+      }
+
+      const updateData: Record<string, unknown> = {
+        version: ((actual as any).version ?? 1) + 1,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (changes.descripcion !== undefined) updateData.descripcion = changes.descripcion;
+      if (changes.responsable_nombre !== undefined) updateData.responsable_nombre = changes.responsable_nombre;
+      if (changes.id_contacto_responsable !== undefined) updateData.id_contacto_responsable = changes.id_contacto_responsable;
+      if (changes.fecha_limite !== undefined) updateData.fecha_limite = changes.fecha_limite;
+      if (changes.observaciones !== undefined) updateData.observaciones = changes.observaciones;
+      if (changes.estado !== undefined) {
+        updateData.estado = changes.estado;
+        updateData.cumplido_at = changes.estado === 'cumplido' ? new Date().toISOString() : null;
+      }
+
+      const params = new URLSearchParams({
+        id_compromiso: `eq.${commitmentId}`,
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+      });
+      if (expectedVersion !== undefined) params.set('version', `eq.${expectedVersion}`);
+
+      const body = await request('compromisos', accessToken, params, {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify(updateData),
+      });
+
+      const rows = Array.isArray(body) ? body : [];
+      if (!rows[0]) {
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El compromiso fue modificado por otra sesión o no existe.', 409);
+      }
+      return rows[0];
     },
   };
 }
 
 function unconfiguredRepository(): OrganizationsRepository {
-  const unavailable = async (): Promise<never> => {
+  const unavailable = async (..._args: unknown[]): Promise<never> => {
     throw new ServiceError(
       'CONFIGURACION_SUPABASE',
       'El servicio de Organizaciones no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.',
@@ -328,6 +433,11 @@ function unconfiguredRepository(): OrganizationsRepository {
     getLegalRecord: unavailable,
     createLegalRecord: unavailable,
     updateLegalRecord: unavailable,
+    listCommitments: unavailable,
+    listCommitmentOrigins: unavailable,
+    createCommitment: unavailable,
+    getCommitmentById: unavailable,
+    updateCommitment: unavailable,
   };
 }
 

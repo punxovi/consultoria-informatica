@@ -9,6 +9,7 @@ import {
   type RegisterLegalRecordData,
   type UpdateLegalRecordData,
 } from './legal-record.schemas.ts';
+import type { Compromiso, CamposCompromiso, ActualizarCompromisoInput, EstadoCompromiso } from './compromisos.ts';
 
 export {
   LEGAL_DOCUMENT_TYPES,
@@ -16,6 +17,12 @@ export {
   updateLegalRecordSchema,
 } from './legal-record.schemas.ts';
 export type { LegalDocumentStatus, LegalDocumentType } from './legal-record.schemas.ts';
+
+export type { Compromiso, CamposCompromiso, ActualizarCompromisoInput, EstadoCompromiso };
+export {
+  parseCamposCompromiso,
+  parseActualizarCompromisoInput,
+} from './compromisos.ts';
 
 export const ORGANIZATION_TYPES = [
   'comedor_merendero',
@@ -129,6 +136,17 @@ export interface OrganizationsRepository {
   getLegalRecord(accessToken: string, organizationId: string): Promise<LegalRecord | null>;
   createLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput): Promise<LegalRecord>;
   updateLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput): Promise<LegalRecord>;
+  listCommitments(accessToken: string, orgId: string, filtros: { id_acta?: string }): Promise<Compromiso[]>;
+  listCommitmentOrigins(accessToken: string, orgId: string): Promise<any[]>;
+  createCommitment(accessToken: string, orgId: string, fields: CamposCompromiso): Promise<Compromiso>;
+  getCommitmentById(accessToken: string, orgId: string, commitmentId: string): Promise<Compromiso>;
+  updateCommitment(
+    accessToken: string,
+    orgId: string,
+    commitmentId: string,
+    changes: Partial<CamposCompromiso> & { estado?: EstadoCompromiso },
+    expectedVersion?: number,
+  ): Promise<Compromiso>;
 }
 
 const FIELD_NAMES = [
