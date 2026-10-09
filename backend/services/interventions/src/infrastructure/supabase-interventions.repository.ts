@@ -1,5 +1,11 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type { ActionFilters, ActionsRepository, InterventionAction, UpdateActionInput } from '../domain/actions.ts';
+import type {
+  MeetingMinute,
+  MeetingMinuteFilters,
+  MeetingMinutesRepository,
+  UpdateMeetingMinuteInput,
+} from '../domain/meeting-minutes.ts';
 import type { Plan, PlanFilters, PlansRepository, UpdatePlanInput } from '../domain/plans.ts';
 
 interface RepositoryOptions { supabaseUrl: string; anonKey: string; fetchImpl?: typeof fetch }
@@ -20,15 +26,28 @@ const ACTION_FIELDS = [
   'plan:planes!acciones_id_plan_fkey(id_plan,id_organizacion,id_programa,nombre)',
 ].join(',');
 
+const MEETING_MINUTE_FIELDS = [
+  'id_acta', 'id_organizacion', 'id_plan', 'id_accion', 'objetivo', 'fecha_reunion',
+  'asistentes', 'asistentes_externos', 'observaciones', 'created_at', 'updated_at',
+  'created_by', 'updated_by', 'archived_at', 'version',
+].join(',');
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function databaseError(kind: 'plan' | 'action', status: number, body: unknown): ServiceError {
+type ResourceKind = 'plan' | 'action' | 'meeting-minute';
+
+function databaseError(kind: ResourceKind, status: number, body: unknown): ServiceError {
   const detail = record(body);
   const code = typeof detail.code === 'string' ? detail.code : '';
   const details = `${detail.message ?? ''} ${detail.details ?? ''}`;
   if (code === '23503') {
+    if (kind === 'meeting-minute') {
+      if (details.includes('id_organizacion')) return new ServiceError('ORGANIZACION_NO_EXISTE', 'La organización indicada no existe.', 409, detail);
+      if (details.includes('id_accion')) return new ServiceError('ACCION_NO_EXISTE', 'La acción indicada no existe o no pertenece al plan.', 409, detail);
+      return new ServiceError('PLAN_NO_EXISTE', 'El plan indicado no existe o no pertenece a la organización.', 409, detail);
+    }
     if (kind === 'action') return new ServiceError('PLAN_NO_EXISTE', 'El plan indicado no existe o ya no está disponible.', 409, detail);
     if (details.includes('id_organizacion')) return new ServiceError('ORGANIZACION_NO_EXISTE', 'La organización indicada no existe o ya no está disponible.', 409, detail);
     return new ServiceError('PROGRAMA_NO_EXISTE', 'El programa indicado no existe o ya no está disponible.', 409, detail);
@@ -38,7 +57,9 @@ function databaseError(kind: 'plan' | 'action', status: number, body: unknown): 
       'RESTRICCION_INCUMPLIDA',
       kind === 'plan'
         ? 'Revisa las fechas y los campos obligatorios del plan.'
-        : 'Revisa las fechas, el estado y los campos obligatorios de la acción.',
+        : kind === 'action'
+          ? 'Revisa las fechas, el estado y los campos obligatorios de la acción.'
+          : 'Revisa los campos obligatorios y relaciones del acta.',
       400,
       detail,
     );
@@ -52,9 +73,11 @@ function databaseError(kind: 'plan' | 'action', status: number, body: unknown): 
     );
   }
   if (code === '42501' || status === 401 || status === 403) {
-    return new ServiceError('SIN_PERMISO', `La sesión no tiene permiso para gestionar ${kind === 'plan' ? 'planes' : 'acciones'}.`, status === 401 ? 401 : 403, detail);
+    const resource = kind === 'plan' ? 'planes' : kind === 'action' ? 'acciones' : 'actas';
+    return new ServiceError('SIN_PERMISO', `La sesión no tiene permiso para gestionar ${resource}.`, status === 401 ? 401 : 403, detail);
   }
-  return new ServiceError('ERROR_BASE_DATOS', `No fue posible completar la operación de ${kind === 'plan' ? 'Planes' : 'Acciones'}.`, 502, detail);
+  const resource = kind === 'plan' ? 'Planes' : kind === 'action' ? 'Acciones' : 'Actas';
+  return new ServiceError('ERROR_BASE_DATOS', `No fue posible completar la operación de ${resource}.`, 502, detail);
 }
 
 function plan(value: unknown): Plan {
@@ -73,13 +96,25 @@ function action(value: unknown): InterventionAction {
   return data as unknown as InterventionAction;
 }
 
+function meetingMinute(value: unknown): MeetingMinute {
+  const data = record(value);
+  if (
+    typeof data.id_acta !== 'string' || typeof data.id_organizacion !== 'string' ||
+    typeof data.id_plan !== 'string' || typeof data.objetivo !== 'string' ||
+    typeof data.fecha_reunion !== 'string' || !Array.isArray(data.asistentes)
+  ) {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un acta inválida.', 502);
+  }
+  return data as unknown as MeetingMinute;
+}
+
 export function createSupabaseInterventionsRepositories(options: RepositoryOptions): {
-  plans: PlansRepository; actions: ActionsRepository;
+  plans: PlansRepository; actions: ActionsRepository; meetingMinutes: MeetingMinutesRepository;
 } {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
-  async function request(kind: 'plan' | 'action', path: string, token: string, init: RequestInit = {}): Promise<unknown> {
+  async function request(kind: ResourceKind, path: string, token: string, init: RequestInit = {}): Promise<unknown> {
     let response: Response;
     try {
       response = await fetchImpl(`${baseUrl}/rest/v1/${path}`, {
@@ -112,6 +147,52 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
     const body = await request('action', `acciones?${params}`, token, init);
     if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió acciones inválidas.', 502);
     return body.map(action);
+  }
+
+  async function meetingMinuteRows(token: string, params: URLSearchParams, init?: RequestInit): Promise<MeetingMinute[]> {
+    params.set('select', MEETING_MINUTE_FIELDS);
+    const body = await request('meeting-minute', `actas?${params}`, token, init);
+    if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió actas inválidas.', 502);
+    return body.map(meetingMinute);
+  }
+
+  async function getMeetingMinuteById(token: string, id: string): Promise<MeetingMinute> {
+    const rows = await meetingMinuteRows(token, new URLSearchParams({
+      id_acta: `eq.${id}`, archived_at: 'is.null', limit: '1',
+    }));
+    if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'El acta solicitada no existe.', 404);
+    return rows[0];
+  }
+
+  async function relationExists(token: string, table: string, params: URLSearchParams): Promise<boolean> {
+    params.set('select', table === 'organizaciones' ? 'id_organizacion' : table === 'planes' ? 'id_plan' : 'id_accion');
+    params.set('archived_at', 'is.null');
+    params.set('limit', '1');
+    const body = await request('meeting-minute', `${table}?${params}`, token);
+    if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'No fue posible validar las relaciones del acta.', 502);
+    return body.length > 0;
+  }
+
+  async function validateMeetingMinuteRelations(
+    token: string,
+    organizationId: string,
+    planId: string,
+    actionId?: string | null,
+  ): Promise<void> {
+    const organizationExists = await relationExists(token, 'organizaciones', new URLSearchParams({
+      id_organizacion: `eq.${organizationId}`,
+    }));
+    if (!organizationExists) throw new ServiceError('ORGANIZACION_NO_EXISTE', 'La organización indicada no existe o no está disponible.', 409);
+    const planExists = await relationExists(token, 'planes', new URLSearchParams({
+      id_plan: `eq.${planId}`, id_organizacion: `eq.${organizationId}`,
+    }));
+    if (!planExists) throw new ServiceError('PLAN_NO_CORRESPONDE', 'El plan no existe o no pertenece a la organización.', 409);
+    if (actionId) {
+      const actionExists = await relationExists(token, 'acciones', new URLSearchParams({
+        id_accion: `eq.${actionId}`, id_plan: `eq.${planId}`,
+      }));
+      if (!actionExists) throw new ServiceError('ACCION_NO_CORRESPONDE', 'La acción no existe o no pertenece al plan.', 409);
+    }
   }
 
   async function archiveRecord(kind: 'plan' | 'action', token: string, id: string, version: number): Promise<void> {
@@ -199,16 +280,54 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
     },
   };
 
-  return { plans, actions };
+  const meetingMinutes: MeetingMinutesRepository = {
+    list(token, filters: MeetingMinuteFilters) {
+      const params = new URLSearchParams({ order: 'fecha_reunion.desc,id_acta.desc' });
+      if (!filters.includeArchived) params.set('archived_at', 'is.null');
+      if (filters.organizationId) params.set('id_organizacion', `eq.${filters.organizationId}`);
+      if (filters.planId) params.set('id_plan', `eq.${filters.planId}`);
+      if (filters.actionId) params.set('id_accion', `eq.${filters.actionId}`);
+      return meetingMinuteRows(token, params);
+    },
+    getById: getMeetingMinuteById,
+    async create(token, input) {
+      await validateMeetingMinuteRelations(token, input.id_organizacion, input.id_plan, input.id_accion);
+      const rows = await meetingMinuteRows(token, new URLSearchParams(), {
+        method: 'POST', headers: { prefer: 'return=representation' }, body: JSON.stringify(input),
+      });
+      if (!rows[0]) throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible registrar el acta.', 502);
+      return rows[0];
+    },
+    async update(token, id, input: UpdateMeetingMinuteInput) {
+      const current = await getMeetingMinuteById(token, id);
+      const planId = input.changes.id_plan ?? current.id_plan;
+      const actionId = Object.hasOwn(input.changes, 'id_accion') ? input.changes.id_accion : current.id_accion;
+      await validateMeetingMinuteRelations(token, current.id_organizacion, planId, actionId);
+      const rows = await meetingMinuteRows(token, new URLSearchParams({
+        id_acta: `eq.${id}`, archived_at: 'is.null', version: `eq.${input.expectedVersion}`,
+      }), {
+        method: 'PATCH', headers: { prefer: 'return=representation' }, body: JSON.stringify(input.changes),
+      });
+      if (!rows[0]) throw new ServiceError(
+        'CONFLICTO_CONCURRENCIA',
+        'El acta fue modificada por otra sesión. Recarga los datos antes de guardar.',
+        409,
+      );
+      return rows[0];
+    },
+  };
+
+  return { plans, actions, meetingMinutes };
 }
 
-function unavailableRepositories(): { plans: PlansRepository; actions: ActionsRepository } {
+function unavailableRepositories(): { plans: PlansRepository; actions: ActionsRepository; meetingMinutes: MeetingMinutesRepository } {
   const unavailable = async (): Promise<never> => {
     throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Intervenciones no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.', 503);
   };
   return {
     plans: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable, archive: unavailable },
     actions: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable, archive: unavailable },
+    meetingMinutes: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable },
   };
 }
 

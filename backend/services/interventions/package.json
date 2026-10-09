@@ -9,5 +9,8 @@
     "start": "node --experimental-strip-types src/main.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "node --experimental-strip-types --check src/main.ts"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
   }
 }

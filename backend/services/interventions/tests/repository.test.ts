@@ -8,6 +8,14 @@ const plan = {
   programa: { id: '3', nombre: 'Programa' },
 };
 const action = { id_accion: '44444444-4444-4444-8444-444444444444', nombre: 'Acción', plan: { id_plan: planId } };
+const orgId = '11111111-1111-4111-8111-111111111111';
+const minuteId = '55555555-5555-4555-8555-555555555555';
+const minute = {
+  id_acta: minuteId, id_organizacion: orgId, id_plan: planId, id_accion: action.id_accion,
+  objetivo: 'Revisar avances', fecha_reunion: '2026-10-08T00:00:00Z',
+  asistentes: ['Coordinador'], asistentes_externos: '', observaciones: null,
+  created_at: '', updated_at: '', created_by: null, updated_by: null, archived_at: null, version: 1,
+};
 
 describe('repositorio Supabase de Intervenciones', () => {
   test('consulta Planes y Acciones con relaciones y token', async () => {
@@ -66,5 +74,62 @@ describe('repositorio Supabase de Intervenciones', () => {
       fetchImpl: async () => Response.json({ code: '42501', message: 'denied' }, { status: 403 }),
     });
     await assert.rejects(denied.plans.list('token', { includeArchived: false }), (error: any) => error.code === 'SIN_PERMISO');
+  });
+  test('lista, consulta, crea y actualiza Actas validando sus relaciones', async () => {
+    const calls: Array<{ url: string; method?: string; body?: string | null }> = [];
+    const repositories = createSupabaseInterventionsRepositories({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        calls.push({ url, method: init?.method, body: init?.body?.toString() });
+        if (url.includes('/organizaciones?')) return Response.json([{ id_organizacion: orgId }]);
+        if (url.includes('/planes?')) return Response.json([{ id_plan: planId }]);
+        if (url.includes('/acciones?')) return Response.json([{ id_accion: action.id_accion }]);
+        return Response.json([minute]);
+      },
+    });
+    const filters = { organizationId: orgId, includeArchived: false };
+    assert.equal((await repositories.meetingMinutes.list('token', filters))[0].id_acta, minuteId);
+    assert.equal((await repositories.meetingMinutes.getById('token', minuteId)).objetivo, 'Revisar avances');
+    await repositories.meetingMinutes.create('token', {
+      id_organizacion: orgId, id_plan: planId, id_accion: action.id_accion,
+      objetivo: 'Revisar avances', fecha_reunion: '2026-10-08', asistentes: ['Coordinador'],
+      asistentes_externos: '', observaciones: null,
+    });
+    await repositories.meetingMinutes.update('token', minuteId, {
+      expectedVersion: 1, changes: { objetivo: 'Actualizado' },
+    });
+    assert.ok(calls.some(({ url }) => url.includes('/organizaciones?') && url.includes(`eq.${orgId}`)));
+    assert.ok(calls.some(({ url }) => url.includes('/planes?') && url.includes(`id_organizacion=eq.${orgId}`)));
+    assert.ok(calls.some(({ url }) => url.includes('/acciones?') && url.includes(`id_plan=eq.${planId}`)));
+    assert.ok(calls.some(({ url, method }) => url.includes('/actas?') && method === 'POST'));
+    assert.ok(calls.some(({ url, method }) => url.includes('version=eq.1') && method === 'PATCH'));
+  });
+  test('rechaza Organización ausente y traduce permisos y fallos de BD de Actas', async () => {
+    const missing = createSupabaseInterventionsRepositories({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async () => Response.json([]),
+    });
+    await assert.rejects(missing.meetingMinutes.create('token', {
+      id_organizacion: orgId, id_plan: planId, id_accion: null, objetivo: 'QA',
+      fecha_reunion: '2026-10-08', asistentes: ['QA'], asistentes_externos: '', observaciones: null,
+    }), (error: any) => error.code === 'ORGANIZACION_NO_EXISTE' && error.status === 409);
+
+    const denied = createSupabaseInterventionsRepositories({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async () => Response.json({ code: '42501', message: 'denied' }, { status: 403 }),
+    });
+    await assert.rejects(
+      denied.meetingMinutes.list('token', { includeArchived: false }),
+      (error: any) => error.code === 'SIN_PERMISO' && error.status === 403,
+    );
+    const failed = createSupabaseInterventionsRepositories({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async () => Response.json({ code: 'XX000', message: 'internal' }, { status: 500 }),
+    });
+    await assert.rejects(
+      failed.meetingMinutes.list('token', { includeArchived: false }),
+      (error: any) => error.code === 'ERROR_BASE_DATOS' && error.status === 502,
+    );
   });
 });

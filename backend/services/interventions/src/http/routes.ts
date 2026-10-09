@@ -4,6 +4,11 @@ import { failure, health, success } from '../../../../shared/contracts/src/index
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type { InterventionsApplication } from '../application/interventions-service.ts';
 import { parseActionFields, parseActionFilters, parseActionUpdate } from '../domain/actions.ts';
+import {
+  parseCreateMeetingMinute,
+  parseMeetingMinuteFilters,
+  parseUpdateMeetingMinute,
+} from '../domain/meeting-minutes.ts';
 import { parsePlanFields, parsePlanFilters, parsePlanUpdate } from '../domain/plans.ts';
 import { expectedVersion, invalid, objectInput, uuid } from '../domain/validation.ts';
 import { readJsonBody } from './body.ts';
@@ -40,11 +45,14 @@ export async function routeInterventions(
     if (request.method === 'GET' && url.pathname === '/health') {
       respond(response, 200, health('interventions-service'), requestId); return;
     }
-    if (request.method === 'GET' && ['/v1/plans/capabilities', '/v1/actions/capabilities'].includes(url.pathname)) {
-      respond(response, 200, success('INTERVENCIONES_MIGRADAS', 'El servicio de Planes y Acciones está disponible.', {
+    if (request.method === 'GET' && [
+      '/v1/plans/capabilities', '/v1/actions/capabilities', '/v1/meeting-minutes/capabilities',
+    ].includes(url.pathname)) {
+      respond(response, 200, success('INTERVENCIONES_MIGRADAS', 'El servicio de Intervenciones está disponible.', {
         migrated: true,
         plans: ['list', 'detail', 'create', 'update', 'archive'],
         actions: ['list', 'detail', 'create', 'update', 'archive'],
+        meetingMinutes: ['list', 'detail', 'create', 'update'],
       }), requestId); return;
     }
 
@@ -100,6 +108,29 @@ export async function routeInterventions(
       if (request.method === 'DELETE') {
         await application.actions.archive(token, id, parseArchiveInput(await readJsonBody(request)));
         respond(response, 200, success('ACCION_ARCHIVADA', 'La acción fue eliminada correctamente.', { id_accion: id }), requestId); return;
+      }
+    }
+
+    if (url.pathname === '/v1/meeting-minutes') {
+      if (request.method === 'GET') {
+        const meetingMinutes = await application.meetingMinutes.list(token, parseMeetingMinuteFilters(url));
+        respond(response, 200, success('ACTAS_LISTADAS', 'Las actas fueron consultadas correctamente.', { meetingMinutes }), requestId); return;
+      }
+      if (request.method === 'POST') {
+        const meetingMinute = await application.meetingMinutes.create(token, parseCreateMeetingMinute(await readJsonBody(request)));
+        respond(response, 201, success('ACTA_CREADA', 'El acta fue registrada correctamente.', { meetingMinute }), requestId); return;
+      }
+    }
+    const meetingMinuteMatch = url.pathname.match(/^\/v1\/meeting-minutes\/([^/]+)$/);
+    if (meetingMinuteMatch) {
+      const id = uuid(decodeURIComponent(meetingMinuteMatch[1]), 'El acta');
+      if (request.method === 'GET') {
+        const meetingMinute = await application.meetingMinutes.getById(token, id);
+        respond(response, 200, success('ACTA_OBTENIDA', 'El acta fue consultada correctamente.', { meetingMinute }), requestId); return;
+      }
+      if (request.method === 'PATCH') {
+        const meetingMinute = await application.meetingMinutes.update(token, id, parseUpdateMeetingMinute(await readJsonBody(request)));
+        respond(response, 200, success('ACTA_ACTUALIZADA', 'El acta fue actualizada correctamente.', { meetingMinute }), requestId); return;
       }
     }
     respond(response, 404, failure('RUTA_NO_ENCONTRADA', 'La ruta solicitada no existe.', requestId), requestId);
