@@ -4,6 +4,8 @@ import type {
   OrganizationsRepository,
   UpdateOrganizationInput,
   SaveLegalRecordInput,
+  CamposCompromiso,
+  ActualizarCompromisoInput,
 } from '../domain/organizations.ts';
 
 export function createOrganizationsApplication(repository: OrganizationsRepository) {
@@ -31,6 +33,21 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     },
     updateLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput) {
       return repository.updateLegalRecord(accessToken, organizationId, input);
+    },
+    listCommitments(accessToken: string, orgId: string, filtros: { id_acta?: string }) {
+      return repository.listCommitments(accessToken, orgId, filtros);
+    },
+    listCommitmentOrigins(accessToken: string, orgId: string) {
+      return repository.listCommitmentOrigins(accessToken, orgId);
+    },
+    createCommitment(accessToken: string, orgId: string, fields: CamposCompromiso) {
+      return repository.createCommitment(accessToken, orgId, fields);
+    },
+    getCommitmentById(accessToken: string, orgId: string, commitmentId: string) {
+      return repository.getCommitmentById(accessToken, orgId, commitmentId);
+    },
+    updateCommitment(accessToken: string, orgId: string, input: ActualizarCompromisoInput, commitmentId: string) {
+      return repository.updateCommitment(accessToken, orgId, commitmentId, input.cambios, input.versionEsperada);
     },
   };
 }

@@ -9,6 +9,8 @@ import {
   parseUpdateInput,
   parseUuid,
   parseLegalRecordInput,
+  parseCamposCompromiso,
+  parseActualizarCompromisoInput,
 } from '../domain/organizations.ts';
 import { readJsonBody, readMultipartBody } from './body.ts';
 
@@ -43,7 +45,21 @@ export async function routeOrganizations(
     if (request.method === 'GET' && url.pathname === '/v1/organizations/capabilities') {
       respond(response, 200, success('ORGANIZACIONES_MIGRADAS', 'El servicio de Organizaciones está disponible.', {
         migrated: true,
-        operations: ['list', 'detail', 'create', 'update', 'countries', 'legal-record:get', 'legal-record:create', 'legal-record:update'],
+        operations: [
+          'list',
+          'detail',
+          'create',
+          'update',
+          'countries',
+          'legal-record:get',
+          'legal-record:create',
+          'legal-record:update',
+          'commitments:list',
+          'commitments:origins',
+          'commitments:create',
+          'commitments:detail',
+          'commitments:update',
+        ],
       }), requestId);
       return;
     }
@@ -63,6 +79,47 @@ export async function routeOrganizations(
       const organization = await application.create(token, parseOrganizationFields(await readJsonBody(request)));
       respond(response, 201, success('ORGANIZACION_CREADA', 'La organización fue creada correctamente.', { organization }), requestId);
       return;
+    }
+
+    // Rutas para Compromisos de una Organización
+    const commitmentsMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/commitments(?:\/([^/]+))?$/);
+    if (commitmentsMatch) {
+      const orgId = parseUuid(decodeURIComponent(commitmentsMatch[1]), 'La organización');
+      const commitmentId = commitmentsMatch[2] ? parseUuid(decodeURIComponent(commitmentsMatch[2]), 'El compromiso') : undefined;
+
+      // Subruta para orígenes (actas)
+      if (!commitmentId && url.pathname.endsWith('/origins') && request.method === 'GET') {
+        const origins = await application.listCommitmentOrigins(token, orgId);
+        respond(response, 200, success('ORIGENES_COMPROMISOS_LISTADOS', 'Los orígenes de compromisos fueron consultados correctamente.', { origins }), requestId);
+        return;
+      }
+
+      if (!commitmentId) {
+        if (request.method === 'GET') {
+          const idActa = url.searchParams.get('id_acta') ?? undefined;
+          const commitments = await application.listCommitments(token, orgId, { ...(idActa ? { id_acta: idActa } : {}) });
+          respond(response, 200, success('COMPROMISOS_LISTADOS', 'Los compromisos fueron consultados correctamente.', { commitments }), requestId);
+          return;
+        }
+        if (request.method === 'POST') {
+          const fields = parseCamposCompromiso(await readJsonBody(request));
+          const commitment = await application.createCommitment(token, orgId, fields);
+          respond(response, 201, success('COMPROMISO_CREADO', 'El compromiso fue creado correctamente.', { commitment }), requestId);
+          return;
+        }
+      } else {
+        if (request.method === 'GET') {
+          const commitment = await application.getCommitmentById(token, orgId, commitmentId);
+          respond(response, 200, success('COMPROMISO_OBTENIDO', 'El compromiso fue consultado correctamente.', { commitment }), requestId);
+          return;
+        }
+        if (request.method === 'PATCH') {
+          const input = parseActualizarCompromisoInput(await readJsonBody(request));
+          const commitment = await application.updateCommitment(token, orgId, commitmentId, input);
+          respond(response, 200, success('COMPROMISO_ACTUALIZADO', 'El compromiso fue actualizado correctamente.', { commitment }), requestId);
+          return;
+        }
+      }
     }
 
     const legalMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/legal-record$/);
