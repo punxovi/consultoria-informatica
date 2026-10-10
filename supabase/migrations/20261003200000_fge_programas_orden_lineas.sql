@@ -1,5 +1,3 @@
--- KAN-176: conserva el orden del formulario en el guardado y en las lecturas.
--- No reescribe migraciones aplicadas ni cambia los pares de línea/resultado.
 BEGIN;
 
 ALTER TABLE public.programa_lineas_accion

@@ -1,4 +1,4 @@
-import type { Accion, EstadoAccion } from '../server/acciones.ts';
+import type { Accion, EstadoAccion } from '../modelos/acciones.ts';
 
 export const estadosSeleccionables = [
   { valor: 'no_iniciada', etiqueta: 'No iniciada' },

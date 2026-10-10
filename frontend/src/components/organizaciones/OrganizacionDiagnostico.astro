@@ -30,6 +30,7 @@ import Select from '../ui/Select.astro';
       id="btn-registrar-diagnostico"
       type="button"
       variant="primary"
+      disabled
     >
       Registrar diagnóstico
     </Button>
@@ -53,6 +54,10 @@ import Select from '../ui/Select.astro';
     class="rounded-lg border border-danger bg-red-50 p-4 text-sm text-red-800"
   ></p>
 
+  <div id="diagnostico-recuperacion" hidden>
+    <Button id="btn-recargar-diagnostico" variant="outline">Recargar diagnóstico</Button>
+  </div>
+
   <p
     id="diagnostico-confirmacion"
     hidden
@@ -61,7 +66,7 @@ import Select from '../ui/Select.astro';
   ></p>
 
   <!-- Sin diagnóstico -->
-  <div id="estado-sin-diagnostico">
+  <div id="estado-sin-diagnostico" hidden>
     <Card>
       <div class="space-y-4 py-4 text-center">
         <div
@@ -92,6 +97,7 @@ import Select from '../ui/Select.astro';
     class="space-y-6"
     aria-labelledby="form-diagnostico-titulo"
   >
+    <fieldset id="diagnostico-campos" class="min-w-0 space-y-6">
     <Card>
       <h3
         id="form-diagnostico-titulo"
@@ -421,6 +427,7 @@ import Select from '../ui/Select.astro';
             label="Número de raciones entregadas"
             type="number"
             min="0"
+            max="2147483647"
             step="1"
             placeholder="Ej: 150"
           />
@@ -438,11 +445,12 @@ import Select from '../ui/Select.astro';
             name="periodo-raciones"
             label="Periodicidad"
             options={[
+              { value: '', label: 'Sin información' },
               { value: 'diaria', label: 'Diaria' },
               { value: 'semanal', label: 'Semanal' },
               { value: 'mensual', label: 'Mensual' },
             ]}
-            placeholder="Seleccionar periodicidad"
+            value=""
           />
 
           <p
@@ -471,6 +479,7 @@ import Select from '../ui/Select.astro';
         Guardar diagnóstico
       </Button>
     </div>
+    </fieldset>
   </form>
 
   <!-- Diagnóstico registrado -->

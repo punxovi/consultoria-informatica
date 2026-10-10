@@ -1,22 +1,25 @@
-import { ApiError, createApiTransport } from '../api/transporte';
+﻿import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteCompromisos } from './cliente';
 import { guardarCompromisoSchema, vencido, type ActaOrigen, type Compromiso } from './modelo';
 
 export function iniciarCompromisos() {
   const encontrada = document.querySelector<HTMLElement>('#compromisos');
-  if (!encontrada) return;
+  if (!encontrada || encontrada.dataset.iniciado) return;
+  encontrada.dataset.iniciado = 'true';
   const raiz: HTMLElement = encontrada;
   const org = raiz.dataset.organizacion!;
   const q = <T extends HTMLElement = HTMLElement>(id: string) => raiz.querySelector<T>(`#comp-${id}`)!;
   const form = q<HTMLFormElement>('form');
   const campo = (nombre: string) => form.elements.namedItem(nombre) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-  const real = crearClienteCompromisos(createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'), async () => {
+  const servicio = crearClienteCompromisos(createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'), async () => {
     const { data, error } = await getSupabaseClient().auth.getSession();
     if (error || !data.session) throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
     return data.session.access_token;
   });
-  let servicio = real, demo = false, ocupado = false, iniciado = false, conflicto = false, cargado = false;
+  let ocupado = false, iniciado = false, cargado = false, puedeGestionar = false;
+  const conflictos = new Set<string>();
+  const enConflicto = () => !!actual && conflictos.has(actual.id_compromiso);
   let actas: ActaOrigen[] = [], actual: Compromiso | null = null;
   function ocupar(valor: boolean) {
     ocupado = valor;
@@ -25,8 +28,9 @@ export function iniciarCompromisos() {
     raiz.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = valor; });
     q<HTMLFieldSetElement>('campos').disabled = valor;
     if (!valor) {
-      q<HTMLButtonElement>('nuevo').disabled = !cargado || !actas.length;
-      q<HTMLButtonElement>('guardar').disabled = conflicto;
+      q<HTMLButtonElement>('nuevo').disabled = !cargado || !puedeGestionar || !actas.length;
+      q<HTMLButtonElement>('guardar').disabled = !puedeGestionar || enConflicto();
+      q<HTMLButtonElement>('editar').disabled = !puedeGestionar;
     }
   }
   function limpiar() {
@@ -39,14 +43,12 @@ export function iniciarCompromisos() {
     });
   }
   function error(fallo: unknown) {
-    q('error').textContent = fallo instanceof ApiError && (fallo.code === 'RUTA_NO_ENCONTRADA' || fallo.status === 501)
-      ? 'El servicio de Compromisos todavía no está disponible. Puedes probar la demostración en desarrollo.'
-      : fallo instanceof Error ? fallo.message : 'No fue posible completar la operación. Inténtalo nuevamente.';
+    q('error').textContent = fallo instanceof Error ? fallo.message : 'No fue posible completar la operación. Inténtalo nuevamente.';
     q('error').hidden = false;
   }
   function vista(nombre: 'listado' | 'detalle' | 'form') {
     for (const id of ['listado', 'detalle', 'form']) q(id).hidden = id !== nombre;
-    q('nuevo').hidden = nombre !== 'listado';
+    q('nuevo').hidden = nombre !== 'listado' || !puedeGestionar;
   }
   function texto(nodo: HTMLElement, etiqueta: string, valor: string) {
     const grupo = document.createElement('div');
@@ -58,7 +60,7 @@ export function iniciarCompromisos() {
   function listar(registros: Compromiso[]) {
     q('lista').replaceChildren();
     q('vacio').hidden = registros.length > 0;
-    q('sin-actas').hidden = actas.length > 0;
+    q('sin-actas').hidden = actas.length > 0 || !puedeGestionar;
     for (const r of registros) {
       const card = document.createElement('article');
       card.className = `min-w-0 rounded-xl border bg-white p-5 ${vencido(r) ? 'border-danger' : 'border-neutral-200'}`;
@@ -76,11 +78,14 @@ export function iniciarCompromisos() {
   async function cargar(confirmar = true) {
     if (ocupado) return;
     if (confirmar && !form.hidden && !window.confirm('Se descartarán los cambios del formulario. ¿Recargar?')) return;
-    iniciado = true; limpiar(); ocupar(true);
+    iniciado = true; cargado = false; limpiar(); ocupar(true);
+    for (const id of ['listado','detalle','form']) q(id).hidden = true;
     try {
-      const [registros, origenes] = await Promise.all([servicio.listar(org), servicio.actas(org)]);
-      actas = origenes; cargado = true; conflicto = false; actual = null; listar(registros);
-    } catch (fallo) { error(fallo); }
+      const [registros, catalogo] = await Promise.all([servicio.listar(org), servicio.catalogo(org)]);
+      actas = catalogo.actas; puedeGestionar = catalogo.puede_gestionar;
+      q('permisos').hidden = puedeGestionar;
+      cargado = true; conflictos.clear(); actual = null; listar(registros);
+    } catch (fallo) { iniciado = false; error(fallo); }
     finally { ocupar(false); }
   }
   function detalle(r: Compromiso) {
@@ -93,12 +98,7 @@ export function iniciarCompromisos() {
     const enlace = q<HTMLAnchorElement>('origen');
     enlace.textContent = origen?.nombre ?? 'Ver acta de origen';
     enlace.href = `/organizaciones/${encodeURIComponent(org)}?acta=${encodeURIComponent(r.id_acta)}#tab-actas`;
-    enlace.onclick = evento => {
-      if (!demo) return;
-      evento.preventDefault();
-      document.querySelector<HTMLButtonElement>('[data-tab="actas"]')?.click();
-      window.dispatchEvent(new CustomEvent('compromisos:abrir-acta', { detail: { id: r.id_acta, org } }));
-    };
+    q('editar').hidden = !puedeGestionar;
     const accion = q<HTMLAnchorElement>('accion'); accion.hidden = !origen?.id_plan || !origen?.id_accion;
     if (!accion.hidden) accion.href = `/planes/${encodeURIComponent(origen!.id_plan!)}/acciones/${encodeURIComponent(origen!.id_accion!)}`;
     vista('detalle');
@@ -109,7 +109,7 @@ export function iniciarCompromisos() {
     try { detalle(await servicio.obtener(org, id)); } catch (fallo) { error(fallo); } finally { ocupar(false); }
   }
   function editar(nuevo = false) {
-    if (ocupado) return;
+    if (ocupado || !cargado || !puedeGestionar) return;
     limpiar(); if (nuevo) actual = null;
     form.reset();
     q('form-titulo').textContent = actual ? 'Editar compromiso' : 'Registrar compromiso';
@@ -119,12 +119,12 @@ export function iniciarCompromisos() {
     for (const nombre of Object.keys(guardarCompromisoSchema.shape)) campo(nombre).value = actual ? String(actual[nombre as keyof Compromiso]) : nombre === 'estado' ? 'pendiente' : '';
     select.disabled = !!actual;
     campo('estado').disabled = !actual;
-    q<HTMLButtonElement>('guardar').disabled = conflicto;
-    if (conflicto) error(new Error('Recarga los datos antes de guardar: el registro cambió en otra sesión.'));
+    q<HTMLButtonElement>('guardar').disabled = enConflicto();
+    if (enConflicto()) error(new Error('Recarga los datos antes de guardar: el registro cambió o ya no está disponible.'));
     vista('form'); (actual ? campo('descripcion') : select).focus();
   }
   form.addEventListener('submit', async evento => {
-    evento.preventDefault(); if (ocupado || conflicto) return;
+    evento.preventDefault(); if (ocupado || !puedeGestionar || enConflicto()) return;
     limpiar();
     const valores = Object.fromEntries(Object.keys(guardarCompromisoSchema.shape).map(n => [n, campo(n).value]));
     const datos = guardarCompromisoSchema.safeParse(valores);
@@ -140,12 +140,13 @@ export function iniciarCompromisos() {
     }
     ocupar(true);
     try {
+      const eraEdicion=!!actual;
       const guardado = actual ? await servicio.actualizar(org, actual.id_compromiso, actual.version, datos.data) : await servicio.crear(org, datos.data);
       detalle(guardado);
-      q('exito').textContent = demo ? 'Compromiso guardado en la demostración. No se guardó en el servidor.' : 'Compromiso guardado correctamente.';
+      q('exito').textContent = eraEdicion ? 'Compromiso actualizado correctamente.' : 'Compromiso guardado correctamente.';
       q('exito').hidden = false;
     } catch (fallo) {
-      if (fallo instanceof ApiError && fallo.status === 409) conflicto = true;
+      if (actual && fallo instanceof ApiError && (fallo.code === 'CONFLICTO_CONCURRENCIA' || fallo.status === 404)) conflictos.add(actual.id_compromiso);
       error(fallo); q('error').focus();
     } finally { ocupar(false); }
   });
@@ -154,25 +155,10 @@ export function iniciarCompromisos() {
   q('cancelar').addEventListener('click', () => { if (ocupado) return; limpiar(); if (actual) detalle(actual); else cargar(false); });
   q('volver').addEventListener('click', () => cargar(false));
   q('recargar').addEventListener('click', () => cargar());
-  async function activarDemo() {
-    if (ocupado || demo) return;
-    if (!form.hidden && !window.confirm('Se descartarán los cambios para entrar en la demostración. ¿Continuar?')) return;
-    ocupar(true);
-    try {
-      servicio = (await import('./demo')).crearDemoCompromisos(); demo = true; cargado = false; conflicto = false;
-      q('demo-aviso').textContent = 'Modo demostración: los cambios no se envían al servidor y se pierden al recargar la página. Las actas también son temporales.';
-      q('demo').hidden = true; q('real').hidden = false;
-    } finally { ocupar(false); }
-    await cargar(false);
-  }
-  if (import.meta.env.DEV) {
-    q('demo').addEventListener('click', activarDemo);
-    q('real').addEventListener('click', () => { if (!ocupado) location.reload(); });
-    window.addEventListener('compromisos:demo-guardados', () => {
-      if (demo && form.hidden) cargar(false);
-    });
-  }
+  window.addEventListener('actas:guardadas', evento => {
+    if ((evento as CustomEvent<{org:string}>).detail.org === org && form.hidden) iniciado = false;
+  });
   document.querySelector('[data-tab="compromisos"]')?.addEventListener('click', () => {
-    if (!iniciado || (demo && form.hidden)) cargar(false);
+    if (!iniciado && !ocupado) void cargar(false);
   });
 }

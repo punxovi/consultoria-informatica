@@ -6,8 +6,8 @@ import { createApiTransport } from '../../src/lib/api/transporte.ts';
 import { crearDemoActas } from '../../src/lib/actas-reunion/demo.ts';
 import { crearDemoCompromisos } from '../../src/lib/compromisos/demo.ts';
 const campos = { descripcion:'Entregar documentos', responsable_nombre:'Ana', responsable_contacto:'ana@example.test', fecha_limite:'2026-10-15', observaciones:'' };
-const entrada = { ...campos, id_acta:'acta-1', estado:'pendiente' };
-const registro = { ...entrada, id_compromiso:'c-1', id_organizacion:'org-1', version:1, created_at:'2026-10-07T12:00:00Z', updated_at:'2026-10-07T12:00:00Z', cumplido_at:null };
+const entrada = { ...campos, id_acta:'11111111-1111-4111-8111-111111111111', estado:'pendiente' };
+const registro = { ...entrada, id_compromiso:'22222222-2222-4222-8222-222222222222', id_organizacion:'33333333-3333-4333-8333-333333333333', version:1, created_at:'2026-10-07T12:00:00Z', updated_at:'2026-10-07T12:00:00Z', cumplido_at:null };
 
 test('HU17 exige contacto y fecha válida; vencido es una condición, no un estado', () => {
   assert.ok(camposCompromisoSchema.safeParse(campos).success);
@@ -24,23 +24,33 @@ test('cliente transmite token, estado inicial Pendiente y versión esperada al e
   const llamadas=[];
   const cliente=crearClienteCompromisos(createApiTransport('http://api.test',async(url,options)=>{
     llamadas.push({url,options});
-    return Response.json({ok:true,data:url.endsWith('/origins')?{actas:[{id_acta:'acta-1',nombre:'Acta 1'}]}:options.method==='GET'&&url.endsWith('/commitments')?{compromisos:[registro]}:{compromiso:registro}});
+    return Response.json({ok:true,data:url.endsWith('/origins')?{puede_gestionar:true,actas:[{id_plan:'44444444-4444-4444-8444-444444444444',id_accion:null,id_acta:'11111111-1111-4111-8111-111111111111',nombre:'Acta 1'}]}:options.method==='GET'&&url.endsWith('/commitments')?{compromisos:[registro]}:{compromiso:registro}});
   }),async()=>'token-qa');
-  assert.equal((await cliente.listar('org-1')).length,1);
-  assert.equal((await cliente.actas('org-1')).length,1);
-  await cliente.obtener('org-1','c-1');
-  await cliente.crear('org-1',{...entrada,estado:'cumplido'});
-  await cliente.actualizar('org-1','c-1',1,entrada);
+  assert.equal((await cliente.listar('33333333-3333-4333-8333-333333333333')).length,1);
+  assert.equal((await cliente.actas('33333333-3333-4333-8333-333333333333')).length,1);
+  await cliente.obtener('33333333-3333-4333-8333-333333333333','22222222-2222-4222-8222-222222222222');
+  await cliente.crear('33333333-3333-4333-8333-333333333333',{...entrada,estado:'cumplido'});
+  await cliente.actualizar('33333333-3333-4333-8333-333333333333','22222222-2222-4222-8222-222222222222',1,entrada);
   assert.equal(llamadas[3].options.headers.authorization,'Bearer token-qa');
   assert.equal(JSON.parse(llamadas[3].options.body).estado,'pendiente');
   assert.equal(JSON.parse(llamadas[4].options.body).version_esperada,1);
   assert.equal(llamadas[4].options.method,'PATCH');
+  assert.equal(JSON.parse(llamadas[4].options.body).cambios.id_acta,undefined);
+  assert.equal(JSON.parse(llamadas[4].options.body).cambios.descripcion,campos.descripcion);
+});
+
+test('normaliza nulos históricos y rechaza una fecha de cumplimiento incoherente',async()=>{
+  const c=crearClienteCompromisos(createApiTransport('http://api.test',async()=>Response.json({ok:true,data:{compromiso:{...registro,responsable_contacto:null,observaciones:null,created_by:null}}})),async()=> 'qa');
+  const historico=await c.obtener(registro.id_organizacion,registro.id_compromiso);
+  assert.equal(historico.responsable_contacto,'');assert.equal(historico.observaciones,'');
+  const inconsistente=crearClienteCompromisos(createApiTransport('http://api.test',async()=>Response.json({ok:true,data:{compromiso:{...registro,estado:'cumplido'}}})),async()=> 'qa');
+  await assert.rejects(inconsistente.obtener(registro.id_organizacion,registro.id_compromiso),{code:'RESPUESTA_INVALIDA'});
 });
 
 test('ruta pendiente, respuestas ajenas y conflictos no se interpretan como éxito', async () => {
   for(const [payload,status] of [[{ok:false,error:{code:'RUTA_NO_ENCONTRADA',message:'Pendiente'}},404],[{ok:true,data:{compromiso:{...registro,id_organizacion:'otra'}}},200],[{ok:false,error:{code:'CONFLICTO',message:'Recargar'}},409]]) {
     const c=crearClienteCompromisos(createApiTransport('http://api.test',async()=>Response.json(payload,{status})),async()=>'qa');
-    await assert.rejects(()=>c.obtener('org-1','c-1'));
+    await assert.rejects(()=>c.obtener('33333333-3333-4333-8333-333333333333','22222222-2222-4222-8222-222222222222'));
   }
 });
 

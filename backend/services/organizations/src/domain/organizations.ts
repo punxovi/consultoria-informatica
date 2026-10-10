@@ -10,7 +10,7 @@ import {
   type UpdateLegalRecordData,
 } from './legal-record.schemas.ts';
 import type { Compromiso, CamposCompromiso, ActualizarCompromisoInput, EstadoCompromiso } from './compromisos.ts';
-import type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput, EstadoDiagnostico } from './diagnosticos.ts';
+import type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput } from './diagnosticos.ts';
 
 export {
   LEGAL_DOCUMENT_TYPES,
@@ -25,7 +25,7 @@ export {
   parseActualizarCompromisoInput,
 } from './compromisos.ts';
 
-export type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput, EstadoDiagnostico };
+export type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput };
 export { parseCamposDiagnostico, parseActualizarDiagnosticoInput } from './diagnosticos.ts';
 
 export const ORGANIZATION_TYPES = [
@@ -141,15 +141,15 @@ export interface OrganizationsRepository {
   createLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput): Promise<LegalRecord>;
   updateLegalRecord(accessToken: string, organizationId: string, input: SaveLegalRecordInput): Promise<LegalRecord>;
   listCommitments(accessToken: string, orgId: string, filtros: { id_acta?: string }): Promise<Compromiso[]>;
-  listCommitmentOrigins(accessToken: string, orgId: string): Promise<any[]>;
+  listCommitmentOrigins(accessToken: string, orgId: string): Promise<import('./compromisos.ts').OrigenesCompromisos>;
   createCommitment(accessToken: string, orgId: string, fields: CamposCompromiso): Promise<Compromiso>;
   getCommitmentById(accessToken: string, orgId: string, commitmentId: string): Promise<Compromiso>;
   updateCommitment(
     accessToken: string,
     orgId: string,
     commitmentId: string,
-    changes: Partial<CamposCompromiso> & { estado?: EstadoCompromiso },
-    expectedVersion?: number,
+    changes: ActualizarCompromisoInput['cambios'],
+    expectedVersion: number,
   ): Promise<Compromiso>;
   listDiagnosticos(accessToken: string, orgId: string): Promise<Diagnostico[]>;
   createDiagnostico(accessToken: string, orgId: string, fields: CamposDiagnostico): Promise<Diagnostico>;
@@ -158,8 +158,8 @@ export interface OrganizationsRepository {
     accessToken: string,
     orgId: string,
     diagnosticoId: string,
-    changes: Partial<CamposDiagnostico> & { estado?: EstadoDiagnostico },
-    expectedVersion?: number,
+    changes: CamposDiagnostico,
+    expectedVersion: number,
   ): Promise<Diagnostico>;
 }
 

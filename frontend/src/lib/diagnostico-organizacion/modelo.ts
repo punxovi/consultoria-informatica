@@ -30,6 +30,7 @@ export const camposDiagnosticoSchema = z
       .number()
       .int('Debe ser un número entero.')
       .min(0, 'No puede ser menor que 0.')
+      .max(2147483647, 'La cantidad de raciones es demasiado grande.')
       .nullable(),
 
     periodo_raciones: z

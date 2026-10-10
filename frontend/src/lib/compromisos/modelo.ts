@@ -11,7 +11,7 @@ export const camposCompromisoSchema = z.object({
   observaciones: z.string().trim().max(2000),
 });
 export const guardarCompromisoSchema = camposCompromisoSchema.extend({
-  id_acta: z.string().min(1, 'Selecciona el acta de origen.'),
+  id_acta: z.uuid('Selecciona un acta de origen válida.'),
   estado: z.enum(['pendiente', 'cumplido']),
 }).strict();
 export type CamposCompromiso = z.infer<typeof camposCompromisoSchema>;

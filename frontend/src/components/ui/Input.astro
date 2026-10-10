@@ -22,6 +22,9 @@ interface Props {
   hint?: string;
   value?: string;
   maxlength?: number;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
   showPasswordToggle?: boolean;
   class?: string;
 }
@@ -38,6 +41,9 @@ const {
   hint,
   value,
   maxlength,
+  min,
+  max,
+  step,
   showPasswordToggle = false,
   class: className = '',
 } = Astro.props;
@@ -61,6 +67,9 @@ const passwordToggle = showPasswordToggle && type === 'password';
       required={required}
       value={value}
       maxlength={maxlength}
+      min={min}
+      max={max}
+      step={step}
       aria-invalid={error ? 'true' : 'false'}
       aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
       class={`min-h-[48px] w-full rounded-lg border px-3 py-2 text-base

@@ -17,12 +17,13 @@ const fecha = texto(10).refine(
 
 export const camposActaSchema = z
   .object({
-    id_plan: texto(100),
-    id_accion: texto(100),
+    id_plan: z.string().uuid('Selecciona un plan válido.'),
+    id_accion: z.union([z.literal(''), z.string().uuid('Selecciona una acción válida.')]),
     fecha_reunion: fecha,
-    asistentes: z.array(texto(150)).min(1, 'Debes seleccionar al menos un asistente.'),
-    asistentes_externos: texto(500),
-    objetivo: texto(1000),
+    asistentes: z.array(texto(150).min(1)).min(1, 'Debes seleccionar al menos un asistente.').max(100)
+      .refine(valores => new Set(valores.map(v => v.toLocaleLowerCase('es'))).size === valores.length, 'Los asistentes no pueden repetirse.'),
+    asistentes_externos: texto(500).refine(v => !v || v.length >= 3, 'Ingresa al menos 3 caracteres.'),
+    objetivo: texto(1000).min(1, 'El objetivo es obligatorio.'),
     observaciones: texto(2000),
   })
   .strict();
@@ -35,6 +36,14 @@ export interface ActaReunion extends CamposActa {
   version: number;
   created_at: string;
   updated_at: string;
+  compromisos?: Array<CamposCompromiso & { id_compromiso: string; estado: 'pendiente' | 'cumplido' }>;
+}
+
+export interface CatalogoActas {
+  puede_gestionar: boolean;
+  planes: Array<{ id_plan: string; nombre: string }>;
+  acciones: Array<{ id_accion: string; id_plan: string; nombre: string }>;
+  asistentes: string[];
 }
 
 export interface GuardarActa {

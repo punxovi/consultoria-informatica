@@ -4,6 +4,7 @@ import type {
   MeetingMinute,
   MeetingMinuteFilters,
   MeetingMinutesRepository,
+  MeetingMinuteCatalog,
   UpdateMeetingMinuteInput,
 } from '../domain/meeting-minutes.ts';
 import type { Plan, PlanFilters, PlansRepository, UpdatePlanInput } from '../domain/plans.ts';
@@ -30,6 +31,7 @@ const MEETING_MINUTE_FIELDS = [
   'id_acta', 'id_organizacion', 'id_plan', 'id_accion', 'objetivo', 'fecha_reunion',
   'asistentes', 'asistentes_externos', 'observaciones', 'created_at', 'updated_at',
   'created_by', 'updated_by', 'archived_at', 'version',
+  'compromisos(id_compromiso,descripcion,responsable_nombre,responsable_contacto,fecha_limite,observaciones,estado)',
 ].join(',');
 
 function record(value: unknown): Record<string, unknown> {
@@ -42,6 +44,7 @@ function databaseError(kind: ResourceKind, status: number, body: unknown): Servi
   const detail = record(body);
   const code = typeof detail.code === 'string' ? detail.code : '';
   const details = `${detail.message ?? ''} ${detail.details ?? ''}`;
+  if (code === 'P0002') return new ServiceError('NO_ENCONTRADA', 'La organización o el acta solicitada no existe o no está disponible.', 404, detail);
   if (code === '23503') {
     if (kind === 'meeting-minute') {
       if (details.includes('id_organizacion')) return new ServiceError('ORGANIZACION_NO_EXISTE', 'La organización indicada no existe.', 409, detail);
@@ -105,7 +108,8 @@ function meetingMinute(value: unknown): MeetingMinute {
   ) {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un acta inválida.', 502);
   }
-  return data as unknown as MeetingMinute;
+  // El esquema histórico almacena timestamptz; el contrato de Actas usa fecha civil.
+  return { ...data, fecha_reunion: data.fecha_reunion.slice(0, 10) } as unknown as MeetingMinute;
 }
 
 export function createSupabaseInterventionsRepositories(options: RepositoryOptions): {
@@ -281,7 +285,19 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
   };
 
   const meetingMinutes: MeetingMinutesRepository = {
-    list(token, filters: MeetingMinuteFilters) {
+    async catalog(token, organizationId) {
+      const data = await request('meeting-minute', 'rpc/catalogo_actas', token, {
+        method: 'POST', body: JSON.stringify({ p_id_organizacion: organizationId }),
+      });
+      if (!Array.isArray(record(data).planes) || !Array.isArray(record(data).acciones) || !Array.isArray(record(data).asistentes) || typeof record(data).puede_gestionar !== 'boolean') {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'No fue posible consultar las opciones del acta.', 502);
+      }
+      return data as MeetingMinuteCatalog;
+    },
+    async list(token, filters: MeetingMinuteFilters) {
+      if (filters.organizationId && !await relationExists(token, 'organizaciones', new URLSearchParams({ id_organizacion: `eq.${filters.organizationId}` }))) {
+        throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe o no está disponible.', 404);
+      }
       const params = new URLSearchParams({ order: 'fecha_reunion.desc,id_acta.desc' });
       if (!filters.includeArchived) params.set('archived_at', 'is.null');
       if (filters.organizationId) params.set('id_organizacion', `eq.${filters.organizationId}`);
@@ -292,8 +308,14 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
     getById: getMeetingMinuteById,
     async create(token, input) {
       await validateMeetingMinuteRelations(token, input.id_organizacion, input.id_plan, input.id_accion);
+      const { compromisos = [], ...fields } = input;
+      if (compromisos.length) {
+        return meetingMinute(await request('meeting-minute', 'rpc/crear_acta_completa', token, {
+          method: 'POST', body: JSON.stringify({ p_datos: fields, p_compromisos: compromisos }),
+        }));
+      }
       const rows = await meetingMinuteRows(token, new URLSearchParams(), {
-        method: 'POST', headers: { prefer: 'return=representation' }, body: JSON.stringify(input),
+        method: 'POST', headers: { prefer: 'return=representation' }, body: JSON.stringify(fields),
       });
       if (!rows[0]) throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible registrar el acta.', 502);
       return rows[0];
@@ -327,7 +349,7 @@ function unavailableRepositories(): { plans: PlansRepository; actions: ActionsRe
   return {
     plans: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable, archive: unavailable },
     actions: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable, archive: unavailable },
-    meetingMinutes: { list: unavailable, getById: unavailable, create: unavailable, update: unavailable },
+    meetingMinutes: { catalog: unavailable, list: unavailable, getById: unavailable, create: unavailable, update: unavailable },
   };
 }
 
