@@ -1,6 +1,6 @@
-import { ApiError } from '../api/transporte.ts';
-import { camposActaSchema, type ActaReunion, type GuardarActa } from './modelo.ts';
+import { camposActaSchema, type ActaReunion, type GuardarActa, } from './modelo.ts';
 import { crearDemoActas } from './demo.ts';
+
 
 export async function iniciarActasReunion() {
   const raizEncontrada =
@@ -62,7 +62,17 @@ const buscar = <T extends HTMLElement>(
   let ocupado = false;
   let iniciado = false;
 
-  const fechaActual = new Date().toISOString().split('T')[0];
+  function obtenerFechaLocalActual(): string {
+    const hoy = new Date();
+
+    return [
+      hoy.getFullYear(),
+      String(hoy.getMonth() + 1).padStart(2, '0'),
+      String(hoy.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
+
+  const fechaActual = obtenerFechaLocalActual();
 
   function ocultarTodo() {
     estadoCarga.hidden = true;
@@ -81,15 +91,17 @@ const buscar = <T extends HTMLElement>(
     errorGeneral.hidden = true;
     errorGeneral.textContent = '';
 
-    formulario.querySelectorAll<HTMLElement>('[data-error-acta]').forEach((elemento) => {
-      elemento.classList.add('hidden');
-      elemento.textContent = '';
-    });
+    formulario
+      .querySelectorAll<HTMLElement>('[data-error-acta]')
+      .forEach((elemento) => {
+        elemento.hidden = true;
+        elemento.textContent = '';
+      });
 
     formulario
       .querySelectorAll<HTMLElement>('[aria-invalid="true"]')
       .forEach((elemento) => {
-        elemento.setAttribute('aria-invalid', 'false');
+        elemento.removeAttribute('aria-invalid');
         elemento.classList.remove('border-danger');
       });
   }
@@ -109,7 +121,7 @@ const buscar = <T extends HTMLElement>(
 
     const error = buscar<HTMLElement>(selectorError);
     error.textContent = texto;
-    error.classList.remove('hidden');
+    error.hidden = false;
   }
 
   function ocupar(valor: boolean, texto = '') {
@@ -514,6 +526,12 @@ const buscar = <T extends HTMLElement>(
     if (ocupado) return;
 
     actaEditando = null;
+
+    // Limpiar errores y mensajes del formulario cancelado.
+    limpiarErrores();
+    mensaje.hidden = true;
+    mensaje.textContent = '';
+
     mostrarHistorial();
   });
 
