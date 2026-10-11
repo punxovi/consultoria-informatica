@@ -261,6 +261,7 @@ function cargarDiagnosticoEnFormulario(
   });
 }
 
+
 function limpiarErrores() {
   const ids = [
     'mision',
@@ -276,26 +277,72 @@ function limpiarErrores() {
   ];
 
   ids.forEach((id) => {
+    const campo = document.getElementById(id);
     const error = document.getElementById(`${id}-error`);
 
     if (error) {
       error.textContent = '';
     }
+
+    if (campo) {
+      // Quitar la asociación con el mensaje de error anterior.
+      const descripciones = (
+        campo.getAttribute('aria-describedby') ?? ''
+      )
+        .split(/\s+/)
+        .filter((referencia) => referencia && referencia !== `${id}-error`);
+
+      if (descripciones.length > 0) {
+        campo.setAttribute(
+          'aria-describedby',
+          descripciones.join(' '),
+        );
+      } else {
+        campo.removeAttribute('aria-describedby');
+      }
+
+      campo.removeAttribute('aria-invalid');
+      campo.classList.remove('border-red-500');
+      campo.classList.add('border-neutral-300');
+    }
   });
 }
 
+
+
 function establecerError(
-  campo: string,
+  campoId: string,
   mensaje: string,
 ) {
-  const elemento = document.getElementById(
-    `${campo}-error`,
+  const campo = document.getElementById(campoId);
+  const error = document.getElementById(`${campoId}-error`);
+
+  if (!campo || !error) {
+    return;
+  }
+
+  error.textContent = mensaje;
+
+  // Marcar visualmente el campo como inválido.
+  campo.setAttribute('aria-invalid', 'true');
+  campo.classList.remove('border-neutral-300');
+  campo.classList.add('border-red-500');
+
+  // Vincular el campo con su mensaje de error.
+  const descripciones = new Set(
+    (campo.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter(Boolean),
   );
 
-  if (elemento) {
-    elemento.textContent = mensaje;
-  }
+  descripciones.add(error.id);
+
+  campo.setAttribute(
+    'aria-describedby',
+    [...descripciones].join(' '),
+  );
 }
+
 
 function obtenerValorTexto(id: string): string {
   return obtenerElemento<HTMLTextAreaElement>(id).value;
@@ -371,13 +418,41 @@ function validarFormulario(
     return true;
   }
 
-  resultado.error.issues.forEach((issue) => {
-    const campo = issue.path[0];
+  const idsPorCampo: Record<string, string> = {
+    mision: 'mision',
+    vision: 'vision',
+    caracteristicas_infraestructura: 'caracteristicas-infraestructura',
+    espacios_disponibles: 'espacios-disponibles',
+    recursos_existentes: 'recursos-existentes',
+    danos_detectados: 'danos-detectados',
+    necesidades_prioritarias: 'necesidades-prioritarias',
+    observaciones: 'observaciones',
+    raciones: 'raciones',
+    periodo_raciones: 'periodo-raciones',
+  };
 
-    if (typeof campo === 'string') {
-      establecerError(campo.replaceAll('_', '-'), issue.message);
+  resultado.error.issues.forEach((issue) => {
+    const clave = issue.path[0];
+
+    if (typeof clave !== 'string') {
+      return;
+    }
+
+    const campoId = idsPorCampo[clave] ?? clave.replaceAll('_', '-');
+
+    if (campoId) {
+      establecerError(campoId, issue.message);
     }
   });
+
+  const primerCampo = Object.values(idsPorCampo)
+    .map((id) => document.getElementById(id))
+    .find(
+      (campo) =>
+        campo?.getAttribute('aria-invalid') === 'true',
+    );
+
+  primerCampo?.focus();
 
   return false;
 }

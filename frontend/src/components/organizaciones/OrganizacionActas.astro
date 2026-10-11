@@ -141,6 +141,12 @@ const { idOrganizacion } = Astro.props;
             placeholder="Selecciona un plan"
             required
           />
+          <p
+            id="error-plan-acta"
+            data-error-acta
+            hidden
+            class="mt-1 text-sm text-danger"
+          ></p>
 
           <Select
             id="actas-accion"
@@ -149,6 +155,12 @@ const { idOrganizacion } = Astro.props;
             options={[]}
             placeholder="Selecciona una acción"
           />
+          <p
+            id="error-accion-acta"
+            data-error-acta
+            hidden
+            class="mt-1 text-sm text-danger"
+          ></p>
         </div>
 
         <div class="mt-5">
@@ -160,6 +172,13 @@ const { idOrganizacion } = Astro.props;
             required
             hint="La fecha no puede ser posterior a la fecha actual."
           />
+        <p
+          id="error-fecha-acta"
+          data-error-acta
+          hidden
+          class="mt-1 text-sm text-danger"
+        ></p>
+
         </div>
       </Card>
 

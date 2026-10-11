@@ -1,8 +1,8 @@
-﻿import { ApiError, createApiTransport } from '../api/transporte';
-import { getSupabaseClient } from '../supabase';
-import { camposActaSchema, type ActaReunion, type CatalogoActas } from './modelo';
-import { crearClienteActas } from './cliente';
-import { iniciarCompromisosEnActas } from '../compromisos/en-actas';
+import { ApiError, createApiTransport } from '../api/transporte.ts';
+import { getSupabaseClient } from '../supabase.ts';
+import { camposActaSchema, type ActaReunion, type CatalogoActas } from './modelo.ts';
+import { crearClienteActas } from './cliente.ts';
+import { iniciarCompromisosEnActas } from '../compromisos/en-actas.ts';
 
 export async function iniciarActasReunion() {
   const raiz = document.querySelector<HTMLElement>('#actas-reunion');
@@ -40,8 +40,11 @@ export async function iniciarActasReunion() {
   function limpiarMensajes() {
     buscar('#actas-error').hidden = true;
     buscar('#actas-mensaje').hidden = true;
-    formulario.querySelectorAll('[data-error-acta]').forEach(n => { n.textContent = ''; (n as HTMLElement).hidden = true; });
-    formulario.querySelectorAll('[aria-invalid="true"]').forEach(n => n.setAttribute('aria-invalid', 'false'));
+    formulario.querySelectorAll<HTMLElement>('[data-error-acta]').forEach(n => { n.textContent = ''; n.hidden = true; });
+    formulario.querySelectorAll<HTMLElement>('[aria-invalid="true"]').forEach(n => {
+      n.removeAttribute('aria-invalid');
+      n.classList.remove('border-danger');
+    });
   }
   function error(fallo: unknown) {
     buscar('#actas-error').textContent = fallo instanceof Error ? fallo.message : 'No fue posible completar la operación.';
@@ -51,11 +54,20 @@ export async function iniciarActasReunion() {
     const controles: Record<string, string> = { id_plan: 'plan', id_accion: 'accion', fecha_reunion: 'fecha', asistentes: 'asistentes', asistentes_externos: 'asistentes-externos', objetivo: 'objetivo', observaciones: 'observaciones' };
     const control = buscar(`#actas-${controles[campo]}`);
     if (!control) return;
+    control.classList.add('border-danger');
+    control.setAttribute('aria-invalid', 'true');
     const id = `actas-validacion-${campo}`;
-    let aviso = buscar(`#${id}`);
-    if (!aviso) { aviso = document.createElement('p'); aviso.id = id; aviso.dataset.errorActa = ''; aviso.className = 'mt-1 text-sm text-danger'; control.after(aviso); }
-    aviso.textContent = mensaje; aviso.hidden = false;
-    control.setAttribute('aria-invalid', 'true'); control.setAttribute('aria-describedby', id);
+    let aviso = buscar(`#${id}`) || buscar(`#error-${controles[campo]}-acta`);
+    if (!aviso) {
+      aviso = document.createElement('p');
+      aviso.id = id;
+      aviso.dataset.errorActa = '';
+      aviso.className = 'mt-1 text-sm text-danger';
+      control.after(aviso);
+    }
+    aviso.textContent = mensaje;
+    aviso.hidden = false;
+    control.setAttribute('aria-describedby', aviso.id || id);
   }
   function ocupar(valor: boolean) {
     ocupado = valor;
