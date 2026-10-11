@@ -28,6 +28,7 @@ export function createInterventionsApplication(
       archive: (token: string, id: string, version: number) => actions.archive(token, id, version),
     },
     meetingMinutes: {
+      catalog: (token: string, organizationId: string) => meetingMinutes.catalog(token, organizationId),
       list: (token: string, filters: MeetingMinuteFilters) => meetingMinutes.list(token, filters),
       getById: (token: string, id: string) => meetingMinutes.getById(token, id),
       create: (token: string, input: CreateMeetingMinuteInput) => meetingMinutes.create(token, input),

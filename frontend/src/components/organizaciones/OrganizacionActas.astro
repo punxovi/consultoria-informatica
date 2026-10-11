@@ -10,50 +10,6 @@ interface Props {
 
 const { idOrganizacion } = Astro.props;
 
-const planes = [
-  {
-    value: 'plan-1',
-    label: 'Plan de apoyo comunitario 2026',
-  },
-  {
-    value: 'plan-2',
-    label: 'Plan de fortalecimiento institucional',
-  },
-  {
-    value: 'plan-3',
-    label: 'Plan de intervención social',
-  },
-];
-
-const acciones = [
-  {
-    value: 'accion-1',
-    label: 'Jornada de intervención comunitaria',
-  },
-  {
-    value: 'accion-2',
-    label: 'Entrega de recursos',
-  },
-  {
-    value: 'accion-3',
-    label: 'Seguimiento de beneficiarios',
-  },
-  {
-    value: 'accion-4',
-    label: 'Reunión de coordinación',
-  },
-];
-
-const usuarios = [
-  'Constanza Cauchupan',
-  'Gabriel Orellana',
-  'Benjamín Molina',
-  'Benjamín Miranda',
-  'Jorge Páez',
-  'Luis Bustamante',
-];
-
-const fechaHoy = new Date().toISOString().split('T')[0];
 ---
 
 <section
@@ -77,7 +33,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
       </p>
     </div>
 
-    <Button id="actas-nueva">
+    <Button id="actas-nueva" disabled>
       Registrar acta
     </Button>
   </div>
@@ -90,8 +46,14 @@ const fechaHoy = new Date().toISOString().split('T')[0];
     class="rounded-lg border border-danger bg-red-50 p-4 text-sm text-red-800"
   ></p>
 
+  <p id="actas-mensaje" hidden role="status" aria-live="polite"></p>
+  <p id="actas-catalogo-estado" hidden class="rounded-lg bg-neutral-100 p-4 text-sm"></p>
+  <div id="actas-recuperacion" hidden>
+    <Button id="actas-recargar" variant="outline">Recargar actas</Button>
+  </div>
+
   <!-- Carga -->
-  <div id="actas-carga" hidden>
+  <div id="actas-carga" hidden role="status" aria-live="polite">
     <Card>
       <div class="py-8 text-center">
         <div
@@ -175,7 +137,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             id="actas-plan"
             name="id_plan"
             label="Plan relacionado"
-            options={planes}
+            options={[]}
             placeholder="Selecciona un plan"
             required
           />
@@ -190,7 +152,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             id="actas-accion"
             name="id_accion"
             label="Acción relacionada"
-            options={acciones}
+            options={[]}
             placeholder="Selecciona una acción"
           />
           <p
@@ -208,7 +170,6 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             label="Fecha de la reunión"
             type="date"
             required
-            value={fechaHoy}
             hint="La fecha no puede ser posterior a la fecha actual."
           />
         <p
@@ -246,11 +207,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             required
             class="mt-1.5 min-h-[140px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            {
-              usuarios.map((usuario) => (
-                <option value={usuario}>{usuario}</option>
-              ))
-            }
+
           </select>
 
           <p class="mt-1.5 text-sm text-neutral-500">
@@ -270,6 +227,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             id="actas-asistentes-externos"
             name="asistentes_externos"
             label="Asistentes externos"
+            maxlength={500}
             placeholder="Ej: María González, representante de la organización"
             hint="Opcional."
           />
@@ -288,7 +246,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             </label>
 
             <textarea
-              id="actas-objetivo"
+              id="actas-objetivo" maxlength="1000"
               name="objetivo"
               required
               rows="4"
@@ -316,7 +274,7 @@ const fechaHoy = new Date().toISOString().split('T')[0];
             </label>
 
             <textarea
-              id="actas-observaciones"
+              id="actas-observaciones" maxlength="2000"
               name="observaciones"
               rows="5"
               placeholder="Registra notas, acuerdos u observaciones relevantes..."
@@ -326,48 +284,29 @@ const fechaHoy = new Date().toISOString().split('T')[0];
         </div>
       </Card>
 
-      {import.meta.env.DEV && <Card>
+      <Card>
         <section id="actas-compromisos" class="space-y-4">
           <h3 class="font-semibold">Compromisos del acta</h3>
-          <p class="text-sm text-neutral-600">Puedes agregar varios acuerdos antes de guardar. Quedan Pendientes y se consultan en Compromisos → Probar demostración. Estos datos son temporales y no se envían al servidor.</p>
+          <p class="text-sm text-neutral-600">Puedes agregar varios acuerdos antes de guardar. El acta y sus compromisos se guardan juntos. Podrás consultarlos en el detalle del acta.</p>
           <div data-borradores class="space-y-4"></div>
           <Button id="actas-agregar-compromiso" variant="outline">Agregar compromiso al acta</Button>
         </section>
-      </Card>}
+      </Card>
 
-      <div
-        id="actas-mensaje"
-        hidden
-        class="rounded-lg px-4 py-3 text-sm"
-        role="alert"
-        aria-live="polite"
-      ></div>
 
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button
-          id="actas-cancelar"
-          type="button"
-          variant="outline"
-        >
-          Cancelar
-        </Button>
-
-        <Button
-          id="actas-guardar"
-          type="submit"
-        >
-          Guardar acta
-        </Button>
+        <Button id="actas-cancelar" type="button" variant="outline">Cancelar</Button>
+        <Button id="actas-guardar" type="submit">Guardar acta</Button>
       </div>
     </form>
   </div>
 
   <!-- Detalle -->
   <div id="actas-detalle" hidden>
-    {import.meta.env.DEV && <Card>
-      <h3 class="font-semibold">Compromisos asociados (demostración)</h3>
+    <Card>
+      <h3 class="font-semibold">Compromisos asociados</h3>
       <div id="actas-compromisos-detalle" class="mt-3"></div>
-    </Card>}
+    </Card>
     <Card>
       <div class="flex flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div>

@@ -50,15 +50,26 @@ const externalAttendeesSchema = z.string({ error: 'Los asistentes externos deben
     'Los asistentes externos deben tener al menos 3 caracteres.',
   );
 
+export const meetingCommitmentSchema = z.object({
+  descripcion: requiredText('El acuerdo', 2000),
+  responsable_nombre: requiredText('El responsable', 150),
+  responsable_contacto: requiredText('El contacto del responsable', 300),
+  fecha_limite: meetingDateSchema,
+  observaciones: z.string().trim().max(2000),
+}).strict();
+
 const createFields = {
   id_organizacion: uuidSchema('La organización'),
   id_plan: uuidSchema('El plan'),
   id_accion: uuidSchema('La acción').nullable().optional().transform((value) => value ?? null),
   objetivo: requiredText('El objetivo', 1000),
-  fecha_reunion: meetingDateSchema,
+  fecha_reunion: meetingDateSchema.refine(value => value <= new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date()), 'La fecha de reunión no puede ser posterior a hoy.'),
   asistentes: attendeesSchema,
   asistentes_externos: externalAttendeesSchema.optional().default(''),
   observaciones: optionalText('Las observaciones', 2000),
+  compromisos: z.array(meetingCommitmentSchema).max(50).optional(),
 };
 
 const updateFields = {
@@ -106,6 +117,16 @@ export interface MeetingMinute {
   updated_by: string | null;
   archived_at: string | null;
   version: number;
+  compromisos?: Array<z.infer<typeof meetingCommitmentSchema> & {
+    id_compromiso: string; estado: 'pendiente' | 'cumplido';
+  }>;
+}
+
+export interface MeetingMinuteCatalog {
+  puede_gestionar: boolean;
+  planes: Array<{ id_plan: string; nombre: string }>;
+  acciones: Array<{ id_accion: string; id_plan: string; nombre: string }>;
+  asistentes: string[];
 }
 
 export interface MeetingMinuteFilters {
@@ -116,6 +137,7 @@ export interface MeetingMinuteFilters {
 }
 
 export interface MeetingMinutesRepository {
+  catalog(token: string, organizationId: string): Promise<MeetingMinuteCatalog>;
   list(token: string, filters: MeetingMinuteFilters): Promise<MeetingMinute[]>;
   getById(token: string, id: string): Promise<MeetingMinute>;
   create(token: string, input: CreateMeetingMinuteInput): Promise<MeetingMinute>;

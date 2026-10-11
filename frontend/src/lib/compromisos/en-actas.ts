@@ -1,8 +1,7 @@
 import { camposCompromisoSchema, type CamposCompromiso } from './modelo';
-import { compromisosDelActa } from './demo';
 
 // Extensión del formulario de Actas existente; sus borradores se envían juntos al guardar.
-export function iniciarCompromisosEnActas(raiz: HTMLElement, org: string) {
+export function iniciarCompromisosEnActas(raiz: HTMLElement) {
   const bloque = raiz.querySelector<HTMLElement>('#actas-compromisos');
   if (!bloque) return null;
   const lista = bloque.querySelector<HTMLElement>('[data-borradores]')!;
@@ -43,11 +42,10 @@ export function iniciarCompromisosEnActas(raiz: HTMLElement, org: string) {
       if (!valido) lista.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus();
       return valido ? entradas : null;
     },
-    detalle(id: string) {
+    detalle(compromisos: Array<CamposCompromiso & { estado: 'pendiente' | 'cumplido' }>) {
       const destino = raiz.querySelector<HTMLElement>('#actas-compromisos-detalle')!;
       destino.replaceChildren();
-      const compromisos = compromisosDelActa(org, id);
-      if (!compromisos.length) { destino.textContent = 'Sin compromisos asociados en la demostración.'; return; }
+      if (!compromisos.length) { destino.textContent = 'Sin compromisos asociados.'; return; }
       for (const c of compromisos) {
         const p = document.createElement('p'); p.className = 'my-2 rounded-lg border p-3 whitespace-pre-wrap break-words';
         p.textContent = `${c.descripcion}\nResponsable: ${c.responsable_nombre} · ${c.responsable_contacto}\nFecha límite: ${c.fecha_limite} · ${c.estado === 'cumplido' ? 'Cumplido' : 'Pendiente'}`;

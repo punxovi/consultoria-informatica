@@ -90,7 +90,9 @@ describe('repositorio Supabase de Intervenciones', () => {
     });
     const filters = { organizationId: orgId, includeArchived: false };
     assert.equal((await repositories.meetingMinutes.list('token', filters))[0].id_acta, minuteId);
-    assert.equal((await repositories.meetingMinutes.getById('token', minuteId)).objetivo, 'Revisar avances');
+    const detail = await repositories.meetingMinutes.getById('token', minuteId);
+    assert.equal(detail.objetivo, 'Revisar avances');
+    assert.equal(detail.fecha_reunion, '2026-10-08');
     await repositories.meetingMinutes.create('token', {
       id_organizacion: orgId, id_plan: planId, id_accion: action.id_accion,
       objetivo: 'Revisar avances', fecha_reunion: '2026-10-08', asistentes: ['Coordinador'],

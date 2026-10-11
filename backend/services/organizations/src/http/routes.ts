@@ -61,6 +61,10 @@ export async function routeOrganizations(
           'commitments:create',
           'commitments:detail',
           'commitments:update',
+          'diagnosticos:list',
+          'diagnosticos:create',
+          'diagnosticos:detail',
+          'diagnosticos:update',
         ],
       }), requestId);
       return;
@@ -87,38 +91,39 @@ export async function routeOrganizations(
     const commitmentsMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/commitments(?:\/([^/]+))?$/);
     if (commitmentsMatch) {
       const orgId = parseUuid(decodeURIComponent(commitmentsMatch[1]), 'La organización');
-      const commitmentId = commitmentsMatch[2] ? parseUuid(decodeURIComponent(commitmentsMatch[2]), 'El compromiso') : undefined;
-
       // Subruta para orígenes (actas)
-      if (!commitmentId && url.pathname.endsWith('/origins') && request.method === 'GET') {
+      if (commitmentsMatch[2] === 'origins' && request.method === 'GET') {
         const origins = await application.listCommitmentOrigins(token, orgId);
-        respond(response, 200, success('ORIGENES_COMPROMISOS_LISTADOS', 'Los orígenes de compromisos fueron consultados correctamente.', { origins }), requestId);
+        respond(response, 200, success('ORIGENES_COMPROMISOS_LISTADOS', 'Los orígenes de compromisos fueron consultados correctamente.', origins), requestId);
         return;
       }
+      const commitmentId = commitmentsMatch[2] ? parseUuid(decodeURIComponent(commitmentsMatch[2]), 'El compromiso') : undefined;
 
       if (!commitmentId) {
         if (request.method === 'GET') {
-          const idActa = url.searchParams.get('id_acta') ?? undefined;
+          const extra = [...url.searchParams.keys()].find(k => k !== 'id_acta');
+          if(extra) throw new ServiceError('DATOS_INVALIDOS',`El filtro ${extra} no está permitido.`,400);
+          const idActa = url.searchParams.has('id_acta') ? parseUuid(url.searchParams.get('id_acta'), 'El acta') : undefined;
           const commitments = await application.listCommitments(token, orgId, { ...(idActa ? { id_acta: idActa } : {}) });
-          respond(response, 200, success('COMPROMISOS_LISTADOS', 'Los compromisos fueron consultados correctamente.', { commitments }), requestId);
+          respond(response, 200, success('COMPROMISOS_LISTADOS', 'Los compromisos fueron consultados correctamente.', { compromisos:commitments }), requestId);
           return;
         }
         if (request.method === 'POST') {
           const fields = parseCamposCompromiso(await readJsonBody(request));
           const commitment = await application.createCommitment(token, orgId, fields);
-          respond(response, 201, success('COMPROMISO_CREADO', 'El compromiso fue creado correctamente.', { commitment }), requestId);
+          respond(response, 201, success('COMPROMISO_CREADO', 'El compromiso fue creado correctamente.', { compromiso:commitment }), requestId);
           return;
         }
       } else {
         if (request.method === 'GET') {
           const commitment = await application.getCommitmentById(token, orgId, commitmentId);
-          respond(response, 200, success('COMPROMISO_OBTENIDO', 'El compromiso fue consultado correctamente.', { commitment }), requestId);
+          respond(response, 200, success('COMPROMISO_OBTENIDO', 'El compromiso fue consultado correctamente.', { compromiso:commitment }), requestId);
           return;
         }
         if (request.method === 'PATCH') {
           const input = parseActualizarCompromisoInput(await readJsonBody(request));
           const commitment = await application.updateCommitment(token, orgId, commitmentId, input);
-          respond(response, 200, success('COMPROMISO_ACTUALIZADO', 'El compromiso fue actualizado correctamente.', { commitment }), requestId);
+          respond(response, 200, success('COMPROMISO_ACTUALIZADO', 'El compromiso fue actualizado correctamente.', { compromiso:commitment }), requestId);
           return;
         }
       }

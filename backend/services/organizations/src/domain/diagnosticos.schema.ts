@@ -1,26 +1,32 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 
-const uuidSchema = z.string().regex(
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-  { message: 'Debe ser un UUID válido.' }
-);
+const texto = (max: number) => z.string().trim().min(1, 'Este campo es obligatorio.').max(max);
 
+// Un diagnóstico institucional completo por organización.
 export const crearDiagnosticoZodSchema = z.object({
-  id_organizacion: uuidSchema,
-  titulo: z.string().trim().min(1, { message: 'El título del diagnóstico es obligatorio.' }).max(150, { message: 'El título no puede superar los 150 caracteres.' }),
-  descripcion: z.string().trim().min(1, { message: 'La descripción del diagnóstico es obligatoria.' }).max(2000, { message: 'La descripción no puede superar los 2000 caracteres.' }),
-  estado: z.enum(['borrador', 'en_revision', 'completado', 'archivado'], { message: 'El estado del diagnóstico no es válido.' }).optional(),
-}).strict();
+  mision: texto(500),
+  vision: texto(500),
+  tiene_espacio_fisico: z.boolean().nullable(),
+  caracteristicas_infraestructura: texto(500),
+  espacios_disponibles: texto(500),
+  recursos_existentes: texto(500),
+  danos_detectados: texto(500),
+  necesidades_prioritarias: texto(500),
+  observaciones: texto(1000),
+  raciones: z.number().int().min(0).max(2147483647).nullable(),
+  periodo_raciones: z.enum(['diaria', 'semanal', 'mensual']).nullable(),
+}).strict().superRefine((datos, ctx) => {
+  if (datos.raciones !== null && datos.periodo_raciones === null) {
+    ctx.addIssue({ code: 'custom', path: ['periodo_raciones'], message: 'Debes seleccionar una periodicidad.' });
+  }
+  if (datos.raciones === null && datos.periodo_raciones !== null) {
+    ctx.addIssue({ code: 'custom', path: ['raciones'], message: 'Debes ingresar la cantidad de raciones.' });
+  }
+});
 
 export const actualizarDiagnosticoZodSchema = z.object({
-  version_esperada: z.number().int().min(1, { message: 'La versión esperada debe ser un entero mayor que cero.' }).optional(),
-  cambios: z.object({
-    titulo: z.string().trim().min(1, { message: 'El título es obligatorio.' }).max(150).optional(),
-    descripcion: z.string().trim().min(1, { message: 'La descripción es obligatoria.' }).max(2000).optional(),
-    estado: z.enum(['borrador', 'en_revision', 'completado', 'archivado'], { message: 'El estado no es válido.' }).optional(),
-  }).refine((data) => Object.keys(data).length > 0, {
-    message: 'Debes enviar al menos un campo para actualizar.',
-  }),
+  version_esperada: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  cambios: crearDiagnosticoZodSchema,
 }).strict();
 
 export type CrearDiagnosticoData = z.infer<typeof crearDiagnosticoZodSchema>;

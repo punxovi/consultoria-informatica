@@ -12,9 +12,9 @@ import type {
   SaveLegalRecordInput,
   Diagnostico,
   CamposDiagnostico,
-  EstadoDiagnostico,
 } from '../domain/organizations.ts';
 import { LEGAL_DOCUMENT_TYPES } from '../domain/organizations.ts';
+import type { Compromiso } from '../domain/compromisos.ts';
 
 interface RepositoryOptions {
   supabaseUrl: string;
@@ -35,6 +35,14 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+function commitment(value: unknown, orgId: string): Compromiso {
+  const data=record(value);
+  if(typeof data.id_compromiso !== 'string' || data.id_organizacion !== orgId || typeof data.id_acta !== 'string' || typeof data.version !== 'number') {
+    throw new ServiceError('RESPUESTA_INVALIDA','La base de datos devolvió un compromiso inválido.',502);
+  }
+  return data as unknown as Compromiso;
 }
 
 function postgrestError(status: number, body: unknown): ServiceError {
@@ -133,7 +141,21 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
     let body: unknown = null;
     try { body = await response.json(); } catch { body = null; }
-    if (!response.ok) throw postgrestError(response.status, body);
+    if (!response.ok) {
+      if(table.endsWith('_compromisos') || table === 'rpc/guardar_compromiso') {
+        if(record(body).code === '23503') throw new ServiceError('ACTA_NO_CORRESPONDE','El acta no existe o no pertenece a esta organización.',409,body);
+        if(['23502','23514','22007','22008','22P02'].includes(String(record(body).code))) {
+          throw new ServiceError('DATOS_INVALIDOS','Revisa el acuerdo, responsable, contacto, fecha y estado del compromiso.',400,body);
+        }
+      }
+      if (table === 'diagnosticos' && record(body).code === '23505') {
+        throw new ServiceError('DIAGNOSTICO_EXISTENTE', 'La organización ya tiene un diagnóstico. Recarga los datos para editarlo.', 409);
+      }
+      if (table === 'diagnosticos' && record(body).code === '23503') {
+        throw new ServiceError('NO_ENCONTRADO', 'La organización solicitada no existe o ya no está disponible.', 404);
+      }
+      throw postgrestError(response.status, body);
+    }
     return body;
   }
 
@@ -316,108 +338,43 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     },
 
     async listCommitments(accessToken, orgId, filtros) {
-      const params = new URLSearchParams({
-        id_organizacion: `eq.${orgId}`,
-        archived_at: 'is.null',
-        order: 'fecha_limite.asc',
+      const body = await request('rpc/consultar_compromisos',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_id_organizacion:orgId,p_id_acta:filtros.id_acta ?? null}),
       });
-      if (filtros.id_acta) params.set('id_acta', `eq.${filtros.id_acta}`);
-      const body = await request('compromisos', accessToken, params);
-      if (!Array.isArray(body)) {
-        throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
-      }
+      if(!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA','La lista de compromisos recibida no es válida.',502);
       return body;
     },
-
     async listCommitmentOrigins(accessToken, orgId) {
-      const params = new URLSearchParams({
-        id_organizacion: `eq.${orgId}`,
-        select: 'id_acta,nombre,id_plan,id_accion',
+      const body = await request('rpc/catalogo_compromisos',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_id_organizacion:orgId}),
       });
-      const body = await request('actas', accessToken, params).catch(() => []);
-      if (!Array.isArray(body)) return [];
-      return body;
+      if(!Array.isArray(record(body).actas) || typeof record(body).puede_gestionar !== 'boolean') {
+        throw new ServiceError('RESPUESTA_INVALIDA','Las actas de origen recibidas no son válidas.',502);
+      }
+      return body as import('../domain/compromisos.ts').OrigenesCompromisos;
     },
-
     async createCommitment(accessToken, orgId, fields) {
-      const body = await request('compromisos', accessToken, new URLSearchParams(), {
-        method: 'POST',
-        headers: { prefer: 'return=representation' },
-        body: JSON.stringify({
-          id_organizacion: orgId,
-          id_acta: fields.id_acta,
-          descripcion: fields.descripcion,
-          responsable_nombre: fields.responsable_nombre,
-          id_contacto_responsable: fields.id_contacto_responsable ?? null,
-          fecha_limite: fields.fecha_limite,
-          observaciones: fields.observaciones ?? null,
-          estado: 'pendiente',
-        }),
+      const body = await request('rpc/guardar_compromiso',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_id_organizacion:orgId,p_datos:fields}),
       });
-      const rows = Array.isArray(body) ? body : [];
-      if (!rows[0]) {
-        throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible crear el compromiso.', 502);
-      }
-      return rows[0];
+      return commitment(body,orgId);
     },
-
     async getCommitmentById(accessToken, orgId, commitmentId) {
-      const params = new URLSearchParams({
-        id_compromiso: `eq.${commitmentId}`,
-        id_organizacion: `eq.${orgId}`,
-        archived_at: 'is.null',
-        limit: '1',
+      const body = await request('rpc/consultar_compromisos',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_id_organizacion:orgId,p_id:commitmentId}),
       });
-      const body = await request('compromisos', accessToken, params);
-      const rows = Array.isArray(body) ? body : [];
-      if (!rows[0]) {
-        throw new ServiceError('NO_ENCONTRADO', 'El compromiso solicitado no existe.', 404);
-      }
-      return rows[0];
+      if(!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA','El compromiso recibido no es válido.',502);
+      if(!body[0]) throw new ServiceError('NO_ENCONTRADO','El compromiso solicitado no existe o no está disponible.',404);
+      return commitment(body[0],orgId);
     },
-
     async updateCommitment(accessToken, orgId, commitmentId, changes, expectedVersion) {
-      const actual = await this.getCommitmentById(accessToken, orgId, commitmentId);
-      if (expectedVersion !== undefined && (actual as any).version !== expectedVersion) {
-        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El compromiso fue modificado por otra sesión.', 409);
-      }
-
-      const updateData: Record<string, unknown> = {
-        version: ((actual as any).version ?? 1) + 1,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (changes.descripcion !== undefined) updateData.descripcion = changes.descripcion;
-      if (changes.responsable_nombre !== undefined) updateData.responsable_nombre = changes.responsable_nombre;
-      if (changes.id_contacto_responsable !== undefined) updateData.id_contacto_responsable = changes.id_contacto_responsable;
-      if (changes.fecha_limite !== undefined) updateData.fecha_limite = changes.fecha_limite;
-      if (changes.observaciones !== undefined) updateData.observaciones = changes.observaciones;
-      if (changes.estado !== undefined) {
-        updateData.estado = changes.estado;
-        updateData.cumplido_at = changes.estado === 'cumplido' ? new Date().toISOString() : null;
-      }
-
-      const params = new URLSearchParams({
-        id_compromiso: `eq.${commitmentId}`,
-        id_organizacion: `eq.${orgId}`,
-        archived_at: 'is.null',
+      const body = await request('rpc/guardar_compromiso',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_id_organizacion:orgId,p_id:commitmentId,p_version:expectedVersion,p_datos:changes}),
       });
-      if (expectedVersion !== undefined) params.set('version', `eq.${expectedVersion}`);
-
-      const body = await request('compromisos', accessToken, params, {
-        method: 'PATCH',
-        headers: { prefer: 'return=representation' },
-        body: JSON.stringify(updateData),
-      });
-
-      const rows = Array.isArray(body) ? body : [];
-      if (!rows[0]) {
-        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El compromiso fue modificado por otra sesión o no existe.', 409);
-      }
-      return rows[0];
+      return commitment(body,orgId);
     },
-
     async listDiagnosticos(accessToken, orgId) {
+      await this.getById(accessToken, orgId);
       const params = new URLSearchParams({
         id_organizacion: `eq.${orgId}`,
         archived_at: 'is.null',
@@ -431,14 +388,13 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     },
 
     async createDiagnostico(accessToken, orgId, fields) {
+      await this.getById(accessToken, orgId);
       const body = await request('diagnosticos', accessToken, new URLSearchParams(), {
         method: 'POST',
         headers: { prefer: 'return=representation' },
         body: JSON.stringify({
           id_organizacion: orgId,
-          titulo: fields.titulo,
-          descripcion: fields.descripcion,
-          estado: fields.estado ?? 'borrador',
+          ...fields,
         }),
       });
       const rows = Array.isArray(body) ? body : [];
@@ -465,30 +421,21 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
     async updateDiagnostico(accessToken, orgId, diagnosticoId, changes, expectedVersion) {
       const actual = await this.getDiagnosticoById(accessToken, orgId, diagnosticoId);
-      if (expectedVersion !== undefined && (actual as any).version !== expectedVersion) {
+      if (actual.version !== expectedVersion) {
         throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El diagnóstico fue modificado por otra sesión.', 409);
       }
-
-      const updateData: Record<string, unknown> = {
-        version: ((actual as any).version ?? 1) + 1,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (changes.titulo !== undefined) updateData.titulo = changes.titulo;
-      if (changes.descripcion !== undefined) updateData.descripcion = changes.descripcion;
-      if (changes.estado !== undefined) updateData.estado = changes.estado;
 
       const params = new URLSearchParams({
         id_diagnostico: `eq.${diagnosticoId}`,
         id_organizacion: `eq.${orgId}`,
         archived_at: 'is.null',
+        version: `eq.${expectedVersion}`,
       });
-      if (expectedVersion !== undefined) params.set('version', `eq.${expectedVersion}`);
 
       const body = await request('diagnosticos', accessToken, params, {
         method: 'PATCH',
         headers: { prefer: 'return=representation' },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(changes),
       });
 
       const rows = Array.isArray(body) ? body : [];

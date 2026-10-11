@@ -22,6 +22,7 @@ const application: InterventionsApplication = {
     async create() { return action as never; }, async update() { return action as never; }, async archive() {},
   },
   meetingMinutes: {
+    async catalog() { return { puede_gestionar:true, planes:[plan], acciones:[action], asistentes:['Coordinador'] }; },
     async list() { return [minute] as never; }, async getById() { return minute as never; },
     async create() { return minute as never; }, async update() { return minute as never; },
   },
@@ -83,6 +84,9 @@ describe('servicio HTTP de Intervenciones', () => {
     })).status, 200);
   });
   test('expone listado, detalle, creación y actualización de Actas', async () => {
+    const catalog = await fetch(`${baseUrl}/v1/meeting-minutes/catalog?id_organizacion=${orgId}`, { headers });
+    assert.equal(catalog.status,200);
+    assert.equal((await catalog.json()).data.catalog.planes[0].id_plan,planId);
     const listed = await fetch(`${baseUrl}/v1/meeting-minutes?id_organizacion=${orgId}`, { headers });
     assert.equal(listed.status, 200);
     assert.equal((await listed.json()).code, 'ACTAS_LISTADAS');

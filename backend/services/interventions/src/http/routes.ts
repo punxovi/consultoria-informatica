@@ -111,6 +111,11 @@ export async function routeInterventions(
       }
     }
 
+    if (request.method === 'GET' && url.pathname === '/v1/meeting-minutes/catalog') {
+      const organizationId = uuid(url.searchParams.get('id_organizacion'), 'La organización');
+      const catalog = await application.meetingMinutes.catalog(token, organizationId);
+      respond(response, 200, success('CATALOGO_ACTAS', 'Opciones del acta consultadas.', { catalog }), requestId); return;
+    }
     if (url.pathname === '/v1/meeting-minutes') {
       if (request.method === 'GET') {
         const meetingMinutes = await application.meetingMinutes.list(token, parseMeetingMinuteFilters(url));

@@ -14,6 +14,8 @@
     "test:e2e": "playwright test",
     "test:e2e:expediente": "playwright test --config playwright.expediente.config.mjs",
     "test:e2e:compromisos": "playwright test --config playwright.compromisos.config.mjs",
+    "test:e2e:diagnostico": "playwright test --config playwright.diagnostico.config.mjs",
+    "test:e2e:actas": "playwright test --config playwright.actas.config.mjs",
     "test:e2e:programas": "playwright test programas.spec.mjs",
     "test:e2e:imagenes": "playwright test --config scripts/qa-imagenes.config.mjs",
     "astro": "astro"

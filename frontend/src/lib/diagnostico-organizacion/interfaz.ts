@@ -3,15 +3,26 @@ import {
   type CamposDiagnostico,
   type Diagnostico,
 } from './modelo';
-import { crearDemoDiagnostico } from './demo';
+import { ApiError, createApiTransport } from '../api/transporte';
+import { getSupabaseClient } from '../supabase';
+import { crearClienteDiagnostico } from './cliente';
 
-let servicio = crearDemoDiagnostico();
+const servicio = crearClienteDiagnostico(
+  createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'),
+  async () => {
+    const { data, error } = await getSupabaseClient().auth.getSession();
+    if (error || !data.session) throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
+    return data.session.access_token;
+  },
+);
 
 let diagnosticoActual: Diagnostico | null = null;
 let editando = false;
+let ocupado = false;
+let conflicto = false;
 
 function obtenerElemento<T extends HTMLElement>(id: string): T {
-  const elemento = document.getElementById(id);
+  const elemento = document.querySelector<HTMLElement>('#diagnostico-organizacion')?.querySelector(`#${id}`);
 
   if (!elemento) {
     throw new Error(`No se encontró el elemento #${id}.`);
@@ -43,6 +54,15 @@ function ocultarTodo() {
 
 function mostrarCarga(mostrar: boolean) {
   obtenerElemento<HTMLElement>('diagnostico-carga').hidden = !mostrar;
+}
+
+function ocupar(valor: boolean) {
+  ocupado = valor;
+  obtenerElemento<HTMLFieldSetElement>('diagnostico-campos').disabled = valor;
+  obtenerElemento<HTMLButtonElement>('btn-registrar-diagnostico').disabled = valor;
+  obtenerElemento<HTMLButtonElement>('btn-recargar-diagnostico').disabled = valor;
+  document.querySelector('#diagnostico-organizacion')!.setAttribute('aria-busy', String(valor));
+  obtenerElemento<HTMLButtonElement>('btn-guardar-diagnostico').disabled = valor || conflicto;
 }
 
 function mostrarError(mensaje: string | null) {
@@ -84,11 +104,13 @@ function mostrarEstadoSinDiagnostico() {
 
   diagnosticoActual = null;
   editando = false;
+  obtenerElemento<HTMLButtonElement>('btn-registrar-diagnostico').textContent = 'Registrar diagnóstico';
 
   limpiarFormulario();
 }
 
 function mostrarFormulario(diagnostico: Diagnostico | null = null) {
+  if (ocupado) return;
   ocultarTodo();
 
   const formulario =
@@ -111,6 +133,8 @@ function mostrarFormulario(diagnostico: Diagnostico | null = null) {
   } else {
     limpiarFormulario();
   }
+  limpiarErrores();
+  ocupar(false);
 
   window.requestAnimationFrame(() => {
     formulario.scrollIntoView({
@@ -414,7 +438,7 @@ function validarFormulario(
       return;
     }
 
-    const campoId = idsPorCampo[clave];
+    const campoId = idsPorCampo[clave] ?? clave.replaceAll('_', '-');
 
     if (campoId) {
       establecerError(campoId, issue.message);
@@ -554,6 +578,14 @@ function formatearFecha(
 }
 
 async function cargarDiagnostico() {
+  if (ocupado) return;
+  if (!obtenerElemento<HTMLFormElement>('form-diagnostico').hidden &&
+      !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
+  ocupar(true);
+  ocultarTodo();
+  obtenerElemento<HTMLButtonElement>('btn-registrar-diagnostico').hidden = true;
+  obtenerElemento<HTMLElement>('diagnostico-recuperacion').hidden = true;
+  mostrarConfirmacion(null);
   mostrarCarga(true);
   mostrarError(null);
 
@@ -563,6 +595,7 @@ async function cargarDiagnostico() {
 
     const diagnostico =
       await servicio.obtener(idOrganizacion);
+    conflicto = false;
 
     if (!diagnostico) {
       mostrarEstadoSinDiagnostico();
@@ -573,6 +606,7 @@ async function cargarDiagnostico() {
       diagnostico,
     );
   } catch (error) {
+    obtenerElemento<HTMLElement>('diagnostico-recuperacion').hidden = false;
     mostrarError(
       error instanceof Error
         ? error.message
@@ -580,10 +614,12 @@ async function cargarDiagnostico() {
     );
   } finally {
     mostrarCarga(false);
+    ocupar(false);
   }
 }
 
 async function guardarDiagnostico() {
+  if (ocupado || conflicto) return;
   const datos = obtenerDatosFormulario();
 
   if (!validarFormulario(datos)) {
@@ -598,7 +634,7 @@ async function guardarDiagnostico() {
   const textoOriginal =
     boton.textContent ?? 'Guardar diagnóstico';
 
-  boton.disabled = true;
+  ocupar(true);
   boton.textContent = editando
     ? 'Actualizando…'
     : 'Guardando…';
@@ -651,18 +687,21 @@ async function guardarDiagnostico() {
       );
     }
   } catch (error) {
+    conflicto = error instanceof ApiError && ['CONFLICTO_CONCURRENCIA', 'DIAGNOSTICO_EXISTENTE', 'NO_ENCONTRADO', 'NO_ENCONTRADA'].includes(error.code);
+    obtenerElemento<HTMLElement>('diagnostico-recuperacion').hidden = !conflicto;
     mostrarError(
       error instanceof Error
         ? error.message
         : 'No fue posible guardar el diagnóstico.',
     );
   } finally {
-    boton.disabled = false;
+    ocupar(false);
     boton.textContent = textoOriginal;
   }
 }
 
 function cancelarFormulario() {
+  if (ocupado) return;
   mostrarError(null);
   mostrarConfirmacion(null);
 
@@ -677,6 +716,7 @@ function cancelarFormulario() {
 }
 
 function configurarEventos() {
+  obtenerElemento<HTMLButtonElement>('btn-recargar-diagnostico').addEventListener('click', () => void cargarDiagnostico());
   const botonRegistrar =
     obtenerElemento<HTMLButtonElement>(
       'btn-registrar-diagnostico',
@@ -721,6 +761,9 @@ function configurarEventos() {
 }
 
 export async function iniciarDiagnostico() {
+  const raiz = document.querySelector<HTMLElement>('#diagnostico-organizacion');
+  if (!raiz || raiz.dataset.iniciado) return;
+  raiz.dataset.iniciado = 'true';
   configurarEventos();
 
   await cargarDiagnostico();

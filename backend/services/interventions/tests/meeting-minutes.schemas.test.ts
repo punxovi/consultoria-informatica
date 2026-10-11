@@ -55,6 +55,15 @@ describe('schemas Zod de Actas de Reunión', () => {
     assert.throws(() => parseUpdateMeetingMinute({ version_esperada: 1, cambios: { id_organizacion: orgId } }), /no reconocidas|Unrecognized|campo/i);
   });
 
+  test('valida compromisos anidados y fecha de reunión, y no permite reemplazarlos al editar', () => {
+    const compromiso = { descripcion:'Acuerdo',responsable_nombre:'Ana',responsable_contacto:'ana@example.invalid',fecha_limite:'2099-01-01',observaciones:'' };
+    assert.equal(parseCreateMeetingMinute({...valid,compromisos:[compromiso]}).compromisos?.length,1);
+    assert.throws(() => parseCreateMeetingMinute({...valid,compromisos:[{...compromiso,responsable_contacto:''}]}),/obligatorio/);
+    assert.throws(() => parseCreateMeetingMinute({...valid,compromisos:Array(51).fill(compromiso)}));
+    assert.throws(() => parseCreateMeetingMinute({...valid,fecha_reunion:'2099-01-01'}),/posterior a hoy/);
+    assert.throws(() => parseUpdateMeetingMinute({version_esperada:1,cambios:{compromisos:[]}}));
+  });
+
   test('valida filtros y rechaza parámetros desconocidos', () => {
     const filters = parseMeetingMinuteFilters(new URL(
       `http://local/v1/meeting-minutes?id_organizacion=${orgId}&id_plan=${planId}&incluir_archivadas=true`,

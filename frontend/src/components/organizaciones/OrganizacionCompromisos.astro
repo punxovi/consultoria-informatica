@@ -9,11 +9,7 @@ const { idOrganizacion } = Astro.props;
     <h2 class="text-xl font-semibold">Compromisos</h2>
     <p class="mt-1 text-neutral-600">Consulta los acuerdos, sus responsables y las fechas de cumplimiento.</p>
   </div>
-  {import.meta.env.DEV && <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-3">
-    <p id="comp-demo-aviso">El servicio de Compromisos está pendiente de integración. Puedes probar la interfaz con datos temporales.</p>
-    <Button id="comp-demo" variant="outline">Probar demostración</Button>
-    <button id="comp-real" type="button" hidden class="min-h-[48px] text-primary underline">Volver al servicio real</button>
-  </div>}
+  <p id="comp-permisos" hidden class="rounded-lg bg-neutral-100 p-4 text-sm">Puedes consultar los compromisos. No tienes permiso para modificarlos en esta organización.</p>
   <p id="comp-carga" hidden role="status">Cargando compromisos…</p>
   <div id="comp-error" hidden role="alert" tabindex="-1" class="rounded-lg border border-danger p-4 text-danger"></div>
   <div id="comp-exito" hidden role="status" class="rounded-lg border border-success p-4 text-success"></div>

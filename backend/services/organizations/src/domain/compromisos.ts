@@ -1,87 +1,47 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 
-export const ESTADOS_COMPROMISO = ['pendiente', 'en_proceso', 'cumplido', 'cancelado'] as const;
+export const ESTADOS_COMPROMISO = ['pendiente', 'cumplido'] as const;
 export type EstadoCompromiso = typeof ESTADOS_COMPROMISO[number];
-
-export interface Compromiso {
-  id_compromiso: string;
-  id_organizacion: string;
-  id_acta: string | null;
-  descripcion: string;
-  responsable_nombre: string;
-  id_contacto_responsable: string | null;
-  fecha_limite: string;
-  estado: EstadoCompromiso;
-  observaciones: string | null;
-  version: number;
-  cumplido_at: string | null;
-  archived_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-const uuidSchema = z.string().regex(
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-  { message: 'Debe ser un UUID válido.' }
-);
-
-const fechaIsoSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
-  message: 'La fecha límite debe tener el formato YYYY-MM-DD.',
-});
-
-const crearCompromisoZodSchema = z.object({
-  id_acta: uuidSchema.nullable().optional(),
-  descripcion: z.string().trim().min(1, { message: 'La descripción del compromiso es obligatoria.' }).max(1000, { message: 'La descripción no puede superar los 1000 caracteres.' }),
-  responsable_nombre: z.string().trim().min(1, { message: 'El nombre del responsable es obligatorio.' }).max(150, { message: 'El nombre del responsable no puede superar los 150 caracteres.' }),
-  id_contacto_responsable: uuidSchema.nullable().optional(),
-  fecha_limite: fechaIsoSchema,
-  observaciones: z.string().trim().max(1000, { message: 'Las observaciones no pueden superar los 1000 caracteres.' }).nullable().optional(),
+const texto = (nombre: string, max: number) => z.string().trim().min(1, `${nombre} es obligatorio.`).max(max, `${nombre} no puede superar ${max} caracteres.`);
+const fecha = z.string().refine(v => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0,10) === v, 'La fecha límite debe ser una fecha válida en formato AAAA-MM-DD.');
+const campos = {
+  descripcion: texto('El acuerdo',2000), responsable_nombre: texto('El responsable',150),
+  responsable_contacto: texto('El contacto del responsable',300), fecha_limite: fecha,
+  observaciones: z.string().trim().max(2000).nullable().transform(v => v || null),
+};
+export const crearCompromisoSchema = z.object({
+  ...campos, id_acta: z.uuid('Selecciona un acta válida.'), estado: z.literal('pendiente').optional().default('pendiente'),
 }).strict();
-
-const actualizarCompromisoZodSchema = z.object({
-  version_esperada: z.number().int().min(1, { message: 'La versión esperada debe ser un entero mayor que cero.' }).optional(),
-  cambios: z.object({
-    id_acta: uuidSchema.nullable().optional(),
-    descripcion: z.string().trim().min(1, { message: 'La descripción es obligatoria.' }).max(1000).optional(),
-    responsable_nombre: z.string().trim().min(1, { message: 'El nombre del responsable es obligatorio.' }).max(150).optional(),
-    id_contacto_responsable: uuidSchema.nullable().optional(),
-    fecha_limite: fechaIsoSchema.optional(),
-    estado: z.enum(ESTADOS_COMPROMISO, { message: 'El estado del compromiso no es válido.' }).optional(),
-    observaciones: z.string().trim().max(1000).nullable().optional(),
-  }).refine((data) => Object.keys(data).length > 0, {
-    message: 'Debes enviar al menos un campo para actualizar.',
-  }),
+export const actualizarCompromisoSchema = z.object({
+  version_esperada: z.number().int().positive('La versión esperada debe ser mayor que cero.'),
+  cambios: z.object({...campos,estado:z.enum(ESTADOS_COMPROMISO)}).partial().strict()
+    .refine(v => Object.keys(v).length > 0, 'Debes enviar al menos un campo para actualizar.'),
 }).strict();
-
-export type CamposCompromiso = z.infer<typeof crearCompromisoZodSchema>;
-
+export type CamposCompromiso = z.infer<typeof crearCompromisoSchema>;
 export interface ActualizarCompromisoInput {
-  versionEsperada?: number;
-  cambios: z.infer<typeof actualizarCompromisoZodSchema>['cambios'];
+  versionEsperada: number;
+  cambios: z.infer<typeof actualizarCompromisoSchema>['cambios'];
 }
-
+export interface Compromiso extends Omit<CamposCompromiso,'estado' | 'responsable_contacto'> {
+  responsable_contacto: string | null;
+  id_compromiso: string; id_organizacion: string; estado: EstadoCompromiso;
+  version: number; cumplido_at: string | null; archived_at: string | null;
+  created_at: string; updated_at: string;
+}
+export interface OrigenesCompromisos {
+  puede_gestionar: boolean;
+  actas: Array<{ id_acta:string; nombre:string; id_plan:string; id_accion:string | null }>;
+}
 function errorZod(error: z.ZodError): never {
-  const issue = error.issues[0];
-  const camino = issue?.path.length ? ` (${issue.path.join('.')})` : '';
-  throw new ServiceError('DATOS_INVALIDOS', `${issue?.message ?? 'Los datos no son válidos.'}${camino}`, 400);
+  throw new ServiceError('DATOS_INVALIDOS',error.issues[0]?.message ?? 'Datos inválidos.',400,{
+    issues:error.issues.map(({path,message})=>({path,message})),
+  });
 }
-
 export function parseCamposCompromiso(value: unknown): CamposCompromiso {
-  const resultado = crearCompromisoZodSchema.safeParse(value);
-  if (!resultado.success) {
-    errorZod(resultado.error);
-  }
-  return resultado.data as CamposCompromiso;
+  const r=crearCompromisoSchema.safeParse(value); if(!r.success) return errorZod(r.error); return r.data;
 }
-
 export function parseActualizarCompromisoInput(value: unknown): ActualizarCompromisoInput {
-  const resultado = actualizarCompromisoZodSchema.safeParse(value);
-  if (!resultado.success) {
-    errorZod(resultado.error);
-  }
-  return {
-    versionEsperada: resultado.data.version_esperada,
-    cambios: resultado.data.cambios as ActualizarCompromisoInput['cambios'],
-  };
+  const r=actualizarCompromisoSchema.safeParse(value); if(!r.success) return errorZod(r.error);
+  return {versionEsperada:r.data.version_esperada,cambios:r.data.cambios};
 }
