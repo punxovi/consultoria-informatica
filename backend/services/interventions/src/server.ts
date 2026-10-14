@@ -4,6 +4,7 @@ import { getRequestId, logEvent } from '../../../shared/observability/src/index.
 import { createInterventionsApplication, type InterventionsApplication } from './application/interventions-service.ts';
 import { routeInterventions } from './http/routes.ts';
 import { createSupabaseInterventionsRepositoriesFromEnv } from './infrastructure/supabase-interventions.repository.ts';
+import { createSupabaseEvidencesRepositoryFromEnv } from './infrastructure/supabase-evidences.repository.ts';
 
 export function createInterventionsServer(application?: InterventionsApplication): Server {
   const repositories = application ? undefined : createSupabaseInterventionsRepositoriesFromEnv();
@@ -11,6 +12,7 @@ export function createInterventionsServer(application?: InterventionsApplication
     repositories!.plans,
     repositories!.actions,
     repositories!.meetingMinutes,
+    createSupabaseEvidencesRepositoryFromEnv(),
   );
   return createServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);

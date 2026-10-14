@@ -12,6 +12,8 @@ import {
 import { parsePlanFields, parsePlanFilters, parsePlanUpdate } from '../domain/plans.ts';
 import { expectedVersion, invalid, objectInput, uuid } from '../domain/validation.ts';
 import { readJsonBody } from './body.ts';
+import { readEvidenceFile } from './body.ts';
+import { parseCreateEvidence, parseEvidenceFilters, parseUpdateEvidence, parseUploadEvidence } from '../domain/evidences.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -46,17 +48,62 @@ export async function routeInterventions(
       respond(response, 200, health('interventions-service'), requestId); return;
     }
     if (request.method === 'GET' && [
-      '/v1/plans/capabilities', '/v1/actions/capabilities', '/v1/meeting-minutes/capabilities',
+      '/v1/plans/capabilities', '/v1/actions/capabilities', '/v1/meeting-minutes/capabilities', '/v1/evidences/capabilities',
     ].includes(url.pathname)) {
       respond(response, 200, success('INTERVENCIONES_MIGRADAS', 'El servicio de Intervenciones está disponible.', {
         migrated: true,
         plans: ['list', 'detail', 'create', 'update', 'archive'],
         actions: ['list', 'detail', 'create', 'update', 'archive'],
         meetingMinutes: ['list', 'detail', 'create', 'update'],
+        evidences: ['list', 'detail', 'create', 'update', 'upload', 'download'],
       }), requestId); return;
     }
 
     const token = tokenFrom(request);
+    if (url.pathname === '/v1/evidences') {
+      if (request.method === 'GET') {
+        const evidences = await application.evidences.list(token, parseEvidenceFilters(url));
+        respond(response, 200, success('EVIDENCIAS_LISTADAS', 'Las evidencias fueron consultadas correctamente.', { evidences }), requestId); return;
+      }
+      if (request.method === 'POST') {
+        const evidence = await application.evidences.create(token, parseCreateEvidence(await readJsonBody(request)));
+        respond(response, 201, success('EVIDENCIA_CREADA', 'La evidencia fue registrada. Ahora carga el archivo.', { evidence }), requestId); return;
+      }
+    }
+    const evidenceFileMatch = url.pathname.match(/^\/v1\/evidences\/([^/]+)\/file$/);
+    if (evidenceFileMatch) {
+      const id = uuid(decodeURIComponent(evidenceFileMatch[1]), 'La evidencia');
+      if (request.method === 'PUT') {
+        const parsed = parseUploadEvidence({ version_esperada: Number(url.searchParams.get('version_esperada')) });
+        const item = await application.evidences.getById(token, id);
+        const mimeType = request.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? '';
+        if (mimeType !== item.mime_type) throw new ServiceError('ARCHIVO_INVALIDO', 'El tipo del archivo no coincide con el registro.', 400);
+        const bytes = await readEvidenceFile(request, item.tamano_bytes);
+        const evidence = await application.evidences.upload(token, id, parsed.version_esperada, bytes, mimeType);
+        respond(response, 200, success('ARCHIVO_CARGADO', 'El archivo fue cargado correctamente.', { evidence }), requestId); return;
+      }
+      if (request.method === 'GET') {
+        const file = await application.evidences.download(token, id);
+        response.statusCode = 200;
+        response.setHeader('content-type', file.mimeType);
+        response.setHeader('content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+        response.setHeader('cache-control', 'private, no-store');
+        response.setHeader('x-request-id', requestId);
+        response.end(file.bytes); return;
+      }
+    }
+    const evidenceMatch = url.pathname.match(/^\/v1\/evidences\/([^/]+)$/);
+    if (evidenceMatch) {
+      const id = uuid(decodeURIComponent(evidenceMatch[1]), 'La evidencia');
+      if (request.method === 'GET') {
+        const evidence = await application.evidences.getById(token, id);
+        respond(response, 200, success('EVIDENCIA_OBTENIDA', 'La evidencia fue consultada correctamente.', { evidence }), requestId); return;
+      }
+      if (request.method === 'PATCH') {
+        const evidence = await application.evidences.update(token, id, parseUpdateEvidence(await readJsonBody(request)));
+        respond(response, 200, success('EVIDENCIA_ACTUALIZADA', 'La evidencia fue actualizada correctamente.', { evidence }), requestId); return;
+      }
+    }
     if (url.pathname === '/v1/plans') {
       if (request.method === 'GET') {
         const plans = await application.plans.list(token, parsePlanFilters(url));

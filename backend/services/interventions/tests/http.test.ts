@@ -7,11 +7,13 @@ import { createInterventionsServer } from '../src/server.ts';
 const planId = '33333333-3333-4333-8333-333333333333';
 const actionId = '44444444-4444-4444-8444-444444444444';
 const minuteId = '55555555-5555-4555-8555-555555555555';
+const evidenceId = '66666666-6666-4666-8666-666666666666';
 const orgId = '11111111-1111-4111-8111-111111111111';
 const programId = '22222222-2222-4222-8222-222222222222';
 const plan = { id_plan: planId, nombre: 'Plan QA' };
 const action = { id_accion: actionId, id_plan: planId, nombre: 'Acción QA' };
 const minute = { id_acta: minuteId, id_organizacion: orgId, id_plan: planId, objetivo: 'Reunión QA' };
+const evidence = { id_evidencia: evidenceId, id_accion: actionId, mime_type: 'application/pdf', tamano_bytes: 8, estado_carga: 'reservado', version: 1 };
 const application: InterventionsApplication = {
   plans: {
     async list() { return [plan] as never; }, async getById() { return plan as never; },
@@ -25,6 +27,12 @@ const application: InterventionsApplication = {
     async catalog() { return { puede_gestionar:true, planes:[plan], acciones:[action], asistentes:['Coordinador'] }; },
     async list() { return [minute] as never; }, async getById() { return minute as never; },
     async create() { return minute as never; }, async update() { return minute as never; },
+  },
+  evidences: {
+    async list() { return [evidence] as never; }, async getById() { return evidence as never; },
+    async create() { return evidence as never; }, async update() { return evidence as never; },
+    async upload() { return { ...evidence, estado_carga: 'disponible' } as never; },
+    async download() { return { bytes: Buffer.from('%PDF-123'), mimeType: 'application/pdf', fileName: 'acta.pdf' }; },
   },
 };
 let server: Server;
@@ -111,5 +119,44 @@ describe('servicio HTTP de Intervenciones', () => {
     });
     assert.equal(invalidMinute.status, 400);
     assert.equal((await invalidMinute.json()).error.code, 'DATOS_INVALIDOS');
+  });
+  test('registra, consulta, actualiza y carga evidencias con el contrato HTTP', async () => {
+    const input = { id_accion: actionId, origen: 'Terreno', descripcion: 'Acta digital',
+      nombre_original: 'acta.pdf', mime_type: 'application/pdf', tamano_bytes: 8 };
+    assert.equal((await fetch(`${baseUrl}/v1/evidences?id_accion=${actionId}`, { headers })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/v1/evidences/${evidenceId}`, { headers })).status, 200);
+    const created = await fetch(`${baseUrl}/v1/evidences`, { method: 'POST', headers, body: JSON.stringify(input) });
+    assert.equal(created.status, 201);
+    assert.equal((await created.json()).code, 'EVIDENCIA_CREADA');
+    assert.equal((await fetch(`${baseUrl}/v1/evidences/${evidenceId}`, {
+      method: 'PATCH', headers, body: JSON.stringify({ version_esperada: 1, cambios: { descripcion: 'Nuevo texto' } }),
+    })).status, 200);
+    const uploaded = await fetch(`${baseUrl}/v1/evidences/${evidenceId}/file?version_esperada=1`, {
+      method: 'PUT', headers: { authorization: 'Bearer token', 'content-type': 'application/pdf' }, body: '%PDF-123',
+    });
+    assert.equal(uploaded.status, 200);
+    const file = await fetch(`${baseUrl}/v1/evidences/${evidenceId}/file`, { headers });
+    assert.equal(file.status, 200);
+    assert.equal(file.headers.get('content-type'), 'application/pdf');
+    assert.equal(await file.text(), '%PDF-123');
+  });
+  test('rechaza datos inválidos de evidencias antes de llamar al repositorio', async () => {
+    for (const input of [
+      { id_accion: actionId, origen: 'Terreno', descripcion: 'Archivo', nombre_original: 'x.exe', mime_type: 'application/x-msdownload', tamano_bytes: 8 },
+      { id_accion: 'invalido', origen: 'Terreno', descripcion: 'Archivo', nombre_original: 'x.pdf', mime_type: 'application/pdf', tamano_bytes: 8 },
+      { id_accion: actionId, origen: 'Terreno', descripcion: 'Archivo', nombre_original: 'x.pdf', mime_type: 'application/pdf', tamano_bytes: 8,
+        consentimiento: { consentimiento_declarado: true } },
+    ]) {
+      const result = await fetch(`${baseUrl}/v1/evidences`, { method: 'POST', headers, body: JSON.stringify(input) });
+      assert.equal(result.status, 400);
+      assert.equal((await result.json()).error.code, 'DATOS_INVALIDOS');
+    }
+    assert.equal((await fetch(`${baseUrl}/v1/evidences`, { headers })).status, 400);
+    assert.equal((await fetch(`${baseUrl}/v1/evidences/${evidenceId}`, {
+      method: 'PATCH', headers, body: JSON.stringify({ version_esperada: 1, cambios: { estado_publicacion: 'otra' } }),
+    })).status, 400);
+    assert.equal((await fetch(`${baseUrl}/v1/evidences/${evidenceId}/file?version_esperada=1`, {
+      method: 'PUT', headers: { authorization: 'Bearer token', 'content-type': 'image/png' }, body: '%PDF-123',
+    })).status, 400);
   });
 });
