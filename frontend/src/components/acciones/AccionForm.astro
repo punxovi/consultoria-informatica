@@ -8,12 +8,11 @@ const { idPlan, idAccion = '' } = Astro.props;
 const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
 ---
 
-<section class="mx-auto max-w-4xl space-y-6">
+<section class="w-full space-y-6">
   <div>
-    <p class="text-sm font-medium text-primary">Acciones del plan</p>
     <h1 class="mt-1 text-2xl font-bold md:text-3xl">{idAccion ? 'Editar acción' : 'Crear acción'}</h1>
-    <p id="accion-contexto" class="mt-2 break-words text-sm text-neutral-600"></p>
-    <p class="mt-2 text-sm text-neutral-500">Los campos marcados con * son obligatorios.</p>
+    <p id="accion-contexto" class="mt-2 break-words text-lg text-neutral-700"></p>
+    <p class="mt-2 text-base text-neutral-700">Los campos marcados con * son obligatorios. Las evidencias son opcionales y se adjuntan desde el detalle después de guardar la acción.</p>
   </div>
   <a href={volver} class="inline-flex min-h-[48px] items-center text-primary underline">Volver a las acciones del plan</a>
   <p id="accion-estado" role="status" aria-live="polite">Cargando formulario…</p>

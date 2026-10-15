@@ -3,21 +3,20 @@ import Button from '../../../../components/ui/Button.astro';
 import Card from '../../../../components/ui/Card.astro';
 import AccionLayout from '../../../../layouts/AccionLayout.astro';
 import EliminarRegistro from '../../../../components/ui/EliminarRegistro.astro';
+import EvidenciasAccion from '../../../../components/evidencias/EvidenciasAccion.astro';
 const idPlan = Astro.params.id ?? '';
 const idAccion = Astro.params.idAccion ?? '';
 ---
 <AccionLayout idPlan={idPlan} title="Detalle de acción">
-  <section id="accion-detalle" data-id-plan={idPlan} data-id-accion={idAccion} class="mx-auto max-w-4xl space-y-6">
-    <a href={`/planes/${encodeURIComponent(idPlan)}#acciones-plan`} class="inline-flex min-h-[48px] items-center text-primary underline">Volver a las acciones del plan</a>
+  <section id="accion-detalle" data-id-plan={idPlan} data-id-accion={idAccion} class="w-full space-y-6">
     <p id="detalle-estado" role="status" aria-live="polite">Cargando acción…</p>
     <p id="detalle-error" hidden role="alert" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></p>
     <div id="detalle-reintentar" hidden><Button id="recargar-accion" variant="outline">Reintentar carga</Button></div>
     <div id="detalle-contenido" hidden class="space-y-6">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
-          <p class="text-sm font-medium text-primary">Acciones del plan</p>
           <h1 data-accion="nombre" class="mt-1 break-words text-2xl font-bold md:text-3xl"></h1>
-          <p data-accion="plan" class="mt-2 break-words text-neutral-600"></p>
+          <p data-accion="plan" class="mt-2 break-words text-lg text-neutral-700"></p>
         </div>
         <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(idAccion)}/editar`} variant="outline">Editar acción</Button>
       </div>
@@ -26,16 +25,20 @@ const idAccion = Astro.params.idAccion ?? '';
           <span data-accion="estado" class="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"></span>
           <span id="accion-vencida" hidden class="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Vencida</span>
         </div>
-        <dl class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <dl class="grid grid-cols-1 gap-5 md:grid-cols-3">
           <div><dt class="text-sm font-semibold text-neutral-500">Responsable</dt><dd data-accion="responsable_nombre" class="mt-1 break-words"></dd></div>
           <div><dt class="text-sm font-semibold text-neutral-500">Fecha de inicio</dt><dd data-accion="fecha_inicio" class="mt-1"></dd></div>
           <div><dt class="text-sm font-semibold text-neutral-500">Fecha de término</dt><dd data-accion="fecha_termino" class="mt-1"></dd></div>
-          <div class="md:col-span-2"><dt class="text-sm font-semibold text-neutral-500">Descripción</dt><dd data-accion="descripcion" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
-          <div class="md:col-span-2"><dt id="motivo-titulo" class="text-sm font-semibold text-neutral-500">Observaciones</dt><dd data-accion="observacion_motivo" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
-          <div class="md:col-span-2"><dt class="text-sm font-semibold text-neutral-500">Resultado esperado</dt><dd data-accion="resultado_esperado" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
+          <div><dt class="text-sm font-semibold text-neutral-700">Descripción</dt><dd data-accion="descripcion" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
+          <div><dt id="motivo-titulo" class="text-sm font-semibold text-neutral-700">Observaciones</dt><dd data-accion="observacion_motivo" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
+          <div><dt class="text-sm font-semibold text-neutral-700">Resultado esperado</dt><dd data-accion="resultado_esperado" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
         </dl>
       </Card>
-      <EliminarRegistro tipo="accion" id={idAccion} regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`} />
+      <EvidenciasAccion idAccion={idAccion} />
+      <div class="flex flex-wrap items-center justify-between gap-4 border-t border-neutral-200 pt-5">
+        <a href={`/planes/${encodeURIComponent(idPlan)}#acciones-plan`} class="inline-flex min-h-[48px] items-center text-primary underline">Volver a las acciones del plan</a>
+        <EliminarRegistro tipo="accion" id={idAccion} regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`} />
+      </div>
     </div>
   </section>
 </AccionLayout>
@@ -73,6 +76,8 @@ const idAccion = Astro.params.idAccion ?? '';
       document.querySelector('#motivo-titulo')!.textContent = accion.estado === 'cancelada' ? 'Motivo de cancelación' : 'Observaciones';
       document.querySelector<HTMLElement>('#accion-vencida')!.hidden = !estaVencida(accion);
       contenido.hidden = false;
+      seccion.dataset.cargada = 'true';
+      window.dispatchEvent(new Event('accion:lista-para-evidencias'));
       estado.textContent = '';
     } catch (fallo) {
       estado.textContent = '';

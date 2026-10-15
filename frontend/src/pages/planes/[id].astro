@@ -26,12 +26,11 @@ const idPlan = Astro.params.id ?? '';
 
     <div id="detalle-plan" hidden class="space-y-6">
       <div>
-        <p class="mb-1 text-sm font-medium text-primary">Gestión de intervenciones</p>
         <div class="flex flex-wrap items-center gap-3">
           <h1 data-plan="nombre" class="text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
           <span data-plan="estado" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"></span>
         </div>
-        <p data-plan="resumen" class="mt-2 text-sm text-neutral-500"></p>
+        <p data-plan="resumen" class="mt-2 text-base text-neutral-700 md:text-lg"></p>
         <div class="mt-4"><Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">Editar plan</Button></div>
         <div class="mt-3"><EliminarRegistro tipo="plan" id={idPlan} regreso="/planes?resultado=eliminado" /></div>
       </div>
