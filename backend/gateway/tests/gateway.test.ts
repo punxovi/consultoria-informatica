@@ -33,7 +33,7 @@ before(async () => {
   const authUrl = await listen(authServer);
   organizationsServer = createServer((request, response) => {
     response.setHeader('content-type', 'application/json');
-    response.end(JSON.stringify({ path: request.url, authorization: request.headers.authorization }));
+    response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization }));
   });
   const organizationsUrl = await listen(organizationsServer);
   programsServer = createServer((request, response) => {
@@ -131,6 +131,20 @@ describe('API Gateway', () => {
     const body = await response.json();
     assert.equal(body.path, '/v1/organizations?incluir_archivadas=false');
     assert.equal(body.authorization, 'Bearer sesion-organizaciones');
+  });
+
+  test('enruta Expediente Legal al servicio de Organizaciones conservando método y sesión', async () => {
+    const orgId = '22222222-2222-4222-8222-222222222222';
+    for (const method of ['GET', 'POST', 'PATCH']) {
+      const response = await fetch(`${gatewayUrl}/api/v1/organizations/${orgId}/legal-record`, {
+        method,
+        headers: { authorization: 'Bearer sesion-expediente' },
+      });
+      const body = await response.json();
+      assert.equal(body.path, `/v1/organizations/${orgId}/legal-record`);
+      assert.equal(body.method, method);
+      assert.equal(body.authorization, 'Bearer sesion-expediente');
+    }
   });
 
   test('enruta Programas conservando método y sesión', async () => {
