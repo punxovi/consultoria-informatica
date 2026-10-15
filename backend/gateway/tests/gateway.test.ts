@@ -41,7 +41,23 @@ before(async () => {
     response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization }));
   });
   const programsUrl = await listen(programsServer);
-  interventionsServer = createServer((request, response) => {
+  interventionsServer = createServer(async (request, response) => {
+    if (request.url?.includes('/file?') && request.method === 'PUT') {
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ path: request.url, method: request.method,
+        authorization: request.headers.authorization, contentType: request.headers['content-type'],
+        bytes: Buffer.concat(chunks).toString('ascii') }));
+      return;
+    }
+    if (request.url?.endsWith('/file') && request.method === 'GET') {
+      response.setHeader('content-type', 'application/pdf');
+      response.setHeader('content-disposition', "attachment; filename*=UTF-8''registro.pdf");
+      response.setHeader('cache-control', 'private, no-store');
+      response.end('%PDF-123');
+      return;
+    }
     response.setHeader('content-type', 'application/json');
     response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization }));
   });
@@ -129,11 +145,12 @@ describe('API Gateway', () => {
     assert.equal(body.authorization, 'Bearer sesion-programas');
   });
 
-  test('enruta Planes, Acciones y Actas al contexto de Intervenciones', async () => {
+  test('enruta Planes, Acciones, Actas y Evidencias al contexto de Intervenciones', async () => {
     for (const path of [
       '/api/v1/plans?incluir_archivados=false',
       '/api/v1/actions?estado=atrasada',
       '/api/v1/meeting-minutes?id_organizacion=11111111-1111-4111-8111-111111111111',
+      '/api/v1/evidences?id_accion=44444444-4444-4444-8444-444444444444',
     ]) {
       const response = await fetch(`${gatewayUrl}${path}`, { headers: { authorization: 'Bearer sesion-intervenciones' } });
       const body = await response.json();
@@ -149,5 +166,27 @@ describe('API Gateway', () => {
       assert.equal(body.path, path.replace('/api', ''));
       assert.equal(body.authorization, 'Bearer sesion-insights');
     }
+  });
+
+  test('conserva el archivo privado y sus cabeceras al descargar una evidencia', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/evidences/66666666-6666-4666-8666-666666666666/file`, {
+      headers: { authorization: 'Bearer sesion-intervenciones' },
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'application/pdf');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.match(response.headers.get('content-disposition') ?? '', /registro\.pdf/);
+    assert.equal(await response.text(), '%PDF-123');
+  });
+
+  test('envía el archivo binario y la sesión al servicio de Evidencias', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/evidences/66666666-6666-4666-8666-666666666666/file?version_esperada=1`, {
+      method: 'PUT', headers: { authorization: 'Bearer sesion-intervenciones', 'content-type': 'application/pdf' }, body: '%PDF-123',
+    });
+    const body = await response.json();
+    assert.equal(body.path, '/v1/evidences/66666666-6666-4666-8666-666666666666/file?version_esperada=1');
+    assert.equal(body.authorization, 'Bearer sesion-intervenciones');
+    assert.equal(body.contentType, 'application/pdf');
+    assert.equal(body.bytes, '%PDF-123');
   });
 });

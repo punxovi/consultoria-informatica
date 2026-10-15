@@ -14,3 +14,19 @@ export async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); }
   catch { throw new ServiceError('JSON_INVALIDO', 'La solicitud debe contener JSON válido.', 400); }
 }
+
+export async function readEvidenceFile(request: IncomingMessage, expectedSize: number): Promise<Buffer> {
+  if (Number(request.headers['content-length']) > expectedSize) {
+    throw new ServiceError('ARCHIVO_INVALIDO', 'El tamaño del archivo no coincide con el registro.', 400);
+  }
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > expectedSize) throw new ServiceError('ARCHIVO_INVALIDO', 'El tamaño del archivo no coincide con el registro.', 400);
+    chunks.push(buffer);
+  }
+  if (size !== expectedSize) throw new ServiceError('ARCHIVO_INVALIDO', 'El tamaño del archivo no coincide con el registro.', 400);
+  return Buffer.concat(chunks, size);
+}

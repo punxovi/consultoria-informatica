@@ -6,11 +6,13 @@ import type {
   UpdateMeetingMinuteInput,
 } from '../domain/meeting-minutes.ts';
 import type { PlanFields, PlanFilters, PlansRepository, UpdatePlanInput } from '../domain/plans.ts';
+import type { CreateEvidenceInput, EvidenceFilters, EvidencesRepository, UpdateEvidenceInput } from '../domain/evidences.ts';
 
 export function createInterventionsApplication(
   plans: PlansRepository,
   actions: ActionsRepository,
   meetingMinutes: MeetingMinutesRepository,
+  evidences: EvidencesRepository,
 ) {
   return {
     plans: {
@@ -33,6 +35,14 @@ export function createInterventionsApplication(
       getById: (token: string, id: string) => meetingMinutes.getById(token, id),
       create: (token: string, input: CreateMeetingMinuteInput) => meetingMinutes.create(token, input),
       update: (token: string, id: string, input: UpdateMeetingMinuteInput) => meetingMinutes.update(token, id, input),
+    },
+    evidences: {
+      list: (token: string, filters: EvidenceFilters) => evidences.list(token, filters),
+      getById: (token: string, id: string) => evidences.getById(token, id),
+      create: (token: string, input: CreateEvidenceInput) => evidences.create(token, input),
+      update: (token: string, id: string, input: UpdateEvidenceInput) => evidences.update(token, id, input),
+      upload: (token: string, id: string, version: number, bytes: Buffer, mimeType: string) => evidences.upload(token, id, version, bytes, mimeType),
+      download: (token: string, id: string) => evidences.download(token, id),
     },
   };
 }
