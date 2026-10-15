@@ -15,6 +15,7 @@
     "test:e2e:expediente": "playwright test --config playwright.expediente.config.mjs",
     "test:e2e:compromisos": "playwright test --config playwright.compromisos.config.mjs",
     "test:e2e:evidencias": "playwright test --config playwright.evidencias.config.mjs",
+    "test:e2e:indicadores": "playwright test --config playwright.indicadores.config.mjs",
     "test:e2e:diagnostico": "playwright test --config playwright.diagnostico.config.mjs",
     "test:e2e:actas": "playwright test --config playwright.actas.config.mjs",
     "test:e2e:programas": "playwright test programas.spec.mjs",

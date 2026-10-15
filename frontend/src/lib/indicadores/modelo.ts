@@ -1,0 +1,45 @@
+import { z } from 'zod';
+
+export const codigosIndicador = ['beneficiarios', 'participantes', 'capacitaciones', 'raciones', 'acciones_ejecutadas'] as const;
+export const cantidadSchema = z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER);
+// No convertir una entrada vacía en cero: cero es un resultado válido y distinto de «sin registrar».
+export const numeroFormularioSchema = z.string().trim()
+  .min(1, 'Ingresa un valor.').regex(/^\d+(?:[.,]\d+)?$/, 'Ingresa un número mayor o igual a cero.')
+  .transform(v => Number(v.replace(',', '.')))
+  .pipe(cantidadSchema);
+export const fechaSchema = z.string().refine(v => /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+  !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v,
+  'Ingresa una fecha de medición válida.');
+export const resultadoFormularioSchema = z.object({
+  valor_medido: numeroFormularioSchema,
+  fecha_medicion: fechaSchema,
+  observaciones: z.string().trim().max(1000, 'Las observaciones no pueden superar 1000 caracteres.'),
+});
+export const catalogoSchema = z.object({
+  id_indicador: z.uuid(), codigo: z.enum(codigosIndicador), nombre: z.string().min(1),
+  unidad_medida: z.string().min(1), descripcion: z.string(),
+});
+export const resultadoSchema = z.object({
+  id_resultado: z.uuid(), id_indicador: z.uuid(), valor_medido: cantidadSchema, fecha_medicion: fechaSchema,
+  observaciones: z.string().nullable(), version: z.number().int().positive(),
+});
+export const indicadorAccionSchema = z.object({
+  id_indicador: z.uuid(), id_accion: z.uuid(), id_catalogo: z.uuid(), meta: cantidadSchema,
+  version: z.number().int().positive(), resultado: resultadoSchema.nullable(),
+}).refine(v => !v.resultado || v.resultado.id_indicador === v.id_indicador, 'El resultado no pertenece al indicador.');
+export type IndicadorCatalogo = z.infer<typeof catalogoSchema>;
+export type IndicadorAccion = z.infer<typeof indicadorAccionSchema>;
+export type Resultado = z.infer<typeof resultadoSchema>;
+export type DatosResultado = z.infer<typeof resultadoFormularioSchema>;
+export type Asociacion = { id_indicador: string; meta: number };
+export interface ServicioIndicadores {
+  catalogo(): Promise<IndicadorCatalogo[]>;
+  listar(accion: string): Promise<IndicadorAccion[]>;
+  asociar(accion: string, entradas: Asociacion[]): Promise<IndicadorAccion[]>;
+  actualizarMeta(item: IndicadorAccion, meta: number): Promise<IndicadorAccion>;
+  guardarResultado(item: IndicadorAccion, entrada: DatosResultado): Promise<Resultado>;
+}
+export const hoyLocal = () => {
+  const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+export const mostrarCantidad = (valor: number) => valor.toLocaleString('es-CL', { maximumFractionDigits: 10 });
