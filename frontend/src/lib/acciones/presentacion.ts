@@ -22,3 +22,34 @@ export function estaVencida(accion: Pick<Accion, 'estado' | 'fecha_termino'>, ho
 export function mostrarFecha(valor: string): string {
   return new Date(`${valor}T00:00:00`).toLocaleDateString('es-CL');
 }
+
+export type NivelUrgencia =
+  | 'baja'
+  | 'media'
+  | 'alta'
+  | 'vencida'
+  | 'sin_urgencia';
+
+export function calcularNivelUrgencia(accion: Pick<Accion, 'estado' | 'fecha_termino'>, hoy = fechaLocal()): NivelUrgencia {
+  if (accion.estado === 'cumplida' || accion.estado === 'cancelada') {
+    return 'sin_urgencia';
+  }
+
+  const fechaTermino = Date.parse(accion.fecha_termino);
+  const fechaActual = Date.parse(hoy);
+  const diasRestantes = (fechaTermino - fechaActual) / 86_400_000;
+
+  if (diasRestantes < 0) {
+    return 'vencida';
+  }
+
+  if (diasRestantes > 15) {
+    return 'baja';
+  }
+
+  if (diasRestantes >= 6) {
+    return 'media';
+  }
+
+  return 'alta';
+}

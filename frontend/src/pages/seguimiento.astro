@@ -1,0 +1,296 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import { mainNavItems } from '../config/nav';
+import Card from '../components/ui/Card.astro';
+import Button from '../components/ui/Button.astro';
+import Select from '../components/ui/Select.astro';
+import SeguimientoAccion from '../components/acciones/SeguimientoAccion.astro';
+
+const opcionesEstado = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'no_iniciada', label: 'No iniciada' },
+  { value: 'en_desarrollo', label: 'En desarrollo' },
+  { value: 'cancelada', label: 'Cancelada' },
+  { value: 'cumplida', label: 'Cumplida' },
+];
+
+const opcionesUrgencia = [
+  { value: '', label: 'Todos los niveles' },
+  { value: 'baja', label: 'Baja' },
+  { value: 'media', label: 'Media' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'vencida', label: 'Vencida' },
+  { value: 'sin_urgencia', label: 'Sin urgencia activa' },
+];
+---
+
+<AppLayout
+  title="Seguimiento de Acciones"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="breadcrumb">
+    <a href="/dashboard" class="text-neutral-500 hover:text-primary">
+      Dashboard
+    </a>
+    <span aria-hidden="true">›</span>
+    <span class="font-medium text-neutral-900">Seguimiento</span>
+  </Fragment>
+
+  <section class="space-y-6">
+    <header>
+      <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
+        Seguimiento de Acciones
+      </h1>
+      <p class="mt-2 text-sm text-neutral-600">
+        Consulta el estado operativo y el nivel de urgencia de las acciones.
+      </p>
+    </header>
+
+    <Card>
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-[1fr_1fr_auto]">
+        <Select
+          id="filtro-estado"
+          label="Estado operativo"
+          options={opcionesEstado}
+        />
+
+        <Select
+          id="filtro-urgencia"
+          label="Nivel de urgencia"
+          options={opcionesUrgencia}
+        />
+
+        <Button id="recargar-seguimiento" variant="outline">
+          Actualizar
+        </Button>
+      </div>
+    </Card>
+
+    <p id="seguimiento-estado" role="status" aria-live="polite">
+      Cargando acciones…
+    </p>
+
+    <div
+      id="seguimiento-error"
+      hidden
+      role="alert"
+      class="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800"
+    ></div>
+
+    <div
+      id="seguimiento-listado"
+      class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2"
+      aria-busy="true"
+    ></div>
+  </section>
+</AppLayout>
+
+<SeguimientoAccion />
+
+<script>
+  import { listarAcciones } from '../lib/acciones/cliente';
+  import {
+    calcularNivelUrgencia,
+    etiquetaEstado,
+    mostrarFecha,
+  } from '../lib/acciones/presentacion';
+  import type { Accion, EstadoAccion } from '../lib/modelos/acciones';
+  import type { NivelUrgencia } from '../lib/acciones/presentacion';
+
+  const estado = document.querySelector<HTMLElement>('#seguimiento-estado')!;
+  const error = document.querySelector<HTMLElement>('#seguimiento-error')!;
+  const listado = document.querySelector<HTMLElement>('#seguimiento-listado')!;
+  const filtroEstado = document.querySelector<HTMLSelectElement>('#filtro-estado')!;
+  const filtroUrgencia = document.querySelector<HTMLSelectElement>('#filtro-urgencia')!;
+  const recargar = document.querySelector<HTMLButtonElement>('#recargar-seguimiento')!;
+  const plantilla = document.querySelector<HTMLTemplateElement>(
+    '#plantilla-seguimiento-accion'
+  )!;
+
+  let acciones: Accion[] = [];
+  let cargando = false;
+
+  const estilosEstado: Record<
+    EstadoAccion,
+    { clase: string; simbolo: string }
+  > = {
+    no_iniciada: {
+      clase: 'bg-neutral-100 text-neutral-700',
+      simbolo: '○',
+    },
+    en_desarrollo: {
+      clase: 'bg-blue-50 text-blue-800',
+      simbolo: '●',
+    },
+    cancelada: {
+      clase: 'bg-neutral-200 text-neutral-700',
+      simbolo: '■',
+    },
+    cumplida: {
+      clase: 'bg-emerald-50 text-emerald-800',
+      simbolo: '✓',
+    },
+  };
+
+  const estilosUrgencia: Record<
+    NivelUrgencia,
+    { etiqueta: string; clase: string; simbolo: string }
+  > = {
+    baja: {
+      etiqueta: 'Baja',
+      clase: 'border border-emerald-200 bg-emerald-50 text-emerald-800',
+      simbolo: '●',
+    },
+    media: {
+      etiqueta: 'Media',
+      clase: 'border border-amber-300 bg-amber-50 text-amber-900',
+      simbolo: '▲',
+    },
+    alta: {
+      etiqueta: 'Alta',
+      clase: 'border border-red-300 bg-red-50 text-red-800',
+      simbolo: '■',
+    },
+    vencida: {
+      etiqueta: 'Vencida',
+      clase: 'border border-red-400 bg-red-100 text-red-900',
+      simbolo: '!',
+    },
+    sin_urgencia: {
+      etiqueta: 'Sin urgencia activa',
+      clase: 'border border-neutral-200 bg-neutral-50 text-neutral-600',
+      simbolo: '○',
+    },
+  };
+
+  function actualizarBadge(
+    tarjeta: DocumentFragment,
+    contenedor: string,
+    selectorEtiqueta: string,
+    texto: string,
+    clase: string,
+    simbolo: string,
+  ) {
+    const badge = tarjeta.querySelector<HTMLElement>(
+      `${contenedor} > span`
+    );
+    const icono = badge?.querySelector<HTMLElement>('[aria-hidden="true"]');
+    const etiqueta = tarjeta.querySelector<HTMLElement>(selectorEtiqueta);
+
+    if (!badge || !icono || !etiqueta) {
+      throw new Error('La plantilla de Seguimiento tiene un elemento incompleto.');
+    }
+
+    badge.className =
+      `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${clase}`;
+
+    icono.textContent = simbolo;
+    etiqueta.textContent = texto;
+  }
+
+  function renderizar() {
+    listado.replaceChildren();
+
+    const filtradas = acciones.filter(accion => {
+      const nivel = calcularNivelUrgencia(accion);
+
+      return (
+        (!filtroEstado.value || accion.estado === filtroEstado.value) &&
+        (!filtroUrgencia.value || nivel === filtroUrgencia.value)
+      );
+    });
+
+    for (const accion of filtradas) {
+      const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
+      const nivel = calcularNivelUrgencia(accion);
+      const urgencia = estilosUrgencia[nivel];
+
+      tarjeta.querySelector<HTMLElement>('[data-plan]')!.textContent =
+        `Plan: ${accion.plan.nombre}`;
+
+      tarjeta.querySelector<HTMLElement>('[data-nombre]')!.textContent =
+        accion.nombre;
+
+      tarjeta.querySelector<HTMLElement>('[data-descripcion]')!.textContent =
+        accion.descripcion ?? 'Sin descripción registrada.';
+
+      tarjeta.querySelector<HTMLElement>('[data-responsable]')!.textContent =
+        accion.responsable_nombre;
+
+      tarjeta.querySelector<HTMLElement>('[data-termino]')!.textContent =
+        mostrarFecha(accion.fecha_termino);
+
+      const estiloEstado = estilosEstado[accion.estado];
+
+      actualizarBadge(
+        tarjeta,
+        '[data-estado-badge]',
+        '[data-estado-etiqueta]',
+        etiquetaEstado(accion.estado),
+        estiloEstado.clase,
+        estiloEstado.simbolo,
+      );
+
+      actualizarBadge(
+        tarjeta,
+        '[data-urgencia-badge]',
+        '[data-urgencia-etiqueta]',
+        urgencia.etiqueta,
+        urgencia.clase,
+        urgencia.simbolo,
+      );
+
+      const enlace = tarjeta.querySelector<HTMLAnchorElement>('a');
+      if (!enlace) {
+        throw new Error('No se encontró el enlace al detalle de la acción.');
+      }
+
+      enlace.href =
+        `/planes/${encodeURIComponent(accion.id_plan)}/acciones/${encodeURIComponent(accion.id_accion)}`;
+
+      listado.append(tarjeta);
+    }
+
+    estado.textContent = filtradas.length
+      ? `${filtradas.length} ${filtradas.length === 1 ? 'acción encontrada' : 'acciones encontradas'}.`
+      : acciones.length
+        ? 'No hay acciones que coincidan con los filtros seleccionados.'
+        : 'No hay acciones disponibles para mostrar.';
+
+    listado.setAttribute('aria-busy', 'false');
+  }
+
+  async function cargar() {
+    if (cargando) return;
+
+    cargando = true;
+    recargar.disabled = true;
+    listado.setAttribute('aria-busy', 'true');
+    estado.textContent = 'Cargando acciones…';
+    error.hidden = true;
+
+    try {
+      acciones = await listarAcciones();
+      renderizar();
+    } catch (fallo) {
+      acciones = [];
+      listado.replaceChildren();
+      estado.textContent = '';
+      error.textContent = fallo instanceof Error
+        ? fallo.message
+        : 'No fue posible cargar las acciones.';
+      error.hidden = false;
+      listado.setAttribute('aria-busy', 'false');
+    } finally {
+      cargando = false;
+      recargar.disabled = false;
+    }
+  }
+
+  filtroEstado.addEventListener('change', renderizar);
+  filtroUrgencia.addEventListener('change', renderizar);
+  recargar.addEventListener('click', () => void cargar());
+
+  void cargar();
+</script>
