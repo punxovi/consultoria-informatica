@@ -10,5 +10,6 @@ export const mainNavItems: NavItem[] = [
   { label: 'Organizaciones', href: '/organizaciones' },
   { label: 'Programas Institucionales', href: '/programas' },
   { label: 'Planes de Intervención', href: '/planes' },
+  { label: 'Seguimiento', href: '/seguimiento' },
   { label: 'Reportes', href: '/reportes' },
 ];
