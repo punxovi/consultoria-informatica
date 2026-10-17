@@ -14,6 +14,7 @@ import { expectedVersion, invalid, objectInput, uuid } from '../domain/validatio
 import { readJsonBody } from './body.ts';
 import { readEvidenceFile } from './body.ts';
 import { parseCreateEvidence, parseEvidenceFilters, parseUpdateEvidence, parseUploadEvidence } from '../domain/evidences.ts';
+import type { PublicEvidencesRepository } from '../infrastructure/supabase-public-evidences.repository.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -41,6 +42,7 @@ export async function routeInterventions(
   response: ServerResponse,
   requestId: string,
   application: InterventionsApplication,
+  publications: PublicEvidencesRepository,
 ): Promise<void> {
   const url = new URL(request.url ?? '/', 'http://interventions.local');
   try {
@@ -59,6 +61,21 @@ export async function routeInterventions(
       }), requestId); return;
     }
 
+    const publicFile = url.pathname.match(/^\/v1\/public\/evidences\/([^/]+)\/file$/);
+    if (publicFile) {
+      response.setHeader('cache-control', 'no-store');
+      if (request.method !== 'GET') {
+        response.setHeader('allow', 'GET');
+        throw new ServiceError('METODO_NO_PERMITIDO', 'Solo se permite consultar la publicación.', 405);
+      }
+      const file = await publications.download(uuid(decodeURIComponent(publicFile[1]), 'La evidencia'));
+      response.statusCode = 200;
+      response.setHeader('content-type', file.mimeType);
+      response.setHeader('content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+      response.setHeader('x-content-type-options', 'nosniff');
+      response.setHeader('x-request-id', requestId);
+      response.end(file.bytes); return;
+    }
     const token = tokenFrom(request);
     if (url.pathname === '/v1/evidences') {
       if (request.method === 'GET') {
@@ -88,6 +105,7 @@ export async function routeInterventions(
         response.setHeader('content-type', file.mimeType);
         response.setHeader('content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
         response.setHeader('cache-control', 'private, no-store');
+        response.setHeader('x-content-type-options', 'nosniff');
         response.setHeader('x-request-id', requestId);
         response.end(file.bytes); return;
       }

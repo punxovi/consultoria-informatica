@@ -26,7 +26,8 @@ test.beforeEach(async({context})=>{
       if(version_esperada!==lista[0].version)return r.fulfill({status:409,json:{ok:false,error:{code:'CONFLICTO_CONCURRENCIA',message:'Recarga antes de guardar.'}}});
       const {consentimiento,...rest}=cambios;lista[0]={...lista[0],...rest,...consentimiento,version:lista[0].version+1};
     }
-    return r.fulfill({json:{ok:true,data:method==='GET'&&path.endsWith('/evidences')?{evidences:lista}:{evidence:lista[0]}}});
+    const detalle=lista.find(e=>e.id_evidencia===path.split('/')[4])??lista[0];
+    return r.fulfill({json:{ok:true,data:method==='GET'&&path.endsWith('/evidences')?{evidences:lista}:{evidence:detalle}}});
   });
 });
 async function abrir(page){await page.goto(`/planes/${id}/acciones/${id}`);await expect(page.locator('#ev-archivo')).toBeEnabled();}
@@ -41,6 +42,8 @@ test('adjunta sin publicar, descarga con sesión y mantiene datos al recargar',a
   expect(llamadas.filter(x=>x.method==='POST')).toHaveLength(1);
   const put=llamadas.find(x=>x.method==='PUT');expect(put.bytes).toEqual(pdf.buffer);expect(put.type).toBe('application/pdf');
   expect(put.auth).toBe('Bearer qa-admin');expect(llamadas.filter(x=>x.method==='PATCH')).toHaveLength(0);
+  await expect(page.locator('#ev-detalle')).toBeHidden();await page.locator('#ev-lista button').click();
+  await expect(page.locator('#ev-detalle')).toBeVisible();
   const descarga=page.waitForEvent('download');await page.locator('#ev-descargar').click();expect((await descarga).suggestedFilename()).toBe('acta.pdf');
   await abrir(page);await expect(page.locator('#ev-lista')).toContainText('acta.pdf');
 });
@@ -67,7 +70,8 @@ test('reintenta archivo sin duplicar reserva y permite recuperar después de rec
 test('fallo de publicación conserva el archivo; revocación retira publicación y bloquea publicarla',async({page})=>{
   await abrir(page);await llenar(page);await page.locator('#ev-publicable').check();errorPatch={status:403,code:'SIN_PERMISO',message:'Sin permiso para publicar.'};
   await page.locator('#ev-guardar').click();await expect(page.locator('#ev-error')).toContainText('El archivo se guardó');
-  await expect(page.locator('#ev-datos')).toContainText('Archivo disponible');await expect(page.locator('#ev-exito')).toBeHidden();
+  await expect(page.locator('#ev-detalle')).toBeHidden();await expect(page.locator('#ev-exito')).toBeHidden();
+  await page.locator('#ev-lista button').click();await expect(page.locator('#ev-datos')).toContainText('Archivo disponible');
   errorPatch=null;page.once('dialog',d=>d.accept());await page.locator('#ev-publicar').click();await expect(page.locator('#ev-exito')).toContainText('marcada como publicada');
   page.once('dialog',d=>d.accept('La persona retiró su autorización.'));await page.locator('#ev-revocar').click();
   await expect(page.locator('#ev-exito')).toContainText('Consentimiento revocado');await expect(page.locator('#ev-publicar')).toBeDisabled();
@@ -86,7 +90,9 @@ test('conflicto al publicar requiere versión actual; cancelar no registra archi
   lista=[item()];await abrir(page);await llenar(page);await page.locator('#ev-cancelar').click();expect(llamadas.filter(x=>x.method==='POST')).toHaveLength(0);
   await page.locator('#ev-lista button').click();lista[0].version=3;page.once('dialog',d=>d.accept());await page.locator('#ev-publicar').click();
   await expect(page.locator('#ev-error')).toContainText('Recarga');await expect(page.locator('#ev-exito')).toBeHidden();
-  await page.locator('#ev-recargar').click();page.once('dialog',d=>d.accept());await page.locator('#ev-publicar').click();
+  await expect(page.locator('#ev-detalle #ev-error')).toBeVisible();
+  await page.locator('#ev-detalle-cerrar').click();await page.locator('#ev-lista button').click();
+  page.once('dialog',d=>d.accept());await page.locator('#ev-publicar').click();
   await expect(page.locator('#ev-exito')).toContainText('marcada como publicada');
 });
 test('jerarquía y distribución en escritorio y móvil',async({page},info)=>{
@@ -99,4 +105,67 @@ test('jerarquía y distribución en escritorio y móvil',async({page},info)=>{
   await page.setViewportSize({width:390,height:3400});await page.waitForFunction(()=>document.querySelector('#app-sidebar').getBoundingClientRect().right<=0);
   expect(await page.locator('#evidencias-accion').evaluate(n=>n.scrollWidth<=n.clientWidth)).toBe(true);
   await page.locator('#evidencias-accion').screenshot({path:info.outputPath('evidencias-movil.png'),animations:'disabled'});
+});
+
+test('conserva la intención de publicación al reintentar una carga fallida',async({page})=>{
+  await abrir(page);await llenar(page);await page.locator('#ev-publicable').check();
+  errorPut={status:503,code:'STORAGE_NO_DISPONIBLE',message:'Storage no disponible.'};
+  await page.locator('#ev-guardar').click();await expect(page.locator('#ev-error')).toContainText('El registro se conserva');
+  errorPut=null;await page.locator('#ev-guardar').click();
+  await expect(page.locator('#ev-exito')).toContainText('marcado como publicado');
+  expect(llamadas.filter(x=>x.method==='POST')).toHaveLength(1);
+  await page.locator('#ev-lista button').click();
+  await expect(page.locator('#ev-enlace-publico')).toHaveAttribute('href',`http://127.0.0.1:4331/api/v1/public/evidences/${eid}/file`);
+});
+
+test('Ver evidencia abre solo el detalle elegido y devuelve el foco al cerrar',async({page})=>{
+  const otro='17600000-0000-4000-8000-000000000003';
+  lista=[item(),{...item(),id_evidencia:otro,nombre_original:'segunda-acta.pdf',descripcion:'Segunda evidencia'}];
+  await abrir(page);await expect(page.locator('#ev-detalle')).toBeHidden();
+  expect(llamadas.filter(x=>new URL(x.url).pathname.endsWith('/'+eid))).toHaveLength(0);
+  demora=500;const boton=page.locator(`[data-evidencia-id="${otro}"]`);await boton.click();
+  await expect(page.getByRole('dialog')).toBeVisible();await expect(page.locator('#ev-detalle #ev-carga')).toBeVisible();
+  await expect(page.locator('#ev-detalle-cerrar')).toBeEnabled();
+  await expect(page.locator('#ev-datos')).toContainText('Segunda evidencia');
+  await expect(page.locator('#ev-detalle-titulo')).toHaveText('segunda-acta.pdf');
+  await expect(page.locator('#ev-descargar')).toBeEnabled();
+  expect(llamadas.filter(x=>new URL(x.url).pathname.endsWith('/file'))).toHaveLength(0);
+  await page.keyboard.press('Escape');await expect(page.locator('#ev-detalle')).toBeHidden();await expect(boton).toBeFocused();
+  await page.locator(`[data-evidencia-id="${eid}"]`).click();await expect(page.locator('#ev-detalle-titulo')).toHaveText('acta.pdf');
+  await page.locator('#ev-detalle-cerrar').click();await expect(page.locator('#ev-detalle')).toBeHidden();
+});
+
+test('un error al consultar se muestra dentro de la ventana y permite cerrarla',async({page})=>{
+  lista=[item()];await abrir(page);
+  await page.route(`**/api/v1/evidences/${eid}`,r=>r.fulfill({status:404,json:{ok:false,error:{code:'NO_ENCONTRADA',message:'La evidencia ya no está disponible.'}}}));
+  await page.locator('#ev-lista button').click();
+  await expect(page.locator('#ev-detalle #ev-error')).toBeVisible();
+  await expect(page.locator('#ev-error')).toContainText('ya no está disponible');
+  await expect(page.locator('#ev-descargar')).toBeHidden();
+  await page.locator('#ev-detalle-cerrar').click();await expect(page.locator('#ev-detalle')).toBeHidden();
+  await expect(page.locator('#ev-lista button')).toBeFocused();
+});
+
+test('el detalle mantiene Descargar y Cerrar visibles en una ventana pequeña y en móvil',async({page},info)=>{
+  lista=[{...item(),descripcion:'Descripción extensa para comprobar el desplazamiento del detalle. '.repeat(50)}];
+  await page.setViewportSize({width:1180,height:650});await abrir(page);
+  await page.addStyleTag({content:'astro-dev-toolbar { display: none !important; }'});
+  await page.locator('#ev-lista button').click();await expect(page.locator('#ev-descargar')).toBeEnabled();
+  for(const [nombre,size] of [['escritorio',{width:1180,height:650}],['movil',{width:390,height:780}]]) {
+    await page.setViewportSize(size);
+    await expect(page.locator('#ev-descargar')).toBeInViewport();await expect(page.locator('#ev-detalle-cerrar')).toBeInViewport();
+    expect(await page.locator('#ev-detalle').evaluate(n=>n.scrollWidth<=n.clientWidth)).toBe(true);
+    await page.locator('#ev-detalle').screenshot({path:info.outputPath(`detalle-${nombre}.png`),animations:'disabled'});
+  }
+});
+
+test('una respuesta 201 ilegible bloquea repetir el registro hasta consultar el servidor',async({page})=>{
+  await abrir(page);await llenar(page);
+  await page.route('**/api/v1/evidences',async ruta=>{
+    if(ruta.request().method()==='POST')return ruta.fulfill({status:201,contentType:'application/json',body:'null'});
+    return ruta.fallback();
+  });
+  await page.locator('#ev-guardar').click();
+  await expect(page.locator('#ev-error')).toContainText('No se pudo confirmar el registro');
+  await expect(page.locator('#ev-guardar')).toBeDisabled();
 });

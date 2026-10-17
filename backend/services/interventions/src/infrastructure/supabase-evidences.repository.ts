@@ -144,7 +144,17 @@ export function createSupabaseEvidencesRepository(options: Options): EvidencesRe
       const result = await storage(token, item, 'POST', bytes);
       // Si Storage aceptó el archivo pero falló la confirmación en PostgREST,
       // un reintento puede completar el estado sin reemplazar el objeto.
-      if (!result.ok && result.status !== 409) throw storageFail(result.status);
+      if (!result.ok) {
+        const error = object(await result.json().catch(() => null));
+        const duplicate = result.status === 409 || (result.status === 400 &&
+          (error.error === 'Duplicate' || error.code === 'Duplicate' || String(error.statusCode) === '409'));
+        if (!duplicate) throw storageFail(result.status);
+        const existing = await storage(token, item, 'GET');
+        if (!existing.ok) throw storageFail(existing.status);
+        if (!Buffer.from(await existing.arrayBuffer()).equals(bytes)) {
+          throw new ServiceError('ARCHIVO_DISTINTO', 'La reserva ya contiene otro archivo. Selecciona el archivo original para confirmar su carga.', 409);
+        }
+      }
       return change(token, id, expectedVersion, { estado_carga: 'disponible' });
     },
     async download(token, id) {

@@ -5,8 +5,9 @@ import { createInterventionsApplication, type InterventionsApplication } from '.
 import { routeInterventions } from './http/routes.ts';
 import { createSupabaseInterventionsRepositoriesFromEnv } from './infrastructure/supabase-interventions.repository.ts';
 import { createSupabaseEvidencesRepositoryFromEnv } from './infrastructure/supabase-evidences.repository.ts';
+import { createSupabasePublicEvidencesRepositoryFromEnv, type PublicEvidencesRepository } from './infrastructure/supabase-public-evidences.repository.ts';
 
-export function createInterventionsServer(application?: InterventionsApplication): Server {
+export function createInterventionsServer(application?: InterventionsApplication, publications: PublicEvidencesRepository = createSupabasePublicEvidencesRepositoryFromEnv()): Server {
   const repositories = application ? undefined : createSupabaseInterventionsRepositoriesFromEnv();
   const resolved = application ?? createInterventionsApplication(
     repositories!.plans,
@@ -17,7 +18,7 @@ export function createInterventionsServer(application?: InterventionsApplication
   return createServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'interventions.request', { requestId, method: request.method, path: request.url });
-    await routeInterventions(request, response, requestId, resolved);
+    await routeInterventions(request, response, requestId, resolved, publications);
   });
 }
 
