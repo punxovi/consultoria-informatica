@@ -1,3 +1,5 @@
+import { routeIndicators } from './indicators.routes.ts';
+import type { IndicatorsRepository } from '../domain/indicators.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { authContext } from '../../../../shared/auth-context/src/index.ts';
 import { failure, health, success } from '../../../../shared/contracts/src/index.ts';
@@ -43,6 +45,7 @@ export async function routeInterventions(
   requestId: string,
   application: InterventionsApplication,
   publications: PublicEvidencesRepository,
+  indicators: IndicatorsRepository,
 ): Promise<void> {
   const url = new URL(request.url ?? '/', 'http://interventions.local');
   try {
@@ -77,6 +80,7 @@ export async function routeInterventions(
       response.end(file.bytes); return;
     }
     const token = tokenFrom(request);
+    if (await routeIndicators(request, response, url.pathname, requestId, token, indicators)) return;
     if (url.pathname === '/v1/evidences') {
       if (request.method === 'GET') {
         const evidences = await application.evidences.list(token, parseEvidenceFilters(url));

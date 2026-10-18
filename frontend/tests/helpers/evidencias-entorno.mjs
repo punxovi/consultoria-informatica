@@ -1,5 +1,6 @@
 // HTTP/Gateway/Backend reales; adaptador Auth/PostgREST/Storage de pruebas sobre PGlite.
 // No sustituye la verificación adicional contra una instancia Supabase.
+import { createSupabaseIndicatorsRepository } from '../../../backend/services/interventions/src/infrastructure/supabase-indicators.repository.ts';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { crearBaseProgramas, usuarios } from './programas-db.mjs';
@@ -13,7 +14,7 @@ import { createAuthServer } from '../../../backend/services/auth/src/server.ts';
 import { createAuthApplication } from '../../../backend/services/auth/src/application/auth-service.ts';
 import { createSupabaseAuthRepository } from '../../../backend/services/auth/src/infrastructure/supabase-auth.repository.ts';
 
-export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335' } = {}) {
+export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335', indicadores = false } = {}) {
   const db = await crearBaseProgramas();
   const servers = [], solicitudes = [], objetos = new Map();
   let fallarConfirmacion = false;
@@ -37,6 +38,9 @@ export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335' 
       -- Permiso del adaptador Storage; los permisos de public vienen de las migraciones.
       GRANT SELECT ON storage.objects TO service_role;`);
     for (const name of ['20261002120000_fge_reforzar_rls_planes_acciones.sql','20261013120000_fge_evidencias.sql','20261016120000_fge_publicacion_evidencias.sql','20261016130000_fge_permisos_publicacion_evidencias.sql']) {
+      await db.exec(await readFile(new URL('../../../supabase/migrations/'+name,import.meta.url),'utf8'));
+    }
+    if (indicadores) for (const name of ['20261015120000_fge_tabla_indicadores.sql','20261015120100_fge_tabla_resultados.sql','20261015130000_fge_sprint6_rls.sql','20261017120000_fge_indicadores_integracion.sql']) {
       await db.exec(await readFile(new URL('../../../supabase/migrations/'+name,import.meta.url),'utf8'));
     }
     await db.exec(`INSERT INTO public.paises(codigo_iso,nombre) VALUES ('CL','Chile'),('AR','Argentina') ON CONFLICT DO NOTHING;`);
@@ -102,11 +106,22 @@ export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335' 
         const input=bytes.length?JSON.parse(bytes.toString()):null;
         const table=url.pathname.split('/').at(-1);
         if(table==='obtener_archivo_evidencia_publicada')return responder(200,(await como(token,tx=>tx.query('SELECT * FROM public.obtener_archivo_evidencia_publicada($1)',[input.p_id]))).rows.map(normalizar));
-        if(!['acciones','evidencias'].includes(table))return responder(404,{code:'NO_ENCONTRADA'});
+        if(indicadores && url.pathname.startsWith('/rest/v1/rpc/')) {
+          const functions={consultar_catalogo_indicadores:[],listar_indicadores_accion:['p_accion'],
+            asociar_indicadores_accion:['p_accion','p_indicadores'],actualizar_meta_indicador:['p_id','p_version','p_meta'],
+            guardar_resultado_indicador:['p_indicador','p_valor','p_fecha','p_observaciones','p_id','p_version'],
+            archivar_indicador_seguro:['p_id','p_version']};
+          if(!Object.hasOwn(functions,table)) return responder(404,{code:'PGRST202'});
+          const args=functions[table].map(k=>k==='p_indicadores'?JSON.stringify(input[k]):input[k]??null);
+          const placeholders=args.map((_,i)=>'$'+(i+1)).join(',');
+          const result=await como(token,tx=>tx.query('SELECT public.'+table+'('+placeholders+') AS data',args));
+          return responder(200,result.rows[0].data);
+        }
+        if(!['acciones','evidencias',...(indicadores?['indicadores','resultados']:[])].includes(table))return responder(404,{code:'NO_ENCONTRADA'});
         if(table==='evidencias'&&req.method==='PATCH'&&input.estado_carga==='disponible'&&fallarConfirmacion){fallarConfirmacion=false;return responder(503,{code:'QA_CONFIRMACION'});}
         const result=await como(token,async tx => {
           const values=[],filters=[];
-          for(const key of ['id_accion','id_evidencia','version']) {
+          for(const key of ['id_accion','id_evidencia','version','id_indicador','id_resultado']) {
             const value=url.searchParams.get(key);
             if(value){if(!value.startsWith('eq.'))throw new Error('Filtro no soportado');values.push(value.slice(3));filters.push(`${key}=$${values.length}`);}
           }
@@ -132,7 +147,8 @@ export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335' 
     const options={supabaseUrl,anonKey:'qa-anon'},repos=createSupabaseInterventionsRepositories(options);
     const serviceUrl=await escuchar(createInterventionsServer(
       createInterventionsApplication(repos.plans,repos.actions,repos.meetingMinutes,createSupabaseEvidencesRepository(options)),
-      createSupabasePublicEvidencesRepository({supabaseUrl,publicationKey:'qa-publication'})));
+      createSupabasePublicEvidencesRepository({supabaseUrl,publicationKey:'qa-publication'}),
+      createSupabaseIndicatorsRepository(options)));
     const authUrl=await escuchar(createAuthServer({application:createAuthApplication(createSupabaseAuthRepository(options),origin)}));
     const gatewayUrl=await escuchar(createGatewayServer({allowedOrigins:[origin],targets:{interventions:new URL(serviceUrl),auth:new URL(authUrl)}}));
     return {db,fixture,como,supabaseUrl,gatewayUrl,solicitudes,objetos,cerrar,usuarios,

@@ -20,7 +20,9 @@
     "test:e2e:actas": "playwright test --config playwright.actas.config.mjs",
     "test:e2e:programas": "playwright test programas.spec.mjs",
     "test:e2e:imagenes": "playwright test --config scripts/qa-imagenes.config.mjs",
-    "astro": "astro"
+    "astro": "astro",
+    "test:e2e:indicadores": "playwright test --config playwright.indicadores.config.mjs",
+    "test:e2e:indicadores:integracion": "playwright test --config playwright.indicadores-integracion.config.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",

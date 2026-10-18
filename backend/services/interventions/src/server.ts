@@ -1,3 +1,5 @@
+import { createSupabaseIndicatorsRepositoryFromEnv } from './infrastructure/supabase-indicators.repository.ts';
+import type { IndicatorsRepository } from './domain/indicators.ts';
 import { createServer, type Server } from 'node:http';
 import { readPort } from '../../../shared/config/src/index.ts';
 import { getRequestId, logEvent } from '../../../shared/observability/src/index.ts';
@@ -7,7 +9,7 @@ import { createSupabaseInterventionsRepositoriesFromEnv } from './infrastructure
 import { createSupabaseEvidencesRepositoryFromEnv } from './infrastructure/supabase-evidences.repository.ts';
 import { createSupabasePublicEvidencesRepositoryFromEnv, type PublicEvidencesRepository } from './infrastructure/supabase-public-evidences.repository.ts';
 
-export function createInterventionsServer(application?: InterventionsApplication, publications: PublicEvidencesRepository = createSupabasePublicEvidencesRepositoryFromEnv()): Server {
+export function createInterventionsServer(application?: InterventionsApplication, publications: PublicEvidencesRepository = createSupabasePublicEvidencesRepositoryFromEnv(), indicators: IndicatorsRepository = createSupabaseIndicatorsRepositoryFromEnv()): Server {
   const repositories = application ? undefined : createSupabaseInterventionsRepositoriesFromEnv();
   const resolved = application ?? createInterventionsApplication(
     repositories!.plans,
@@ -18,7 +20,7 @@ export function createInterventionsServer(application?: InterventionsApplication
   return createServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'interventions.request', { requestId, method: request.method, path: request.url });
-    await routeInterventions(request, response, requestId, resolved, publications);
+    await routeInterventions(request, response, requestId, resolved, publications, indicators);
   });
 }
 
