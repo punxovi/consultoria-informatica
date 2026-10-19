@@ -52,9 +52,11 @@ const passwordToggle = showPasswordToggle && type === 'password';
 ---
 
 <div class="flex flex-col gap-1.5">
-  <label for={id} class="text-sm font-medium text-neutral-800">
+  <label for={id} class="text-sm font-semibold text-[#383165]">
     {label}
-    {required && <span class="ml-0.5 text-danger" aria-hidden="true">*</span>}
+    {required && (
+      <span class="ml-0.5 text-[#C81E5B]" aria-hidden="true">*</span>
+    )}
   </label>
 
   <div class="relative">
@@ -72,19 +74,28 @@ const passwordToggle = showPasswordToggle && type === 'password';
       step={step}
       aria-invalid={error ? 'true' : 'false'}
       aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
-      class={`min-h-[48px] w-full rounded-lg border px-3 py-2 text-base
-        focus:outline-none focus:ring-2 focus:ring-primary
-        ${passwordToggle ? 'pr-12' : ''}
-        ${error ? 'border-danger' : 'border-neutral-300'} ${className}`}
+      class:list={[
+        'min-h-[48px] w-full rounded-xl border bg-white px-3.5 py-2.5',
+        'text-base text-[#1A1A1A] placeholder:text-[#A09FA2]',
+        'transition-colors duration-150',
+        'focus:outline-none focus:ring-2',
+        passwordToggle && 'pr-12',
+        error
+          ? 'border-[#C81E5B] focus:border-[#C81E5B] focus:ring-[#FCE8F0]'
+          : 'border-[#DCD8E8] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:ring-[#EAE8F5]',
+        className,
+      ]}
     />
 
     {passwordToggle && (
       <button
         type="button"
-        class="password-toggle absolute right-3 top-1/2 -translate-y-1/2
-          inline-flex h-9 w-9 items-center justify-center rounded-md
-          text-neutral-500 hover:bg-neutral-100 hover:text-primary
-          focus:outline-none focus:ring-2 focus:ring-primary"
+        class="password-toggle absolute right-2 top-1/2 inline-flex
+          h-9 w-9 -translate-y-1/2 items-center justify-center
+          rounded-lg text-[#706E78] transition-colors
+          hover:bg-[#F0EEF8] hover:text-[#4C4688]
+          focus-visible:outline-none focus-visible:ring-2
+          focus-visible:ring-[#4C4688]"
         data-password-toggle={id}
         aria-label="Mostrar contraseña"
         aria-pressed="false"
@@ -110,11 +121,13 @@ const passwordToggle = showPasswordToggle && type === 'password';
   </div>
 
   {hint && !error && (
-    <p id={`${id}-hint`} class="text-sm text-neutral-500">{hint}</p>
+    <p id={`${id}-hint`} class="text-sm leading-5 text-[#706E78]">
+      {hint}
+    </p>
   )}
 
   {error && (
-    <p id={`${id}-error`} class="text-sm text-danger" role="alert">
+    <p id={`${id}-error`} class="text-sm leading-5 text-[#AD174F]" role="alert">
       {error}
     </p>
   )}
@@ -122,40 +135,40 @@ const passwordToggle = showPasswordToggle && type === 'password';
 
 {passwordToggle && (
   <script>
-    document.querySelectorAll<HTMLButtonElement>('[data-password-toggle]').forEach((button) => {
-      if (button.dataset.initialized) return;
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-password-toggle]')
+      .forEach((button) => {
+        if (button.dataset.initialized) return;
+        button.dataset.initialized = 'true';
 
-      button.dataset.initialized = 'true';
+        button.addEventListener('click', () => {
+          const inputId = button.dataset.passwordToggle;
+          if (!inputId) return;
 
-      button.addEventListener('click', () => {
-        const inputId = button.dataset.passwordToggle;
-        if (!inputId) return;
+          const input = document.getElementById(inputId) as HTMLInputElement | null;
+          if (!input) return;
 
-        const input = document.getElementById(inputId) as HTMLInputElement | null;
-        if (!input) return;
+          const showing = input.type === 'text';
+          input.type = showing ? 'password' : 'text';
 
-        const showing = input.type === 'text';
-        input.type = showing ? 'password' : 'text';
+          button.setAttribute(
+            'aria-label',
+            showing ? 'Mostrar contraseña' : 'Ocultar contraseña'
+          );
+          button.setAttribute('aria-pressed', String(!showing));
 
-        button.setAttribute(
-          'aria-label',
-          showing ? 'Mostrar contraseña' : 'Ocultar contraseña'
-        );
-
-        button.setAttribute('aria-pressed', String(!showing));
-
-        button.innerHTML = showing
-          ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z"/>
-              <circle cx="12" cy="12" r="2.5"/>
-            </svg>`
-          : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18"/>
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.58 10.58a2 2 0 0 0 2.84 2.84"/>
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.88 5.09A10.8 10.8 0 0 1 12 4.88c6.25 0 9.75 6 9.75 6a18.4 18.4 0 0 1-3.07 3.73"/>
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.61 6.61C3.88 8.37 2.25 10.88 2.25 10.88s3.5 6 9.75 6a10.8 10.8 0 0 0 2.12-.21"/>
-            </svg>`;
+          button.innerHTML = showing
+            ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z"/>
+                <circle cx="12" cy="12" r="2.5"/>
+              </svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.58 10.58a2 2 0 0 0 2.84 2.84"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.88 5.09A10.8 10.8 0 0 1 12 4.88c6.25 0 9.75 6 9.75 6a18.4 18.4 0 0 1-3.07 3.73"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.61 6.61C3.88 8.37 2.25 10.88 2.25 10.88s3.5 6 9.75 6a10.8 10.8 0 0 0 2.12-.21"/>
+              </svg>`;
+        });
       });
-    });
   </script>
 )}

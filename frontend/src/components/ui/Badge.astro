@@ -1,7 +1,8 @@
 ---
-// RNF13: la identificación de estados del semáforo debe incluir íconos o
-// etiquetas de texto, para no depender únicamente del color (accesibilidad
-// para personas con daltonismo).
+/*
+ * RNF13: los estados deben identificarse mediante símbolos o texto,
+ * y no depender únicamente del color.
+ */
 
 interface Props {
   id?: string;
@@ -9,31 +10,47 @@ interface Props {
   class?: string;
 }
 
-const { id, variant = 'neutral', class: className = '' } = Astro.props;
+const {
+  id,
+  variant = 'neutral',
+  class: className = '',
+} = Astro.props;
 
 const variants = {
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
-  danger: 'bg-danger/10 text-danger',
-  neutral: 'bg-neutral-100 text-neutral-600',
-  info: 'bg-primary/10 text-primary',
+  success:
+    'border-[#BDE8D6] bg-[#E5F6EE] text-[#16794F]',
+
+  warning:
+    'border-[#F5D989] bg-[#FFF5D9] text-[#805600]',
+
+  danger:
+    'border-[#F5C4D6] bg-[#FCE8F0] text-[#AD174F]',
+
+  neutral:
+    'border-[#E5E1EE] bg-[#F5F3F9] text-[#625E70]',
+
+  info:
+    'border-[#D8D2F0] bg-[#EFEDFA] text-[#4C4688]',
 };
 
-// Formas distintas por variante, no solo color: útil para el semáforo de
-// Acciones (RF57-RF59) y para no depender del color en pantallas.
 const shapes = {
-  success: '●',
+  success: '✓',
   warning: '▲',
-  danger: '■',
+  danger: '!',
   neutral: '○',
-  info: 'ℹ',
+  info: 'i',
 };
 ---
 
 <span
   id={id}
-  class={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${variants[variant]} ${className}`}
+  class:list={[
+    'inline-flex min-h-6 items-center gap-1.5 rounded-full border',
+    'px-3 py-1 text-xs font-semibold leading-none',
+    variants[variant],
+    className,
+  ]}
 >
-  <span aria-hidden="true">{shapes[variant]}</span>
+  <span aria-hidden="true" class="text-[11px]">{shapes[variant]}</span>
   <slot />
 </span>
