@@ -28,6 +28,27 @@ export {
 export type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput };
 export { parseCamposDiagnostico, parseActualizarDiagnosticoInput } from './diagnosticos.ts';
 
+export type {
+  Donation,
+  DonationFile,
+  DownloadedFile,
+  CreateDonationInput,
+  CreateDonationFileInput,
+  UploadDonationFileInput,
+  TipoRespaldo,
+} from './donations.ts';
+export {
+  TIPOS_RESPALDO,
+  createDonationSchema,
+  createDonationFileSchema,
+  uploadDonationFileSchema,
+  parseCreateDonation,
+  parseCreateDonationFile,
+  parseUploadDonationFile,
+  assertFileSignature,
+  normalizarTipoRespaldo,
+} from './donations.ts';
+
 export const ORGANIZATION_TYPES = [
   'comedor_merendero',
   'centro_comunitario',
@@ -161,6 +182,21 @@ export interface OrganizationsRepository {
     changes: CamposDiagnostico,
     expectedVersion: number,
   ): Promise<Diagnostico>;
+  listDonations(accessToken: string, orgId: string): Promise<Donation[]>;
+  getDonationById(accessToken: string, orgId: string, donationId: string): Promise<Donation>;
+  createDonation(accessToken: string, orgId: string, input: CreateDonationInput): Promise<Donation>;
+  listDonationFiles(accessToken: string, donationId: string): Promise<DonationFile[]>;
+  getDonationFileById(accessToken: string, donationId: string, fileId: string): Promise<DonationFile>;
+  reserveDonationFile(accessToken: string, donationId: string, input: CreateDonationFileInput): Promise<DonationFile>;
+  uploadDonationFile(
+    accessToken: string,
+    donationId: string,
+    fileId: string,
+    expectedVersion: number,
+    bytes: Buffer,
+    mimeType: string,
+  ): Promise<DonationFile>;
+  downloadDonationFile(accessToken: string, donationId: string, fileId: string): Promise<DownloadedFile>;
 }
 
 

@@ -12,9 +12,12 @@ import {
   parseCamposCompromiso,
   parseActualizarCompromisoInput,
   parseCamposDiagnostico,
-  parseActualizarDiagnosticoInput
+  parseActualizarDiagnosticoInput,
+  parseCreateDonation,
+  parseCreateDonationFile,
+  parseUploadDonationFile,
 } from '../domain/organizations.ts';
-import { readJsonBody, readMultipartBody } from './body.ts';
+import { readJsonBody, readMultipartBody, readBinaryFile } from './body.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -65,6 +68,13 @@ export async function routeOrganizations(
           'diagnosticos:create',
           'diagnosticos:detail',
           'diagnosticos:update',
+          'donations:list',
+          'donations:detail',
+          'donations:create',
+          'donations:files:list',
+          'donations:files:reserve',
+          'donations:files:upload',
+          'donations:files:download',
         ],
       }), requestId);
       return;
@@ -194,6 +204,141 @@ export async function routeOrganizations(
           const input = parseActualizarDiagnosticoInput(await readJsonBody(request));
           const diagnostico = await application.updateDiagnostico(token, orgId, diagnosticoId, input);
           respond(response, 200, success('DIAGNOSTICO_ACTUALIZADO', 'El diagnóstico fue actualizado correctamente.', { diagnostico }), requestId);
+          return;
+        }
+      }
+    }
+
+    // Rutas para Donaciones y Respaldos Documentales
+    const orgDonationsMatch = url.pathname.match(
+      /^\/v1\/organizations\/([^/]+)\/donations(?:\/([^/]+)(?:\/files(?:\/([^/]+)(?:\/file)?)?)?)?$/
+    );
+    if (orgDonationsMatch) {
+      const orgId = parseUuid(decodeURIComponent(orgDonationsMatch[1]), 'La organización');
+      const donationId = orgDonationsMatch[2] ? parseUuid(decodeURIComponent(orgDonationsMatch[2]), 'La donación') : undefined;
+      const fileId = orgDonationsMatch[3] ? parseUuid(decodeURIComponent(orgDonationsMatch[3]), 'El archivo de respaldo') : undefined;
+
+      if (!donationId) {
+        if (request.method === 'GET') {
+          const donaciones = await application.listDonations(token, orgId);
+          respond(response, 200, success('DONACIONES_LISTADAS', 'Las donaciones fueron consultadas correctamente.', { donations: donaciones }), requestId);
+          return;
+        }
+        if (request.method === 'POST') {
+          const body = await readJsonBody(request);
+          const fields = parseCreateDonation(body);
+          const donation = await application.createDonation(token, orgId, fields);
+          respond(response, 201, success('DONACION_CREADA', 'La donación fue creada correctamente.', { donation }), requestId);
+          return;
+        }
+      } else if (!fileId) {
+        if (url.pathname.endsWith('/files')) {
+          if (request.method === 'GET') {
+            const files = await application.listDonationFiles(token, donationId);
+            respond(response, 200, success('RESPALDOS_LISTADOS', 'Los respaldos de la donación fueron consultados correctamente.', { files }), requestId);
+            return;
+          }
+          if (request.method === 'POST') {
+            const body = await readJsonBody(request);
+            const input = parseCreateDonationFile(body);
+            const file = await application.reserveDonationFile(token, donationId, input);
+            respond(response, 201, success('RESPALDO_RESERVADO', 'El archivo de respaldo fue reservado. Ahora carga el archivo.', { file }), requestId);
+            return;
+          }
+        } else {
+          if (request.method === 'GET') {
+            const donation = await application.getDonationById(token, orgId, donationId);
+            respond(response, 200, success('DONACION_OBTENIDA', 'La donación fue consultada correctamente.', { donation }), requestId);
+            return;
+          }
+        }
+      } else {
+        if (request.method === 'PUT') {
+          const parsed = parseUploadDonationFile({ version_esperada: Number(url.searchParams.get('version_esperada')) });
+          const item = await application.getDonationFileById(token, donationId, fileId);
+          const mimeType = request.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? '';
+          if (mimeType !== item.mime_type) {
+            throw new ServiceError('ARCHIVO_INVALIDO', 'El tipo del archivo no coincide con el registro.', 400);
+          }
+          const bytes = await readBinaryFile(request, item.tamano_bytes);
+          const file = await application.uploadDonationFile(token, donationId, fileId, parsed.version_esperada, bytes, mimeType);
+          respond(response, 200, success('ARCHIVO_CARGADO', 'El archivo fue cargado correctamente.', { file }), requestId);
+          return;
+        }
+        if (request.method === 'GET') {
+          if (url.pathname.endsWith('/file') || url.searchParams.get('download') === 'true') {
+            const file = await application.downloadDonationFile(token, donationId, fileId);
+            response.statusCode = 200;
+            response.setHeader('content-type', file.mimeType);
+            response.setHeader('content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+            response.setHeader('cache-control', 'private, no-store');
+            response.setHeader('x-content-type-options', 'nosniff');
+            response.setHeader('x-request-id', requestId);
+            response.end(file.bytes);
+            return;
+          }
+          const file = await application.getDonationFileById(token, donationId, fileId);
+          respond(response, 200, success('RESPALDO_OBTENIDO', 'El respaldo fue consultado correctamente.', { file }), requestId);
+          return;
+        }
+      }
+    }
+
+    const directDonationMatch = url.pathname.match(
+      /^\/v1\/donations\/([^/]+)(?:\/files(?:\/([^/]+)(?:\/file)?)?)?$/
+    );
+    if (directDonationMatch) {
+      const donationId = parseUuid(decodeURIComponent(directDonationMatch[1]), 'La donación');
+      const fileId = directDonationMatch[2] ? parseUuid(decodeURIComponent(directDonationMatch[2]), 'El archivo de respaldo') : undefined;
+
+      if (!fileId) {
+        if (url.pathname.endsWith('/files')) {
+          if (request.method === 'GET') {
+            const files = await application.listDonationFiles(token, donationId);
+            respond(response, 200, success('RESPALDOS_LISTADOS', 'Los respaldos de la donación fueron consultados correctamente.', { files }), requestId);
+            return;
+          }
+          if (request.method === 'POST') {
+            const body = await readJsonBody(request);
+            const input = parseCreateDonationFile(body);
+            const file = await application.reserveDonationFile(token, donationId, input);
+            respond(response, 201, success('RESPALDO_RESERVADO', 'El archivo de respaldo fue reservado. Ahora carga el archivo.', { file }), requestId);
+            return;
+          }
+        } else {
+          if (request.method === 'GET') {
+            const donation = await application.getDonationById(token, '', donationId);
+            respond(response, 200, success('DONACION_OBTENIDA', 'La donación fue consultada correctamente.', { donation }), requestId);
+            return;
+          }
+        }
+      } else {
+        if (request.method === 'PUT') {
+          const parsed = parseUploadDonationFile({ version_esperada: Number(url.searchParams.get('version_esperada')) });
+          const item = await application.getDonationFileById(token, donationId, fileId);
+          const mimeType = request.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? '';
+          if (mimeType !== item.mime_type) {
+            throw new ServiceError('ARCHIVO_INVALIDO', 'El tipo del archivo no coincide con el registro.', 400);
+          }
+          const bytes = await readBinaryFile(request, item.tamano_bytes);
+          const file = await application.uploadDonationFile(token, donationId, fileId, parsed.version_esperada, bytes, mimeType);
+          respond(response, 200, success('ARCHIVO_CARGADO', 'El archivo fue cargado correctamente.', { file }), requestId);
+          return;
+        }
+        if (request.method === 'GET') {
+          if (url.pathname.endsWith('/file') || url.searchParams.get('download') === 'true') {
+            const file = await application.downloadDonationFile(token, donationId, fileId);
+            response.statusCode = 200;
+            response.setHeader('content-type', file.mimeType);
+            response.setHeader('content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+            response.setHeader('cache-control', 'private, no-store');
+            response.setHeader('x-content-type-options', 'nosniff');
+            response.setHeader('x-request-id', requestId);
+            response.end(file.bytes);
+            return;
+          }
+          const file = await application.getDonationFileById(token, donationId, fileId);
+          respond(response, 200, success('RESPALDO_OBTENIDO', 'El respaldo fue consultado correctamente.', { file }), requestId);
           return;
         }
       }

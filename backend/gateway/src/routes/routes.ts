@@ -44,9 +44,12 @@ export async function routeRequest(
   }
 
   const organizationsPrefix = `${API_PREFIX}/organizations`;
+  const donationsPrefix = `${API_PREFIX}/donations`;
   if (
     incomingUrl.pathname === organizationsPrefix ||
-    incomingUrl.pathname.startsWith(`${organizationsPrefix}/`)
+    incomingUrl.pathname.startsWith(`${organizationsPrefix}/`) ||
+    incomingUrl.pathname === donationsPrefix ||
+    incomingUrl.pathname.startsWith(`${donationsPrefix}/`)
   ) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
     const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);

@@ -63,6 +63,37 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     updateDiagnostico(accessToken: string, orgId: string, diagnosticoId: string, input: ActualizarDiagnosticoInput) {
       return repository.updateDiagnostico(accessToken, orgId, diagnosticoId, input.cambios, input.versionEsperada);
     },
+    listDonations(accessToken: string, orgId: string) {
+      return repository.listDonations(accessToken, orgId);
+    },
+    getDonationById(accessToken: string, orgId: string, donationId: string) {
+      return repository.getDonationById(accessToken, orgId, donationId);
+    },
+    createDonation(accessToken: string, orgId: string, input: import('../domain/organizations.ts').CreateDonationInput) {
+      return repository.createDonation(accessToken, orgId, input);
+    },
+    listDonationFiles(accessToken: string, donationId: string) {
+      return repository.listDonationFiles(accessToken, donationId);
+    },
+    getDonationFileById(accessToken: string, donationId: string, fileId: string) {
+      return repository.getDonationFileById(accessToken, donationId, fileId);
+    },
+    reserveDonationFile(accessToken: string, donationId: string, input: import('../domain/organizations.ts').CreateDonationFileInput) {
+      return repository.reserveDonationFile(accessToken, donationId, input);
+    },
+    uploadDonationFile(
+      accessToken: string,
+      donationId: string,
+      fileId: string,
+      expectedVersion: number,
+      bytes: Buffer,
+      mimeType: string,
+    ) {
+      return repository.uploadDonationFile(accessToken, donationId, fileId, expectedVersion, bytes, mimeType);
+    },
+    downloadDonationFile(accessToken: string, donationId: string, fileId: string) {
+      return repository.downloadDonationFile(accessToken, donationId, fileId);
+    },
   };
 }
 

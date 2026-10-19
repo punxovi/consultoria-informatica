@@ -147,6 +147,18 @@ describe('API Gateway', () => {
     }
   });
 
+  test('enruta Donaciones al servicio de Organizaciones conservando método y sesión', async () => {
+    const donationId = '77777777-7777-4777-8777-777777777777';
+    const response = await fetch(`${gatewayUrl}/api/v1/donations/${donationId}/files`, {
+      method: 'GET',
+      headers: { authorization: 'Bearer sesion-donaciones' },
+    });
+    const body = await response.json();
+    assert.equal(body.path, `/v1/donations/${donationId}/files`);
+    assert.equal(body.method, 'GET');
+    assert.equal(body.authorization, 'Bearer sesion-donaciones');
+  });
+
   test('enruta Programas conservando método y sesión', async () => {
     const response = await fetch(`${gatewayUrl}/api/v1/programs/22222222-2222-4222-8222-222222222222`, {
       method: 'PATCH',
