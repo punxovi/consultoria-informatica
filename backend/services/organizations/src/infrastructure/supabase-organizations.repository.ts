@@ -12,8 +12,13 @@ import type {
   SaveLegalRecordInput,
   Diagnostico,
   CamposDiagnostico,
+  Donation,
+  DonationFile,
+  DownloadedFile,
+  CreateDonationInput,
+  CreateDonationFileInput,
 } from '../domain/organizations.ts';
-import { LEGAL_DOCUMENT_TYPES } from '../domain/organizations.ts';
+import { LEGAL_DOCUMENT_TYPES, assertFileSignature, normalizarTipoRespaldo } from '../domain/organizations.ts';
 import type { Compromiso } from '../domain/compromisos.ts';
 
 interface RepositoryOptions {
@@ -21,6 +26,18 @@ interface RepositoryOptions {
   anonKey: string;
   fetchImpl?: typeof fetch;
 }
+
+const DONATION_FIELDS = [
+  'id_donacion', 'id_organizacion', 'fecha', 'tipo_movimiento', 'contraparte_nombre',
+  'descripcion', 'tipo_aporte', 'cantidad', 'unidad', 'monto', 'moneda',
+  'created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at', 'version',
+].join(',');
+
+const DONATION_FILE_FIELDS = [
+  'id_archivo', 'id_donacion', 'bucket_id', 'ruta_objeto', 'nombre_original',
+  'mime_type', 'tamano_bytes', 'categoria', 'tipo_respaldo', 'descripcion', 'estado_carga',
+  'created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at', 'version',
+].join(',');
 
 const ORGANIZATION_FIELDS = [
   'id_organizacion', 'id_pais', 'nombre', 'nombre_representante', 'telefono',
@@ -112,6 +129,26 @@ function country(value: unknown): CountrySummary {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un país inválido.', 502);
   }
   return data as unknown as CountrySummary;
+}
+
+function donation(value: unknown): Donation {
+  const data = record(value);
+  if (typeof data.id_donacion !== 'string' || typeof data.id_organizacion !== 'string') {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una donación inválida.', 502);
+  }
+  return data as unknown as Donation;
+}
+
+function donationFile(value: unknown): DonationFile {
+  const data = record(value);
+  if (typeof data.id_archivo !== 'string' || typeof data.id_donacion !== 'string') {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un archivo de donación inválido.', 502);
+  }
+  const tipoRespaldo = normalizarTipoRespaldo(String(data.tipo_respaldo || data.categoria || 'comprobante'));
+  return {
+    ...(data as unknown as DonationFile),
+    tipo_respaldo: tipoRespaldo,
+  };
 }
 
 export function createSupabaseOrganizationsRepository(options: RepositoryOptions): OrganizationsRepository {
@@ -444,6 +481,244 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       }
       return rows[0];
     },
+
+    async listDonations(accessToken: string, orgId: string): Promise<Donation[]> {
+      if (orgId) {
+        await organizationRows(accessToken, new URLSearchParams({
+          id_organizacion: `eq.${orgId}`,
+          archived_at: 'is.null',
+          limit: '1',
+        })).then((rows) => {
+          if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe.', 404);
+        });
+      }
+
+      const params = new URLSearchParams({
+        archived_at: 'is.null',
+        select: DONATION_FIELDS,
+        order: 'fecha.desc,created_at.desc',
+      });
+      if (orgId) {
+        params.set('id_organizacion', `eq.${orgId}`);
+      }
+      const body = await request('donaciones', accessToken, params);
+      if (!Array.isArray(body)) {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida de donaciones.', 502);
+      }
+      return body.map(donation);
+    },
+
+    async getDonationById(accessToken: string, orgId: string, donationId: string): Promise<Donation> {
+      const params = new URLSearchParams({
+        id_donacion: `eq.${donationId}`,
+        archived_at: 'is.null',
+        select: DONATION_FIELDS,
+        limit: '1',
+      });
+      if (orgId) {
+        params.set('id_organizacion', `eq.${orgId}`);
+      }
+      const body = await request('donaciones', accessToken, params);
+      if (!Array.isArray(body) || !body[0]) {
+        throw new ServiceError('NO_ENCONTRADA', 'La donación solicitada no existe o no está disponible.', 404);
+      }
+      return donation(body[0]);
+    },
+
+    async createDonation(accessToken: string, orgId: string, input: CreateDonationInput): Promise<Donation> {
+      await organizationRows(accessToken, new URLSearchParams({
+        id_organizacion: `eq.${orgId}`,
+        archived_at: 'is.null',
+        limit: '1',
+      })).then((rows) => {
+        if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe.', 404);
+      });
+
+      const payload = {
+        id_organizacion: orgId,
+        fecha: input.fecha,
+        tipo_movimiento: input.tipo_movimiento,
+        contraparte_nombre: input.contraparte_nombre,
+        descripcion: input.descripcion,
+        tipo_aporte: input.tipo_aporte,
+        monto: input.tipo_aporte === 'dinero' ? input.monto : null,
+        moneda: input.tipo_aporte === 'dinero' ? input.moneda : null,
+        cantidad: input.tipo_aporte === 'recurso' ? input.cantidad : null,
+        unidad: input.tipo_aporte === 'recurso' ? input.unidad : null,
+      };
+
+      const body = await request('donaciones', accessToken, new URLSearchParams({ select: DONATION_FIELDS }), {
+        method: 'POST',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!Array.isArray(body) || !body[0]) {
+        throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible registrar la donación.', 502);
+      }
+      return donation(body[0]);
+    },
+
+    async listDonationFiles(accessToken: string, donationId: string): Promise<DonationFile[]> {
+      const params = new URLSearchParams({
+        id_donacion: `eq.${donationId}`,
+        archived_at: 'is.null',
+        select: DONATION_FILE_FIELDS,
+        order: 'created_at.desc',
+      });
+      const body = await request('archivos', accessToken, params);
+      if (!Array.isArray(body)) {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida de archivos.', 502);
+      }
+      return body.map(donationFile);
+    },
+
+    async getDonationFileById(accessToken: string, donationId: string, fileId: string): Promise<DonationFile> {
+      const params = new URLSearchParams({
+        id_archivo: `eq.${fileId}`,
+        archived_at: 'is.null',
+        select: DONATION_FILE_FIELDS,
+        limit: '1',
+      });
+      if (donationId) {
+        params.set('id_donacion', `eq.${donationId}`);
+      }
+      const body = await request('archivos', accessToken, params);
+      if (!Array.isArray(body) || !body[0]) {
+        throw new ServiceError('NO_ENCONTRADO', 'El archivo de respaldo no existe o no está disponible.', 404);
+      }
+      return donationFile(body[0]);
+    },
+
+    async reserveDonationFile(accessToken: string, donationId: string, input: CreateDonationFileInput): Promise<DonationFile> {
+      const donFound = await request('donaciones', accessToken, new URLSearchParams({
+        id_donacion: `eq.${donationId}`,
+        archived_at: 'is.null',
+        select: 'id_donacion,id_organizacion',
+        limit: '1',
+      }));
+      if (!Array.isArray(donFound) || !donFound[0]) {
+        throw new ServiceError('NO_ENCONTRADA', 'La donación indicada no existe o no está disponible.', 404);
+      }
+
+      const fileId = randomUUID();
+      const ext = input.nombre_original.split('.').at(-1)?.toLowerCase() || 'bin';
+      const rutaObjeto = `donaciones/${donationId}/${fileId}.${ext}`;
+
+      const payload = {
+        id_archivo: fileId,
+        id_donacion: donationId,
+        bucket_id: 'fge-archivos',
+        ruta_objeto: rutaObjeto,
+        nombre_original: input.nombre_original,
+        mime_type: input.mime_type,
+        tamano_bytes: input.tamano_bytes,
+        categoria: input.tipo_respaldo,
+        tipo_respaldo: input.tipo_respaldo,
+        descripcion: input.descripcion ?? null,
+        estado_carga: 'reservado',
+      };
+
+      const created = await request('archivos', accessToken, new URLSearchParams({ select: DONATION_FILE_FIELDS }), {
+        method: 'POST',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!Array.isArray(created) || !created[0]) {
+        throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible reservar los metadatos del archivo de respaldo.', 502);
+      }
+      return donationFile(created[0]);
+    },
+
+    async uploadDonationFile(
+      accessToken: string,
+      donationId: string,
+      fileId: string,
+      expectedVersion: number,
+      bytes: Buffer,
+      mimeType: string,
+    ): Promise<DonationFile> {
+      const file = await this.getDonationFileById(accessToken, donationId, fileId);
+      if (file.version !== expectedVersion) {
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El archivo cambió. Recarga antes de cargarlo.', 409);
+      }
+      if (file.estado_carga !== 'reservado') {
+        throw new ServiceError('CARGA_NO_DISPONIBLE', 'Este archivo ya no acepta cargas.', 409);
+      }
+      if (mimeType !== file.mime_type || bytes.length !== file.tamano_bytes) {
+        throw new ServiceError('ARCHIVO_INVALIDO', 'El tipo o tamaño no coincide con los metadatos registrados.', 400);
+      }
+      assertFileSignature(bytes, mimeType);
+
+      const response = await fetchImpl(`${baseUrl}/storage/v1/object/fge-archivos/${file.ruta_objeto}`, {
+        method: 'POST',
+        headers: {
+          apikey: options.anonKey,
+          authorization: `Bearer ${accessToken}`,
+          'content-type': file.mime_type,
+          'x-upsert': 'false',
+        },
+        body: bytes,
+      }).catch((err) => {
+        throw new ServiceError('STORAGE_NO_DISPONIBLE', 'No fue posible conectar con el servicio de almacenamiento.', 503, err);
+      });
+
+      if (!response.ok) {
+        await request('archivos', accessToken, new URLSearchParams({ id_archivo: `eq.${fileId}` }), {
+          method: 'PATCH',
+          body: JSON.stringify({ estado_carga: 'fallido' }),
+        }).catch(() => null);
+
+        if (response.status === 401 || response.status === 403) {
+          throw new ServiceError('SIN_PERMISO', 'No tienes permiso para almacenar este archivo.', response.status);
+        }
+        throw new ServiceError('ERROR_STORAGE', 'Falló la subida del archivo al almacenamiento. Puedes reintentar.', 502);
+      }
+
+      const updated = await request('archivos', accessToken, new URLSearchParams({
+        id_archivo: `eq.${fileId}`,
+        version: `eq.${expectedVersion}`,
+        select: DONATION_FILE_FIELDS,
+      }), {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({ estado_carga: 'disponible' }),
+      });
+
+      if (!Array.isArray(updated) || !updated[0]) {
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'No fue posible confirmar la carga del archivo.', 409);
+      }
+      return donationFile(updated[0]);
+    },
+
+    async downloadDonationFile(accessToken: string, donationId: string, fileId: string): Promise<DownloadedFile> {
+      const file = await this.getDonationFileById(accessToken, donationId, fileId);
+      if (file.estado_carga !== 'disponible') {
+        throw new ServiceError('ARCHIVO_NO_DISPONIBLE', 'El archivo aún no está disponible para descarga.', 409);
+      }
+      const response = await fetchImpl(`${baseUrl}/storage/v1/object/fge-archivos/${file.ruta_objeto}`, {
+        method: 'GET',
+        headers: {
+          apikey: options.anonKey,
+          authorization: `Bearer ${accessToken}`,
+        },
+      }).catch((err) => {
+        throw new ServiceError('STORAGE_NO_DISPONIBLE', 'No fue posible conectar con el servicio de almacenamiento.', 503, err);
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) throw new ServiceError('ARCHIVO_NO_ENCONTRADO', 'El archivo no fue encontrado en Storage.', 404);
+        if (response.status === 401 || response.status === 403) throw new ServiceError('SIN_PERMISO', 'No tienes permiso para descargar este archivo.', response.status);
+        throw new ServiceError('ERROR_STORAGE', 'No fue posible descargar el archivo.', 502);
+      }
+      const bytes = Buffer.from(await response.arrayBuffer());
+      return {
+        bytes,
+        mimeType: file.mime_type,
+        fileName: file.nombre_original,
+      };
+    },
   };
 }
 
@@ -473,6 +748,14 @@ function unconfiguredRepository(): OrganizationsRepository {
     createDiagnostico: unavailable,
     getDiagnosticoById: unavailable,
     updateDiagnostico: unavailable,
+    listDonations: unavailable,
+    getDonationById: unavailable,
+    createDonation: unavailable,
+    listDonationFiles: unavailable,
+    getDonationFileById: unavailable,
+    reserveDonationFile: unavailable,
+    uploadDonationFile: unavailable,
+    downloadDonationFile: unavailable,
   };
 }
 
