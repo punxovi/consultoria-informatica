@@ -6,9 +6,22 @@ export const numeroFormularioSchema = z.string().trim()
   .min(1, 'Ingresa un valor.').regex(/^\d+(?:[.,]\d+)?$/, 'Ingresa un número mayor o igual a cero.')
   .transform(v => Number(v.replace(',', '.')))
   .pipe(cantidadSchema);
-export const fechaSchema = z.string().refine(v => /^\d{4}-\d{2}-\d{2}$/.test(v) &&
-  v.slice(0, 4) !== '0000' && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v,
-  'Ingresa una fecha de medición válida.');
+export const fechaSchema = z.string().refine(v => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [yearStr] = v.split('-');
+  const year = Number(yearStr);
+  const fecha = new Date(`${v}T00:00:00Z`);
+  const hoy = new Date();
+  
+  // Validar formato, rango de años lógicos (2000-2100) y que no sea una fecha futura
+  return (
+    year >= 2000 &&
+    year <= 2100 &&
+    !Number.isNaN(fecha.getTime()) &&
+    fecha.toISOString().slice(0, 10) === v &&
+    fecha <= hoy
+  );
+}, 'Ingresa una fecha de medición válida y que no sea futura.');
 export const resultadoFormularioSchema = z.object({
   valor_medido: numeroFormularioSchema,
   fecha_medicion: fechaSchema,

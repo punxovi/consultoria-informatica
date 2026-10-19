@@ -8,11 +8,18 @@ const uuidSchema = z.string().regex(
 
 const fechaIsoSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
   message: 'La fecha de medición debe tener el formato YYYY-MM-DD.',
+}).refine((val) => {
+  const fecha = new Date(val);
+  const hoy = new Date();
+  // Validar que sea una fecha válida y no una fecha en un futuro lejano o pasado imposible
+  return !isNaN(fecha.getTime()) && fecha <= hoy;
+}, {
+  message: 'La fecha de medición no puede ser una fecha futura.',
 });
 
 export const crearResultadoZodSchema = z.object({
   id_indicador: uuidSchema,
-  valor_medido: z.number({ message: 'El valor medido es obligatorio y debe ser numérico.' }),
+  valor_medido: z.number({ message: 'El valor medido es obligatorio y debe ser numérico.' }).nonnegative({ message: 'El valor medido no puede ser negativo.' }),
   fecha_medicion: fechaIsoSchema,
   observaciones: z.string().trim().max(1000, { message: 'Las observaciones no pueden superar los 1000 caracteres.' }).nullable().optional(),
 }).strict();
@@ -20,7 +27,7 @@ export const crearResultadoZodSchema = z.object({
 export const actualizarResultadoZodSchema = z.object({
   version_esperada: z.number().int().min(1, { message: 'La versión esperada debe ser un entero mayor que cero.' }).optional(),
   cambios: z.object({
-    valor_medido: z.number().optional(),
+    valor_medido: z.number().nonnegative({ message: 'El valor medido no puede ser negativo.' }).optional(),
     fecha_medicion: fechaIsoSchema.optional(),
     observaciones: z.string().trim().max(1000).nullable().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
