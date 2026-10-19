@@ -26,6 +26,7 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
       '20261004185000_fge_rls_organizaciones.sql',
       '20261004185001_fge_permisos_organizaciones.sql',
       '20261019120000_fge_donaciones_respaldos.sql',
+      '20261019130000_fge_scrum134_donaciones_rls.sql',
     ]) {
       await db.exec(await migracion(nombre));
     }
