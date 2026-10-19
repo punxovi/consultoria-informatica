@@ -8,13 +8,17 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,32,'Se esperaban treinta y dos migraciones');
+assert.equal(files.length,46,'Se esperan cuarenta y seis migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
  triggerPerfiles,
  '20260916143000_fge_obtener_roles_usuario.sql',
  '20260916221136_organizaciones_datos_parciales_20260916.sql',
+ '20261008000000_fge_tabla_compromisos.sql',
+ '20261008000001_fge_tabla_diagnosticos.sql',
+ '20261015120000_fge_tabla_indicadores.sql',
+ '20261015120100_fge_tabla_resultados.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  assert.ok(files[i]==='20260916221136_organizaciones_datos_parciales_20260916.sql' || /^\d{14}_fge_.+\.sql$/.test(files[i]),'Nombre de migración válido');
@@ -31,7 +35,7 @@ for (let i=0;i<files.length;i++) {
 }
 const allSql=sql.join('\n');
 const tables=[...allSql.matchAll(/CREATE TABLE public\.(\w+) \(([\s\S]*?)\n\);/g)];
-assert.equal(tables.length,28,'28 tablas public');
+assert.equal(tables.length,29,'29 tablas public');
 const known=new Set();
 for(const [,name,body] of tables) {
  assert.ok(!known.has(name),'Tabla única');
@@ -90,6 +94,12 @@ const allowedSecurityDefiner=new Set([
  '20261002010000_fge_archivar_planes_acciones.sql',
  '20261002120000_fge_reforzar_rls_planes_acciones.sql',
  '20261002225137_fge_auditoria_planes_acciones.sql',
+ '20261010120000_fge_actas_integracion.sql',
+ '20261010140000_fge_compromisos_integracion.sql',
+ '20261013120000_fge_evidencias.sql',
+ '20261015130000_fge_sprint6_rls.sql',
+ '20261019120000_fge_donaciones_respaldos.sql',
+ '20261019130000_fge_scrum134_donaciones_rls.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  if (/SECURITY DEFINER/i.test(sql[i])) {
