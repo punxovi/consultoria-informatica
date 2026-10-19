@@ -53,12 +53,13 @@ const sizes = {
   lg: 'min-h-12 min-w-12 px-6 py-3 text-base',
 };
 
-const disabledClasses = disabled
-  ? 'pointer-events-none cursor-not-allowed opacity-50'
-  : '';
+const disabledLinkClasses =
+  href && disabled
+    ? 'pointer-events-none cursor-not-allowed opacity-50'
+    : '';
 
 const classes =
-  `${base} ${variants[variant]} ${sizes[size]} ${disabledClasses} ${className}`;
+  `${base} ${variants[variant]} ${sizes[size]} ${disabledLinkClasses} ${className}`;
 
 const Tag = href ? 'a' : 'button';
 ---
