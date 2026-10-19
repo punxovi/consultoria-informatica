@@ -1,62 +1,238 @@
+
 ---
 import Button from './Button.astro';
-interface Props { tipo: 'plan' | 'accion'; id: string; regreso: string }
+
+interface Props {
+  tipo: 'plan' | 'accion';
+  id: string;
+  regreso: string;
+}
+
 const { tipo, id, regreso } = Astro.props;
 const nombre = tipo === 'plan' ? 'plan' : 'acción';
 ---
-<div id="eliminar-registro" data-tipo={tipo} data-id={id} data-regreso={regreso} class="space-y-3">
-  <Button id="abrir-eliminar" variant="danger">Eliminar {nombre}</Button>
-  <dialog id="confirmar-eliminar" aria-labelledby="eliminar-titulo" class="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-xl border border-neutral-200 p-6 shadow-xl backdrop:bg-black/40">
-    <h2 id="eliminar-titulo" class="text-xl font-bold">¿Eliminar este {nombre}?</h2>
-    <p class="mt-3 text-neutral-700">{tipo === 'plan' ? 'El plan y todas sus acciones dejarán de aparecer en los listados. Se conservará su historial.' : 'La acción dejará de aparecer en el plan. Se conservará su historial.'}</p>
-    <p id="eliminar-error" hidden role="alert" class="mt-3 text-red-800"></p>
-    <p id="eliminar-estado" role="status" aria-live="polite" class="mt-3"></p>
-    <div class="mt-5 flex flex-wrap justify-end gap-3">
-      <Button id="cancelar-eliminar" variant="outline">Cancelar</Button>
-      <Button id="aceptar-eliminar" variant="danger">Confirmar eliminación</Button>
+
+<div
+  id="eliminar-registro"
+  data-tipo={tipo}
+  data-id={id}
+  data-regreso={regreso}
+  class="space-y-3"
+>
+  <Button id="abrir-eliminar" variant="danger">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
+    </svg>
+    Eliminar {nombre}
+  </Button>
+
+  <dialog
+    id="confirmar-eliminar"
+    aria-labelledby="eliminar-titulo"
+    aria-describedby="eliminar-descripcion"
+    class="m-auto w-[calc(100%_-_2rem)] max-w-lg
+      rounded-2xl border border-[#E8E5EF] bg-white p-0
+      text-[#1A1A1A] shadow-[0_20px_60px_rgba(26,26,26,0.2)]
+      backdrop:bg-[#1A1A1A]/50"
+  >
+    <div class="border-b border-[#EEEAF5] px-6 py-5">
+      <div class="flex items-start gap-4">
+        <div
+          class="flex h-12 w-12 shrink-0 items-center justify-center
+            rounded-xl bg-[#FCE8F0] text-[#AD174F]"
+          aria-hidden="true"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 9v4m0 4h.01" />
+            <path d="M10.3 4.8 2.9 17.5A1.8 1.8 0 0 0 4.5 20h15a1.8 1.8 0 0 0 1.6-2.5L13.7 4.8a2 2 0 0 0-3.4 0Z" />
+          </svg>
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <h2
+            id="eliminar-titulo"
+            class="text-lg font-bold tracking-tight text-[#383165] md:text-xl"
+          >
+            ¿Eliminar este {nombre}?
+          </h2>
+          <p class="mt-1 text-sm text-[#706E78]">
+            Confirma que deseas continuar con esta operación.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-5">
+      <p id="eliminar-descripcion" class="text-sm leading-6 text-[#4A4850]">
+        {
+          tipo === 'plan'
+            ? 'El plan y todas sus acciones dejarán de aparecer en los listados. Se conservará su historial.'
+            : 'La acción dejará de aparecer en el plan. Se conservará su historial.'
+        }
+      </p>
+
+      <div
+        class="mt-4 rounded-xl border border-[#F5D989]
+          bg-[#FFF8E5] px-4 py-3"
+      >
+        <p class="text-sm leading-5 text-[#805600]">
+          Esta operación modificará los registros del sistema. Revisa la
+          información antes de confirmar.
+        </p>
+      </div>
+
+      <p
+        id="eliminar-error"
+        hidden
+        role="alert"
+        class="mt-4 rounded-lg border border-[#F5C4D6]
+          bg-[#FCE8F0] p-3 text-sm text-[#AD174F]"
+      ></p>
+
+      <p
+        id="eliminar-estado"
+        role="status"
+        aria-live="polite"
+        class="mt-3 text-sm text-[#706E78]"
+      ></p>
+    </div>
+
+    <div
+      class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5]
+        bg-[#FAF9FC] px-6 py-4 sm:flex-row sm:justify-end"
+    >
+      <Button id="cancelar-eliminar" variant="outline">
+        Cancelar
+      </Button>
+
+      <Button id="aceptar-eliminar" variant="danger">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" />
+        </svg>
+        Confirmar eliminación
+      </Button>
     </div>
   </dialog>
 </div>
+
 <script>
   import { archivarAccion, ErrorSolicitudAccion } from '../../lib/acciones/cliente';
   import { archivarPlan } from '../../lib/planes/cliente';
   import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
-  const raiz = document.querySelector<HTMLElement>('#eliminar-registro')!;
-  const dialogo = document.querySelector<HTMLDialogElement>('#confirmar-eliminar')!;
-  const confirmar = document.querySelector<HTMLButtonElement>('#aceptar-eliminar')!;
-  const cancelar = document.querySelector<HTMLButtonElement>('#cancelar-eliminar')!;
-  const error = document.querySelector<HTMLElement>('#eliminar-error')!;
-  const estado = document.querySelector<HTMLElement>('#eliminar-estado')!;
-  let enviando = false;
-  document.querySelector('#abrir-eliminar')!.addEventListener('click', () => {
-    error.hidden = true;
-    estado.textContent = '';
-    dialogo.showModal();
-    cancelar.focus();
-  });
-  cancelar.addEventListener('click', () => { if (!enviando) dialogo.close(); });
-  dialogo.addEventListener('cancel', evento => { if (enviando) evento.preventDefault(); });
-  confirmar.addEventListener('click', async () => {
-    if (enviando) return;
-    const version = Number(raiz.dataset.version);
-    if (!Number.isInteger(version) || version < 1) return;
-    enviando = true;
-    confirmar.disabled = cancelar.disabled = true;
-    error.hidden = true;
-    estado.textContent = 'Eliminando…';
-    try {
-      if (raiz.dataset.tipo === 'plan') await archivarPlan(raiz.dataset.id!, version);
-      else await archivarAccion(raiz.dataset.id!, version);
-      location.assign(raiz.dataset.regreso!);
-    } catch (fallo) {
+
+  const raiz = document.querySelector<HTMLElement>('#eliminar-registro');
+  const dialogo = raiz?.querySelector<HTMLDialogElement>('#confirmar-eliminar');
+  const abrir = raiz?.querySelector<HTMLButtonElement>('#abrir-eliminar');
+  const confirmar = raiz?.querySelector<HTMLButtonElement>('#aceptar-eliminar');
+  const cancelar = raiz?.querySelector<HTMLButtonElement>('#cancelar-eliminar');
+  const error = raiz?.querySelector<HTMLElement>('#eliminar-error');
+  const estado = raiz?.querySelector<HTMLElement>('#eliminar-estado');
+
+  if (
+    raiz &&
+    dialogo &&
+    abrir &&
+    confirmar &&
+    cancelar &&
+    error &&
+    estado
+  ) {
+    let enviando = false;
+
+    abrir.addEventListener('click', () => {
+      if (enviando) return;
+
+      error.hidden = true;
       estado.textContent = '';
-      error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible eliminar.';
-      error.hidden = false;
-      enviando = false;
+      confirmar.disabled = false;
       cancelar.disabled = false;
-      confirmar.disabled =
-        (fallo instanceof ErrorSolicitudPlan || fallo instanceof ErrorSolicitudAccion) &&
-        fallo.codigo === 'CONFLICTO_CONCURRENCIA';
-    }
-  });
+
+      dialogo.showModal();
+      cancelar.focus();
+    });
+
+    cancelar.addEventListener('click', () => {
+      if (!enviando) dialogo.close();
+    });
+
+    dialogo.addEventListener('cancel', (evento) => {
+      if (enviando) evento.preventDefault();
+    });
+
+    confirmar.addEventListener('click', async () => {
+      if (enviando) return;
+
+      const version = Number(raiz.dataset.version);
+      if (!Number.isInteger(version) || version < 1) {
+        error.textContent =
+          'No se pudo verificar la versión del registro. Recarga la página e inténtalo nuevamente.';
+        error.hidden = false;
+        return;
+      }
+
+      enviando = true;
+      confirmar.disabled = true;
+      cancelar.disabled = true;
+      error.hidden = true;
+      estado.textContent = 'Procesando operación…';
+
+      try {
+        if (raiz.dataset.tipo === 'plan') {
+          await archivarPlan(raiz.dataset.id!, version);
+        } else {
+          await archivarAccion(raiz.dataset.id!, version);
+        }
+
+        estado.textContent = 'Operación completada. Redirigiendo…';
+        window.location.assign(raiz.dataset.regreso!);
+      } catch (fallo) {
+        estado.textContent = '';
+
+        error.textContent =
+          fallo instanceof Error
+            ? fallo.message
+            : 'No fue posible completar la operación.';
+
+        error.hidden = false;
+        enviando = false;
+        cancelar.disabled = false;
+
+        const conflicto =
+          (fallo instanceof ErrorSolicitudPlan ||
+            fallo instanceof ErrorSolicitudAccion) &&
+          fallo.codigo === 'CONFLICTO_CONCURRENCIA';
+
+        confirmar.disabled = Boolean(conflicto);
+      }
+    });
+  }
 </script>

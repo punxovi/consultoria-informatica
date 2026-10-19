@@ -20,36 +20,45 @@ const {
 } = Astro.props;
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-medium ' +
-  'transition-colors min-h-[48px] min-w-[48px] ' +
+  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold ' +
+  'transition-colors duration-150 ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
-  'disabled:opacity-50 disabled:cursor-not-allowed';
+  'disabled:cursor-not-allowed disabled:opacity-50';
 
 const variants = {
   primary:
-    'bg-primary text-white hover:bg-primary/90 focus-visible:ring-primary',
+    'bg-[#4C4688] text-white shadow-sm hover:bg-[#423C76] ' +
+    'focus-visible:ring-[#4C4688]',
 
   secondary:
-    'bg-secondary text-white hover:bg-secondary/90 focus-visible:ring-secondary',
+    'bg-[#423C76] text-white hover:bg-[#383165] ' +
+    'focus-visible:ring-[#423C76]',
 
   outline:
-    'border-2 border-primary text-primary bg-white hover:bg-primary/5 focus-visible:ring-primary',
+    'border border-[#4C4688] bg-white text-[#4C4688] ' +
+    'hover:bg-[#F0EEF8] focus-visible:ring-[#4C4688]',
 
   danger:
-    'bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger',
+    'bg-[#C81E5B] text-white hover:bg-[#AD174F] ' +
+    'focus-visible:ring-[#C81E5B]',
 
   ghost:
-    'text-primary font-semibold hover:bg-primary/10 focus-visible:ring-primary',
+    'bg-transparent text-[#4C4688] hover:bg-[#F0EEF8] ' +
+    'focus-visible:ring-[#4C4688]',
 };
 
 const sizes = {
-  sm: 'px-3 py-2 text-sm',
-  md: 'px-4 py-2.5 text-base',
-  lg: 'px-6 py-3 text-lg',
+  sm: 'min-h-10 min-w-10 px-3 py-2 text-sm',
+  md: 'min-h-11 min-w-11 px-4 py-2.5 text-sm md:text-base',
+  lg: 'min-h-12 min-w-12 px-6 py-3 text-base',
 };
 
+const disabledClasses = disabled
+  ? 'pointer-events-none cursor-not-allowed opacity-50'
+  : '';
+
 const classes =
-  `${base} ${variants[variant]} ${sizes[size]} ${className}`;
+  `${base} ${variants[variant]} ${sizes[size]} ${disabledClasses} ${className}`;
 
 const Tag = href ? 'a' : 'button';
 ---
@@ -57,9 +66,11 @@ const Tag = href ? 'a' : 'button';
 <Tag
   id={id}
   class={classes}
-  href={href}
+  href={disabled ? undefined : href}
   type={!href ? type : undefined}
-  disabled={!href && disabled}
+  disabled={!href ? disabled : undefined}
+  aria-disabled={disabled && href ? 'true' : undefined}
+  tabindex={disabled && href ? -1 : undefined}
 >
   <slot />
 </Tag>
