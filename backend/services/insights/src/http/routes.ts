@@ -3,7 +3,7 @@ import { authContext } from '../../../../shared/auth-context/src/index.ts';
 import { failure, health, success } from '../../../../shared/contracts/src/index.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type { InsightsApplication } from '../application/insights-service.ts';
-import { parseInsightFilters } from '../domain/insights.ts';
+import { parseInsightFilters, parseReportRequest } from '../domain/insights.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -41,7 +41,8 @@ export async function routeInsights(
       respond(response, 200, success('DASHBOARD_OBTENIDO', 'Las métricas fueron consultadas correctamente.', { dashboard }), requestId); return;
     }
     if (request.method === 'GET' && url.pathname === '/v1/reports/overview') {
-      const report = await application.reportOverview(token, parseInsightFilters(url));
+      const reportRequest = parseReportRequest(url);
+      const report = await application.reportOverview(token, reportRequest.filters, reportRequest.destination);
       respond(response, 200, success('REPORTE_RESUMEN_OBTENIDO', 'El resumen del reporte fue consultado correctamente.', { report }), requestId); return;
     }
     respond(response, 404, failure('RUTA_NO_ENCONTRADA', 'La ruta solicitada no existe.', requestId), requestId);

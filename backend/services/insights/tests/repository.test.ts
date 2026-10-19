@@ -33,4 +33,22 @@ describe('repositorio Supabase de Insights', () => {
     });
     await assert.rejects(offline.load('token'), (error: any) => error.code === 'SUPABASE_NO_DISPONIBLE');
   });
+  test('registra la exportacion mediante la RPC autenticada y conserva destino/filtros', async () => {
+    let request: { method?: string; body?: string; authorization?: string } = {};
+    const repository = createSupabaseInsightsRepository({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async (_input, init) => {
+        request = {
+          method: init?.method,
+          body: typeof init?.body === 'string' ? init.body : undefined,
+          authorization: new Headers(init?.headers).get('authorization') ?? undefined,
+        };
+        return Response.json({ ok: true }, { status: 200 });
+      },
+    });
+    await repository.auditExport('access-token', { destination: 'externo', filters: { countryId: 'pais-1' } });
+    assert.equal(request.method, 'POST');
+    assert.equal(request.authorization, 'Bearer access-token');
+    assert.deepEqual(JSON.parse(request.body ?? '{}'), { p_destino: 'externo', p_filtros: { countryId: 'pais-1' } });
+  });
 });

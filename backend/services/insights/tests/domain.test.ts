@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { buildSnapshot, parseInsightFilters, type RawInsights } from '../src/domain/insights.ts';
+import {
+  buildSnapshot,
+  parseInsightFilters,
+  parseReportRequest,
+  prepareReport,
+  type RawInsights,
+} from '../src/domain/insights.ts';
 
 const countryA = '11111111-1111-4111-8111-111111111111';
 const countryB = '22222222-2222-4222-8222-222222222222';
@@ -24,24 +30,44 @@ const raw: RawInsights = {
   ],
 };
 
-describe('cálculo de Dashboard', () => {
-  test('calcula métricas globales, progreso y serie mensual', () => {
+describe('calculo de Dashboard y privacidad de Reportes', () => {
+  test('calcula metricas globales, progreso y serie mensual', () => {
     const result = buildSnapshot(raw, {}, new Date('2026-10-01T12:00:00.000Z'));
     assert.deepEqual(result.metrics, { organizations: 2, activePlans: 1, beneficiaries: 30, activeAlerts: 2 });
     assert.deepEqual(result.progress, { total: 3, completed: 1, overdue: 1, percentage: 33 });
     assert.equal(result.monthlyActions.length, 9);
     assert.deepEqual(result.monthlyActions.at(-1), { key: '2026-10', label: 'Oct', completed: 0, pending: 1 });
   });
-  test('filtra todas las relaciones por país', () => {
+  test('filtra todas las relaciones por pais', () => {
     const result = buildSnapshot(raw, { countryId: countryA }, new Date('2026-10-01T12:00:00.000Z'));
     assert.equal(result.metrics.organizations, 1);
     assert.equal(result.metrics.beneficiaries, 10);
     assert.equal(result.progress.total, 2);
     assert.equal(result.metrics.activeAlerts, 1);
   });
-  test('valida filtros de país y propiedades adicionales', () => {
+  test('valida filtros de pais y propiedades adicionales', () => {
     assert.equal(parseInsightFilters(new URL(`http://local/v1/dashboard?id_pais=${countryA}`)).countryId, countryA);
-    assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?id_pais=invalido')), /UUID válido/);
-    assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?otro=1')), /no está permitido/);
+    assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?id_pais=invalido')), /UUID/);
+    assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?otro=1')), /no/);
+  });
+  test('prepara una salida externa agregada sin identificadores ni datos restringidos', () => {
+    const snapshot = buildSnapshot(raw, { countryId: countryA }, new Date('2026-10-01T12:00:00.000Z'));
+    const report = prepareReport(snapshot, { destination: 'externo', filters: { countryId: countryA } });
+    assert.equal(report.destination, 'externo');
+    assert.equal(report.privacyProfile, 'agregado_hu22');
+    assert.equal(report.scope, 'pais_filtrado');
+    assert.equal('countries' in report, false);
+    assert.equal('selectedCountryId' in report, false);
+    assert.equal('organizations' in report, false);
+    assert.equal('id_organizacion' in report, false);
+    assert.deepEqual(report.metrics, { organizations: 1, activePlans: 1, beneficiaries: 10, activeAlerts: 1 });
+  });
+  test('valida el destino del reporte antes de preparar la exportacion', () => {
+    assert.deepEqual(
+      parseReportRequest(new URL(`http://local/v1/reports/overview?destino=donante&id_pais=${countryA}`)),
+      { destination: 'donante', filters: { countryId: countryA } },
+    );
+    assert.throws(() => parseReportRequest(new URL('http://local/v1/reports/overview?destino=publico')), /destino/);
+    assert.throws(() => parseReportRequest(new URL('http://local/v1/reports/overview?token=secreto')), /no/);
   });
 });

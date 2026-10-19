@@ -1,4 +1,10 @@
-import { buildSnapshot, type InsightFilters, type InsightsRepository } from '../domain/insights.ts';
+import {
+  buildSnapshot,
+  prepareReport,
+  type InsightFilters,
+  type InsightsRepository,
+  type ReportDestination,
+} from '../domain/insights.ts';
 
 export function createInsightsApplication(repository: InsightsRepository, now: () => Date = () => new Date()) {
   async function snapshot(accessToken: string, filters: InsightFilters) {
@@ -6,12 +12,13 @@ export function createInsightsApplication(repository: InsightsRepository, now: (
   }
   return {
     dashboard: snapshot,
-    async reportOverview(accessToken: string, filters: InsightFilters) {
-      return {
-        title: 'Resumen general de gestión',
-        description: 'Consolidado de organizaciones, beneficiarios, planes y acciones visibles para la sesión.',
-        snapshot: await snapshot(accessToken, filters),
-      };
+    async reportOverview(accessToken: string, filters: InsightFilters, destination: ReportDestination = 'interno') {
+      const prepared = prepareReport(await snapshot(accessToken, filters), { destination, filters });
+      await repository.auditExport(accessToken, {
+        destination,
+        filters: { countryId: filters.countryId ?? null },
+      });
+      return prepared;
     },
   };
 }
