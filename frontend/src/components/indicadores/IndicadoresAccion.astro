@@ -1,0 +1,76 @@
+---
+import Card from '../ui/Card.astro';
+import Button from '../ui/Button.astro';
+import Input from '../ui/Input.astro';
+const { idAccion } = Astro.props;
+---
+<section id="indicadores-accion" data-accion={idAccion} class="space-y-5 border-t border-neutral-200 pt-6" aria-labelledby="indicadores-titulo">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h2 id="indicadores-titulo" class="text-2xl font-bold tracking-tight md:text-3xl">Indicadores y resultados</h2>
+      <p class="mt-2 max-w-3xl text-base text-neutral-700 md:text-lg">Define qué esperas alcanzar y registra lo obtenido. La meta y el resultado se muestran por separado.</p>
+    </div>
+    <Button id="ind-recargar" variant="outline">Actualizar indicadores</Button>
+  </header>
+  <p id="ind-carga" hidden role="status" class="rounded-lg bg-primary/5 p-4">Cargando indicadores…</p>
+  <p id="ind-error" hidden role="alert" tabindex="-1" class="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800"></p>
+  <p id="ind-exito" hidden role="status" class="rounded-lg border border-green-300 bg-green-50 p-4 text-green-900"></p>
+  <div class="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+    <Card>
+      <h3 class="text-xl font-semibold">Catálogo estandarizado</h3>
+      <p class="mb-5 mt-2 text-neutral-700">Selecciona uno o varios indicadores e indica su meta. El catálogo no se modifica desde esta vista.</p>
+      <p id="ind-catalogo-vacio" hidden class="rounded-lg border border-dashed p-4">No hay indicadores disponibles en el catálogo.</p>
+      <form id="ind-form" novalidate>
+        <fieldset id="ind-campos" disabled class="min-w-0 space-y-4">
+          <legend class="sr-only">Indicadores disponibles y metas</legend>
+          <div id="ind-catalogo" class="space-y-3"></div>
+          <p id="ind-seleccion-error" hidden role="alert" class="text-sm text-red-800"></p>
+          <div class="flex flex-wrap gap-3 pt-1">
+            <Button id="ind-asociar" type="submit">Asociar indicadores</Button>
+            <Button id="ind-limpiar" variant="outline">Limpiar selección</Button>
+          </div>
+        </fieldset>
+      </form>
+    </Card>
+    <div class="min-w-0 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="text-xl font-semibold">Seguimiento de la acción</h3>
+        <span id="ind-cantidad" class="rounded-full bg-primary/10 px-3 py-1 text-primary">—</span>
+      </div>
+      <p id="ind-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-white p-6 text-neutral-700">Esta acción todavía no tiene indicadores. Selecciona los que correspondan en el catálogo para comenzar.</p>
+      <div id="ind-lista" class="space-y-4"></div>
+    </div>
+  </div>
+  <dialog id="ind-dialogo" aria-labelledby="ind-dialogo-titulo" class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-y-auto rounded-xl border border-neutral-200 p-5 shadow-xl backdrop:bg-black/40 md:p-6">
+    <h3 id="ind-dialogo-titulo" class="text-2xl font-bold">Registrar resultado</h3>
+    <p id="ind-contexto" class="mt-2 break-words text-neutral-700"></p>
+    <p id="ind-dialogo-error" hidden role="alert" tabindex="-1" class="my-4 rounded-lg border border-red-300 bg-red-50 p-3 text-red-800"></p>
+    <p id="ind-dialogo-carga" hidden role="status" class="my-3 text-primary">Guardando…</p>
+    <form id="ind-edicion" class="mt-5" novalidate>
+      <fieldset id="ind-edicion-campos" class="min-w-0 space-y-5">
+        <div>
+          <Input id="ind-valor" name="valor" type="number" label="Valor" required />
+          <p id="ind-valor-ayuda" class="mt-2 text-sm text-neutral-700">Ingresa un valor mayor o igual a cero. Cero es un valor registrado; un campo vacío no lo es.</p>
+        </div>
+        <div id="ind-resultado-campos" class="space-y-5">
+          <Input id="ind-fecha" name="fecha_medicion" type="date" label="Fecha de medición" required />
+          <div>
+            <label for="ind-observaciones" class="font-medium">Observaciones (opcional)</label>
+            <textarea id="ind-observaciones" name="observaciones" rows="3" maxlength="1000" class="mt-2 w-full rounded-lg border border-neutral-300 p-3"></textarea>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-end gap-3">
+          <Button id="ind-cancelar" variant="outline">Cancelar</Button>
+          <Button id="ind-guardar" type="submit">Guardar resultado</Button>
+        </div>
+      </fieldset>
+    </form>
+  </dialog>
+</section>
+<script>
+  import { iniciarIndicadores } from '../../lib/indicadores/interfaz';
+  iniciarIndicadores();
+</script>
+<style is:global>
+  #indicadores-accion .indicador-valor { font-size: 1.75rem; line-height: 1.25; }
+</style>
