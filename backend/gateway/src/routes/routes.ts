@@ -31,6 +31,11 @@ export async function routeRequest(
   }
 
   const authPrefix = `${API_PREFIX}/auth`;
+  if (/^\/api\/v1\/public\/evidences\/[^/]+\/file$/.test(incomingUrl.pathname)) {
+    const targetUrl = new URL(`${incomingUrl.pathname.slice('/api'.length)}${incomingUrl.search}`, targets.interventions);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
   if (incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`)) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
     const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.auth);

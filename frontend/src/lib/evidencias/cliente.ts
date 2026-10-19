@@ -21,6 +21,9 @@ export function crearClienteEvidencias(baseUrl: string, token: () => Promise<str
     return response;
   }
   return {
+    enlacePublico(item: Evidencia) {
+      return `${baseUrl.replace(/\/$/, '')}/api/v1/public/evidences/${encodeURIComponent(item.id_evidencia)}/file`;
+    },
     async listar(accion: string) {
       const r = await http.request<{ evidences: unknown[] }>(`${base}?id_accion=${encodeURIComponent(accion)}`, { accessToken: await token() });
       if (!Array.isArray(r.data?.evidences)) throw new ApiError('RESPUESTA_INVALIDA', 'No fue posible interpretar el listado de evidencias.', 502);

@@ -9,6 +9,8 @@ export function iniciarEvidencias() {
   const raiz: HTMLElement = nodo, accion = raiz.dataset.accion!;
   const q = <T extends HTMLElement = HTMLElement>(id: string) => raiz.querySelector<T>(`#ev-${id}`)!;
   const form = q<HTMLFormElement>('form'), archivo = q<HTMLInputElement>('archivo');
+  const dialogo = q<HTMLDialogElement>('detalle');
+  let evidenciaAbierta: string | null = null, focoAlCerrar: HTMLElement | null = null;
   const cliente = crearClienteEvidencias(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000', async () => {
     const { data, error } = await getSupabaseClient().auth.getSession();
     if (error || !data.session) throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
@@ -16,16 +18,26 @@ export function iniciarEvidencias() {
   });
   let ocupado = false, iniciado = false, habilitado = false, incierto = false;
   let registros: Evidencia[] = [], seleccion: Evidencia | null = null, reserva: Evidencia | null = null;
+  let publicarAlCompletar = false;
   const valor = (id: string) => q<HTMLInputElement>(id).value;
   const marcado = (id: string) => q<HTMLInputElement>(id).checked;
   function bloquear(estado: boolean, mensaje = '') {
     ocupado = estado; raiz.setAttribute('aria-busy', String(estado));
     q('carga').hidden = !estado; q('carga').textContent = mensaje;
-    raiz.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = estado; });
+    raiz.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = estado && b.id !== 'ev-detalle-cerrar'; });
     q<HTMLFieldSetElement>('campos').disabled = estado || !habilitado;
     q<HTMLButtonElement>('guardar').disabled = estado || incierto;
     if (!estado && seleccion) controles();
   }
+  function moverMensajes(alDetalle: boolean) {
+    q(alDetalle ? 'detalle-mensajes' : 'mensajes').append(q('carga'), q('error'), q('exito'));
+  }
+  q('detalle-cerrar').addEventListener('click', () => dialogo.close());
+  dialogo.addEventListener('close', () => {
+    moverMensajes(false);
+    const destino = focoAlCerrar ?? raiz.querySelector<HTMLButtonElement>(`[data-evidencia-id="${evidenciaAbierta}"]`);
+    destino?.focus(); focoAlCerrar = null;
+  });
   function limpiar() {
     q('error').hidden = q('exito').hidden = true;
     form.querySelectorAll('[data-error-evidencia]').forEach(n => n.remove());
@@ -56,6 +68,7 @@ export function iniciarEvidencias() {
       const descripcion = document.createElement('p'); descripcion.className = 'mt-2 line-clamp-2 break-words text-neutral-700'; descripcion.textContent = item.descripcion;
       const estado = document.createElement('p'); estado.className = 'my-3 text-sm font-medium text-primary'; estado.textContent = `${estadoCarga(item)} · ${estadoPublicacion(item)}`;
       const boton = document.createElement('button'); boton.type = 'button'; boton.className = 'min-h-[48px] font-medium text-primary underline'; boton.textContent = 'Ver evidencia';
+      boton.dataset.evidenciaId = item.id_evidencia; boton.setAttribute('aria-haspopup', 'dialog'); boton.setAttribute('aria-controls', 'ev-detalle');
       boton.addEventListener('click', () => consultar(item)); card.append(nombre, descripcion, estado, boton); q('lista').append(card);
     }
   }
@@ -66,6 +79,7 @@ export function iniciarEvidencias() {
   }
   function controles() {
     if (!seleccion) return;
+    q('detalle-acciones').hidden = false;
     q('descargar').hidden = seleccion.estado_carga !== 'disponible';
     q('reintentar').hidden = seleccion.estado_carga !== 'reservado';
     q('publicar').hidden = seleccion.estado_carga !== 'disponible';
@@ -73,9 +87,12 @@ export function iniciarEvidencias() {
     q<HTMLButtonElement>('publicar').disabled = ocupado || (seleccion.estado_publicacion !== 'publicada' && seleccion.consentimiento_declarado !== true);
     q('revocar').hidden = seleccion.consentimiento_declarado !== true;
     q('sin-consentimiento').hidden = seleccion.consentimiento_declarado === true;
+    const enlace = q<HTMLAnchorElement>('enlace-publico');
+    enlace.hidden = seleccion.estado_publicacion !== 'publicada' || seleccion.consentimiento_declarado !== true || seleccion.estado_carga !== 'disponible';
+    if (enlace.hidden) enlace.removeAttribute('href'); else enlace.href = cliente.enlacePublico(seleccion);
   }
   function detalle(item: Evidencia) {
-    seleccion = item; q('detalle').hidden = false; q('detalle-titulo').textContent = item.nombre_original;
+    seleccion = item; q('detalle-titulo').textContent = item.nombre_original;
     q('datos').replaceChildren();
     const datos: [string, string][] = [['Origen', item.origen], ['Descripción', item.descripcion], ['Incorporada', fecha(item.incorporado_at)],
       ['Usuario responsable (ID)', item.incorporado_por || 'No disponible'], ['Carga', estadoCarga(item)], ['Publicación', estadoPublicacion(item)],
@@ -91,21 +108,29 @@ export function iniciarEvidencias() {
     controles();
   }
   async function consultar(item: Evidencia) {
-    if (ocupado) return; limpiar(); bloquear(true, 'Consultando evidencia…');
-    try { const r = await cliente.obtener(accion, item.id_evidencia); actualizar(r); detalle(r); q('detalle-titulo').focus(); }
+    if (ocupado) return; limpiar(); seleccion = null; evidenciaAbierta = item.id_evidencia;
+    q('detalle-titulo').textContent = item.nombre_original; q('datos').replaceChildren(); q('declaracion').textContent = '';
+    q('detalle-acciones').hidden = true; q('sin-consentimiento').hidden = true;
+    moverMensajes(true); dialogo.showModal(); bloquear(true, 'Consultando evidencia…'); q('detalle-titulo').focus();
+    try { const r = await cliente.obtener(accion, item.id_evidencia); actualizar(r); detalle(r); }
     catch (error) { fallo(error); } finally { bloquear(false); }
   }
   function reset() {
-    reserva = null; form.reset(); q('metadatos').hidden = false; q('pendiente').hidden = true;
+    reserva = null; publicarAlCompletar = false; form.reset(); q('metadatos').hidden = false; q('pendiente').hidden = true;
     q('form-titulo').textContent = 'Adjuntar evidencia'; q('guardar').textContent = 'Guardar evidencia'; personas();
   }
   async function cargar() {
     if (ocupado) return; limpiar(); bloquear(true, 'Cargando evidencias…');
     try {
       registros = await cliente.listar(accion); habilitado = true; incierto = false; render();
-      if (seleccion) { const actual = registros.find(r => r.id_evidencia === seleccion!.id_evidencia); if (actual) detalle(actual); else { seleccion = null; q('detalle').hidden = true; } }
-      else if (registros.length) detalle(registros[0]);
-    } catch (error) { fallo(error); } finally { bloquear(false); }
+      if (seleccion) { const actual = registros.find(r => r.id_evidencia === seleccion!.id_evidencia); if (actual) detalle(actual); else { seleccion = null; dialogo.close(); } }
+    } catch (error) {
+      habilitado = false;
+      if (error instanceof ApiError && [401, 403].includes(error.status)) {
+        registros = []; seleccion = null; q('lista').replaceChildren(); dialogo.close(); q('vacio').hidden = true;
+      }
+      fallo(error);
+    } finally { bloquear(false); }
   }
   function personas() {
     const eleccion = valor('personas');
@@ -125,7 +150,8 @@ export function iniciarEvidencias() {
     if (!reserva && !datos.success) for (const issue of datos.error.issues) errorCampo(String(issue.path[0]), issue.message);
     if (form.querySelector('[aria-invalid="true"]')) { form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return; }
     if (!file || (!reserva && !datos.success)) return;
-    const publicar = !reserva && datos.success && datos.data.publicable;
+    if (!reserva && datos.success) publicarAlCompletar = datos.data.publicable;
+    const publicar = publicarAlCompletar;
     let cargada = false, creando = false;
     bloquear(true, reserva ? 'Reintentando carga…' : 'Registrando evidencia…');
     try {
@@ -147,7 +173,7 @@ export function iniciarEvidencias() {
       q('exito').textContent = publicar ? 'Archivo guardado y marcado como publicado.' : 'Archivo guardado correctamente. Puedes consultar su estado de publicación en el detalle.';
       q('exito').hidden = false;
     } catch (error) {
-      if (creando && error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
+      if (creando && error instanceof ApiError && (error.status === 0 || error.status >= 500 || error.code === 'RESPUESTA_INVALIDA')) {
         incierto = true; fallo(error, 'No se pudo confirmar el registro. Pulsa Actualizar evidencias y revisa si aparece antes de intentar crear otra. ');
       } else if (cargada) fallo(error, 'El archivo se guardó, pero no se pudo confirmar la publicación. Actualiza las evidencias para comprobar su estado. ');
       else {
@@ -162,7 +188,11 @@ export function iniciarEvidencias() {
     q('form-titulo').textContent = 'Completar carga pendiente'; q('guardar').textContent = 'Reintentar carga';
     if (limpiarArchivo) archivo.value = ''; archivo.focus();
   }
-  q('reintentar').addEventListener('click', () => { if (!ocupado && seleccion) { limpiar(); prepararReintento(seleccion); } });
+  q('reintentar').addEventListener('click', () => {
+    if (!ocupado && seleccion) {
+      limpiar(); publicarAlCompletar = false; focoAlCerrar = archivo; dialogo.close(); prepararReintento(seleccion);
+    }
+  });
   q('cancelar').addEventListener('click', () => {
     if (ocupado) return; const pendiente = !!reserva; limpiar(); reset();
     if (pendiente) { q('exito').textContent = 'Se cerró el formulario. El registro pendiente se conserva y puedes completar su carga desde el listado.'; q('exito').hidden = false; }

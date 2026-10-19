@@ -61,6 +61,9 @@ export function createApiTransport(apiBaseUrl: string, fetchImpl: typeof fetch =
       } catch {
         throw new ApiError('RESPUESTA_INVALIDA', 'El servicio devolvió una respuesta inválida.', response.status);
       }
+      if (!payload || typeof payload !== 'object' || typeof payload.ok !== 'boolean') {
+        throw new ApiError('RESPUESTA_INVALIDA', 'El servicio devolvió una respuesta inválida.', response.status);
+      }
       if (!response.ok || !payload.ok) {
         const failure = payload as ApiFailure;
         throw new ApiError(
