@@ -1,6 +1,6 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
-  ActionInsight, CountryInsight, InsightsRepository, OrganizationInsight, PlanInsight, RawInsights,
+  ActionInsight, CountryInsight, InsightsRepository, OrganizationInsight, PlanInsight, RawInsights, ReportAudit,
 } from '../domain/insights.ts';
 
 interface RepositoryOptions { supabaseUrl: string; anonKey: string; fetchImpl?: typeof fetch }
@@ -69,6 +69,28 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
     if (!response.ok) throw databaseError(response.status, body);
     return body;
   }
+  async function auditExport(token: string, audit: ReportAudit): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetchImpl(`${baseUrl}/rest/v1/rpc/registrar_exportacion_reporte`, {
+        method: 'POST',
+        headers: {
+          apikey: options.anonKey,
+          authorization: `Bearer ${token}`,
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ p_destino: audit.destination, p_filtros: audit.filters }),
+      });
+    } catch (error) {
+      throw new ServiceError('SUPABASE_NO_DISPONIBLE', 'No fue posible registrar la exportación.', 503, error);
+    }
+    if (!response.ok) {
+      let body: unknown = null;
+      try { body = await response.json(); } catch { body = null; }
+      throw databaseError(response.status, body);
+    }
+  }
   return {
     async load(token): Promise<RawInsights> {
       const [countries, organizations, plans, actions] = await Promise.all([
@@ -82,6 +104,7 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
         plans: rows(plans, plan), actions: rows(actions, action),
       };
     },
+    auditExport,
   };
 }
 
@@ -89,7 +112,10 @@ export function createSupabaseInsightsRepositoryFromEnv(): InsightsRepository {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) {
-    return { async load() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Dashboard y Reportes no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.', 503); } };
+    return {
+      async load() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Dashboard y Reportes no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.', 503); },
+      async auditExport() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Reportes no puede registrar auditoría sin configuración de Supabase.', 503); },
+    };
   }
   return createSupabaseInsightsRepository({ supabaseUrl, anonKey });
 }
