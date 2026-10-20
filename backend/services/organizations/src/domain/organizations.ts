@@ -105,7 +105,9 @@ export interface OrganizationFields {
 }
 
 export interface OrganizationFilters {
+  search?: string;
   idPais?: string;
+  idPrograma?: string;
   includeArchived: boolean;
 }
 
@@ -353,16 +355,30 @@ export function parseUpdateInput(value: unknown): UpdateOrganizationInput {
 }
 
 export function parseOrganizationFilters(url: URL): OrganizationFilters {
-  const allowed = new Set(['id_pais', 'incluir_archivadas']);
+  const allowed = new Set(['search', 'id_pais', 'id_programa', 'incluir_archivadas']);
   const extra = [...url.searchParams.keys()].find((key) => !allowed.has(key));
   if (extra) return invalid(`El filtro ${extra} no está permitido.`);
-  const idPais = url.searchParams.get('id_pais') ?? undefined;
+  
+  const search = url.searchParams.get('search');
+  const idPais = url.searchParams.get('id_pais');
+  const idPrograma = url.searchParams.get('id_programa');
   const archived = url.searchParams.get('incluir_archivadas');
+
   if (archived !== null && archived !== 'true' && archived !== 'false') {
     return invalid('incluir_archivadas debe ser booleano.');
   }
+
+  let validatedSearch: string | undefined;
+  if (search !== null) {
+    const trimmed = search.trim();
+    if (trimmed.length > 150) return invalid('El texto de búsqueda no puede superar 150 caracteres.');
+    validatedSearch = trimmed.length > 0 ? trimmed : undefined;
+  }
+
   return {
+    ...(validatedSearch ? { search: validatedSearch } : {}),
     ...(idPais ? { idPais: parseUuid(idPais, 'El país') } : {}),
+    ...(idPrograma ? { idPrograma: parseUuid(idPrograma, 'El programa institucional') } : {}),
     includeArchived: archived === 'true',
   };
 }
