@@ -13,6 +13,7 @@ export interface RawInsights {
 export interface InsightsRepository {
   load(accessToken: string): Promise<RawInsights>;
   auditExport(accessToken: string, audit: ReportAudit): Promise<void>;
+  loadConsolidated(accessToken: string, filters: ConsolidatedReportFilters): Promise<ConsolidatedReportSnapshot>;
 }
 export interface InsightFilters { countryId?: string }
 export const REPORT_DESTINATIONS = ['interno', 'donante', 'externo'] as const;
@@ -144,5 +145,163 @@ export function prepareReport(snapshot: DashboardSnapshot, request: ReportReques
     metrics: snapshot.metrics,
     progress: snapshot.progress,
     monthlyActions: snapshot.monthlyActions,
+  };
+}
+
+// ============================================================================
+// SCRUM-136: CONTRATOS Y VALIDACIONES PARA REPORTE CONSOLIDADO
+// ============================================================================
+
+export interface ConsolidatedReportFilters {
+  startDate: string;
+  endDate: string;
+  countryId?: string;
+  organizationId?: string;
+  programId?: string;
+  indicatorIds?: string[];
+  resultIds?: string[];
+}
+
+export interface ConsolidatedReportRequest {
+  destination: ReportDestination;
+  filters: ConsolidatedReportFilters;
+}
+
+// Estructuras de las secciones del reporte (para PDF o Vista Previa)
+export interface ConsolidatedOrganization {
+  id_organizacion: string;
+  nombre: string;
+  numero_beneficiarios: number;
+  pais: string;
+}
+
+export interface ConsolidatedPlan {
+  id_plan: string;
+  nombre: string;
+  organizacion: string;
+  programa: string;
+  fecha_inicio: string;
+  fecha_termino: string;
+}
+
+export interface ConsolidatedAction {
+  id_accion: string;
+  nombre: string;
+  estado: string;
+  fecha_inicio: string;
+  fecha_termino: string;
+  plan: string;
+}
+
+export interface ConsolidatedCommitment {
+  id_compromiso: string;
+  acuerdo: string;
+  estado: string;
+  fecha_cumplimiento: string | null;
+  organizacion: string;
+}
+
+export interface ConsolidatedDonation {
+  id_donacion: string;
+  fecha: string;
+  tipo_aporte: string;
+  monto: number | null;
+  cantidad: number | null;
+  organizacion: string;
+}
+
+export interface ConsolidatedIndicator {
+  id_indicador: string;
+  nombre: string;
+  valor_obtenido: number;
+  organizacion: string;
+}
+
+export interface ConsolidatedResult {
+  id_resultado: string;
+  descripcion: string;
+  fecha_obtencion: string;
+  organizacion: string;
+}
+
+// El contrato maestro del Snapshot consolidado
+export interface ConsolidatedReportSnapshot {
+  generatedAt: string;
+  period: { start: string; end: string };
+  filters: ConsolidatedReportFilters;
+  sections: {
+    organizations: ConsolidatedOrganization[];
+    plans: ConsolidatedPlan[];
+    actions: ConsolidatedAction[];
+    commitments: ConsolidatedCommitment[];
+    donations: ConsolidatedDonation[];
+    indicators: ConsolidatedIndicator[];
+    results: ConsolidatedResult[];
+  };
+  summary: {
+    totalBeneficiaries: number;
+    totalDonationsAmount: number;
+    completedActions: number;
+  };
+}
+
+// Validador estricto de la URL para el reporte consolidado
+export function parseConsolidatedFilters(url: URL): ConsolidatedReportRequest {
+  const allowed = new Set([
+    'fecha_inicio', 'fecha_termino', 'id_pais', 'id_organizacion', 
+    'id_programa', 'indicadores', 'resultados', 'destino'
+  ]);
+  
+  const extra = [...url.searchParams.keys()].find((key) => !allowed.has(key));
+  if (extra) throw new ServiceError('DATOS_INVALIDOS', `El filtro ${extra} no está permitido.`, 400);
+
+  const destination = (url.searchParams.get('destino') ?? 'interno') as ReportDestination;
+  if (!REPORT_DESTINATIONS.includes(destination)) {
+    throw new ServiceError('DATOS_INVALIDOS', 'El destino del reporte no es válido.', 400);
+  }
+
+  const startDate = url.searchParams.get('fecha_inicio');
+  const endDate = url.searchParams.get('fecha_termino');
+
+  if (!startDate || !endDate) {
+    throw new ServiceError('DATOS_INVALIDOS', 'Las fechas de inicio y término son obligatorias.', 400);
+  }
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+    throw new ServiceError('DATOS_INVALIDOS', 'Las fechas deben tener el formato YYYY-MM-DD.', 400);
+  }
+
+  if (startDate > endDate) {
+    throw new ServiceError('DATOS_INVALIDOS', 'La fecha de inicio no puede ser posterior a la fecha de término.', 400);
+  }
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  const validateUuid = (val: string | null, fieldName: string) => {
+    if (val && !uuidRegex.test(val)) throw new ServiceError('DATOS_INVALIDOS', `El ${fieldName} debe ser un UUID válido.`, 400);
+    return val ?? undefined;
+  };
+
+  const parseUuidsArray = (val: string | null, fieldName: string) => {
+    if (!val) return undefined;
+    const ids = val.split(',').map(id => id.trim());
+    for (const id of ids) {
+      if (!uuidRegex.test(id)) throw new ServiceError('DATOS_INVALIDOS', `Uno de los IDs en ${fieldName} no es un UUID válido.`, 400);
+    }
+    return ids;
+  };
+
+  return {
+    destination,
+    filters: {
+      startDate,
+      endDate,
+      countryId: validateUuid(url.searchParams.get('id_pais'), 'país'),
+      organizationId: validateUuid(url.searchParams.get('id_organizacion'), 'organización'),
+      programId: validateUuid(url.searchParams.get('id_programa'), 'programa'),
+      indicatorIds: parseUuidsArray(url.searchParams.get('indicadores'), 'indicadores'),
+      resultIds: parseUuidsArray(url.searchParams.get('resultados'), 'resultados'),
+    }
   };
 }
