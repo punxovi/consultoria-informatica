@@ -46,6 +46,16 @@ export function normalizarTipoRespaldo(tipo: string): TipoRespaldo {
 export const createDonationSchema = z
   .object({
     id_organizacion: uuid('La organización').optional(),
+    id_pais: uuid('El país').optional(),
+    id_programa: uuid('El Programa institucional').optional(),
+    categoria: z.enum(['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro']).optional(),
+    categoria_otro: text('La descripción de Otro', 2000).optional(),
+    tipo_donante: z.enum(['empresa', 'persona', 'organizacion']).optional(),
+    origen: text('El origen del donante', 2000).optional(),
+    estado: z.enum(['Comprometida', 'Recibida', 'Entregada', 'Cerrada']).optional(),
+    valor_estimado: z.number().finite().nonnegative().optional(),
+    moneda_valorizacion: z.string().regex(/^[A-Z]{3}$/).optional(),
+    metodo_valorizacion: text('El método de valorización', 2000).optional(),
     fecha: z
       .string({ error: 'La fecha debe ser un texto.' })
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener el formato AAAA-MM-DD.'),
@@ -67,6 +77,16 @@ export const createDonationSchema = z
   })
   .strict()
   .superRefine((data, ctx) => {
+    if (data.categoria && (data.categoria === 'Dinero') !== (data.tipo_aporte === 'dinero')) {
+      ctx.addIssue({ code: 'custom', path: ['categoria'], message: 'La categoría no corresponde al tipo de aporte.' });
+    }
+    if ((data.categoria === 'Otro') !== (data.categoria_otro !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['categoria_otro'], message: 'La categoría Otro requiere una descripción exclusiva.' });
+    }
+    const valuation = [data.valor_estimado, data.moneda_valorizacion, data.metodo_valorizacion];
+    if (valuation.some(value => value !== undefined) && valuation.some(value => value === undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['valor_estimado'], message: 'Completa valor estimado, moneda y método de valorización.' });
+    }
     if (data.tipo_aporte === 'dinero') {
       if (data.monto === undefined || data.monto <= 0) {
         ctx.addIssue({ code: 'custom', path: ['monto'], message: 'El aporte en dinero exige un monto mayor a 0.' });
@@ -81,10 +101,11 @@ export const createDonationSchema = z
         ctx.addIssue({ code: 'custom', path: ['unidad'], message: 'El aporte en dinero no admite unidad de recursos.' });
       }
     } else {
-      if (data.cantidad === undefined || data.cantidad <= 0) {
+      const requiereCantidad = !data.categoria || data.cantidad !== undefined || data.unidad !== undefined;
+      if (requiereCantidad && (data.cantidad === undefined || data.cantidad <= 0)) {
         ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'El aporte de recursos exige una cantidad mayor a 0.' });
       }
-      if (!data.unidad || data.unidad.trim() === '') {
+      if (requiereCantidad && (!data.unidad || data.unidad.trim() === '')) {
         ctx.addIssue({ code: 'custom', path: ['unidad'], message: 'El aporte de recursos exige especificar la unidad (ej. cajas, unidades).' });
       }
       if (data.monto !== undefined) {
@@ -142,6 +163,16 @@ export type UploadDonationFileInput = z.infer<typeof uploadDonationFileSchema>;
 
 export type Donation = {
   id_donacion: string;
+  id_pais?: string;
+  id_programa?: string | null;
+  categoria?: 'Dinero' | 'Producto' | 'Servicio' | 'Insumos' | 'Otro' | null;
+  categoria_otro?: string | null;
+  tipo_donante?: 'empresa' | 'persona' | 'organizacion' | null;
+  origen?: string | null;
+  estado?: 'Comprometida' | 'Recibida' | 'Entregada' | 'Cerrada' | null;
+  valor_estimado?: number | null;
+  moneda_valorizacion?: string | null;
+  metodo_valorizacion?: string | null;
   id_organizacion: string;
   fecha: string;
   tipo_movimiento: 'recibida' | 'entregada';

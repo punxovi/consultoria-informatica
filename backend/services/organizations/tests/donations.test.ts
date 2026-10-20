@@ -11,6 +11,45 @@ import {
 } from '../src/domain/donations.ts';
 import { createOrganizationsApplication } from '../src/application/organizations-service.ts';
 import { createOrganizationsServer } from '../src/server.ts';
+import { createSupabaseOrganizationsRepository } from '../src/infrastructure/supabase-organizations.repository.ts';
+
+test('SCRUM-130: repositorio conserva metadatos HU20 en registro y consulta', async () => {
+  const orgId = '13000000-0000-4000-8000-000000000001';
+  const input = parseCreateDonation({ fecha: '2026-10-20', tipo_movimiento: 'recibida',
+    contraparte_nombre: 'Empresa', descripcion: 'Horas profesionales', tipo_aporte: 'recurso',
+    categoria: 'Servicio', tipo_donante: 'empresa', origen: 'Campaña', estado: 'Comprometida',
+    id_pais: '13000000-0000-4000-8000-000000000011', id_programa: '13000000-0000-4000-8000-000000000002',
+    valor_estimado: 100, moneda_valorizacion: 'CLP', metodo_valorizacion: 'Cotización' });
+  let stored: Record<string, unknown> = {};
+  const repository = createSupabaseOrganizationsRepository({ supabaseUrl: 'https://supabase.invalid', anonKey: 'public-test',
+    fetchImpl: async (url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path.endsWith('/organizaciones')) return Response.json([{ id_organizacion: orgId, nombre: 'Organización prueba' }]);
+      if (init?.method === 'POST') stored = { ...JSON.parse(String(init.body)), id_donacion: '13000000-0000-4000-8000-000000000003' };
+      return Response.json([stored]);
+    } });
+  const created = await repository.createDonation('fake-session', orgId, input);
+  const read = await repository.getDonationById('fake-session', orgId, created.id_donacion);
+  for (const key of ['id_pais','id_programa','categoria','tipo_donante','origen','estado','valor_estimado','moneda_valorizacion','metodo_valorizacion'] as const) {
+    assert.equal(created[key], input[key]);
+    assert.equal(read[key], input[key]);
+  }
+});
+
+test('SCRUM-130: contrato HU20 y valorización independiente del monto efectivo', () => {
+  const input = { fecha: '2026-10-20', tipo_movimiento: 'recibida', contraparte_nombre: 'Empresa',
+    descripcion: 'Horas profesionales', tipo_aporte: 'recurso', categoria: 'Servicio',
+    tipo_donante: 'empresa', origen: 'Campaña local', estado: 'Comprometida',
+    valor_estimado: 100, moneda_valorizacion: 'CLP', metodo_valorizacion: 'Cotización' };
+  assert.equal(parseCreateDonation(input).valor_estimado, 100);
+  for (const changes of [
+    { categoria: 'Alimentos' }, { estado: 'Pendiente' }, { tipo_donante: 'otro' },
+    { valor_estimado: -1 }, { valor_estimado: Infinity }, { moneda_valorizacion: undefined },
+    { categoria: 'Otro' }, { categoria_otro: 'No corresponde' }, { categoria: 'Dinero' },
+    { cantidad: 2 },
+  ]) assert.throws(() => parseCreateDonation({ ...input, ...changes }));
+  assert.equal(parseCreateDonation({ ...input, categoria: 'Otro', categoria_otro: 'Otro aporte' }).categoria, 'Otro');
+});
 
 test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () => {
   // Dinero válido

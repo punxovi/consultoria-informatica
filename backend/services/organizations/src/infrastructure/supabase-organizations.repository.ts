@@ -27,11 +27,9 @@ interface RepositoryOptions {
   fetchImpl?: typeof fetch;
 }
 
-const DONATION_FIELDS = [
-  'id_donacion', 'id_organizacion', 'fecha', 'tipo_movimiento', 'contraparte_nombre',
-  'descripcion', 'tipo_aporte', 'cantidad', 'unidad', 'monto', 'moneda',
-  'created_at', 'updated_at', 'created_by', 'updated_by', 'archived_at', 'version',
-].join(',');
+// Devuelve el registro autorizado por RLS, incluidos metadatos HU20 cuando ya
+// están desplegados. Permite leer el esquema anterior durante el despliegue.
+const DONATION_FIELDS = '*';
 
 const DONATION_FILE_FIELDS = [
   'id_archivo', 'id_donacion', 'bucket_id', 'ruta_objeto', 'nombre_original',
@@ -558,6 +556,16 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
       const payload = {
         id_organizacion: orgId,
+        id_pais: input.id_pais,
+        id_programa: input.id_programa,
+        categoria: input.categoria,
+        categoria_otro: input.categoria_otro,
+        tipo_donante: input.tipo_donante,
+        origen: input.origen,
+        estado: input.estado,
+        valor_estimado: input.valor_estimado,
+        moneda_valorizacion: input.moneda_valorizacion,
+        metodo_valorizacion: input.metodo_valorizacion,
         fecha: input.fecha,
         tipo_movimiento: input.tipo_movimiento,
         contraparte_nombre: input.contraparte_nombre,
