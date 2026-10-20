@@ -191,6 +191,8 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (table === 'diagnosticos' && record(body).code === '23503') {
         throw new ServiceError('NO_ENCONTRADO', 'La organización solicitada no existe o ya no está disponible.', 404);
       }
+      console.log('--- ERROR DE SUPABASE ---', body);
+
       throw postgrestError(response.status, body);
     }
     return body;
@@ -201,7 +203,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     params: URLSearchParams,
     init?: RequestInit,
   ): Promise<Organization[]> {
-    params.set('select', ORGANIZATION_FIELDS);
+    // Si no enviamos un select personalizado con joins extras, usa el por defecto
+    if (!params.has('select')) {
+      params.set('select', ORGANIZATION_FIELDS);
+    }
     const body = await request('organizaciones', accessToken, params, init);
     if (!Array.isArray(body)) {
       throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
@@ -304,8 +309,25 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
   return {
     async list(accessToken, filters) {
       const params = new URLSearchParams({ order: 'nombre.asc' });
+      let selectString = ORGANIZATION_FIELDS;
+
+      // Filtro de archivadas
       if (!filters.includeArchived) params.set('archived_at', 'is.null');
+
+      // Búsqueda por nombre (no distingue mayúsculas/minúsculas)
+      if (filters.search) params.set('nombre', `ilike.*${filters.search}*`);
+
+      // Filtro por país
       if (filters.idPais) params.set('id_pais', `eq.${filters.idPais}`);
+
+      // Filtro por Programa Institucional (mediante Plan de Intervención)
+      if (filters.idPrograma) {
+        // Hacemos un inner join rápido. PostgREST devuelve la organización sin duplicarla.
+        selectString += ',planes!inner(id_programa)';
+        params.set('planes.id_programa', `eq.${filters.idPrograma}`);
+      }
+
+      params.set('select', selectString);
       return organizationRows(accessToken, params);
     },
 
