@@ -32,26 +32,38 @@ function country(value: unknown): CountryInsight {
   }
   return item as unknown as CountryInsight;
 }
+
+// Adaptación para aceptar el nombre de la organización
 function organization(value: unknown): OrganizationInsight {
   const item = record(value);
   if (typeof item.id_organizacion !== 'string' || typeof item.id_pais !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una organización inválida.', 502);
   }
-  return item as unknown as OrganizationInsight;
+  return { ...item, nombre: typeof item.nombre === 'string' ? item.nombre : 'Sin nombre' } as unknown as OrganizationInsight;
 }
+
+// Adaptación para aceptar el nombre del plan y del programa asociado
 function plan(value: unknown): PlanInsight {
   const item = record(value);
   if (typeof item.id_plan !== 'string' || typeof item.id_organizacion !== 'string' || typeof item.fecha_inicio !== 'string' || typeof item.fecha_termino !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un plan inválido.', 502);
   }
-  return item as unknown as PlanInsight;
+  const prog = item.programa as Record<string, unknown> | undefined;
+  return { 
+    ...item, 
+    nombre: typeof item.nombre === 'string' ? item.nombre : 'Sin nombre',
+    id_programa: typeof item.id_programa === 'string' ? item.id_programa : null,
+    programa_nombre: prog && typeof prog.nombre === 'string' ? prog.nombre : null
+  } as unknown as PlanInsight;
 }
+
+// Adaptación para aceptar el nombre de la acción
 function action(value: unknown): ActionInsight {
   const item = record(value);
   if (typeof item.id_accion !== 'string' || typeof item.id_plan !== 'string' || typeof item.estado !== 'string' || typeof item.fecha_termino !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una acción inválida.', 502);
   }
-  return item as unknown as ActionInsight;
+  return { ...item, nombre: typeof item.nombre === 'string' ? item.nombre : 'Sin nombre' } as unknown as ActionInsight;
 }
 
 export function createSupabaseInsightsRepository(options: RepositoryOptions): InsightsRepository {
@@ -124,7 +136,6 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
 
     const inOrgs = `in.(${orgIds.join(',')})`;
 
-    // PARÁMETROS DONACIONES: Usamos append para evitar colisión de la llave 'fecha'
     const donacionesParams = new URLSearchParams({ 
       id_organizacion: inOrgs, 
       select: 'id_donacion,fecha,tipo_aporte,monto,cantidad,id_organizacion', 
@@ -133,8 +144,6 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
     donacionesParams.append('fecha', `gte.${filters.startDate}`);
     donacionesParams.append('fecha', `lte.${filters.endDate}`);
 
-    // PARÁMETROS COMPROMISOS: Ajustado a las columnas reales del CSV. 
-    // No filtramos por id_organizacion directo porque la tabla solo usa id_acta.
     const compromisosParams = new URLSearchParams({ 
       select: 'id_compromiso,descripcion,estado,cumplido_at,id_acta', 
       archived_at: 'is.null' 
@@ -177,15 +186,22 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
 
   return {
     async load(token): Promise<RawInsights> {
+      // Modificamos las proyecciones `select` para el Dashboard Territorial
       const [countries, organizations, plans, actions] = await Promise.all([
         request('paises', new URLSearchParams({ select: 'id_pais,codigo_iso,nombre', archived_at: 'is.null', order: 'nombre.asc' }), token),
-        request('organizaciones', new URLSearchParams({ select: 'id_organizacion,id_pais,numero_beneficiarios', archived_at: 'is.null' }), token),
-        request('planes', new URLSearchParams({ select: 'id_plan,id_organizacion,fecha_inicio,fecha_termino', archived_at: 'is.null' }), token),
-        request('acciones', new URLSearchParams({ select: 'id_accion,id_plan,fecha_inicio,fecha_termino,estado', archived_at: 'is.null' }), token),
+        // Se añade 'nombre' a organizaciones
+        request('organizaciones', new URLSearchParams({ select: 'id_organizacion,nombre,id_pais,numero_beneficiarios', archived_at: 'is.null' }), token),
+        // Se añade 'nombre', 'id_programa' y la relación 'programas(nombre)'
+        request('planes', new URLSearchParams({ select: 'id_plan,nombre,id_organizacion,id_programa,fecha_inicio,fecha_termino,programa:programas(nombre)', archived_at: 'is.null' }), token),
+        // Se añade 'nombre' a las acciones
+        request('acciones', new URLSearchParams({ select: 'id_accion,nombre,id_plan,fecha_inicio,fecha_termino,estado', archived_at: 'is.null' }), token),
       ]);
+      
       return {
-        countries: rows(countries, country), organizations: rows(organizations, organization),
-        plans: rows(plans, plan), actions: rows(actions, action),
+        countries: rows(countries, country), 
+        organizations: rows(organizations, organization),
+        plans: rows(plans, plan), 
+        actions: rows(actions, action),
       };
     },
     auditExport,
