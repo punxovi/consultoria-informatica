@@ -1,10 +1,10 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 
 export interface CountryInsight { id_pais: string; codigo_iso: string; nombre: string }
-export interface OrganizationInsight { id_organizacion: string; id_pais: string; numero_beneficiarios: number | null }
-export interface PlanInsight { id_plan: string; id_organizacion: string; fecha_inicio: string; fecha_termino: string }
+export interface OrganizationInsight { id_organizacion: string; nombre: string; id_pais: string; numero_beneficiarios: number | null }
+export interface PlanInsight { id_plan: string; nombre: string; id_organizacion: string; id_programa: string | null; programa_nombre: string | null; fecha_inicio: string; fecha_termino: string }
 export interface ActionInsight {
-  id_accion: string; id_plan: string; fecha_inicio: string; fecha_termino: string;
+  id_accion: string; nombre: string; id_plan: string; fecha_inicio: string; fecha_termino: string;
   estado: 'no_iniciada' | 'en_desarrollo' | 'atrasada' | 'cancelada' | 'cumplida';
 }
 export interface RawInsights {
@@ -24,6 +24,18 @@ export interface ReportAudit {
   filters: { countryId: string | null };
 }
 export interface MonthlyActions { key: string; label: string; completed: number; pending: number }
+
+// - Interfaz detallada para las acciones pendientes en el Dashboard
+export interface DashboardPendingAction {
+  id_accion: string;
+  nombre: string;
+  estado: string;
+  fecha_termino: string;
+  plan: { id_plan: string; nombre: string };
+  organizacion: { id_organizacion: string; nombre: string };
+  programa: { id_programa: string; nombre: string } | null;
+}
+
 export interface DashboardSnapshot {
   generatedAt: string;
   selectedCountryId: string | null;
@@ -31,6 +43,7 @@ export interface DashboardSnapshot {
   metrics: { organizations: number; activePlans: number; beneficiaries: number; activeAlerts: number };
   progress: { total: number; completed: number; overdue: number; percentage: number };
   monthlyActions: MonthlyActions[];
+  pendingActions: DashboardPendingAction[]; 
 }
 export interface ExternalReport {
   destination: 'donante' | 'externo';
@@ -99,12 +112,37 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
   const activeAlerts = actions.filter((item) => item.estado === 'atrasada' || item.estado === 'cancelada').length;
   const months = monthWindow(now);
 
+  // Porcentaje de avance de los Planes de Intervención.
+  // Fórmula definida: (Acciones cumplidas / Total de acciones vinculadas a planes activos) * 100
+  // Si no hay acciones, el porcentaje es 0.
+  const percentage = actions.length ? Math.round((completed / actions.length) * 100) : 0;
+
+  // Identificar acciones próximas a vencer o vencidas (atrasadas, en desarrollo, no iniciadas)
+  // Excluyendo explícitamente cumplidas y canceladas.
+  const pendingActions: DashboardPendingAction[] = actions
+    .filter(a => ['no_iniciada', 'en_desarrollo', 'atrasada'].includes(a.estado))
+    .map(action => {
+      const plan = plans.find(p => p.id_plan === action.id_plan)!; 
+      const org = organizations.find(o => o.id_organizacion === plan.id_organizacion)!;
+      return {
+        id_accion: action.id_accion,
+        nombre: action.nombre || 'Sin nombre',
+        estado: action.estado,
+        fecha_termino: action.fecha_termino,
+        plan: { id_plan: plan.id_plan, nombre: plan.nombre || 'Sin nombre' },
+        organizacion: { id_organizacion: org.id_organizacion, nombre: org.nombre || 'Desconocida' },
+        programa: plan.id_programa && plan.programa_nombre ? { id_programa: plan.id_programa, nombre: plan.programa_nombre } : null
+      };
+    })
+    .sort((a, b) => a.fecha_termino.localeCompare(b.fecha_termino)); // Las más urgentes primero
+
   return {
     generatedAt: now.toISOString(),
     selectedCountryId: filters.countryId ?? null,
     countries: raw.countries,
     metrics: {
       organizations: organizations.length,
+      // Planes activos (fecha actual entre inicio y término)
       activePlans: plans.filter((item) => item.fecha_inicio <= today && item.fecha_termino >= today).length,
       beneficiaries: organizations.reduce((total, item) => total + Math.max(0, item.numero_beneficiarios ?? 0), 0),
       activeAlerts,
@@ -113,7 +151,7 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
       total: actions.length,
       completed,
       overdue,
-      percentage: actions.length ? Math.round((completed / actions.length) * 100) : 0,
+      percentage,
     },
     monthlyActions: months.map((month) => {
       const values = actions.filter((item) => item.fecha_termino.startsWith(month.key));
@@ -123,6 +161,7 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
         pending: values.filter((item) => item.estado !== 'cumplida' && item.estado !== 'cancelada').length,
       };
     }),
+    pendingActions // Nueva propiedad agregada para la HU del Dashboard Territorial
   };
 }
 
@@ -135,8 +174,6 @@ export function prepareReport(snapshot: DashboardSnapshot, request: ReportReques
       snapshot,
     };
   }
-  // HU22: la salida externa se construye desde métricas agregadas. No se
-  // propagan países, organizaciones, planes, acciones, IDs ni documentos.
   return {
     destination: request.destination,
     privacyProfile: 'agregado_hu22',
@@ -149,7 +186,7 @@ export function prepareReport(snapshot: DashboardSnapshot, request: ReportReques
 }
 
 // ============================================================================
-// SCRUM-136: CONTRATOS Y VALIDACIONES PARA REPORTE CONSOLIDADO
+// CONTRATOS Y VALIDACIONES PARA REPORTE CONSOLIDADO
 // ============================================================================
 
 export interface ConsolidatedReportFilters {
@@ -167,7 +204,6 @@ export interface ConsolidatedReportRequest {
   filters: ConsolidatedReportFilters;
 }
 
-// Estructuras de las secciones del reporte (para PDF o Vista Previa)
 export interface ConsolidatedOrganization {
   id_organizacion: string;
   nombre: string;
@@ -224,7 +260,6 @@ export interface ConsolidatedResult {
   organizacion: string;
 }
 
-// El contrato maestro del Snapshot consolidado
 export interface ConsolidatedReportSnapshot {
   generatedAt: string;
   period: { start: string; end: string };
@@ -245,7 +280,6 @@ export interface ConsolidatedReportSnapshot {
   };
 }
 
-// Validador estricto de la URL para el reporte consolidado
 export function parseConsolidatedFilters(url: URL): ConsolidatedReportRequest {
   const allowed = new Set([
     'fecha_inicio', 'fecha_termino', 'id_pais', 'id_organizacion', 
