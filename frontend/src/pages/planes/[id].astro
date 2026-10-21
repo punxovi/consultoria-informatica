@@ -1,65 +1,105 @@
 ---
 import BackButton from '../../components/ui/BackButton.astro';
-import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
 import AccionesPlan from '../../components/acciones/AccionesPlan.astro';
 import EliminarRegistro from '../../components/ui/EliminarRegistro.astro';
+import PlanIndicadores from '../../components/planes/PlanIndicadores.astro';
+import PlanResumen from '../../components/planes/PlanResumen.astro';
 
 const idPlan = Astro.params.id ?? '';
 ---
 
-<AppLayout title="Detalle del plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
-  <Fragment slot="breadcrumb">
-    <div class="flex items-center gap-4">
-      <BackButton href="/planes" />
-      <a href="/planes" class="text-sm text-neutral-500 hover:text-primary">Planes de Intervención</a>
-      <span class="text-neutral-400">›</span>
-      <span id="plan-breadcrumb" class="truncate text-sm font-medium text-neutral-900">Detalle</span>
-    </div>
+<AppLayout
+  title="Detalle del plan"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/planes" />
+    <a
+      href="/planes"
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Planes de Intervención
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span id="plan-breadcrumb" class="truncate text-sm font-semibold text-neutral-900">
+      Detalle del plan
+    </span>
   </Fragment>
 
   <section data-id-plan={idPlan} class="space-y-6">
-    <p id="detalle-estado" role="status" aria-live="polite">Cargando plan…</p>
-    <div id="detalle-error" hidden role="alert" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
+    <p id="detalle-estado" role="status" aria-live="polite" class="py-4 text-sm text-neutral-500">
+      Cargando plan…
+    </p>
+
+    <div
+      id="detalle-error"
+      hidden
+      role="alert"
+      class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-danger"
+    ></div>
 
     <div id="detalle-plan" hidden class="space-y-6">
-      <div>
-        <div class="flex flex-wrap items-center gap-3">
-          <h1 data-plan="nombre" class="text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
-          <span data-plan="estado" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"></span>
+      <section class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 data-plan="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
+            <span data-plan="estado" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"></span>
+          </div>
+          <p data-plan="resumen" class="mt-2 text-base text-neutral-600 md:text-lg"></p>
         </div>
-        <p data-plan="resumen" class="mt-2 text-base text-neutral-700 md:text-lg"></p>
-        <div class="mt-4"><Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">Editar plan</Button></div>
-        <div class="mt-3"><EliminarRegistro tipo="plan" id={idPlan} regreso="/planes?resultado=eliminado" /></div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
+            </svg>
+            Editar plan
+          </Button>
+          <EliminarRegistro tipo="plan" id={idPlan} regreso="/planes?resultado=eliminado" />
+        </div>
+      </section>
+
+      <PlanIndicadores />
+
+      <div class="border-b border-neutral-200">
+        <div id="plan-tabs" class="-mb-px flex gap-6 overflow-x-auto" role="tablist" aria-label="Secciones del plan">
+          <button
+            id="tab-resumen"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-resumen"
+            data-tab="resumen"
+            class="shrink-0 border-b-2 border-primary px-1 py-3 text-sm font-semibold text-primary"
+          >
+            Resumen del plan
+          </button>
+          <button
+            id="tab-seguimiento"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-seguimiento"
+            data-tab="seguimiento"
+            tabindex="-1"
+            class="shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
+          >
+            Seguimiento de acciones
+          </button>
+        </div>
       </div>
 
-      <Card>
-        <h2 class="mb-5 text-lg font-semibold text-neutral-900">Información general</h2>
-        <dl class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Organización</dt><dd data-plan="organizacion" class="mt-1 text-sm font-medium"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Programa</dt><dd data-plan="programa" class="mt-1 text-sm font-medium"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Período anual</dt><dd data-plan="periodo_anual" class="mt-1 text-sm font-medium"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Responsable</dt><dd data-plan="responsable_nombre" class="mt-1 text-sm font-medium"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Fecha de inicio</dt><dd data-plan="fecha_inicio" class="mt-1 text-sm font-medium"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Fecha de término</dt><dd data-plan="fecha_termino" class="mt-1 text-sm font-medium"></dd></div>
-        </dl>
-      </Card>
+      <section id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" data-panel="resumen" class="space-y-5">
+        <PlanResumen />
+      </section>
 
-      <Card>
-        <h2 class="mb-5 text-lg font-semibold text-neutral-900">Definición del plan</h2>
-        <dl class="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Situación o necesidad</dt><dd data-plan="situacion_necesidad" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Objetivo general</dt><dd data-plan="objetivo_general" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Objetivos específicos</dt><dd data-plan="objetivos_especificos" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
-          <div><dt class="text-xs font-semibold uppercase text-neutral-500">Resultado esperado</dt><dd data-plan="resultado_esperado" class="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700"></dd></div>
-        </dl>
-      </Card>
-
-      <Card>
+      <section id="panel-seguimiento" role="tabpanel" aria-labelledby="tab-seguimiento" data-panel="seguimiento" hidden class="min-w-0 space-y-5">
         <AccionesPlan idPlan={idPlan} />
-      </Card>
+      </section>
     </div>
   </section>
 </AppLayout>
@@ -74,40 +114,112 @@ const idPlan = Astro.params.id ?? '';
 
   function estadoPlan(inicio: string, termino: string) {
     const hoy = new Date().toISOString().slice(0, 10);
-    if (termino < hoy) return { texto: 'Finalizado', clase: 'bg-neutral-100 text-neutral-600' };
-    if (inicio > hoy) return { texto: 'Pendiente', clase: 'bg-amber-50 text-amber-700' };
-    return { texto: 'En ejecución', clase: 'bg-emerald-50 text-emerald-700' };
+
+    if (termino < hoy) {
+      return { texto: 'Finalizado', clase: 'bg-neutral-100 text-neutral-600' };
+    }
+    if (inicio > hoy) {
+      return { texto: 'Pendiente', clase: 'bg-warning/15 text-[#946200]' };
+    }
+    return { texto: 'En ejecución', clase: 'bg-success/10 text-success' };
   }
 
-  void obtenerPlan(seccion.dataset.idPlan ?? '').then(plan => {
-    document.querySelector<HTMLElement>('#eliminar-registro')!.dataset.version = String(plan.version);
-    document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
-    const valores: Record<string, string> = {
-      nombre: plan.nombre,
-      resumen: `${plan.organizacion.nombre} · ${plan.periodo_anual}`,
-      organizacion: plan.organizacion.nombre,
-      programa: plan.programa.nombre,
-      periodo_anual: String(plan.periodo_anual),
-      responsable_nombre: plan.responsable_nombre,
-      fecha_inicio: new Date(`${plan.fecha_inicio}T00:00:00`).toLocaleDateString('es-CL'),
-      fecha_termino: new Date(`${plan.fecha_termino}T00:00:00`).toLocaleDateString('es-CL'),
-      situacion_necesidad: plan.situacion_necesidad,
-      objetivo_general: plan.objetivo_general,
-      objetivos_especificos: plan.objetivos_especificos,
-      resultado_esperado: plan.resultado_esperado,
-    };
-    for (const [campo, valor] of Object.entries(valores)) {
-      document.querySelector<HTMLElement>(`[data-plan="${campo}"]`)!.textContent = valor;
+  void obtenerPlan(seccion.dataset.idPlan ?? '')
+    .then((plan) => {
+      const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
+      if (raizEliminar) raizEliminar.dataset.version = String(plan.version);
+
+      document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
+
+      const valores: Record<string, string> = {
+        nombre: plan.nombre,
+        resumen: `${plan.organizacion.nombre} · ${plan.periodo_anual}`,
+        organizacion: plan.organizacion.nombre,
+        programa: plan.programa.nombre,
+        periodo_anual: String(plan.periodo_anual),
+        responsable_nombre: plan.responsable_nombre,
+        fecha_inicio: new Date(`${plan.fecha_inicio}T00:00:00`).toLocaleDateString('es-CL'),
+        fecha_termino: new Date(`${plan.fecha_termino}T00:00:00`).toLocaleDateString('es-CL'),
+        situacion_necesidad: plan.situacion_necesidad,
+        objetivo_general: plan.objetivo_general,
+        objetivos_especificos: plan.objetivos_especificos,
+        resultado_esperado: plan.resultado_esperado,
+      };
+
+      for (const [campo, valor] of Object.entries(valores)) {
+        document.querySelectorAll<HTMLElement>(`[data-plan="${campo}"]`).forEach((elemento) => {
+          elemento.textContent = valor || 'Sin información registrada.';
+        });
+      }
+
+      const etiqueta = document.querySelector<HTMLElement>('[data-plan="estado"]')!;
+      const calculado = estadoPlan(plan.fecha_inicio, plan.fecha_termino);
+      etiqueta.textContent = calculado.texto;
+      etiqueta.className = `inline-flex rounded-full px-3 py-1 text-xs font-semibold ${calculado.clase}`;
+
+      estado.hidden = true;
+      contenido.hidden = false;
+
+      // Si llegamos desde crear/editar una acción, muestra y enfoca su pestaña.
+      if (window.location.hash === '#acciones-plan') {
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>('#acciones-plan')?.scrollIntoView({
+            behavior: 'auto',
+            block: 'start',
+          });
+        });
+      }
+    })
+    .catch((fallo) => {
+      estado.hidden = true;
+      error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar el plan.';
+      error.hidden = false;
+    });
+
+  const botonesTab = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
+  const paneles = document.querySelectorAll<HTMLElement>('[data-panel]');
+
+  function activarTab(nombre: string, actualizarUrl = false) {
+    botonesTab.forEach((boton) => {
+      const activo = boton.dataset.tab === nombre;
+      boton.setAttribute('aria-selected', String(activo));
+      boton.tabIndex = activo ? 0 : -1;
+      boton.className = activo
+        ? 'shrink-0 border-b-2 border-primary px-1 py-3 text-sm font-semibold text-primary'
+        : 'shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary';
+    });
+
+    paneles.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== nombre;
+    });
+
+    if (actualizarUrl) {
+      const url = new URL(window.location.href);
+      url.hash = nombre === 'seguimiento' ? 'acciones-plan' : '';
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
     }
-    const etiqueta = document.querySelector<HTMLElement>('[data-plan="estado"]')!;
-    const calculado = estadoPlan(plan.fecha_inicio, plan.fecha_termino);
-    etiqueta.textContent = calculado.texto;
-    etiqueta.classList.add(...calculado.clase.split(' '));
-    estado.textContent = '';
-    contenido.hidden = false;
-  }).catch(fallo => {
-    estado.textContent = '';
-    error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar el plan.';
-    error.hidden = false;
+  }
+
+  // Los enlaces con #acciones-plan deben abrir directamente la pestaña Seguimiento.
+  activarTab(window.location.hash === '#acciones-plan' ? 'seguimiento' : 'resumen');
+
+  botonesTab.forEach((boton, indice) => {
+    boton.addEventListener('click', () => activarTab(boton.dataset.tab ?? 'resumen', true));
+    boton.addEventListener('keydown', (evento) => {
+      if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+      evento.preventDefault();
+      const desplazamiento = evento.key === 'ArrowRight' ? 1 : -1;
+      const siguiente = (indice + desplazamiento + botonesTab.length) % botonesTab.length;
+      botonesTab[siguiente]?.focus();
+      botonesTab[siguiente]?.click();
+    });
+  });
+
+  window.addEventListener('plan:acciones-cargadas', (evento) => {
+    const detalle = (evento as CustomEvent<{ total: number }>).detail;
+    if (!detalle || typeof detalle.total !== 'number') return;
+
+    const total = document.querySelector<HTMLElement>('#plan-acciones-total');
+    if (total) total.textContent = new Intl.NumberFormat('es-CL').format(detalle.total);
   });
 </script>

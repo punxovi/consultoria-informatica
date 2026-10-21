@@ -1,13 +1,18 @@
 ---
+import BackButton from '../../components/ui/BackButton.astro';
 import PlanForm from '../../components/planes/PlanForm.astro';
 import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
 <AppLayout title="Crear plan" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
-  <Fragment slot="breadcrumb">
-    <a href="/planes" class="text-primary hover:underline">Planes de Intervención</a>
-    <span aria-hidden="true">›</span><span>Crear plan</span>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/planes" />
+    <a href="/planes" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">
+      Planes de Intervención
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">Crear plan</span>
   </Fragment>
   <PlanForm />
 </AppLayout>

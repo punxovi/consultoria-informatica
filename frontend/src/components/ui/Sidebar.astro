@@ -127,14 +127,6 @@ const currentPath = Astro.url.pathname;
                 </>
               )}
 
-              {item.href.startsWith('/seguimiento') && (
-                <>
-                  <path d="M3 3v18h18" />
-                  <path d="M7 15l4-4 3 3 6-8" />
-                  <path d="M16 6h4v4" />
-                </>
-              )}
-
               {item.href.startsWith('/reportes') && (
                 <>
                   <path d="M6 3h8l5 5v13H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
@@ -147,7 +139,6 @@ const currentPath = Astro.url.pathname;
                 '/organizaciones',
                 '/programas',
                 '/planes',
-                '/seguimiento',
                 '/reportes',
               ].some((href) =>
                 href === '/dashboard'
