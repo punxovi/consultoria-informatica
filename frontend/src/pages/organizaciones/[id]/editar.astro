@@ -1,4 +1,5 @@
 ---
+import '../../../styles/organizaciones.css';
 import AppLayout from '../../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../../config/nav';
 import BackButton from '../../../components/ui/BackButton.astro';
@@ -12,20 +13,13 @@ const { id } = Astro.params;
   navItems={mainNavItems}
   allowedRoles={['ADMIN', 'COORD']}
 >
-  <Fragment slot="breadcrumb">
-    <div class="flex items-center gap-2 text-sm">
-      <BackButton />
-      <a
-        href="/organizaciones"
-        class="text-neutral-500 transition-colors hover:text-primary"
-      >
-        Organizaciones
-      </a>
-      <span class="text-neutral-400">&rsaquo;</span>
-      <span class="font-medium text-neutral-900">
-        Editar Organización
-      </span>
-    </div>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href={`/organizaciones/${encodeURIComponent(id ?? '')}`} />
+    <a href="/organizaciones" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">Organizaciones</a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <a href={`/organizaciones/${encodeURIComponent(id ?? '')}`} class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">Detalle de organización</a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">Editar Organización</span>
   </Fragment>
 
   <OrganizacionForm idOrganizacion={id ?? ''} />

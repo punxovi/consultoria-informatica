@@ -377,7 +377,7 @@ export function iniciarDonaciones() {
     q('respaldo-pendiente-alerta').hidden = false;
     q('respaldo-pendiente-alerta').textContent =
       `Reintentando carga para «${item.nombre_original}». Selecciona el archivo correspondiente (${item.mime_type}, máx. ${formatearTamano(item.tamano_bytes)}).`;
-    q('respaldo-tipo').value = item.tipo_respaldo;
+    q<HTMLSelectElement>('respaldo-tipo').value = item.tipo_respaldo;
     q<HTMLInputElement>('respaldo-descripcion').value = item.descripcion ?? '';
     q('respaldo-guardar').textContent = 'Reintentar subida';
   }
@@ -403,7 +403,7 @@ export function iniciarDonaciones() {
     cambiarVista('form-donacion');
   });
 
-  q('don-cancelar').addEventListener('click', () => {
+  q('cancelar').addEventListener('click', () => {
     cambiarVista('listado');
   });
 

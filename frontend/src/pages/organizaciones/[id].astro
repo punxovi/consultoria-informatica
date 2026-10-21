@@ -1,4 +1,6 @@
 ---
+import '../../styles/organizaciones.css';
+import OrganizacionAcceso from '../../components/organizaciones/OrganizacionAcceso.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import OrganizacionExpedienteLegal from '../../components/organizaciones/OrganizacionExpedienteLegal.astro';
 import OrganizacionActas from '../../components/organizaciones/OrganizacionActas.astro';
@@ -18,27 +20,12 @@ const idOrganizacion = Astro.params.id ?? '';
   navItems={mainNavItems}
   allowedRoles={['ADMIN', 'COORD']}
 >
-  <Fragment slot="breadcrumb">
-  <div class="flex items-center gap-4">
-    <BackButton />
-
-    <div class="flex min-w-0 items-center gap-2 text-sm">
-      <a
-        href="/organizaciones"
-        class="text-neutral-500 transition-colors hover:text-primary"
-      >
-        Organizaciones
-      </a>
-      <span class="text-neutral-400">&rsaquo;</span>
-      <span
-        id="breadcrumb-organizacion"
-        class="truncate font-medium text-neutral-900"
-      >
-        Detalle de organización
-      </span>
-    </div>
-  </div>
-</Fragment>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/organizaciones" />
+    <a href="/organizaciones" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">Organizaciones</a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span id="breadcrumb-organizacion" class="truncate text-sm font-semibold text-neutral-900">Detalle de organización</span>
+  </Fragment>
 
   <section
     id="estado-organizacion"
@@ -58,10 +45,10 @@ const idOrganizacion = Astro.params.id ?? '';
     </Card>
   </section>
 
-  <section id="ficha-organizacion" class="hidden space-y-6">
+  <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6">
     
     <!-- Encabezado -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="org-hero flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">
@@ -70,7 +57,7 @@ const idOrganizacion = Astro.params.id ?? '';
 
           <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
             <span aria-hidden="true">●</span>
-            Activa
+            <span id="org-estado">Activa</span>
           </span>
         </div>
 
@@ -90,10 +77,15 @@ const idOrganizacion = Astro.params.id ?? '';
       </Button>
     </div>
 
+    <div class="org-metricas org-resumen grid gap-4 sm:grid-cols-3">
+      <Card><p>Beneficiarios atendidos</p><strong id="org-total-beneficiarios">—</strong><span>Alcance registrado</span></Card>
+      <Card><p>Ubicación</p><strong id="org-ubicacion">—</strong><span id="org-region">—</span></Card>
+      <Card><p>Representante</p><strong id="org-representante">—</strong><span>Contacto de la organización</span></Card>
+    </div>
     <!-- Tabs -->
     <div class="overflow-x-auto">
       <nav
-        class="flex min-w-max border-b border-neutral-200"
+        class="org-tabs flex flex-wrap gap-2"
         aria-label="Secciones de organización"
       >
         <button
@@ -333,80 +325,23 @@ const idOrganizacion = Astro.params.id ?? '';
       <OrganizacionActas idOrganizacion={idOrganizacion} />
     </div>
 
-    <!-- Los programas usados por la organización se obtendrán de sus planes, sin relación directa Organización–Programa. -->
-    <!-- Intervenciones -->
-    <div id="tab-intervenciones" class="contenido-tab hidden">
-      <Card>
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold text-neutral-900">
-            Intervenciones
-          </h2>
-          <p class="mt-1 text-sm text-neutral-500">
-            Planes de intervención y acciones relacionadas con esta
-            organización.
-          </p>
-        </div>
-
-        <div
-          class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center"
-        >
-          <div
-            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"
-          >
-            <span class="text-xl">+</span>
-          </div>
-
-          <p class="mt-4 text-sm font-medium text-neutral-700">
-            Vista de intervenciones en preparación.
-          </p>
-          <p class="mt-1 text-sm text-neutral-500">
-            Cada plan mostrará el programa institucional que utiliza y sus acciones.
-          </p>
-        </div>
-      </Card>
+    <div id="tab-intervenciones" class="contenido-tab hidden space-y-5">
+      <div><h2 class="font-semibold">Intervenciones</h2><p class="mt-1 text-neutral-500">Accede a los planes, reuniones y acuerdos de trabajo.</p></div>
+      <div class="org-accesos">
+        <OrganizacionAcceso titulo="Planes de Intervención" descripcion="Abrir el listado general y filtrar por organización." href="/planes" />
+        <OrganizacionAcceso titulo="Actas de Reunión" descripcion="Consultar reuniones y acuerdos de esta organización." destino="actas" tono="rosa" />
+        <OrganizacionAcceso titulo="Compromisos" descripcion="Revisar responsables, plazos y cumplimiento." destino="compromisos" tono="verde" />
+        <OrganizacionAcceso titulo="Diagnóstico" descripcion="Consultar necesidades y antecedentes de la comunidad." destino="diagnostico" tono="celeste" />
+      </div>
     </div>
-
-    <!-- Seguimiento -->
-    <div id="tab-seguimiento" class="contenido-tab hidden">
-      <Card>
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold text-neutral-900">
-            Seguimiento
-          </h2>
-          <p class="mt-1 text-sm text-neutral-500">
-            Información de seguimiento de la organización.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Evidencias
-            </p>
-            <p class="mt-2 text-sm text-neutral-500">
-              Sin información disponible.
-            </p>
-          </div>
-
-          <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Indicadores
-            </p>
-            <p class="mt-2 text-sm text-neutral-500">
-              Sin información disponible.
-            </p>
-          </div>
-
-          <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Recursos
-            </p>
-            <p class="mt-2 text-sm text-neutral-500">
-              Sin información disponible.
-            </p>
-          </div>
-        </div>
-      </Card>
+    <div id="tab-seguimiento" class="contenido-tab hidden space-y-5">
+      <div><h2 class="font-semibold">Seguimiento</h2><p class="mt-1 text-neutral-500">Consulta los respaldos y resultados del trabajo con la organización.</p></div>
+      <div class="org-accesos">
+        <OrganizacionAcceso titulo="Evidencias e indicadores" descripcion="Se consultan dentro de cada acción. Abre el listado de planes para acceder." href="/planes" tono="celeste" />
+        <OrganizacionAcceso titulo="Donaciones y recursos" descripcion="Consultar aportes y sus documentos de respaldo." destino="donaciones" tono="verde" />
+        <OrganizacionAcceso titulo="Expediente Legal" descripcion="Revisar antecedentes y documentos de la organización." destino="expediente-legal" />
+        <OrganizacionAcceso titulo="Compromisos" descripcion="Revisar el estado de los acuerdos registrados." destino="compromisos" tono="rosa" />
+      </div>
     </div>
   </section>
 </AppLayout>
@@ -479,6 +414,11 @@ const idOrganizacion = Astro.params.id ?? '';
 
   function mostrarFicha(organizacion: Organizacion) {
     const tipoOrganizacion = formatearTipoOrganizacion(organizacion);
+    asignarTexto('org-total-beneficiarios', organizacion.numero_beneficiarios);
+    asignarTexto('org-ubicacion', organizacion.comuna_municipio_ciudad);
+    asignarTexto('org-region', organizacion.region_departamento);
+    asignarTexto('org-representante', organizacion.nombre_representante);
+    asignarTexto('org-estado', organizacion.archived_at ? 'Inactiva' : 'Activa');
 
     asignarTexto('breadcrumb-organizacion', organizacion.nombre);
     asignarTexto('titulo-organizacion', organizacion.nombre);
@@ -529,11 +469,19 @@ const idOrganizacion = Astro.params.id ?? '';
     }
   }
 
+  document.querySelectorAll<HTMLElement>('[data-org-seccion]').forEach(acceso => {
+    acceso.addEventListener('click', () => {
+      const tab = document.querySelector<HTMLButtonElement>(`[data-tab="${acceso.dataset.orgSeccion}"]`);
+      tab?.click(); tab?.focus();
+    });
+  });
   const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-organizacion');
   const contenidos =
     document.querySelectorAll<HTMLElement>('.contenido-tab');
 
   tabs.forEach((tab) => {
+    tab.setAttribute('aria-pressed', String(tab.dataset.tab === 'informacion'));
+    tab.setAttribute('aria-controls', `tab-${tab.dataset.tab}`);
     tab.addEventListener('click', () => {
       const tabSeleccionada = tab.dataset.tab;
       if (!tabSeleccionada) return;
@@ -541,6 +489,7 @@ const idOrganizacion = Astro.params.id ?? '';
       tabs.forEach((item) => {
         const activa = item.dataset.tab === tabSeleccionada;
 
+        item.setAttribute('aria-pressed', String(activa));
         item.classList.toggle('border-primary', activa);
         item.classList.toggle('text-primary', activa);
         item.classList.toggle('font-semibold', activa);

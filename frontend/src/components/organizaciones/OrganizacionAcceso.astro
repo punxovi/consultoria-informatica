@@ -1,0 +1,10 @@
+---
+interface Props { titulo: string; descripcion: string; destino?: string; href?: string; tono?: 'violeta' | 'verde' | 'rosa' | 'celeste' }
+const { titulo, descripcion, destino, href, tono = 'violeta' } = Astro.props;
+const Tag = href ? 'a' : 'button';
+---
+<Tag href={href} type={href ? undefined : 'button'} data-org-seccion={destino} class={`org-acceso org-acceso-${tono}`}>
+  <span class="org-acceso-icono" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h6" /></svg></span>
+  <span><strong>{titulo}</strong><span class="org-acceso-descripcion">{descripcion}</span></span>
+  <span class="org-acceso-flecha" aria-hidden="true">→</span>
+</Tag>
