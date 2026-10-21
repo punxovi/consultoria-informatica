@@ -1,4 +1,5 @@
 ---
+import '../styles/organizaciones.css';
 import AppLayout from '../layouts/AppLayout.astro';
 import { mainNavItems } from '../config/nav';
 import Card from '../components/ui/Card.astro';
@@ -9,13 +10,11 @@ import Select from '../components/ui/Select.astro';
 
 <AppLayout title="Organizaciones" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
 
-  <Fragment slot="breadcrumb">
-    <span>Chile</span>
-    <span>&rsaquo;</span>
-    <span class="font-medium text-neutral-900">Organizaciones</span>
+  <Fragment slot="headerBreadcrumb">
+    <span class="text-sm font-semibold text-neutral-900">Organizaciones</span>
   </Fragment>
 
-  <section class="space-y-6">
+  <section class="organizaciones-ui org-listado space-y-6">
 
     <!-- Encabezado -->
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -24,7 +23,7 @@ import Select from '../components/ui/Select.astro';
           Organizaciones
         </h1>
 
-        <p class="mt-2 text-base text-neutral-700 md:text-lg">
+        <p class="mt-2 text-sm text-neutral-500">
           Gestiona las organizaciones asociadas a la fundación.
         </p>
       </div>
@@ -36,7 +35,7 @@ import Select from '../components/ui/Select.astro';
     </div>
 
     <!-- Resumen -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="org-metricas grid grid-cols-1 gap-4 sm:grid-cols-3">
 
       <!-- Total -->
       <Card class="!p-5">
@@ -199,10 +198,11 @@ import Select from '../components/ui/Select.astro';
           </div>
         </div>
 
+        <div class="flex flex-wrap gap-3"><Button id="limpiar-organizaciones" variant="outline">Limpiar filtros</Button><Button id="actualizar-organizaciones" variant="outline">Actualizar listado</Button></div>
         <!-- Lista -->
         <div
           id="organizaciones-lista"
-          class="space-y-3"
+          class="org-resultados"
           aria-live="polite"
           aria-busy="true"
         >
@@ -427,12 +427,12 @@ import Select from '../components/ui/Select.astro';
     const tarjeta = document.createElement('article');
 
     tarjeta.className =
-      'group rounded-xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md';
+      'org-tarjeta';
 
     const contenido = document.createElement('div');
 
     contenido.className =
-      'flex flex-col gap-4 md:flex-row md:items-center md:justify-between';
+      'org-tarjeta-contenido';
 
     // Información de la organización
     const informacion = document.createElement('div');
@@ -447,7 +447,7 @@ import Select from '../components/ui/Select.astro';
     const nombre = document.createElement('h3');
 
     nombre.className =
-      'text-base font-semibold text-neutral-900';
+      'text-xl font-semibold text-neutral-900';
 
     nombre.textContent = organizacion.nombre;
 
@@ -471,7 +471,13 @@ import Select from '../components/ui/Select.astro';
       organizacion.pais.nombre,
     ].join(' · ');
 
-    informacion.append(encabezado, ubicacion);
+    const resumen = document.createElement('p');
+    resumen.className = 'org-tarjeta-resumen';
+    resumen.textContent = organizacion.descripcion_breve || 'Sin descripción registrada.';
+    const beneficiarios = document.createElement('p');
+    beneficiarios.className = 'org-tarjeta-beneficiarios';
+    beneficiarios.textContent = String(organizacion.numero_beneficiarios) + ' beneficiarios';
+    informacion.append(encabezado, ubicacion, resumen, beneficiarios);
 
     // Acción de detalle
     const acciones = document.createElement('div');
@@ -572,5 +578,9 @@ import Select from '../components/ui/Select.astro';
     }
   }
 
+  document.querySelector('#limpiar-organizaciones')?.addEventListener('click', () => {
+    inputBusqueda.value = ''; selectPais.value = ''; selectPrograma.value = ''; aplicarFiltros();
+  });
+  document.querySelector('#actualizar-organizaciones')?.addEventListener('click', () => void cargarOrganizaciones());
   void cargarOrganizaciones();
 </script>
