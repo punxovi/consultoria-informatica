@@ -1,46 +1,78 @@
 ---
 import Button from '../../../../components/ui/Button.astro';
-import Card from '../../../../components/ui/Card.astro';
+import DetalleAccionInfo from '../../../../components/acciones/DetalleAccionInfo.astro';
 import AccionLayout from '../../../../layouts/AccionLayout.astro';
 import EliminarRegistro from '../../../../components/ui/EliminarRegistro.astro';
 import IndicadoresAccion from '../../../../components/indicadores/IndicadoresAccion.astro';
 import EvidenciasAccion from '../../../../components/evidencias/EvidenciasAccion.astro';
+
 const idPlan = Astro.params.id ?? '';
 const idAccion = Astro.params.idAccion ?? '';
+const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(idAccion)}`;
 ---
+
 <AccionLayout idPlan={idPlan} title="Detalle de acción">
   <section id="accion-detalle" data-id-plan={idPlan} data-id-accion={idAccion} class="w-full space-y-6">
-    <p id="detalle-estado" role="status" aria-live="polite">Cargando acción…</p>
-    <p id="detalle-error" hidden role="alert" class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></p>
-    <div id="detalle-reintentar" hidden><Button id="recargar-accion" variant="outline">Reintentar carga</Button></div>
+    <p id="detalle-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando acción…</p>
+    <p id="detalle-error" hidden role="alert" class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
+    <div id="detalle-reintentar" hidden>
+      <Button id="recargar-accion" variant="outline">Reintentar carga</Button>
+    </div>
+
     <div id="detalle-contenido" hidden class="space-y-6">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h1 data-accion="nombre" class="mt-1 break-words text-2xl font-bold md:text-3xl"></h1>
-          <p data-accion="plan" class="mt-2 break-words text-lg text-neutral-700"></p>
+      <p
+        id="accion-confirmacion"
+        hidden
+        role="status"
+        aria-live="polite"
+        class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm font-medium text-success"
+      >
+        Acción modificada correctamente.
+      </p>
+      <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 data-accion="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
+            <span data-accion="estado" class="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"></span>
+            <span id="accion-vencida" hidden class="inline-flex rounded-full bg-brand-pink/10 px-3 py-1 text-xs font-semibold text-[#AD174F]">Vencida</span>
+          </div>
+          <p class="mt-2 text-base text-neutral-600">Plan de intervención: <span data-accion="plan" class="font-medium text-neutral-800"></span></p>
         </div>
-        <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(idAccion)}/editar`} variant="outline">Editar acción</Button>
-      </div>
-      <Card>
-        <div class="mb-6 flex flex-wrap gap-3">
-          <span data-accion="estado" class="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"></span>
-          <span id="accion-vencida" hidden class="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Vencida</span>
+
+        <div class="flex shrink-0 flex-wrap items-center gap-3">
+          <EliminarRegistro
+            tipo="accion"
+            id={idAccion}
+            regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`}
+          />
+          <Button href={`${rutaAccion}/editar`} variant="outline">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
+            </svg>
+            Editar acción
+          </Button>
         </div>
-        <dl class="grid grid-cols-1 gap-5 md:grid-cols-3">
-          <div><dt class="text-sm font-semibold text-neutral-500">Responsable</dt><dd data-accion="responsable_nombre" class="mt-1 break-words"></dd></div>
-          <div><dt class="text-sm font-semibold text-neutral-500">Fecha de inicio</dt><dd data-accion="fecha_inicio" class="mt-1"></dd></div>
-          <div><dt class="text-sm font-semibold text-neutral-500">Fecha de término</dt><dd data-accion="fecha_termino" class="mt-1"></dd></div>
-          <div><dt class="text-sm font-semibold text-neutral-700">Descripción</dt><dd data-accion="descripcion" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
-          <div><dt id="motivo-titulo" class="text-sm font-semibold text-neutral-700">Observaciones</dt><dd data-accion="observacion_motivo" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
-          <div><dt class="text-sm font-semibold text-neutral-700">Resultado esperado</dt><dd data-accion="resultado_esperado" class="mt-2 whitespace-pre-wrap break-words"></dd></div>
-        </dl>
-      </Card>
-      <IndicadoresAccion idAccion={idAccion} />
-      <EvidenciasAccion idAccion={idAccion} />
-      <div class="flex flex-wrap items-center justify-between gap-4 border-t border-neutral-200 pt-5">
-        <a href={`/planes/${encodeURIComponent(idPlan)}#acciones-plan`} class="inline-flex min-h-[48px] items-center text-primary underline">Volver a las acciones del plan</a>
-        <EliminarRegistro tipo="accion" id={idAccion} regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`} />
+      </header>
+
+      <div class="border-b border-neutral-200">
+        <div id="accion-tabs" class="-mb-px flex gap-6 overflow-x-auto" role="tablist" aria-label="Secciones de la acción">
+          <button id="tab-detalle" type="button" role="tab" aria-selected="true" aria-controls="panel-detalle" data-tab="detalle" class="shrink-0 border-b-2 border-primary px-1 py-3 text-sm font-semibold text-primary">Detalle de acción</button>
+          <button id="tab-indicadores" type="button" role="tab" aria-selected="false" aria-controls="panel-indicadores" data-tab="indicadores" tabindex="-1" class="shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary">Indicadores y resultados</button>
+          <button id="tab-evidencias" type="button" role="tab" aria-selected="false" aria-controls="panel-evidencias" data-tab="evidencias" tabindex="-1" class="shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary">Evidencias</button>
+        </div>
       </div>
+
+      <section id="panel-detalle" role="tabpanel" aria-labelledby="tab-detalle" data-panel="detalle" class="min-w-0">
+        <DetalleAccionInfo />
+      </section>
+
+      <section id="panel-indicadores" role="tabpanel" aria-labelledby="tab-indicadores" data-panel="indicadores" hidden class="min-w-0">
+        <IndicadoresAccion idAccion={idAccion} />
+      </section>
+
+      <section id="panel-evidencias" role="tabpanel" aria-labelledby="tab-evidencias" data-panel="evidencias" hidden class="min-w-0">
+        <EvidenciasAccion idAccion={idAccion} />
+      </section>
     </div>
   </section>
 </AccionLayout>
@@ -48,12 +80,43 @@ const idAccion = Astro.params.idAccion ?? '';
 <script>
   import { obtenerAccion } from '../../../../lib/acciones/cliente';
   import { etiquetaEstado, estaVencida, mostrarFecha } from '../../../../lib/acciones/presentacion';
+
   const seccion = document.querySelector<HTMLElement>('#accion-detalle')!;
   const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
   const error = document.querySelector<HTMLElement>('#detalle-error')!;
   const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
   const reintentar = document.querySelector<HTMLElement>('#detalle-reintentar')!;
+  const botonesTab = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
+  const panelesTab = document.querySelectorAll<HTMLElement>('[data-panel]');
   let cargando = false;
+
+  function activarTab(nombre: string) {
+    botonesTab.forEach((boton) => {
+      const activo = boton.dataset.tab === nombre;
+      boton.setAttribute('aria-selected', String(activo));
+      boton.tabIndex = activo ? 0 : -1;
+      boton.className = activo
+        ? 'shrink-0 border-b-2 border-primary px-1 py-3 text-sm font-semibold text-primary'
+        : 'shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary';
+    });
+
+    panelesTab.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== nombre;
+    });
+  }
+
+  botonesTab.forEach((boton, indice) => {
+    boton.addEventListener('click', () => activarTab(boton.dataset.tab ?? 'detalle'));
+    boton.addEventListener('keydown', (evento) => {
+      if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+      evento.preventDefault();
+      const paso = evento.key === 'ArrowRight' ? 1 : -1;
+      const siguiente = (indice + paso + botonesTab.length) % botonesTab.length;
+      botonesTab[siguiente]?.focus();
+      botonesTab[siguiente]?.click();
+    });
+  });
+
   async function cargar() {
     if (cargando) return;
     cargando = true;
@@ -62,23 +125,49 @@ const idAccion = Astro.params.idAccion ?? '';
     reintentar.hidden = true;
     error.hidden = true;
     estado.textContent = 'Cargando acción…';
+
     try {
       const accion = await obtenerAccion(seccion.dataset.idAccion!);
-      if (accion.id_plan !== seccion.dataset.idPlan) throw new Error('La acción solicitada no pertenece a este plan.');
-      document.querySelector<HTMLElement>('#eliminar-registro')!.dataset.version = String(accion.version);
+      if (accion.id_plan !== seccion.dataset.idPlan) {
+        throw new Error('La acción solicitada no pertenece a este plan.');
+      }
+
+      const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
+      if (raizEliminar) raizEliminar.dataset.version = String(accion.version);
+
       const datos: Record<string, string> = {
-        nombre: accion.nombre, plan: accion.plan.nombre, estado: etiquetaEstado(accion.estado),
+        nombre: accion.nombre,
+        plan: accion.plan.nombre,
+        'plan-detalle': accion.plan.nombre,
+        estado: etiquetaEstado(accion.estado),
         descripcion: accion.descripcion || 'Sin descripción registrada.',
         responsable_nombre: accion.responsable_nombre,
-        fecha_inicio: mostrarFecha(accion.fecha_inicio), fecha_termino: mostrarFecha(accion.fecha_termino),
+        fecha_inicio: mostrarFecha(accion.fecha_inicio),
+        fecha_termino: mostrarFecha(accion.fecha_termino),
         observacion_motivo: accion.observacion_motivo || 'Sin observaciones.',
         resultado_esperado: accion.resultado_esperado || 'Sin resultado esperado registrado.',
       };
-      for (const [campo, valor] of Object.entries(datos)) seccion.querySelector(`[data-accion="${campo}"]`)!.textContent = valor;
-      document.querySelector('#motivo-titulo')!.textContent = accion.estado === 'cancelada' ? 'Motivo de cancelación' : 'Observaciones';
+
+      for (const [campo, valor] of Object.entries(datos)) {
+        const elemento = seccion.querySelector<HTMLElement>(`[data-accion="${campo}"]`);
+        if (elemento) elemento.textContent = valor;
+      }
+
+      document.querySelector<HTMLElement>('#motivo-titulo')!.textContent =
+        accion.estado === 'cancelada' ? 'Motivo de cancelación' : 'Observaciones';
       document.querySelector<HTMLElement>('#accion-vencida')!.hidden = !estaVencida(accion);
+
       contenido.hidden = false;
       seccion.dataset.cargada = 'true';
+
+      const parametros = new URLSearchParams(window.location.search);
+      const resultado = parametros.get('resultado');
+      const confirmacion = document.querySelector<HTMLElement>('#accion-confirmacion');
+      if (resultado === 'accion-actualizada' && confirmacion) {
+        confirmacion.hidden = false;
+        history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`);
+      }
+
       window.dispatchEvent(new Event('accion:lista-para-evidencias'));
       window.dispatchEvent(new Event('accion:detalle-cargado'));
       estado.textContent = '';
@@ -92,7 +181,10 @@ const idAccion = Astro.params.idAccion ?? '';
       seccion.setAttribute('aria-busy', 'false');
     }
   }
-  document.querySelector('#recargar-accion')!.addEventListener('click', () => void cargar());
-  window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
+
+  document.querySelector<HTMLButtonElement>('#recargar-accion')?.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', (evento) => {
+    if (evento.persisted) void cargar();
+  });
   void cargar();
 </script>

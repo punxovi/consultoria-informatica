@@ -14,6 +14,7 @@ interface Props {
 
 const { title, navItems, allowedRoles = [] } = Astro.props;
 const hasBreadcrumb = Astro.slots.has('breadcrumb');
+const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 ---
 
 <Layout title={title}>
@@ -23,8 +24,19 @@ const hasBreadcrumb = Astro.slots.has('breadcrumb');
 
     <!-- Columna principal: encabezado y contenido -->
     <div class="flex min-w-0 flex-1 flex-col md:ml-64">
-      <Header title={title ?? 'Fundación Gestionar Esperanzas'}>
+      <Header
+        title={title ?? 'Fundación Gestionar Esperanzas'}
+        showBreadcrumb={hasHeaderBreadcrumb}
+      >
         <slot name="actions" slot="actions" />
+
+        {
+          hasHeaderBreadcrumb && (
+            <Fragment slot="breadcrumb">
+              <slot name="headerBreadcrumb" />
+            </Fragment>
+          )
+        }
       </Header>
 
       <main

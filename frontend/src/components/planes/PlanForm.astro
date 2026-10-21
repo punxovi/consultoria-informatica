@@ -1,5 +1,4 @@
 ---
-import BackButton from '../ui/BackButton.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -16,72 +15,93 @@ const textos = [
 ---
 
 <section class="w-full space-y-6">
-  <div class="flex items-start gap-4">
-    <BackButton class="mt-1 shrink-0" />
-    <div>
-      <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">{idPlan ? 'Editar plan' : 'Crear plan'}</h1>
-      <p class="mt-2 text-base text-neutral-700 md:text-lg">
-        Registra el plan, su organización, programa, objetivos y período de ejecución.
+  <header class="min-w-0">
+      <h1 class="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+        {idPlan ? 'Editar plan' : 'Crear plan'}
+      </h1>
+      <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-600 md:text-base">
+        Registra la organización, el programa, el período de ejecución y la definición de la intervención.
       </p>
-    </div>
-  </div>
+  </header>
 
-  <p id="plan-estado" role="status" aria-live="polite" class="text-sm text-neutral-700">
+  <p id="plan-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">
     Cargando organizaciones y programas…
   </p>
-  <div id="plan-errores" role="alert" tabindex="-1" hidden class="rounded-lg border border-red-700 bg-red-50 p-4 text-red-800"></div>
-  <div id="plan-reintentar" hidden><Button id="recargar-plan" variant="outline">Reintentar carga</Button></div>
-  <a href="/planes" class="inline-flex min-h-[48px] items-center text-primary underline">Volver al listado de planes</a>
+  <div id="plan-errores" role="alert" tabindex="-1" hidden class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></div>
+  <div id="plan-reintentar" hidden>
+    <Button id="recargar-plan" variant="outline">Reintentar carga</Button>
+  </div>
 
-  <form id="plan-form" data-id-plan={idPlan} novalidate aria-busy="true">
-    <fieldset id="plan-campos" disabled>
-      <Card class="w-full md:p-6">
-        <div class="space-y-8">
-          <section class="space-y-5">
+  <form id="plan-form" data-id-plan={idPlan} novalidate aria-busy="true" class="space-y-5">
+    <fieldset id="plan-campos" disabled class="min-w-0 space-y-5">
+      <Card class="w-full border-t-4 border-t-primary p-5 md:p-6">
+        <section class="space-y-5" aria-labelledby="plan-datos-titulo">
+          <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13H5V3h2Zm7 0v5h5M8 13h8m-8 4h8" />
+              </svg>
+            </span>
             <div>
-              <h2 class="text-lg font-semibold text-neutral-900">Información del plan</h2>
+              <h2 id="plan-datos-titulo" class="text-lg font-bold text-neutral-900">Datos generales del plan</h2>
               <p class="mt-1 text-sm text-neutral-500">Todos los campos son obligatorios.</p>
             </div>
+          </div>
 
-            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div class="space-y-1.5">
-                <label for="id_organizacion" class="block text-sm font-medium text-neutral-800">Organización <span class="text-danger">*</span></label>
-                <select id="id_organizacion" name="id_organizacion" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="">Selecciona una organización</option>
-                </select>
-              </div>
-              <div class="space-y-1.5">
-                <label for="id_programa" class="block text-sm font-medium text-neutral-800">Programa institucional <span class="text-danger">*</span></label>
-                <select id="id_programa" name="id_programa" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="">Selecciona un programa</option>
-                </select>
-              </div>
-              <div class="md:col-span-2">
-                <Input id="nombre" label="Nombre del plan" required maxlength={150} />
-              </div>
-              <Input id="periodo_anual" label="Período anual (año)" type="number" required hint="Año al que corresponde el plan." />
-              <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
-              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <Input id="fecha_inicio" label="Fecha de inicio" type="date" required />
-                <Input id="fecha_termino" label="Fecha de término" type="date" required />
-              </div>
+          <div class="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+            <div class="min-w-0 space-y-1.5">
+              <label for="id_organizacion" class="block text-sm font-medium text-neutral-800">Organización <span class="text-danger">*</span></label>
+              <select id="id_organizacion" name="id_organizacion" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="">Selecciona una organización</option>
+              </select>
             </div>
-          </section>
+            <div class="min-w-0 space-y-1.5">
+              <label for="id_programa" class="block text-sm font-medium text-neutral-800">Programa institucional <span class="text-danger">*</span></label>
+              <select id="id_programa" name="id_programa" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="">Selecciona un programa</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <Input id="nombre" label="Nombre del plan" required maxlength={150} />
+            </div>
+            <Input id="periodo_anual" label="Período anual (año)" type="number" required hint="Año al que corresponde el plan." />
+            <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
+            <Input id="fecha_inicio" label="Fecha de inicio" type="date" required />
+            <Input id="fecha_termino" label="Fecha de término" type="date" required />
+          </div>
+        </section>
+      </Card>
 
-          <section class="grid grid-cols-1 gap-5 border-t border-neutral-100 pt-6 md:grid-cols-2">
+      <Card class="w-full border-t-4 border-t-brand-green p-5 md:p-6">
+        <section class="space-y-5" aria-labelledby="plan-definicion-titulo">
+          <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="m12 12 7-7m-4 0h4v4" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="plan-definicion-titulo" class="text-lg font-bold text-neutral-900">Definición de la intervención</h2>
+              <p class="mt-1 text-sm text-neutral-500">Describe la necesidad, los objetivos y el resultado que se espera alcanzar.</p>
+            </div>
+          </div>
+
+          <div class="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
             {textos.map(({ id, label, max }) => (
-              <div class="space-y-1.5">
+              <div class="min-w-0 space-y-1.5">
                 <label for={id} class="block text-sm font-medium text-neutral-800">{label} <span class="text-danger">*</span></label>
-                <textarea id={id} name={id} required maxlength={max} rows="5" class="w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                <textarea id={id} name={id} required maxlength={max} rows="4" class="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
               </div>
             ))}
-          </section>
-
-          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-6">
-            <Button href="/planes" variant="outline">Cancelar</Button>
-            <Button id="guardar-plan" type="submit">Guardar plan</Button>
           </div>
-        </div>
+
+          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button href="/planes" variant="outline">Cancelar</Button>
+            <Button id="guardar-plan" type="submit">{idPlan ? 'Guardar cambios' : 'Crear plan'}</Button>
+          </div>
+        </section>
       </Card>
     </fieldset>
   </form>
@@ -186,8 +206,9 @@ const textos = [
       }
       campos.disabled = false;
       form.setAttribute('aria-busy', 'false');
-      estado.textContent = (plan || (organizaciones.length && programas.length))
-        ? 'Formulario listo.'
+      const catalogosListos = Boolean(plan || (organizaciones.length && programas.length));
+      estado.textContent = catalogosListos
+        ? ''
         : 'Necesitas al menos una organización y un programa registrados para crear el plan.';
       guardar.disabled = !plan && (!organizaciones.length || !programas.length);
     } catch (error) {
@@ -231,8 +252,8 @@ const textos = [
       mostrarError(error instanceof Error ? error.message : 'No fue posible guardar el plan.', detalles);
       campos.disabled = false;
       form.setAttribute('aria-busy', 'false');
-      estado.textContent = '';
       enviando = false;
+      estado.textContent = '';
       if (error instanceof ErrorSolicitudPlan && error.codigo === 'CONFLICTO_CONCURRENCIA') {
         reintentar.hidden = false;
         estado.textContent = 'Tus cambios siguen en el formulario. Al recargar se reemplazarán por la versión guardada.';
