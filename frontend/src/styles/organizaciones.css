@@ -15,6 +15,13 @@
 .organizaciones-ui label { font-weight: 600; }
 .organizaciones-ui :is(p,dd,span,a,h1,h2,h3) { overflow-wrap: anywhere; }
 .organizaciones-ui :is(.rounded-2xl,.rounded-xl).border { border-color: var(--org-borde); }
+.org-listado .org-listado-metricas > div { border-color: #e8e5ef; border-left-color: var(--color-primary); }
+.org-listado .org-listado-metricas > div:nth-child(1) { border-left-color: var(--color-primary); }
+.org-listado .org-listado-metricas > div:nth-child(2) { border-left-color: var(--color-brand-green); }
+.org-listado .org-listado-metricas > div:nth-child(3) { border-left-color: var(--color-brand-yellow); }
+.org-listado h2 { font-size: 1.125rem; line-height: 1.5556; }
+.org-listado .org-filtros :is(input,select).border { min-height: 46px; border-color: var(--color-neutral-200); font-size: .875rem; padding: .5rem .75rem; }
+.org-listado .org-filtros label { font-weight: 500; }
 .org-hero {
   position: relative;
   padding: clamp(1.4rem,3vw,2.2rem);
