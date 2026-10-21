@@ -1,6 +1,7 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
   ActionInsight, CountryInsight, InsightsRepository, OrganizationInsight, PlanInsight, RawInsights, ReportAudit,
+  ConsolidatedReportFilters, ConsolidatedReportSnapshot
 } from '../domain/insights.ts';
 
 interface RepositoryOptions { supabaseUrl: string; anonKey: string; fetchImpl?: typeof fetch }
@@ -10,6 +11,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 function databaseError(status: number, body: unknown): ServiceError {
+  console.log('--- ERROR DE SUPABASE EN INSIGHTS ---', body);
   const detail = record(body);
   const code = typeof detail.code === 'string' ? detail.code : '';
   if (code === '42501' || status === 401 || status === 403) {
@@ -55,6 +57,7 @@ function action(value: unknown): ActionInsight {
 export function createSupabaseInsightsRepository(options: RepositoryOptions): InsightsRepository {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
+  
   async function request(table: string, query: URLSearchParams, token: string): Promise<unknown> {
     let response: Response;
     try {
@@ -69,6 +72,7 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
     if (!response.ok) throw databaseError(response.status, body);
     return body;
   }
+  
   async function auditExport(token: string, audit: ReportAudit): Promise<void> {
     let response: Response;
     try {
@@ -91,6 +95,86 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
       throw databaseError(response.status, body);
     }
   }
+
+  async function loadConsolidated(token: string, filters: ConsolidatedReportFilters): Promise<ConsolidatedReportSnapshot> {
+    const orgParams = new URLSearchParams({ archived_at: 'is.null' });
+    let orgSelect = 'id_organizacion,nombre,numero_beneficiarios,pais:paises(nombre)';
+
+    if (filters.countryId) orgParams.set('id_pais', `eq.${filters.countryId}`);
+    if (filters.organizationId) orgParams.set('id_organizacion', `eq.${filters.organizationId}`);
+    if (filters.programId) {
+      orgSelect += ',planes!inner(id_programa)';
+      orgParams.set('planes.id_programa', `eq.${filters.programId}`);
+    }
+    orgParams.set('select', orgSelect);
+
+    const orgsResponse = await request('organizaciones', orgParams, token);
+    const orgsRaw = Array.isArray(orgsResponse) ? orgsResponse : [];
+    const orgIds = orgsRaw.map(o => o.id_organizacion);
+
+    if (orgIds.length === 0) {
+      return {
+        generatedAt: new Date().toISOString(),
+        period: { start: filters.startDate, end: filters.endDate },
+        filters,
+        sections: { organizations: [], plans: [], actions: [], commitments: [], donations: [], indicators: [], results: [] },
+        summary: { totalBeneficiaries: 0, totalDonationsAmount: 0, completedActions: 0 }
+      };
+    }
+
+    const inOrgs = `in.(${orgIds.join(',')})`;
+
+    // PARÁMETROS DONACIONES: Usamos append para evitar colisión de la llave 'fecha'
+    const donacionesParams = new URLSearchParams({ 
+      id_organizacion: inOrgs, 
+      select: 'id_donacion,fecha,tipo_aporte,monto,cantidad,id_organizacion', 
+      archived_at: 'is.null' 
+    });
+    donacionesParams.append('fecha', `gte.${filters.startDate}`);
+    donacionesParams.append('fecha', `lte.${filters.endDate}`);
+
+    // PARÁMETROS COMPROMISOS: Ajustado a las columnas reales del CSV. 
+    // No filtramos por id_organizacion directo porque la tabla solo usa id_acta.
+    const compromisosParams = new URLSearchParams({ 
+      select: 'id_compromiso,descripcion,estado,cumplido_at,id_acta', 
+      archived_at: 'is.null' 
+    });
+
+    const [planesRes, accionesRes, compromisosRes, donacionesRes] = await Promise.all([
+      request('planes', new URLSearchParams({ id_organizacion: inOrgs, select: 'id_plan,nombre,id_organizacion,fecha_inicio,fecha_termino,programa:programas(nombre)', archived_at: 'is.null' }), token),
+      request('acciones', new URLSearchParams({ select: 'id_accion,nombre,estado,fecha_inicio,fecha_termino,plan:planes!inner(nombre, id_organizacion)', archived_at: 'is.null' }), token),
+      request('compromisos', compromisosParams, token),
+      request('donaciones', donacionesParams, token)
+    ]);
+
+    const planesRaw = Array.isArray(planesRes) ? planesRes : [];
+    const accionesRaw = Array.isArray(accionesRes) ? accionesRes : [];
+    const compromisosRaw = Array.isArray(compromisosRes) ? compromisosRes : [];
+    const donacionesRaw = Array.isArray(donacionesRes) ? donacionesRes : [];
+
+    const findOrgName = (id: string) => orgsRaw.find(o => o.id_organizacion === id)?.nombre || 'Desconocida';
+
+    const completedActions = accionesRaw.filter(a => a.estado === 'cumplida' && orgIds.includes(a.plan?.id_organizacion)).length;
+    const totalDonations = donacionesRaw.reduce((acc, d) => acc + (Number(d.monto) || 0), 0);
+    const totalBeneficiaries = orgsRaw.reduce((acc, o) => acc + (Number(o.numero_beneficiarios) || 0), 0);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      period: { start: filters.startDate, end: filters.endDate },
+      filters,
+      sections: {
+        organizations: orgsRaw.map(o => ({ id_organizacion: o.id_organizacion, nombre: o.nombre, numero_beneficiarios: o.numero_beneficiarios || 0, pais: o.pais?.nombre || 'N/A' })),
+        plans: planesRaw.map(p => ({ id_plan: p.id_plan, nombre: p.nombre || 'Plan', organizacion: findOrgName(p.id_organizacion), programa: p.programa?.nombre || 'N/A', fecha_inicio: p.fecha_inicio, fecha_termino: p.fecha_termino })),
+        actions: accionesRaw.filter(a => orgIds.includes(a.plan?.id_organizacion)).map(a => ({ id_accion: a.id_accion, nombre: a.nombre || 'Acción', estado: a.estado, fecha_inicio: a.fecha_inicio, fecha_termino: a.fecha_termino, plan: a.plan?.nombre || 'N/A' })),
+        commitments: compromisosRaw.map(c => ({ id_compromiso: c.id_compromiso, acuerdo: c.descripcion || 'Sin descripción', estado: c.estado, fecha_cumplimiento: c.cumplido_at || null, organizacion: 'Asociada a un acta' })),
+        donations: donacionesRaw.map(d => ({ id_donacion: d.id_donacion, fecha: d.fecha, tipo_aporte: d.tipo_aporte, monto: d.monto, cantidad: d.cantidad, organizacion: findOrgName(d.id_organizacion) })),
+        indicators: [],
+        results: []
+      },
+      summary: { totalBeneficiaries, totalDonationsAmount: totalDonations, completedActions }
+    };
+  }
+
   return {
     async load(token): Promise<RawInsights> {
       const [countries, organizations, plans, actions] = await Promise.all([
@@ -105,6 +189,7 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
       };
     },
     auditExport,
+    loadConsolidated
   };
 }
 
@@ -115,6 +200,7 @@ export function createSupabaseInsightsRepositoryFromEnv(): InsightsRepository {
     return {
       async load() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Dashboard y Reportes no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.', 503); },
       async auditExport() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Reportes no puede registrar auditoría sin configuración de Supabase.', 503); },
+      async loadConsolidated() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Reportes no tiene configurada la función de carga consolidada.', 503); }
     };
   }
   return createSupabaseInsightsRepository({ supabaseUrl, anonKey });

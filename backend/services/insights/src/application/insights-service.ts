@@ -4,6 +4,7 @@ import {
   type InsightFilters,
   type InsightsRepository,
   type ReportDestination,
+  type ConsolidatedReportRequest,
 } from '../domain/insights.ts';
 
 export function createInsightsApplication(repository: InsightsRepository, now: () => Date = () => new Date()) {
@@ -20,6 +21,22 @@ export function createInsightsApplication(repository: InsightsRepository, now: (
       });
       return prepared;
     },
+    // --- NUEVO MÉTODO PARA SCRUM-136 ---
+    async consolidatedReport(accessToken: string, request: ConsolidatedReportRequest) {
+      const snapshot = await repository.loadConsolidated(accessToken, request.filters);
+      
+      // Registramos la auditoría (criterio de seguridad)
+      await repository.auditExport(accessToken, {
+        destination: request.destination,
+        filters: { countryId: request.filters.countryId ?? null },
+      });
+
+      return {
+        destination: request.destination,
+        title: 'Reporte Consolidado Institucional',
+        snapshot
+      };
+    }
   };
 }
 
