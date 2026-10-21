@@ -65,8 +65,8 @@ const idPlan = Astro.params.id ?? '';
 
       <PlanIndicadores />
 
-      <div class="border-b border-neutral-200">
-        <div id="plan-tabs" class="-mb-px flex gap-6 overflow-x-auto" role="tablist" aria-label="Secciones del plan">
+      <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+        <div id="plan-tabs" class="flex flex-wrap gap-2 overflow-x-auto" role="tablist" aria-label="Secciones del plan">
           <button
             id="tab-resumen"
             type="button"
@@ -74,7 +74,7 @@ const idPlan = Astro.params.id ?? '';
             aria-selected="true"
             aria-controls="panel-resumen"
             data-tab="resumen"
-            class="shrink-0 border-b-2 border-primary px-1 py-3 text-sm font-semibold text-primary"
+            class="shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
           >
             Resumen del plan
           </button>
@@ -86,7 +86,7 @@ const idPlan = Astro.params.id ?? '';
             aria-controls="panel-seguimiento"
             data-tab="seguimiento"
             tabindex="-1"
-            class="shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary"
+            class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
           >
             Seguimiento de acciones
           </button>
@@ -185,8 +185,8 @@ const idPlan = Astro.params.id ?? '';
       boton.setAttribute('aria-selected', String(activo));
       boton.tabIndex = activo ? 0 : -1;
       boton.className = activo
-        ? 'shrink-0 border-b-2 border-primary px-1 py-3 text-sm font-semibold text-primary'
-        : 'shrink-0 border-b-2 border-transparent px-1 py-3 text-sm font-medium text-neutral-500 transition-colors hover:text-primary';
+        ? 'shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2'
+        : 'shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2';
     });
 
     paneles.forEach((panel) => {

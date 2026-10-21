@@ -6,49 +6,296 @@ import Button from '../components/ui/Button.astro';
 ---
 
 <AppLayout title="Programas Institucionales" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
-  <span slot="breadcrumb" class="font-medium text-neutral-900">Programas Institucionales</span>
+  <span slot="breadcrumb" class="font-medium text-primary">Gestión institucional</span>
+
   <section class="space-y-6">
-    <p id="programa-confirmacion" hidden role="status" class="rounded-lg border border-primary bg-primary/5 p-4 text-primary"></p>
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-neutral-900 md:text-3xl">Programas Institucionales</h1>
-        <p class="mt-1 text-sm text-neutral-500">Catálogo de programas institucionales de FGE, disponible para todas las organizaciones.</p>
+    <p
+      id="programa-confirmacion"
+      hidden
+      role="status"
+      aria-live="polite"
+      class="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-medium text-primary"
+    ></p>
+
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+          Programas Institucionales
+        </h1>
+        <p class="mt-2 max-w-3xl text-sm text-neutral-500 md:text-base">
+          Consulta y administra el catálogo de programas institucionales disponibles para las organizaciones.
+        </p>
       </div>
-      <div id="crear-programa-panel" hidden><Button href="/programas/nuevo">+ Nuevo programa</Button></div>
-    </div>
-    <Card>
-      <div class="space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-lg font-semibold">Programas registrados</h2>
-          <Button id="recargar-programas" variant="outline">Actualizar listado</Button>
+      <div id="crear-programa-panel" hidden>
+        <Button href="/programas/nuevo">
+          <span aria-hidden="true">+</span>
+          Nuevo programa
+        </Button>
+      </div>
+    </header>
+
+    <section aria-label="Resumen del catálogo" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Card class="border-l-4 border-l-primary p-4 md:p-5">
+        <div class="flex items-center gap-4">
+          <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <rect x="4" y="3" width="16" height="18" rx="2" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 8h8M8 12h8M8 16h5" />
+            </svg>
+          </span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Programas registrados</p>
+            <p id="programas-total" class="mt-1 text-2xl font-bold tabular-nums text-neutral-900">—</p>
+          </div>
         </div>
-        <p id="programas-estado" role="status" aria-live="polite">Cargando programas…</p>
-        <p id="programas-error" role="alert" hidden class="rounded-lg bg-red-50 p-4 text-red-800"></p>
-        <div id="programas-listado" aria-busy="true" class="grid grid-cols-1 gap-5 md:grid-cols-2"></div>
+      </Card>
+
+      <Card class="border-l-4 border-l-brand-green p-4 md:p-5">
+        <div class="flex items-center gap-4">
+          <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="7" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="m20 20-4-4M8 11h6" />
+            </svg>
+          </span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Programas encontrados</p>
+            <p id="programas-coincidentes" class="mt-1 text-2xl font-bold tabular-nums text-neutral-900">—</p>
+          </div>
+        </div>
+      </Card>
+    </section>
+
+    <Card class="p-4 md:p-5">
+      <div class="flex items-start gap-3">
+        <span class="rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M7 12h10m-7 6h4" />
+          </svg>
+        </span>
+        <div>
+          <h2 class="font-semibold text-neutral-900">Filtrar programas</h2>
+          <p class="mt-1 text-sm text-neutral-500">
+            Combina año, nombre y organización. Los filtros de año y organización consideran los planes asociados a cada programa.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+        <div class="min-w-0 space-y-1.5">
+          <label for="programas-filtro-anio" class="block text-sm font-medium text-neutral-800">Año del plan</label>
+          <select id="programas-filtro-anio" disabled class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Todos los años</option>
+          </select>
+        </div>
+        <div class="min-w-0 space-y-1.5">
+          <label for="programas-busqueda" class="block text-sm font-medium text-neutral-800">Nombre del programa</label>
+          <input
+            id="programas-busqueda"
+            type="search"
+            placeholder="Ej.: Donación de recursos…"
+            autocomplete="off"
+            class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div class="min-w-0 space-y-1.5">
+          <label for="programas-filtro-organizacion" class="block text-sm font-medium text-neutral-800">Organización</label>
+          <select id="programas-filtro-organizacion" disabled class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Todas las organizaciones</option>
+          </select>
+        </div>
+      </div>
+      <p id="programas-filtros-aviso" hidden role="status" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"></p>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+        <p id="programas-conteo-filtrado" class="text-sm text-neutral-500">Cargando programas…</p>
+        <Button id="limpiar-programas" variant="outline" disabled>Limpiar filtros</Button>
       </div>
     </Card>
+
+    <section class="space-y-4" aria-labelledby="programas-listado-titulo">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="programas-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de programas</h2>
+          <p class="mt-1 text-sm text-neutral-500">Selecciona un programa para consultar su información.</p>
+        </div>
+        <Button id="recargar-programas" variant="outline">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m-4.5-3A8 8 0 0 1 18 6l2 6M4 12l2 6a8 8 0 0 0 12.5-1" />
+          </svg>
+          Actualizar listado
+        </Button>
+      </div>
+
+      <p id="programas-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando programas…</p>
+      <p id="programas-error" role="alert" hidden class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
+      <div id="programas-listado" aria-busy="true" class="grid grid-cols-1 gap-4"></div>
+      <div id="programas-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-10 text-center">
+        <span class="mx-auto inline-flex rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16 16 4.5 4.5" />
+          </svg>
+        </span>
+        <h3 id="programas-vacio-titulo" class="mt-3 font-semibold text-neutral-900">No se encontraron programas</h3>
+        <p id="programas-vacio-mensaje" class="mt-1 text-sm text-neutral-500">Prueba con otros filtros.</p>
+      </div>
+    </section>
   </section>
 </AppLayout>
 
 <template id="plantilla-programa">
-  <article class="flex flex-col rounded-xl border border-neutral-200 bg-white p-5">
-    <h3 class="text-lg font-semibold text-neutral-900 break-words"></h3>
-    <p class="mt-3 flex-1 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600"></p>
-    <a class="mt-5 self-end rounded-lg px-4 py-3 font-semibold text-primary hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary">Ver detalle →</a>
+  <article class="flex min-w-0 flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <div class="flex min-w-0 flex-1 items-start gap-4">
+      <span class="shrink-0 rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <rect x="4" y="3" width="16" height="18" rx="2" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 8h8M8 12h8M8 16h5" />
+        </svg>
+      </span>
+      <div class="min-w-0 flex-1">
+        <h3 class="break-words text-base font-bold text-neutral-900 sm:text-lg"></h3>
+        <p data-objetivo class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600"></p>
+        <p data-organizaciones class="mt-3 text-xs text-neutral-500"></p>
+      </div>
+    </div>
+    <div class="flex shrink-0 justify-end border-t border-neutral-100 pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+      <a class="inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        Ver detalle <span aria-hidden="true">→</span>
+      </a>
+    </div>
   </article>
 </template>
 
 <script>
   import { listarProgramas } from '../lib/programas/cliente';
+  import { listarPlanes } from '../lib/planes/cliente';
   import { getUserRoles } from '../lib/supabase';
+
+  type Programa = Awaited<ReturnType<typeof listarProgramas>>[number];
+  type Plan = Awaited<ReturnType<typeof listarPlanes>>[number];
+
   const listado = document.querySelector<HTMLElement>('#programas-listado')!;
   const estado = document.querySelector<HTMLElement>('#programas-estado')!;
   const error = document.querySelector<HTMLElement>('#programas-error')!;
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-programas')!;
+  const busqueda = document.querySelector<HTMLInputElement>('#programas-busqueda')!;
+  const filtroAnio = document.querySelector<HTMLSelectElement>('#programas-filtro-anio')!;
+  const filtroOrganizacion = document.querySelector<HTMLSelectElement>('#programas-filtro-organizacion')!;
+  const limpiar = document.querySelector<HTMLButtonElement>('#limpiar-programas')!;
+  const vacio = document.querySelector<HTMLElement>('#programas-vacio')!;
+  const vacioTitulo = document.querySelector<HTMLElement>('#programas-vacio-titulo')!;
+  const vacioMensaje = document.querySelector<HTMLElement>('#programas-vacio-mensaje')!;
+  const totalElemento = document.querySelector<HTMLElement>('#programas-total')!;
+  const coincidentesElemento = document.querySelector<HTMLElement>('#programas-coincidentes')!;
+  const conteoFiltrado = document.querySelector<HTMLElement>('#programas-conteo-filtrado')!;
+  const filtrosAviso = document.querySelector<HTMLElement>('#programas-filtros-aviso')!;
+  const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-programa')!;
+  const confirmacion = document.querySelector<HTMLElement>('#programa-confirmacion')!;
+
+  let programas: Programa[] = [];
+  let planes: Plan[] = [];
+  let planesDisponibles = true;
   let cargando = false;
+
+  function normalizar(texto: string) {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CL').trim();
+  }
+
+  function planesDelPrograma(programa: Programa) {
+    return planes.filter((plan) => plan.id_programa === programa.id_programa);
+  }
+
+  function cargarOpcionesFiltros() {
+    const anios = [...new Set(planes.map((plan) => String(plan.periodo_anual)).filter((anio) => anio && anio !== 'undefined' && anio !== 'null'))]
+      .sort((a, b) => Number(b) - Number(a));
+    const organizaciones = new Map<string, string>();
+    for (const plan of planes) {
+      const id = String(plan.id_organizacion ?? '');
+      const nombre = plan.organizacion?.nombre?.trim() ?? '';
+      if (id && nombre && !organizaciones.has(id)) organizaciones.set(id, nombre);
+    }
+
+    filtroAnio.replaceChildren(new Option('Todos los años', ''));
+    anios.forEach((anio) => filtroAnio.add(new Option(anio, anio)));
+    filtroOrganizacion.replaceChildren(new Option('Todas las organizaciones', ''));
+    [...organizaciones.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1], 'es-CL'))
+      .forEach(([id, nombre]) => filtroOrganizacion.add(new Option(nombre, id)));
+
+    filtroAnio.disabled = !planesDisponibles || anios.length === 0;
+    filtroOrganizacion.disabled = !planesDisponibles || organizaciones.size === 0;
+    filtrosAviso.hidden = planesDisponibles;
+    if (!planesDisponibles) {
+      filtrosAviso.textContent = 'No fue posible cargar los planes asociados; los filtros de año y organización no están disponibles. Puedes seguir buscando por nombre.';
+    }
+  }
+
+  function obtenerCoincidencias() {
+    const consulta = normalizar(busqueda.value);
+    const anio = filtroAnio.value;
+    const idOrganizacion = filtroOrganizacion.value;
+
+    return programas.filter((programa) => {
+      const nombreCoincide = !consulta || normalizar(programa.nombre).includes(consulta);
+      if (!nombreCoincide) return false;
+      if (!anio && !idOrganizacion) return true;
+
+      return planesDelPrograma(programa).some((plan) =>
+        (!anio || String(plan.periodo_anual) === anio) &&
+        (!idOrganizacion || String(plan.id_organizacion) === idOrganizacion)
+      );
+    });
+  }
+
+  function renderizar() {
+    const coincidencias = obtenerCoincidencias();
+    listado.replaceChildren();
+    totalElemento.textContent = new Intl.NumberFormat('es-CL').format(programas.length);
+    coincidentesElemento.textContent = new Intl.NumberFormat('es-CL').format(coincidencias.length);
+
+    const hayFiltros = Boolean(busqueda.value.trim() || filtroAnio.value || filtroOrganizacion.value);
+    limpiar.disabled = !hayFiltros;
+
+    for (const programa of coincidencias) {
+      const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
+      tarjeta.querySelector('h3')!.textContent = programa.nombre;
+      tarjeta.querySelector<HTMLElement>('[data-objetivo]')!.textContent =
+        programa.objetivo_general?.trim() || 'Este programa todavía no tiene un objetivo general registrado.';
+
+      const organizaciones = [...new Set(planesDelPrograma(programa).map((plan) => plan.organizacion?.nombre).filter((nombre): nombre is string => Boolean(nombre)))];
+      const textoOrganizaciones = tarjeta.querySelector<HTMLElement>('[data-organizaciones]')!;
+      textoOrganizaciones.textContent = organizaciones.length
+        ? `Organizaciones con planes asociados: ${organizaciones.join(', ')}`
+        : 'Sin planes asociados a organizaciones.';
+
+      const enlace = tarjeta.querySelector<HTMLAnchorElement>('a')!;
+      enlace.href = `/programas/${encodeURIComponent(programa.id_programa)}`;
+      enlace.setAttribute('aria-label', `Ver detalle de ${programa.nombre}`);
+      listado.append(tarjeta);
+    }
+
+    vacio.hidden = coincidencias.length > 0;
+    if (!coincidencias.length) {
+      if (programas.length === 0) {
+        vacioTitulo.textContent = 'Todavía no hay programas registrados';
+        vacioMensaje.textContent = 'Cuando registres un programa, aparecerá en este listado.';
+      } else {
+        vacioTitulo.textContent = 'No se encontraron programas';
+        vacioMensaje.textContent = 'Prueba con otro nombre o cambia los filtros de año u organización.';
+      }
+    }
+
+    conteoFiltrado.textContent = programas.length
+      ? `${coincidencias.length} de ${programas.length} ${programas.length === 1 ? 'programa registrado' : 'programas registrados'}.`
+      : 'No hay programas registrados actualmente.';
+    estado.textContent = programas.length
+      ? 'Programas cargados.'
+      : 'No hay programas registrados actualmente.';
+    listado.setAttribute('aria-busy', 'false');
+  }
+
   async function cargar() {
     const resultado = new URLSearchParams(window.location.search).get('resultado');
-    const confirmacion = document.querySelector<HTMLElement>('#programa-confirmacion')!;
     if (resultado === 'guardado' || resultado === 'eliminado') {
       confirmacion.textContent = resultado === 'guardado'
         ? 'Programa guardado correctamente.'
@@ -56,35 +303,56 @@ import Button from '../components/ui/Button.astro';
       confirmacion.hidden = false;
       history.replaceState(null, '', '/programas');
     }
-    
+
     if (cargando) return;
-    cargando = true; recargar.disabled = true; listado.setAttribute('aria-busy', 'true');
-    listado.replaceChildren(); error.hidden = true; estado.textContent = 'Cargando programas…';
+    cargando = true;
+    recargar.disabled = true;
+    listado.setAttribute('aria-busy', 'true');
+    error.hidden = true;
+    vacio.hidden = true;
+    estado.textContent = 'Cargando programas…';
+
     try {
-      const programas = await listarProgramas();
-      const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-programa')!;
-      for (const programa of programas) {
-        const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
-        tarjeta.querySelector('h3')!.textContent = programa.nombre;
-        tarjeta.querySelector('p')!.textContent = programa.objetivo_general;
-        const enlace = tarjeta.querySelector('a')!;
-        enlace.href = `/programas/${encodeURIComponent(programa.id_programa)}`;
-        enlace.setAttribute('aria-label', `Ver detalle de ${programa.nombre}`);
-        listado.append(tarjeta);
-      }
-      estado.textContent = programas.length ? `${programas.length} programas registrados.` : 'No hay programas registrados actualmente.';
+      const [resultadoProgramas, resultadoPlanes] = await Promise.allSettled([listarProgramas(), listarPlanes()]);
+      if (resultadoProgramas.status !== 'fulfilled') throw resultadoProgramas.reason;
+      programas = resultadoProgramas.value;
+      planesDisponibles = resultadoPlanes.status === 'fulfilled';
+      planes = resultadoPlanes.status === 'fulfilled' ? resultadoPlanes.value : [];
+      cargarOpcionesFiltros();
+      renderizar();
     } catch (fallo) {
+      listado.replaceChildren();
       estado.textContent = '';
       error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar los programas.';
       error.hidden = false;
+      totalElemento.textContent = '—';
+      coincidentesElemento.textContent = '—';
+      conteoFiltrado.textContent = '';
     } finally {
-      cargando = false; recargar.disabled = false; listado.setAttribute('aria-busy', 'false');
+      cargando = false;
+      recargar.disabled = false;
+      listado.setAttribute('aria-busy', 'false');
     }
   }
-  recargar.addEventListener('click', cargar);
-  window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
+
+  busqueda.addEventListener('input', renderizar);
+  filtroAnio.addEventListener('change', renderizar);
+  filtroOrganizacion.addEventListener('change', renderizar);
+  limpiar.addEventListener('click', () => {
+    busqueda.value = '';
+    filtroAnio.value = '';
+    filtroOrganizacion.value = '';
+    renderizar();
+    busqueda.focus();
+  });
+  recargar.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', (evento) => {
+    if (evento.persisted) void cargar();
+  });
+
   void cargar();
-  void getUserRoles().then(roles => {
-    document.querySelector<HTMLElement>('#crear-programa-panel')!.hidden = !roles.some(rol => rol.codigo === 'ADMIN');
+  void getUserRoles().then((roles) => {
+    document.querySelector<HTMLElement>('#crear-programa-panel')!.hidden =
+      !roles.some((rol) => rol.codigo === 'ADMIN');
   }).catch(() => {});
 </script>

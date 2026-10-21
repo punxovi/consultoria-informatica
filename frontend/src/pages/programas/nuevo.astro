@@ -2,7 +2,27 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import ProgramaForm from '../../components/programas/ProgramaForm.astro';
 import { mainNavItems } from '../../config/nav';
+import BackButton from '../../components/ui/BackButton.astro';
 ---
-<AppLayout title="Crear programa" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+
+<AppLayout
+  title="Crear programa"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/programas" />
+    <a
+      href="/programas"
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Programas Institucionales
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">
+      Crear programa
+    </span>
+  </Fragment>
+
   <ProgramaForm />
 </AppLayout>
