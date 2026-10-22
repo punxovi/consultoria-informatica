@@ -3,6 +3,17 @@ import { describe, test } from 'node:test';
 import { createSupabaseInsightsRepository } from '../src/infrastructure/supabase-insights.repository.ts';
 
 describe('repositorio Supabase de Insights', () => {
+  test('valida identidad de descarga en Auth sin volver a consultar módulos',async()=>{
+    const calls:string[]=[];
+    const repository=createSupabaseInsightsRepository({supabaseUrl:'https://supabase.invalid',anonKey:'test-public',
+      fetchImpl:async(input,init)=>{calls.push(String(input));assert.equal(new Headers(init?.headers).get('authorization'),'Bearer test-session');return Response.json({id:'actor-1'});}});
+    assert.equal(await repository.getReportActor('test-session'),'actor-1');
+    assert.deepEqual(calls,['https://supabase.invalid/auth/v1/user']);
+    const denied=createSupabaseInsightsRepository({supabaseUrl:'https://supabase.invalid',anonKey:'test-public',fetchImpl:async()=>Response.json({},{status:401})});
+    await assert.rejects(denied.getReportActor('expired'),{code:'SIN_PERMISO',status:401});
+    const invalid=createSupabaseInsightsRepository({supabaseUrl:'https://supabase.invalid',anonKey:'test-public',fetchImpl:async()=>Response.json({})});
+    await assert.rejects(invalid.getReportActor('test'),{code:'RESPUESTA_INVALIDA'});
+  });
   test('consulta en paralelo las cuatro fuentes respetando sesión y registros activos', async () => {
     const calls: string[] = [];
     const repository = createSupabaseInsightsRepository({

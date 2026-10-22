@@ -11,7 +11,6 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 function databaseError(status: number, body: unknown): ServiceError {
-  console.log('--- ERROR DE SUPABASE EN INSIGHTS ---', body);
   const detail = record(body);
   const code = typeof detail.code === 'string' ? detail.code : '';
   if (code === '42501' || status === 401 || status === 403) {
@@ -185,6 +184,18 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
   }
 
   return {
+    async getReportActor(token):Promise<string> {
+      let response:Response;
+      try {
+        response=await fetchImpl(`${baseUrl}/auth/v1/user`,{headers:{apikey:options.anonKey,authorization:`Bearer ${token}`},signal:AbortSignal.timeout(5000)});
+      } catch {
+        throw new ServiceError('SUPABASE_NO_DISPONIBLE','No fue posible validar la sesión para el reporte.',503);
+      }
+      if(!response.ok)throw databaseError(response.status,{});
+      const body=record(await response.json().catch(()=>null));
+      if(typeof body.id!=='string'||!body.id)throw new ServiceError('RESPUESTA_INVALIDA','Supabase no devolvió una identidad válida para el reporte.',502);
+      return body.id;
+    },
     async load(token): Promise<RawInsights> {
       // Modificamos las proyecciones `select` para el Dashboard Territorial
       const [countries, organizations, plans, actions] = await Promise.all([
@@ -214,6 +225,7 @@ export function createSupabaseInsightsRepositoryFromEnv(): InsightsRepository {
   const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) {
     return {
+      async getReportActor() { throw new ServiceError('CONFIGURACION_SUPABASE','El servicio de Reportes no tiene configurada la autenticación.',503); },
       async load() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Dashboard y Reportes no tiene configuradas SUPABASE_URL y SUPABASE_ANON_KEY.', 503); },
       async auditExport() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Reportes no puede registrar auditoría sin configuración de Supabase.', 503); },
       async loadConsolidated() { throw new ServiceError('CONFIGURACION_SUPABASE', 'El servicio de Reportes no tiene configurada la función de carga consolidada.', 503); }
