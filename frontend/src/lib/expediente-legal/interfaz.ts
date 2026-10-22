@@ -5,8 +5,10 @@ import { camposLegalSchema, documentosVacios, tiposDocumento, validarPdf, type E
 
 export async function iniciarExpedienteLegal() {
   const raiz = document.querySelector<HTMLElement>('#expediente-legal');
-  if (!raiz) return;
-  const id = raiz.dataset.organizacion!;
+  if (!raiz || raiz.dataset.iniciado === 'true') return;
+  raiz.dataset.iniciado = 'true';
+  const id = raiz.dataset.organizacion;
+  if (!id) throw new Error('No se encontró la organización del expediente legal.');
   const buscar = <T extends HTMLElement = HTMLElement>(selector: string) => raiz.querySelector<T>(selector)!;
   const formulario = buscar<HTMLFormElement>('#legal-form');
   const campos = buscar<HTMLFieldSetElement>('#legal-campos');
@@ -60,8 +62,13 @@ export async function iniciarExpedienteLegal() {
   function ocupar(valor: boolean, mensaje = '') {
     ocupado = valor;
     campos.disabled = valor;
-    raiz!.setAttribute('aria-busy', String(valor));
-    carga.textContent = mensaje;
+    raiz.setAttribute('aria-busy', String(valor));
+    carga.hidden = !valor;
+    buscar('#legal-carga-texto').textContent = mensaje;
+    buscar<HTMLButtonElement>('#legal-reintentar').disabled = valor;
+    buscar<HTMLButtonElement>('#legal-registrar').disabled = valor;
+    buscar<HTMLButtonElement>('#legal-editar').disabled = valor;
+    guardar.disabled = valor || conflicto;
   }
   function mostrarResumen() {
     formulario.hidden = true;
@@ -82,6 +89,15 @@ export async function iniciarExpedienteLegal() {
     const fecha = new Date(registro.updated_at);
     buscar('#legal-actualizacion').textContent = Number.isNaN(fecha.getTime()) ? '' : `Última actualización: ${fecha.toLocaleString('es-CL')}`;
   }
+  async function conTiempoLimite<T>(operacion: Promise<T>, milisegundos = 15000): Promise<T> {
+    let temporizador: number | undefined;
+    const limite = new Promise<never>((_, rechazar) => {
+      temporizador = window.setTimeout(() => rechazar(new Error('La consulta está tardando más de lo esperado. Comprueba que el servicio esté disponible y vuelve a intentarlo.')), milisegundos);
+    });
+    try { return await Promise.race([operacion, limite]); }
+    finally { if (temporizador !== undefined) window.clearTimeout(temporizador); }
+  }
+
   async function cargar() {
     if (ocupado) return;
     if (!formulario.hidden && !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
@@ -91,10 +107,13 @@ export async function iniciarExpedienteLegal() {
     confirmacion.hidden = true;
     ocupar(true, 'Cargando expediente legal…');
     try {
-      registro = await servicio.obtener(id);
+      registro = await conTiempoLimite(servicio.obtener(id));
       conflicto = false;
       mostrarResumen();
     } catch (fallo) {
+      formulario.hidden = true;
+      buscar('#legal-vacio').hidden = true;
+      buscar('#legal-resumen').hidden = true;
       mostrarError(fallo);
       recarga.hidden = false;
     } finally { ocupar(false); }
@@ -188,6 +207,9 @@ export async function iniciarExpedienteLegal() {
   buscar('#legal-editar').addEventListener('click', editar);
   buscar('#legal-cancelar').addEventListener('click', () => { if (!ocupado) { limpiarErrores(); formulario.reset(); mostrarResumen(); } });
   buscar('#legal-reintentar').addEventListener('click', () => void cargar());
-  document.querySelector('[data-tab="expediente-legal"]')?.addEventListener('click', () => { if (!iniciado) void cargar(); });
-  if (!document.querySelector('#tab-expediente-legal')?.classList.contains('hidden')) void cargar();
+  const activarExpediente = () => { if (!iniciado) void cargar(); };
+  document.querySelectorAll<HTMLElement>('[data-org-seccion="expediente-legal"], [data-tab="expediente-legal"]').forEach(acceso => acceso.addEventListener('click', activarExpediente));
+  const panel = raiz.closest<HTMLElement>('#tab-expediente-legal');
+  const accesoDirecto = window.location.hash.replace(/^#/, '') === 'expediente-legal';
+  if (accesoDirecto || (panel && !panel.classList.contains('hidden'))) void cargar();
 }

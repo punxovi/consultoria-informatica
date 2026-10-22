@@ -108,64 +108,45 @@ export function iniciarDonaciones() {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
   }
 
+  const entidadesHtml: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  const htmlSeguro = (valor: unknown) => String(valor ?? '').replace(/[&<>"']/g, c => entidadesHtml[c]);
+
   function renderListadoDonaciones() {
     const lista = q('lista');
     lista.replaceChildren();
     q('vacio').hidden = donaciones.length > 0;
-
     for (const item of donaciones) {
+      const recibida = item.tipo_movimiento === 'recibida';
+      const dinero = item.tipo_aporte === 'dinero';
+      const aporte = dinero
+        ? `$${Number(item.monto).toLocaleString('es-CL')} ${item.moneda ?? ''} (Dinero)`
+        : `${item.cantidad ?? '—'} ${item.unidad ?? ''} (Recurso)`;
       const card = document.createElement('article');
-      card.className =
-        'flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md';
-
-      const cabecera = document.createElement('div');
-      cabecera.className = 'flex items-start justify-between gap-3';
-
-      const contraparte = document.createElement('h3');
-      contraparte.className = 'text-lg font-bold text-neutral-900 break-words';
-      contraparte.textContent = item.contraparte_nombre;
-
-      const badgeMov = document.createElement('span');
-      const esRecibida = item.tipo_movimiento === 'recibida';
-      badgeMov.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-        esRecibida ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-      }`;
-      badgeMov.textContent = esRecibida ? 'Donación Recibida' : 'Donación Entregada';
-
-      cabecera.append(contraparte, badgeMov);
-
-      const cuerpo = document.createElement('div');
-      cuerpo.className = 'mt-3 space-y-2 text-sm text-neutral-600';
-
-      const fechaP = document.createElement('p');
-      fechaP.innerHTML = `<span class="font-medium text-neutral-800">Fecha:</span> ${formatearFecha(item.fecha)}`;
-
-      const aporteP = document.createElement('p');
-      if (item.tipo_aporte === 'dinero') {
-        const montoStr = Number(item.monto).toLocaleString('es-CL');
-        aporteP.innerHTML = `<span class="font-medium text-neutral-800">Aporte en dinero:</span> $${montoStr} ${item.moneda ?? ''}`;
-      } else {
-        aporteP.innerHTML = `<span class="font-medium text-neutral-800">Aporte en recurso:</span> ${item.cantidad} ${item.unidad ?? ''}`;
-      }
-
-      const descP = document.createElement('p');
-      descP.className = 'line-clamp-2 text-neutral-700 italic break-words';
-      descP.textContent = item.descripcion;
-
-      cuerpo.append(fechaP, aporteP, descP);
-
-      const pie = document.createElement('div');
-      pie.className = 'mt-4 border-t border-neutral-100 pt-3 flex justify-end';
-
-      const botonVer = document.createElement('button');
-      botonVer.type = 'button';
-      botonVer.className =
-        'inline-flex items-center gap-1.5 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-semibold text-neutral-800 hover:bg-neutral-200 transition-colors';
-      botonVer.innerHTML = `Ver detalle y respaldos &rarr;`;
-      botonVer.addEventListener('click', () => abrirDetalle(item));
-
-      pie.append(botonVer);
-      card.append(cabecera, cuerpo, pie);
+      card.innerHTML = `
+        <div class="h-0.5 bg-[#D8D3E8]"></div>
+        <div class="don-card-layout flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-stretch">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex min-w-0 items-center gap-3">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 .75-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h6"/></svg>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#77719F]">Donación registrada</p>
+                  <h3 class="mt-1 break-words text-base font-semibold text-neutral-900">${htmlSeguro(item.contraparte_nombre)}</h3>
+                </div>
+              </div>
+              <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'}">${recibida ? 'Donación recibida' : 'Donación entregada'}</span>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              ${[['Fecha', formatearFecha(item.fecha)], ['Aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
+            </div>
+          </div>
+          <div class="flex items-center justify-end border-t border-[#F0EDF6] pt-3 lg:min-w-[190px] lg:justify-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+            <button type="button" data-ver-detalle class="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#4C4688] transition hover:bg-[#F5F3FA] focus:outline-none focus:ring-2 focus:ring-[#4C4688]/25" aria-label="Ver detalle y respaldos de ${htmlSeguro(item.contraparte_nombre)}">Ver detalle y respaldos →</button>
+          </div>
+        </div>`;
+      card.querySelector<HTMLButtonElement>('[data-ver-detalle]')?.addEventListener('click', () => { void abrirDetalle(item); });
       lista.append(card);
     }
   }
@@ -205,25 +186,25 @@ export function iniciarDonaciones() {
     for (const item of filtrados) {
       const card = document.createElement('article');
       card.className =
-        'flex flex-col justify-between rounded-lg border border-neutral-200 bg-neutral-50/50 p-4 transition-all hover:bg-white hover:border-neutral-300';
+        'flex flex-col justify-between rounded-xl border border-[#E6E1EF] bg-[#FCFBFE] p-4 transition-colors hover:border-[#D5CFE8] hover:bg-white';
 
       const encabezado = document.createElement('div');
       encabezado.className = 'flex flex-wrap items-center justify-between gap-2';
 
       const etiqueta = document.createElement('span');
       etiqueta.className =
-        'rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary';
+        'rounded-full bg-[#F0EDF8] px-3 py-1 text-xs font-medium text-[#4C4688]';
       etiqueta.textContent = etiquetasTipoRespaldo[item.tipo_respaldo] ?? item.tipo_respaldo;
 
       const estado = document.createElement('span');
       if (item.estado_carga === 'disponible') {
-        estado.className = 'text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded';
+        estado.className = 'rounded-full bg-[#E5F6ED] px-3 py-1 text-xs font-medium text-[#14784D]';
         estado.textContent = 'Disponible';
       } else if (item.estado_carga === 'reservado') {
-        estado.className = 'text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded';
+        estado.className = 'rounded-full bg-[#FFF3DC] px-3 py-1 text-xs font-medium text-[#925500]';
         estado.textContent = 'Carga pendiente';
       } else {
-        estado.className = 'text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded';
+        estado.className = 'rounded-full bg-[#FDEBEC] px-3 py-1 text-xs font-medium text-[#B42332]';
         estado.textContent = 'Carga fallida';
       }
 
@@ -233,11 +214,11 @@ export function iniciarDonaciones() {
       cuerpo.className = 'mt-2 space-y-1';
 
       const nombre = document.createElement('p');
-      nombre.className = 'text-sm font-semibold text-neutral-900 break-words';
+      nombre.className = 'break-words text-sm font-semibold text-neutral-900';
       nombre.textContent = item.nombre_original;
 
       const meta = document.createElement('p');
-      meta.className = 'text-xs text-neutral-500';
+      meta.className = 'text-xs leading-5 text-neutral-500';
       meta.textContent = `${formatearTamano(item.tamano_bytes)} · ${item.mime_type} · ${formatearFecha(
         item.created_at,
       )}`;
@@ -258,16 +239,16 @@ export function iniciarDonaciones() {
         const btnDescargar = document.createElement('button');
         btnDescargar.type = 'button';
         btnDescargar.className =
-          'inline-flex items-center gap-1 rounded bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm border border-neutral-300 hover:bg-neutral-50';
-        btnDescargar.innerHTML = `⬇️ Descargar`;
+          'inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#D8D2E8] bg-white px-3 py-2 text-xs font-medium text-[#4C4688] transition hover:bg-[#F7F5FB]';
+        btnDescargar.textContent = '↓ Descargar';
         btnDescargar.addEventListener('click', () => descargar(item));
         acciones.append(btnDescargar);
       } else {
         const btnReintentar = document.createElement('button');
         btnReintentar.type = 'button';
         btnReintentar.className =
-          'inline-flex items-center gap-1 rounded bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 border border-amber-200 hover:bg-amber-100';
-        btnReintentar.innerHTML = `🔄 Reintentar carga`;
+          'inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#F1D5A2] bg-[#FFF8E9] px-3 py-2 text-xs font-medium text-[#925500] hover:bg-[#FFF2D9]';
+        btnReintentar.textContent = '↻ Reintentar carga';
         btnReintentar.addEventListener('click', () => prepararReintento(item));
         acciones.append(btnReintentar);
       }
@@ -308,8 +289,8 @@ export function iniciarDonaciones() {
     q('detalle-contraparte').textContent = donacion.contraparte_nombre;
     const badgeMov = q('detalle-movimiento');
     const esRecibida = donacion.tipo_movimiento === 'recibida';
-    badgeMov.className = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-      esRecibida ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+    badgeMov.className = `inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+      esRecibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'
     }`;
     badgeMov.textContent = esRecibida ? 'Donación Recibida' : 'Donación Entregada';
 
@@ -339,10 +320,7 @@ export function iniciarDonaciones() {
   function actualizarFiltrosUI() {
     raiz.querySelectorAll<HTMLButtonElement>('.chip-filtro-respaldo').forEach((btn) => {
       const activo = btn.dataset.tipo === filtroTipoRespaldo;
-      btn.classList.toggle('bg-primary', activo);
-      btn.classList.toggle('text-white', activo);
-      btn.classList.toggle('bg-neutral-100', !activo);
-      btn.classList.toggle('text-neutral-700', !activo);
+      btn.classList.toggle('activo', activo);
     });
   }
 

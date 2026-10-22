@@ -136,9 +136,26 @@ import Select from '../components/ui/Select.astro';
     );
   }
 
-  // Dataset completo tal como llegó del backend; los filtros (RF18) se
-  // aplican en el cliente sobre esta copia.
+  // Los filtros se reflejan en la URL para conservar el contexto al abrir
+  // una ficha y volver al listado.
+  const parametrosIniciales = new URLSearchParams(window.location.search);
+  inputBusqueda.value = parametrosIniciales.get('q') ?? '';
+
   let todasLasOrganizaciones: Organizacion[] = [];
+
+  function sincronizarFiltrosEnUrl() {
+    const url = new URL(window.location.href);
+    const busqueda = inputBusqueda.value.trim();
+    const pais = selectPais.value;
+
+    if (busqueda) url.searchParams.set('q', busqueda);
+    else url.searchParams.delete('q');
+
+    if (pais) url.searchParams.set('id_pais', pais);
+    else url.searchParams.delete('id_pais');
+
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }
 
   /** Quita tildes/mayúsculas para comparar texto sin distinguirlas (RF18). */
   function normalizar(texto: string): string {
@@ -207,6 +224,7 @@ import Select from '../components/ui/Select.astro';
   }
 
   function aplicarFiltros() {
+    sincronizarFiltrosEnUrl();
     const textoBuscado = normalizar(inputBusqueda.value);
     const idPaisSeleccionado = selectPais.value;
 
@@ -345,7 +363,9 @@ import Select from '../components/ui/Select.astro';
 
     const detalle = document.createElement('a');
 
-    detalle.href = `/organizaciones/${organizacion.id_organizacion}`;
+    const parametrosRetorno = new URLSearchParams(window.location.search);
+    const queryRetorno = parametrosRetorno.toString();
+    detalle.href = `/organizaciones/${encodeURIComponent(organizacion.id_organizacion)}${queryRetorno ? `?${queryRetorno}` : ''}`;
 
     detalle.className =
       'inline-flex min-h-[48px] items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
@@ -402,6 +422,7 @@ import Select from '../components/ui/Select.astro';
       todasLasOrganizaciones = datos;
       actualizarResumen(datos);
       poblarFiltroPaises(datos);
+      selectPais.value = parametrosIniciales.get('id_pais') ?? '';
       aplicarFiltros();
     } catch (error) {
       todasLasOrganizaciones = [];
