@@ -413,6 +413,8 @@ const idOrganizacion = Astro.params.id ?? '';
   }
 
   function mostrarFicha(organizacion: Organizacion) {
+    const donaciones = document.querySelector<HTMLElement>('#seccion-donaciones');
+    if (donaciones) donaciones.dataset.pais = organizacion.id_pais;
     const tipoOrganizacion = formatearTipoOrganizacion(organizacion);
     asignarTexto('org-total-beneficiarios', organizacion.numero_beneficiarios);
     asignarTexto('org-ubicacion', organizacion.comuna_municipio_ciudad);

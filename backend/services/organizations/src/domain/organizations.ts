@@ -33,6 +33,8 @@ export type {
   DonationFile,
   DownloadedFile,
   CreateDonationInput,
+  UpdateDonationInput,
+  ArchiveDonationInput,
   CreateDonationFileInput,
   UploadDonationFileInput,
   TipoRespaldo,
@@ -40,9 +42,13 @@ export type {
 export {
   TIPOS_RESPALDO,
   createDonationSchema,
+  updateDonationSchema,
+  archiveDonationSchema,
   createDonationFileSchema,
   uploadDonationFileSchema,
   parseCreateDonation,
+  parseUpdateDonation,
+  parseArchiveDonation,
   parseCreateDonationFile,
   parseUploadDonationFile,
   assertFileSignature,
@@ -187,6 +193,8 @@ export interface OrganizationsRepository {
   listDonations(accessToken: string, orgId: string): Promise<Donation[]>;
   getDonationById(accessToken: string, orgId: string, donationId: string): Promise<Donation>;
   createDonation(accessToken: string, orgId: string, input: CreateDonationInput): Promise<Donation>;
+  updateDonation(accessToken: string, orgId: string, donationId: string, input: import('./donations.ts').UpdateDonationInput): Promise<Donation>;
+  archiveDonation(accessToken: string, orgId: string, donationId: string, expectedVersion: number): Promise<void>;
   listDonationFiles(accessToken: string, donationId: string): Promise<DonationFile[]>;
   getDonationFileById(accessToken: string, donationId: string, fileId: string): Promise<DonationFile>;
   reserveDonationFile(accessToken: string, donationId: string, input: CreateDonationFileInput): Promise<DonationFile>;

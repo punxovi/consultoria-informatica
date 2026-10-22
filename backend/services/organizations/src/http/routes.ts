@@ -18,6 +18,7 @@ import {
   parseUploadDonationFile,
 } from '../domain/organizations.ts';
 import { readJsonBody, readMultipartBody, readBinaryFile } from './body.ts';
+import { parseUpdateDonation, parseArchiveDonation } from '../domain/donations.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -71,6 +72,8 @@ export async function routeOrganizations(
           'donations:list',
           'donations:detail',
           'donations:create',
+          'donations:update',
+          'donations:archive',
           'donations:files:list',
           'donations:files:reserve',
           'donations:files:upload',
@@ -210,6 +213,20 @@ export async function routeOrganizations(
     }
 
     // Rutas para Donaciones y Respaldos Documentales
+    if (url.pathname === '/v1/donations') {
+      if (request.method === 'GET') {
+        const donations = await application.listDonations(token, '');
+        respond(response, 200, success('DONACIONES_LISTADAS', 'Las donaciones fueron consultadas correctamente.', { donations }), requestId);
+        return;
+      }
+      if (request.method === 'POST') {
+        const input = parseCreateDonation(await readJsonBody(request));
+        if (!input.id_organizacion) throw new ServiceError('DATOS_INVALIDOS', 'La Organización receptora es obligatoria.', 400);
+        const donation = await application.createDonation(token, input.id_organizacion, input);
+        respond(response, 201, success('DONACION_CREADA', 'La donación fue creada correctamente.', { donation }), requestId);
+        return;
+      }
+    }
     const orgDonationsMatch = url.pathname.match(
       /^\/v1\/organizations\/([^/]+)\/donations(?:\/([^/]+)(?:\/files(?:\/([^/]+)(?:\/file)?)?)?)?$/
     );
@@ -217,6 +234,7 @@ export async function routeOrganizations(
       const orgId = parseUuid(decodeURIComponent(orgDonationsMatch[1]), 'La organización');
       const donationId = orgDonationsMatch[2] ? parseUuid(decodeURIComponent(orgDonationsMatch[2]), 'La donación') : undefined;
       const fileId = orgDonationsMatch[3] ? parseUuid(decodeURIComponent(orgDonationsMatch[3]), 'El archivo de respaldo') : undefined;
+      if (donationId && url.pathname.includes('/files')) await application.getDonationById(token, orgId, donationId);
 
       if (!donationId) {
         if (request.method === 'GET') {
@@ -246,6 +264,17 @@ export async function routeOrganizations(
             return;
           }
         } else {
+          if (request.method === 'PATCH') {
+            const donation = await application.updateDonation(token, orgId, donationId, parseUpdateDonation(await readJsonBody(request)));
+            respond(response, 200, success('DONACION_ACTUALIZADA', 'La donación fue actualizada correctamente.', { donation }), requestId);
+            return;
+          }
+          if (request.method === 'DELETE') {
+            const input = parseArchiveDonation(await readJsonBody(request));
+            await application.archiveDonation(token, orgId, donationId, input.version_esperada);
+            respond(response, 200, success('DONACION_ARCHIVADA', 'La donación y sus respaldos fueron archivados.', { id_donacion: donationId }), requestId);
+            return;
+          }
           if (request.method === 'GET') {
             const donation = await application.getDonationById(token, orgId, donationId);
             respond(response, 200, success('DONACION_OBTENIDA', 'La donación fue consultada correctamente.', { donation }), requestId);
@@ -306,6 +335,17 @@ export async function routeOrganizations(
             return;
           }
         } else {
+          if (request.method === 'PATCH') {
+            const donation = await application.updateDonation(token, '', donationId, parseUpdateDonation(await readJsonBody(request)));
+            respond(response, 200, success('DONACION_ACTUALIZADA', 'La donación fue actualizada correctamente.', { donation }), requestId);
+            return;
+          }
+          if (request.method === 'DELETE') {
+            const input = parseArchiveDonation(await readJsonBody(request));
+            await application.archiveDonation(token, '', donationId, input.version_esperada);
+            respond(response, 200, success('DONACION_ARCHIVADA', 'La donación y sus respaldos fueron archivados.', { id_donacion: donationId }), requestId);
+            return;
+          }
           if (request.method === 'GET') {
             const donation = await application.getDonationById(token, '', donationId);
             respond(response, 200, success('DONACION_OBTENIDA', 'La donación fue consultada correctamente.', { donation }), requestId);
@@ -349,6 +389,18 @@ export async function routeOrganizations(
     const serviceError = error instanceof ServiceError
       ? error
       : new ServiceError('ERROR_INTERNO', 'No fue posible completar la operación.', 500, error);
-    respond(response, serviceError.status, failure(serviceError.code, serviceError.message, requestId), requestId);
+    const payload = failure(serviceError.code, serviceError.message, requestId);
+    if (serviceError.code === 'DATOS_INVALIDOS' && serviceError.cause && typeof serviceError.cause === 'object'
+      && 'issues' in serviceError.cause && Array.isArray(serviceError.cause.issues) && !payload.ok) {
+      const fields: Record<string, string[]> = Object.create(null);
+      for (const issue of serviceError.cause.issues) {
+        if (Array.isArray(issue.path) && typeof issue.message === 'string') {
+          const path = issue.path.join('.') || '_form';
+          (fields[path] ??= []).push(issue.message);
+        }
+      }
+      payload.error.fields = fields;
+    }
+    respond(response, serviceError.status, payload, requestId);
   }
 }

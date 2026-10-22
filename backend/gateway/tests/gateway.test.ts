@@ -157,6 +157,18 @@ describe('API Gateway', () => {
     assert.equal(body.path, `/v1/donations/${donationId}/files`);
     assert.equal(body.method, 'GET');
     assert.equal(body.authorization, 'Bearer sesion-donaciones');
+    for (const method of ['PATCH', 'DELETE']) {
+      for (const path of [`/api/v1/donations/${donationId}`, `/api/v1/organizations/22222222-2222-4222-8222-222222222222/donations/${donationId}`]) {
+        const result = await fetch(`${gatewayUrl}${path}`, { method,
+          headers: { authorization: 'Bearer sesion-donaciones', 'content-type': 'application/json' },
+          body: JSON.stringify({ version_esperada: 1 }),
+        });
+        const forwarded = await result.json();
+        assert.equal(forwarded.path, path.replace('/api', ''));
+        assert.equal(forwarded.method, method);
+        assert.equal(forwarded.authorization, 'Bearer sesion-donaciones');
+      }
+    }
   });
 
   test('enruta Programas conservando método y sesión', async () => {

@@ -8,7 +8,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(join(root,'migrations')).filter(f=>f.endsWith('.sql')).sort();
 const config = readFileSync(join(root,'config.toml'),'utf8');
 const seed = readFileSync(join(root,'seed.sql'),'utf8');
-assert.equal(files.length,48,'Se esperan cuarenta y ocho migraciones');
+assert.equal(files.length,49,'Se esperan cuarenta y nueve migraciones');
 const sql = files.map(f=>readFileSync(join(root,'migrations',f),'utf8'));
 const triggerPerfiles='20260909192500_fge_trigger_perfiles.sql';
 const noTransactionMigrations=new Set([
@@ -102,6 +102,7 @@ const allowedSecurityDefiner=new Set([
  '20261019130000_fge_scrum134_donaciones_rls.sql',
  '20261019140000_fge_reportes_privacidad_auditoria.sql',
  '20261020120000_fge_scrum130_donaciones_recursos.sql',
+ '20261021120000_fge_scrum131_autorizacion_donaciones.sql',
 ]);
 for (let i=0;i<files.length;i++) {
  if (/SECURITY DEFINER/i.test(sql[i])) {

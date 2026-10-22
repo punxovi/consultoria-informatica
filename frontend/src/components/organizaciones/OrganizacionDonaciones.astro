@@ -112,6 +112,37 @@ const { idOrganizacion } = Astro.props;
             </select>
           </div>
 
+          <!-- Metadatos HU20 -->
+          <div>
+            <label for="don-categoria" class="block text-sm font-medium text-neutral-800">Categoría del aporte *</label>
+            <select id="don-categoria" name="categoria" required class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm">
+              <option value="Dinero">Dinero</option>
+              <option value="Producto">Producto</option>
+              <option value="Servicio">Servicio</option>
+              <option value="Insumos">Insumos</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <Input id="don-categoria-otro" name="categoria_otro" label="Descripción de Otro (si seleccionaste Otro)" maxlength={2000} />
+          <div>
+            <label for="don-tipo-donante" class="block text-sm font-medium text-neutral-800">Tipo de donante *</label>
+            <select id="don-tipo-donante" name="tipo_donante" required class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm">
+              <option value="">Selecciona un tipo</option>
+              <option value="empresa">Empresa</option>
+              <option value="persona">Persona</option>
+              <option value="organizacion">Organización</option>
+            </select>
+          </div>
+          <Input id="don-origen" name="origen" label="Origen del donante *" required maxlength={2000} />
+          <div>
+            <label for="don-estado" class="block text-sm font-medium text-neutral-800">Estado del aporte *</label>
+            <select id="don-estado" name="estado" required class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm">
+              <option value="Comprometida">Comprometida</option>
+              <option value="Recibida">Recibida</option>
+              <option value="Entregada">Entregada</option>
+              <option value="Cerrada">Cerrada</option>
+            </select>
+          </div>
           <!-- Campos Dinero -->
           <div id="don-grupo-dinero" class="contents">
             <Input
@@ -141,13 +172,13 @@ const { idOrganizacion } = Astro.props;
               type="number"
               min="0.01"
               step="any"
-              label="Cantidad de recursos *"
+              label="Cantidad de recursos (si corresponde)"
               placeholder="Ej. 25"
             />
             <Input
               id="don-unidad"
               name="unidad"
-              label="Unidad de medida *"
+              label="Unidad de medida (si corresponde)"
               placeholder="Ej. cajas, kg, raciones, kits"
               maxlength={50}
             />

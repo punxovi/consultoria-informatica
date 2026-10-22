@@ -53,6 +53,13 @@ export function tipoArchivo(file: Pick<File, 'name' | 'type' | 'size'>): string 
 
 export const donacionFormSchema = z
   .object({
+    // El Backend valida catálogos, relaciones y reglas cruzadas de HU20.
+    id_pais: z.string().optional(),
+    categoria: z.string().optional(),
+    categoria_otro: z.string().optional(),
+    tipo_donante: z.string().optional(),
+    origen: z.string().optional(),
+    estado: z.string().optional(),
     fecha: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ingresa una fecha válida (AAAA-MM-DD).'),
@@ -86,10 +93,11 @@ export const donacionFormSchema = z
         ctx.addIssue({ code: 'custom', path: ['moneda'], message: 'Indica la moneda del aporte (ej. CLP).' });
       }
     } else {
-      if (!d.cantidad || d.cantidad <= 0) {
+      const requiereCantidad = !d.categoria || d.cantidad !== undefined || d.unidad !== undefined;
+      if (requiereCantidad && (!d.cantidad || d.cantidad <= 0)) {
         ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'El aporte en recursos exige una cantidad mayor a 0.' });
       }
-      if (!d.unidad) {
+      if (requiereCantidad && !d.unidad) {
         ctx.addIssue({ code: 'custom', path: ['unidad'], message: 'Indica la unidad de medida (ej. cajas).' });
       }
     }
@@ -109,6 +117,16 @@ export type DatosRespaldoForm = z.infer<typeof respaldoFormSchema>;
 export const donacionSchema = z.object({
   id_donacion: z.string().uuid(),
   id_organizacion: z.string().uuid(),
+  id_pais: z.string().uuid().optional(),
+  id_programa: z.string().uuid().nullable().optional(),
+  categoria: z.string().nullable().optional(),
+  categoria_otro: z.string().nullable().optional(),
+  tipo_donante: z.string().nullable().optional(),
+  origen: z.string().nullable().optional(),
+  estado: z.string().nullable().optional(),
+  valor_estimado: z.number().nullable().optional(),
+  moneda_valorizacion: z.string().nullable().optional(),
+  metodo_valorizacion: z.string().nullable().optional(),
   fecha: z.string(),
   tipo_movimiento: z.enum(['recibida', 'entregada']),
   contraparte_nombre: z.string(),

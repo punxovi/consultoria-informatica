@@ -1,0 +1,11 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET search_path = public, extensions;
+SELECT plan(5);
+SELECT has_function('public','puede_gestionar_donaciones',ARRAY['uuid'],'Existe preautorización de Donaciones');
+SELECT ok(has_function_privilege('authenticated','public.puede_gestionar_donaciones(uuid)','EXECUTE'),'Sesión autenticada puede consultar permiso');
+SELECT ok(NOT has_function_privilege('anon','public.puede_gestionar_donaciones(uuid)','EXECUTE'),'Anónimo no puede consultar permiso');
+SELECT is(public.puede_gestionar_donaciones('ffffffff-ffff-4fff-8fff-ffffffffffff'),false,'Organización inexistente no autoriza');
+SELECT ok(NOT has_table_privilege('authenticated','public.donaciones','DELETE'),'No concede borrado físico');
+SELECT * FROM finish();
+ROLLBACK;
