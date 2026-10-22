@@ -27,6 +27,8 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
       '20261004185001_fge_permisos_organizaciones.sql',
       '20261019120000_fge_donaciones_respaldos.sql',
       '20261019130000_fge_scrum134_donaciones_rls.sql',
+      '20261020120000_fge_scrum130_donaciones_recursos.sql',
+      '20261021120000_fge_scrum131_autorizacion_donaciones.sql',
     ]) {
       await db.exec(await migracion(nombre));
     }
@@ -79,6 +81,41 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
 
     let donacion1Id;
     let donacion2Id;
+
+    await t.test('SCRUM-131 preautoriza gestión con la regla territorial existente', async () => {
+      const canManage = async (role, orgId) => (await comoUsuario(db, role, tx =>
+        tx.query('SELECT public.puede_gestionar_donaciones($1) AS permitido', [orgId]))).rows[0].permitido;
+      assert.equal(await canManage('ADMIN', orgCL.id_organizacion), true);
+      assert.equal(await canManage('ADMIN', orgAR.id_organizacion), true);
+      assert.equal(await canManage('COORD', orgCL.id_organizacion), true);
+      assert.equal(await canManage('COORD', orgAR.id_organizacion), false);
+      assert.equal(await canManage('ADMIN', 'ffffffff-ffff-4fff-8fff-ffffffffffff'), false);
+      const cobertura = (await db.query(`INSERT INTO public.permisos_temporales
+        (id_usuario_beneficiario,id_usuario_otorga,id_pais,inicio_at,fin_at,motivo)
+        VALUES ($1,$2,$3,now()-interval '1 hour',now()+interval '1 hour','Prueba cobertura SCRUM-131') RETURNING id_permiso_temporal`,
+        [usuarios.COORD,usuarios.ADMIN,paiAR.id_pais])).rows[0];
+      assert.equal(await canManage('COORD', orgAR.id_organizacion), true);
+      await db.query("UPDATE public.permisos_temporales SET fin_at=now()-interval '1 minute' WHERE id_permiso_temporal=$1",[cobertura.id_permiso_temporal]);
+      assert.equal(await canManage('COORD', orgAR.id_organizacion), false);
+      await assert.rejects(db.transaction(async tx => {
+        await tx.exec('SET LOCAL ROLE anon');
+        return tx.query('SELECT public.puede_gestionar_donaciones($1)', [orgCL.id_organizacion]);
+      }), error => error.code === '42501');
+      await db.transaction(async tx => {
+        await tx.exec('SET LOCAL ROLE authenticated');
+        await tx.query("SELECT set_config('request.jwt.claim.sub', $1, true)", ['ffffffff-ffff-4fff-8fff-ffffffffffff']);
+        assert.equal((await tx.query('SELECT public.puede_gestionar_donaciones($1) AS permitido', [orgCL.id_organizacion])).rows[0].permitido, false);
+      });
+      const invitado = '13100000-0000-4000-8000-000000000005';
+      await db.query('INSERT INTO auth.users(id) VALUES($1)',[invitado]);
+      await db.query("INSERT INTO public.perfiles(id_usuario,nombre) VALUES($1,'Invitado de prueba')",[invitado]);
+      await db.query("INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,otorgado_por) SELECT $1,id_rol,'global',$2 FROM public.roles WHERE codigo='INVIT'",[invitado,usuarios.ADMIN]);
+      await db.transaction(async tx => {
+        await tx.exec('SET LOCAL ROLE authenticated');
+        await tx.query("SELECT set_config('request.jwt.claim.sub', $1, true)",[invitado]);
+        assert.equal((await tx.query('SELECT public.puede_gestionar_donaciones($1) AS permitido',[orgCL.id_organizacion])).rows[0].permitido,false);
+      });
+    });
 
     await t.test('persiste donación en dinero con metadatos correctos', async () => {
       const r1 = await comoUsuario(db, 'ADMIN', (tx) =>
@@ -238,6 +275,16 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
 
       assert.equal(actualizado.estado_carga, 'disponible');
       assert.ok(Number(actualizado.version) > Number(archivo.version));
+    });
+    await t.test('SCRUM-131 reutiliza archivado atómico con versión, permisos y respaldos históricos', async () => {
+      const current = (await comoUsuario(db,'ADMIN',tx=>tx.query('SELECT version FROM public.donaciones WHERE id_donacion=$1',[donacion1Id]))).rows[0];
+      await assert.rejects(comoUsuario(db,'COORD',tx=>tx.query('SELECT public.archivar_donacion_segura($1,$2)',[donacion2Id,1])),error=>error.code==='42501');
+      await assert.rejects(comoUsuario(db,'ADMIN',tx=>tx.query('SELECT public.archivar_donacion_segura($1,$2)',[donacion1Id,Number(current.version)+1])),error=>error.code==='40001');
+      await comoUsuario(db,'ADMIN',tx=>tx.query('SELECT public.archivar_donacion_segura($1,$2)',[donacion1Id,current.version]));
+      assert.ok((await db.query('SELECT archived_at FROM public.donaciones WHERE id_donacion=$1',[donacion1Id])).rows[0].archived_at);
+      const files=(await db.query('SELECT archived_at FROM public.archivos WHERE id_donacion=$1',[donacion1Id])).rows;
+      assert.equal(files.length,4);assert.ok(files.every(file=>file.archived_at));
+      assert.equal((await comoUsuario(db,'ADMIN',tx=>tx.query('SELECT id_donacion FROM public.donaciones WHERE id_donacion=$1',[donacion1Id]))).rows.length,0);
     });
   } finally {
     await db.close();

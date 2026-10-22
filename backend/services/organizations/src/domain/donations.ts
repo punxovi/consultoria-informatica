@@ -12,6 +12,9 @@ export const ALLOWED_DONATION_FILE_MIME_TYPES = [
 ] as const;
 
 export const MAX_DONATION_FILE_BYTES = 52_428_800; // 50 MiB
+export const CATEGORIAS_DONACION = ['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro'] as const;
+export const ESTADOS_DONACION = ['Comprometida', 'Recibida', 'Entregada', 'Cerrada'] as const;
+export type EstadoDonacion = typeof ESTADOS_DONACION[number];
 
 const EXTENSIONS: Record<(typeof ALLOWED_DONATION_FILE_MIME_TYPES)[number], readonly string[]> = {
   'application/pdf': ['pdf'],
@@ -43,22 +46,25 @@ export function normalizarTipoRespaldo(tipo: string): TipoRespaldo {
   );
 }
 
-export const createDonationSchema = z
+const donationFieldsSchema = z
   .object({
     id_organizacion: uuid('La organización').optional(),
-    id_pais: uuid('El país').optional(),
+    id_pais: uuid('El país'),
     id_programa: uuid('El Programa institucional').optional(),
-    categoria: z.enum(['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro']).optional(),
+    categoria: z.enum(CATEGORIAS_DONACION),
     categoria_otro: text('La descripción de Otro', 2000).optional(),
-    tipo_donante: z.enum(['empresa', 'persona', 'organizacion']).optional(),
-    origen: text('El origen del donante', 2000).optional(),
-    estado: z.enum(['Comprometida', 'Recibida', 'Entregada', 'Cerrada']).optional(),
+    tipo_donante: z.enum(['empresa', 'persona', 'organizacion']),
+    origen: text('El origen del donante', 2000),
+    estado: z.enum(ESTADOS_DONACION),
     valor_estimado: z.number().finite().nonnegative().optional(),
     moneda_valorizacion: z.string().regex(/^[A-Z]{3}$/).optional(),
     metodo_valorizacion: text('El método de valorización', 2000).optional(),
     fecha: z
       .string({ error: 'La fecha debe ser un texto.' })
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener el formato AAAA-MM-DD.'),
+      .refine(value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !value.startsWith('0000-')
+        && !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+        && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value,
+      'La fecha debe ser una fecha calendario válida en formato AAAA-MM-DD.'),
     tipo_movimiento: z.enum(['recibida', 'entregada'], {
       error: 'El tipo de movimiento debe ser recibida o entregada.',
     }),
@@ -67,15 +73,17 @@ export const createDonationSchema = z
     tipo_aporte: z.enum(['dinero', 'recurso'], {
       error: 'El tipo de aporte debe ser dinero o recurso.',
     }),
-    monto: z.number({ error: 'El monto debe ser numérico.' }).positive('El monto debe ser mayor a 0.').optional(),
+    monto: z.number({ error: 'El monto debe ser numérico.' }).finite().positive('El monto debe ser mayor a 0.').optional(),
     moneda: z
       .string({ error: 'La moneda debe ser un texto.' })
       .regex(/^[A-Z]{3}$/, 'La moneda debe ser un código ISO de 3 letras mayúsculas.')
       .optional(),
-    cantidad: z.number({ error: 'La cantidad debe ser numérica.' }).positive('La cantidad debe ser mayor a 0.').optional(),
+    cantidad: z.number({ error: 'La cantidad debe ser numérica.' }).finite().positive('La cantidad debe ser mayor a 0.').optional(),
     unidad: z.string({ error: 'La unidad debe ser un texto.' }).trim().min(1, 'La unidad no puede estar vacía.').max(50).optional(),
   })
-  .strict()
+  .strict();
+
+export const createDonationSchema = donationFieldsSchema
   .superRefine((data, ctx) => {
     if (data.categoria && (data.categoria === 'Dinero') !== (data.tipo_aporte === 'dinero')) {
       ctx.addIssue({ code: 'custom', path: ['categoria'], message: 'La categoría no corresponde al tipo de aporte.' });
@@ -118,6 +126,43 @@ export const createDonationSchema = z
   });
 
 export type CreateDonationInput = z.infer<typeof createDonationSchema>;
+
+const expectedVersion = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+export const updateDonationSchema = z.object({
+  version_esperada: expectedVersion,
+  cambios: donationFieldsSchema.omit({ id_organizacion: true, id_pais: true })
+    .partial().extend({
+      id_programa: uuid('El Programa institucional').nullable().optional(),
+      categoria_otro: text('La descripción de Otro', 2000).nullable().optional(),
+      cantidad: z.number().finite().positive().nullable().optional(),
+      unidad: text('La unidad', 50).nullable().optional(),
+      monto: z.number().finite().positive().nullable().optional(),
+      moneda: z.string().regex(/^[A-Z]{3}$/).nullable().optional(),
+      valor_estimado: z.number().finite().nonnegative().nullable().optional(),
+      moneda_valorizacion: z.string().regex(/^[A-Z]{3}$/).nullable().optional(),
+      metodo_valorizacion: text('El método de valorización', 2000).nullable().optional(),
+    }).strict().refine(value => Object.keys(value).length > 0, 'Envía al menos un campo para modificar.'),
+}).strict();
+export const archiveDonationSchema = z.object({ version_esperada: expectedVersion }).strict();
+export type UpdateDonationInput = z.infer<typeof updateDonationSchema>;
+export type ArchiveDonationInput = z.infer<typeof archiveDonationSchema>;
+
+export function assertDonationTransition(current: Donation['estado'], next: EstadoDonacion): void {
+  if (current === next) return;
+  const index = ESTADOS_DONACION.indexOf(current as EstadoDonacion);
+  if ((current == null && next === 'Comprometida') || (index >= 0 && ESTADOS_DONACION[index + 1] === next)) return;
+  throw new ServiceError('TRANSICION_NO_PERMITIDA', 'Solo se permite avanzar Comprometida → Recibida → Entregada → Cerrada, sin saltos ni retrocesos.', 409);
+}
+
+export function mergeDonationChanges(current: Donation, changes: UpdateDonationInput['cambios']): CreateDonationInput {
+  if (changes.estado !== undefined) assertDonationTransition(current.estado, changes.estado);
+  const fields: Record<string, unknown> = {};
+  for (const key of Object.keys(donationFieldsSchema.shape)) {
+    const value = key in changes ? changes[key as keyof typeof changes] : current[key as keyof Donation];
+    if (value !== undefined && value !== null) fields[key] = value;
+  }
+  return parseCreateDonation(fields);
+}
 
 export const createDonationFileSchema = z
   .object({
@@ -231,6 +276,8 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 export const parseCreateDonation = (value: unknown): CreateDonationInput => parse(createDonationSchema, value);
+export const parseUpdateDonation = (value: unknown): UpdateDonationInput => parse(updateDonationSchema, value);
+export const parseArchiveDonation = (value: unknown): ArchiveDonationInput => parse(archiveDonationSchema, value);
 export const parseCreateDonationFile = (value: unknown): CreateDonationFileInput => parse(createDonationFileSchema, value);
 export const parseUploadDonationFile = (value: unknown): UploadDonationFileInput => parse(uploadDonationFileSchema, value);
 

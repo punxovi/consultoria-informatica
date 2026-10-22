@@ -12,6 +12,7 @@ import {
 import { createOrganizationsApplication } from '../src/application/organizations-service.ts';
 import { createOrganizationsServer } from '../src/server.ts';
 import { createSupabaseOrganizationsRepository } from '../src/infrastructure/supabase-organizations.repository.ts';
+const hu20 = { id_pais: '13000000-0000-4000-8000-000000000011', tipo_donante: 'empresa', origen: 'Campaña', estado: 'Comprometida' } as const;
 
 test('SCRUM-130: repositorio conserva metadatos HU20 en registro y consulta', async () => {
   const orgId = '13000000-0000-4000-8000-000000000001';
@@ -24,7 +25,10 @@ test('SCRUM-130: repositorio conserva metadatos HU20 en registro y consulta', as
   const repository = createSupabaseOrganizationsRepository({ supabaseUrl: 'https://supabase.invalid', anonKey: 'public-test',
     fetchImpl: async (url, init) => {
       const path = new URL(String(url)).pathname;
-      if (path.endsWith('/organizaciones')) return Response.json([{ id_organizacion: orgId, nombre: 'Organización prueba' }]);
+      if (path.endsWith('/organizaciones')) return Response.json([{ id_organizacion: orgId, id_pais: hu20.id_pais, nombre: 'Organización prueba' }]);
+      if (path.endsWith('/puede_gestionar_donaciones')) return Response.json(true);
+      if (path.endsWith('/paises')) return Response.json([{ id_pais: hu20.id_pais }]);
+      if (path.endsWith('/programas')) return Response.json([{ id_programa: input.id_programa }]);
       if (init?.method === 'POST') stored = { ...JSON.parse(String(init.body)), id_donacion: '13000000-0000-4000-8000-000000000003' };
       return Response.json([stored]);
     } });
@@ -37,7 +41,7 @@ test('SCRUM-130: repositorio conserva metadatos HU20 en registro y consulta', as
 });
 
 test('SCRUM-130: contrato HU20 y valorización independiente del monto efectivo', () => {
-  const input = { fecha: '2026-10-20', tipo_movimiento: 'recibida', contraparte_nombre: 'Empresa',
+  const input = { ...hu20, fecha: '2026-10-20', tipo_movimiento: 'recibida', contraparte_nombre: 'Empresa',
     descripcion: 'Horas profesionales', tipo_aporte: 'recurso', categoria: 'Servicio',
     tipo_donante: 'empresa', origen: 'Campaña local', estado: 'Comprometida',
     valor_estimado: 100, moneda_valorizacion: 'CLP', metodo_valorizacion: 'Cotización' };
@@ -54,6 +58,7 @@ test('SCRUM-130: contrato HU20 y valorización independiente del monto efectivo'
 test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () => {
   // Dinero válido
   const dineroValido = parseCreateDonation({
+    ...hu20, categoria: 'Dinero',
     fecha: '2026-10-19',
     tipo_movimiento: 'recibida',
     contraparte_nombre: 'Fundación Alianza',
@@ -67,6 +72,7 @@ test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () =>
 
   // Recurso válido
   const recursoValido = parseCreateDonation({
+    ...hu20, categoria: 'Producto',
     fecha: '2026-10-19',
     tipo_movimiento: 'recibida',
     contraparte_nombre: 'Comunidad Vecinal',
@@ -81,6 +87,7 @@ test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () =>
   // Dinero sin monto debe fallar
   assert.throws(
     () => parseCreateDonation({
+      ...hu20, categoria: 'Dinero',
       fecha: '2026-10-19',
       tipo_movimiento: 'recibida',
       contraparte_nombre: 'Empresa',
@@ -93,6 +100,7 @@ test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () =>
   // Recurso sin unidad debe fallar
   assert.throws(
     () => parseCreateDonation({
+      ...hu20, categoria: 'Producto',
       fecha: '2026-10-19',
       tipo_movimiento: 'recibida',
       contraparte_nombre: 'Empresa',
@@ -304,6 +312,7 @@ test('HTTP: flujo completo de creación de donación, reserva, carga y descarga 
       method: 'POST',
       headers: { ...authHeaders, 'content-type': 'application/json' },
       body: JSON.stringify({
+        ...hu20, categoria: 'Dinero',
         fecha: '2026-10-19',
         tipo_movimiento: 'recibida',
         contraparte_nombre: 'Empresa Social',

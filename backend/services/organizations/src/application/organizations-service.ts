@@ -72,6 +72,12 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     createDonation(accessToken: string, orgId: string, input: import('../domain/organizations.ts').CreateDonationInput) {
       return repository.createDonation(accessToken, orgId, input);
     },
+    updateDonation(accessToken: string, orgId: string, donationId: string, input: import('../domain/donations.ts').UpdateDonationInput) {
+      return repository.updateDonation(accessToken, orgId, donationId, input);
+    },
+    archiveDonation(accessToken: string, orgId: string, donationId: string, expectedVersion: number) {
+      return repository.archiveDonation(accessToken, orgId, donationId, expectedVersion);
+    },
     listDonationFiles(accessToken: string, donationId: string) {
       return repository.listDonationFiles(accessToken, donationId);
     },

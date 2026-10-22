@@ -1,6 +1,25 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { crearClienteDonaciones } from '../../src/lib/donaciones/cliente.ts';
+import { ApiError } from '../../src/lib/api/transporte.ts';
+
+test('cliente donaciones: conserva los mensajes por campo del Backend', async () => {
+  const fields = { origen: ['El origen del donante es obligatorio.'] };
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'test-session', async () =>
+    Response.json({ok:false,error:{code:'DATOS_INVALIDOS',message:'Revisa los campos.',requestId:'test-request',fields},data:null},{status:400}));
+  await assert.rejects(cliente.crearDonacion(idOrg, {}), error => error instanceof ApiError
+    && error.code === 'DATOS_INVALIDOS' && error.requestId === 'test-request'
+    && error.fields.origen[0] === fields.origen[0]);
+});
+
+test('cliente donaciones: recupera los metadatos HU20 sin descartarlos', async () => {
+  const metadata = {id_pais:idOrg,categoria:'Servicio',tipo_donante:'empresa',origen:'Campaña',estado:'Comprometida',
+    valor_estimado:0,moneda_valorizacion:'CLP',metodo_valorizacion:'Declarado'};
+  const cliente=crearClienteDonaciones('http://api.test',async()=>'test-session',async()=>
+    Response.json({ok:true,code:'DONACION_OBTENIDA',message:'OK',data:{donation:{...donacionEjemplo,...metadata}}}));
+  const result=await cliente.obtenerDonacion(idOrg,idDonacion);
+  for(const [key,value] of Object.entries(metadata))assert.equal(result[key],value);
+});
 
 const idOrg = '11111111-1111-4111-8111-111111111111';
 const idDonacion = '22222222-2222-4222-8222-222222222222';

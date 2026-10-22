@@ -7,7 +7,7 @@ export interface ApiSuccess<T> {
 
 interface ApiFailure {
   ok: false;
-  error: { code: string; message: string; requestId?: string };
+  error: { code: string; message: string; requestId?: string; fields?: Record<string, string[]> };
   data: null;
 }
 
@@ -15,13 +15,15 @@ export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
   readonly requestId?: string;
+  readonly fields?: Record<string, string[]>;
 
-  constructor(code: string, message: string, status: number, requestId?: string) {
+  constructor(code: string, message: string, status: number, requestId?: string, fields?: Record<string, string[]>) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
     this.requestId = requestId;
+    this.fields = fields;
   }
 }
 
@@ -71,6 +73,7 @@ export function createApiTransport(apiBaseUrl: string, fetchImpl: typeof fetch =
           failure.error?.message ?? 'No fue posible completar la operación.',
           response.status,
           failure.error?.requestId,
+          failure.error?.fields,
         );
       }
       return payload;

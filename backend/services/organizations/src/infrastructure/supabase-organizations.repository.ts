@@ -19,6 +19,7 @@ import type {
   CreateDonationFileInput,
 } from '../domain/organizations.ts';
 import { LEGAL_DOCUMENT_TYPES, assertFileSignature, normalizarTipoRespaldo } from '../domain/organizations.ts';
+import { mergeDonationChanges, parseCreateDonation, parseUpdateDonation, parseArchiveDonation, type UpdateDonationInput } from '../domain/donations.ts';
 import type { Compromiso } from '../domain/compromisos.ts';
 
 interface RepositoryOptions {
@@ -189,7 +190,12 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (table === 'diagnosticos' && record(body).code === '23503') {
         throw new ServiceError('NO_ENCONTRADO', 'La organización solicitada no existe o ya no está disponible.', 404);
       }
-      console.log('--- ERROR DE SUPABASE ---', body);
+      if (table === 'donaciones' || table === 'rpc/archivar_donacion_segura' || table === 'rpc/puede_gestionar_donaciones') {
+        const code = String(record(body).code ?? '');
+        if (code === '23503') throw new ServiceError('RELACION_INVALIDA', 'País, Organización o Programa no existe, está archivado o no corresponde al receptor.', 409);
+        if (['23502','23514','22007','22008','22P02'].includes(code)) throw new ServiceError('DATOS_INVALIDOS', 'Los datos de la donación no cumplen las restricciones del modelo.', 400);
+        if (code === 'PGRST202' || code === '42883') throw new ServiceError('MIGRACION_PENDIENTE', 'La base de datos requiere la migración SCRUM-131.', 503);
+      }
 
       throw postgrestError(response.status, body);
     }
@@ -210,6 +216,46 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
     }
     return body.map(organization);
+  }
+
+  async function requireDonationManagement(accessToken: string, orgId: string): Promise<void> {
+    const allowed = await request('rpc/puede_gestionar_donaciones', accessToken, new URLSearchParams(), {
+      method: 'POST', body: JSON.stringify({ p_id_organizacion: orgId }),
+    });
+    if (allowed !== true) throw new ServiceError('SIN_PERMISO', 'La sesión no tiene permiso de gestión para esta Organización.', 403);
+  }
+
+  async function validateDonationRelations(accessToken: string, orgId: string, input: CreateDonationInput): Promise<void> {
+    if (input.id_organizacion && input.id_organizacion !== orgId) {
+      throw new ServiceError('RELACION_INVALIDA', 'La Organización del cuerpo no coincide con la ruta.', 409);
+    }
+    const rows = await organizationRows(accessToken, new URLSearchParams({
+      id_organizacion: `eq.${orgId}`, archived_at: 'is.null', limit: '1',
+    }));
+    if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La Organización receptora no existe o no está disponible.', 404);
+    await requireDonationManagement(accessToken, orgId);
+    const countries = await request('paises', accessToken, new URLSearchParams({
+      id_pais: `eq.${input.id_pais}`, archived_at: 'is.null', select: 'id_pais', limit: '1',
+    }));
+    if (!Array.isArray(countries)) throw new ServiceError('RESPUESTA_INVALIDA', 'Respuesta inválida de países.', 502);
+    if (!countries[0]) throw new ServiceError('PAIS_NO_EXISTE', 'El país no existe o está archivado.', 404);
+    if (rows[0].id_pais !== input.id_pais) throw new ServiceError('RELACION_INVALIDA', 'El país no corresponde a la Organización receptora.', 409);
+    if (input.id_programa) {
+      const programs = await request('programas', accessToken, new URLSearchParams({
+        id_programa: `eq.${input.id_programa}`, archived_at: 'is.null', select: 'id_programa', limit: '1',
+      }));
+      if (!Array.isArray(programs)) throw new ServiceError('RESPUESTA_INVALIDA', 'Respuesta inválida de Programas.', 502);
+      if (!programs[0]) throw new ServiceError('PROGRAMA_NO_EXISTE', 'El Programa no existe o está archivado.', 404);
+    }
+  }
+
+  async function findDonation(accessToken: string, orgId: string, donationId: string): Promise<Donation> {
+    const params = new URLSearchParams({ id_donacion: `eq.${donationId}`, archived_at: 'is.null', select: DONATION_FIELDS, limit: '1' });
+    if (orgId) params.set('id_organizacion', `eq.${orgId}`);
+    const body = await request('donaciones', accessToken, params);
+    if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'Respuesta inválida de Donaciones.', 502);
+    if (!body[0]) throw new ServiceError('NO_ENCONTRADA', 'La donación no existe o no está disponible.', 404);
+    return donation(body[0]);
   }
 
   async function getLegalRecord(accessToken: string, organizationId: string): Promise<LegalRecord | null> {
@@ -529,30 +575,12 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     },
 
     async getDonationById(accessToken: string, orgId: string, donationId: string): Promise<Donation> {
-      const params = new URLSearchParams({
-        id_donacion: `eq.${donationId}`,
-        archived_at: 'is.null',
-        select: DONATION_FIELDS,
-        limit: '1',
-      });
-      if (orgId) {
-        params.set('id_organizacion', `eq.${orgId}`);
-      }
-      const body = await request('donaciones', accessToken, params);
-      if (!Array.isArray(body) || !body[0]) {
-        throw new ServiceError('NO_ENCONTRADA', 'La donación solicitada no existe o no está disponible.', 404);
-      }
-      return donation(body[0]);
+      return findDonation(accessToken, orgId, donationId);
     },
 
     async createDonation(accessToken: string, orgId: string, input: CreateDonationInput): Promise<Donation> {
-      await organizationRows(accessToken, new URLSearchParams({
-        id_organizacion: `eq.${orgId}`,
-        archived_at: 'is.null',
-        limit: '1',
-      })).then((rows) => {
-        if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe.', 404);
-      });
+      input = parseCreateDonation(input);
+      await validateDonationRelations(accessToken, orgId, input);
 
       const payload = {
         id_organizacion: orgId,
@@ -587,6 +615,32 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         throw new ServiceError('ERROR_BASE_DATOS', 'No fue posible registrar la donación.', 502);
       }
       return donation(body[0]);
+    },
+
+    async updateDonation(accessToken: string, orgId: string, donationId: string, input: UpdateDonationInput): Promise<Donation> {
+      input = parseUpdateDonation(input);
+      const current = await findDonation(accessToken, orgId, donationId);
+      await requireDonationManagement(accessToken, current.id_organizacion);
+      if (current.version !== input.version_esperada) throw new ServiceError('CONFLICTO_CONCURRENCIA', 'La donación cambió; recarga antes de editar.', 409);
+      const merged = mergeDonationChanges(current, input.cambios);
+      await validateDonationRelations(accessToken, current.id_organizacion, merged);
+      const params = new URLSearchParams({ id_donacion: `eq.${donationId}`, id_organizacion: `eq.${current.id_organizacion}`,
+        version: `eq.${input.version_esperada}`, archived_at: 'is.null', select: DONATION_FIELDS });
+      const body = await request('donaciones', accessToken, params, {
+        method: 'PATCH', headers: { prefer: 'return=representation' }, body: JSON.stringify(input.cambios),
+      });
+      if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'Respuesta inválida al modificar la donación.', 502);
+      if (!body[0]) throw new ServiceError('CONFLICTO_CONCURRENCIA', 'La donación cambió; recarga antes de editar.', 409);
+      return donation(body[0]);
+    },
+
+    async archiveDonation(accessToken: string, orgId: string, donationId: string, expectedVersion: number): Promise<void> {
+      parseArchiveDonation({ version_esperada: expectedVersion });
+      const current = await findDonation(accessToken, orgId, donationId);
+      await requireDonationManagement(accessToken, current.id_organizacion);
+      await request('rpc/archivar_donacion_segura', accessToken, new URLSearchParams(), {
+        method: 'POST', body: JSON.stringify({ p_id: donationId, p_version: expectedVersion }),
+      });
     },
 
     async listDonationFiles(accessToken: string, donationId: string): Promise<DonationFile[]> {

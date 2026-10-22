@@ -394,6 +394,9 @@ export function iniciarDonaciones() {
     const esDinero = tipoAporteSelect.value === 'dinero';
     grupoDinero.hidden = !esDinero;
     grupoRecurso.hidden = esDinero;
+    const categoria = q<HTMLSelectElement>('categoria');
+    for (const option of categoria.options) option.disabled = esDinero ? option.value !== 'Dinero' : option.value === 'Dinero';
+    if (categoria.selectedOptions[0]?.disabled) categoria.value = esDinero ? 'Dinero' : 'Producto';
   }
   tipoAporteSelect.addEventListener('change', actualizarCamposAporte);
 
@@ -416,6 +419,12 @@ export function iniciarDonaciones() {
     const tipoAporte = fd.get('tipo_aporte') as 'dinero' | 'recurso';
 
     const raw = {
+      id_pais: raiz.dataset.pais,
+      categoria: String(fd.get('categoria') ?? ''),
+      categoria_otro: String(fd.get('categoria_otro') ?? '').trim() || undefined,
+      tipo_donante: String(fd.get('tipo_donante') ?? ''),
+      origen: String(fd.get('origen') ?? ''),
+      estado: String(fd.get('estado') ?? ''),
       fecha: String(fd.get('fecha') ?? ''),
       tipo_movimiento: fd.get('tipo_movimiento') as 'recibida' | 'entregada',
       contraparte_nombre: String(fd.get('contraparte_nombre') ?? ''),
@@ -445,6 +454,12 @@ export function iniciarDonaciones() {
       mostrarExito('Donación registrada correctamente.');
       abrirDetalle(nueva);
     } catch (err) {
+      if (err instanceof ApiError && err.fields) {
+        for (const [campo, mensajes] of Object.entries(err.fields)) {
+          const input = formDonacion.elements.namedItem(campo) as HTMLElement | null;
+          if (input && Array.isArray(mensajes) && typeof mensajes[0] === 'string') errorCampo(input, mensajes[0]);
+        }
+      }
       mostrarError(err, 'No fue posible registrar la donación. ');
     } finally {
       bloquear(false);
