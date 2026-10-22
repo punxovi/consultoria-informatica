@@ -8,6 +8,7 @@ BEGIN;
 -- Permitir que id_accion sea opcional para el catálogo estándar de indicadores
 ALTER TABLE public.indicadores ALTER COLUMN id_accion DROP NOT NULL;
 
+
 -- Asegurar que Row Level Security esté activo
 ALTER TABLE public.indicadores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resultados ENABLE ROW LEVEL SECURITY;
