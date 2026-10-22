@@ -1,10 +1,4 @@
-import type {
-  ActualizarOrganizacionInput,
-  CrearOrganizacionInput,
-  FiltrosOrganizaciones,
-  Organizacion,
-  PaisResumen,
-} from '../modelos/organizaciones.ts';
+import type { ActualizarOrganizacionInput, CrearOrganizacionInput, FiltrosOrganizaciones, Organizacion, PaisResumen,} from '../modelos/organizaciones.ts';
 import { getSupabaseClient } from '../supabase.ts';
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 
@@ -23,8 +17,12 @@ export async function listarOrganizaciones(
   filtros: FiltrosOrganizaciones = {},
 ): Promise<Organizacion[]> {
   const params = new URLSearchParams();
+  const consulta = filtros.q?.trim();
+  if (consulta) params.set('q', consulta);
   if (filtros.idPais) params.set('id_pais', filtros.idPais);
+  if (filtros.idPrograma) params.set('id_programa', filtros.idPrograma);
   if (filtros.incluirArchivadas) params.set('incluir_archivadas', 'true');
+
   const query = params.size > 0 ? `?${params}` : '';
   const response = await transport.request<{ organizations: Organizacion[] }>(
     `/api/v1/organizations${query}`,
