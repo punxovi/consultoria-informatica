@@ -53,6 +53,8 @@ export interface CrearOrganizacionInput {
 export type ActualizarOrganizacionInput = Partial<CrearOrganizacionInput>;
 
 export interface FiltrosOrganizaciones {
+  q?: string;
   idPais?: string;
+  idPrograma?: string;
   incluirArchivadas?: boolean;
 }
