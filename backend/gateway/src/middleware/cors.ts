@@ -10,6 +10,7 @@ export function applyCors(
     response.setHeader('access-control-allow-origin', origin);
     response.setHeader('access-control-allow-credentials', 'true');
     response.setHeader('vary', 'Origin');
+    response.setHeader('access-control-expose-headers','content-disposition,content-length,x-request-id');
   }
 
   if (request.method !== 'OPTIONS') return false;

@@ -34,11 +34,26 @@ export async function routeInsights(
     // Actualizamos las capabilities para indicar que el reporte consolidado ya existe
     if (request.method === 'GET' && ['/v1/dashboard/capabilities', '/v1/reports/capabilities'].includes(url.pathname)) {
       respond(response, 200, success('INSIGHTS_MIGRADOS', 'El servicio de Dashboard y Reportes está disponible.', {
-        migrated: true, dashboard: ['snapshot', 'country-filter'], reports: ['overview', 'consolidated'],
+        migrated: true, dashboard: ['snapshot', 'country-filter'], reports: ['overview', 'consolidated','pdf'],
       }), requestId); return;
     }
     
     const token = tokenFrom(request);
+    const pdfMatch=url.pathname.match(/^\/v1\/reports\/([^/]+)\/pdf$/);
+    if(request.method==='GET'&&pdfMatch) {
+      if(url.search)throw new ServiceError('DATOS_INVALIDOS','La descarga usa el reporte preparado y no admite nuevos filtros.',400);
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pdfMatch[1]))throw new ServiceError('DATOS_INVALIDOS','El identificador del reporte no es válido.',400);
+      const file=await application.downloadReportPdf(token,pdfMatch[1]);
+      response.statusCode=200;
+      response.setHeader('content-type',file.mimeType);
+      response.setHeader('content-disposition',`attachment; filename="${file.fileName}"`);
+      response.setHeader('content-length',file.bytes.length);
+      response.setHeader('cache-control','no-store, private');
+      response.setHeader('x-content-type-options','nosniff');
+      response.setHeader('x-request-id',requestId);
+      response.once('error',()=>response.destroy());
+      response.end(file.bytes);return;
+    }
     
     if (request.method === 'GET' && url.pathname === '/v1/dashboard') {
       const dashboard = await application.dashboard(token, parseInsightFilters(url));
@@ -62,6 +77,7 @@ export async function routeInsights(
     respond(response, 404, failure('RUTA_NO_ENCONTRADA', 'La ruta solicitada no existe.', requestId), requestId);
   } catch (error) {
     const serviceError = error instanceof ServiceError ? error : new ServiceError('ERROR_INTERNO', 'No fue posible completar la operación.', 500, error);
+    if(response.headersSent||response.destroyed){response.destroy();return;}
     respond(response, serviceError.status, failure(serviceError.code, serviceError.message, requestId), requestId);
   }
 }

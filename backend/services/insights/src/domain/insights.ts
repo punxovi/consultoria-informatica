@@ -11,6 +11,7 @@ export interface RawInsights {
   countries: CountryInsight[]; organizations: OrganizationInsight[]; plans: PlanInsight[]; actions: ActionInsight[];
 }
 export interface InsightsRepository {
+  getReportActor(accessToken: string): Promise<string>;
   load(accessToken: string): Promise<RawInsights>;
   auditExport(accessToken: string, audit: ReportAudit): Promise<void>;
   loadConsolidated(accessToken: string, filters: ConsolidatedReportFilters): Promise<ConsolidatedReportSnapshot>;
@@ -21,7 +22,7 @@ export type ReportDestination = typeof REPORT_DESTINATIONS[number];
 export interface ReportRequest { destination: ReportDestination; filters: InsightFilters }
 export interface ReportAudit {
   destination: ReportDestination;
-  filters: { countryId: string | null };
+  filters: { countryId: string | null; [key:string]: unknown };
 }
 export interface MonthlyActions { key: string; label: string; completed: number; pending: number }
 
@@ -288,6 +289,9 @@ export function parseConsolidatedFilters(url: URL): ConsolidatedReportRequest {
   
   const extra = [...url.searchParams.keys()].find((key) => !allowed.has(key));
   if (extra) throw new ServiceError('DATOS_INVALIDOS', `El filtro ${extra} no está permitido.`, 400);
+  if ([...url.searchParams.keys()].some(key=>url.searchParams.getAll(key).length!==1)) {
+    throw new ServiceError('DATOS_INVALIDOS','No se permiten filtros repetidos.',400);
+  }
 
   const destination = (url.searchParams.get('destino') ?? 'interno') as ReportDestination;
   if (!REPORT_DESTINATIONS.includes(destination)) {
@@ -302,7 +306,10 @@ export function parseConsolidatedFilters(url: URL): ConsolidatedReportRequest {
   }
 
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+  const calendarDate = (value:string) => dateRegex.test(value) && !value.startsWith('0000-')
+    && Number.isFinite(Date.parse(`${value}T00:00:00Z`))
+    && new Date(`${value}T00:00:00Z`).toISOString().slice(0,10) === value;
+  if (!calendarDate(startDate) || !calendarDate(endDate)) {
     throw new ServiceError('DATOS_INVALIDOS', 'Las fechas deben tener el formato YYYY-MM-DD.', 400);
   }
 
@@ -313,13 +320,14 @@ export function parseConsolidatedFilters(url: URL): ConsolidatedReportRequest {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   
   const validateUuid = (val: string | null, fieldName: string) => {
-    if (val && !uuidRegex.test(val)) throw new ServiceError('DATOS_INVALIDOS', `El ${fieldName} debe ser un UUID válido.`, 400);
+    if (val !== null && !uuidRegex.test(val)) throw new ServiceError('DATOS_INVALIDOS', `El ${fieldName} debe ser un UUID válido.`, 400);
     return val ?? undefined;
   };
 
   const parseUuidsArray = (val: string | null, fieldName: string) => {
     if (!val) return undefined;
     const ids = val.split(',').map(id => id.trim());
+    if(ids.length>100)throw new ServiceError('DATOS_INVALIDOS','Selecciona como máximo 100 identificadores por filtro.',400);
     for (const id of ids) {
       if (!uuidRegex.test(id)) throw new ServiceError('DATOS_INVALIDOS', `Uno de los IDs en ${fieldName} no es un UUID válido.`, 400);
     }
