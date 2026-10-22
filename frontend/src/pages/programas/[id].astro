@@ -9,76 +9,135 @@ import { obtenerProgramaPorIdSchema } from '../../lib/validaciones/programas';
 const { id } = Astro.params;
 const idValido = obtenerProgramaPorIdSchema.safeParse({ id_programa: id }).success;
 if (!idValido) Astro.response.status = 404;
-const secciones = [ 
-  ['objetivo_general', 'Objetivo general'], 
-  ['objetivos_especificos', 'Objetivos específicos'], 
-  ['descripcion', 'Descripción / contexto'], 
-  ['referencias_ods', 'Referencias ODS'], 
-  ['referencias_esg', 'Referencias ESG'] 
-];
+
+
 ---
 
 <AppLayout title="Detalle de programa" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
-  <Fragment slot="breadcrumb">
-    <div class="flex items-center gap-4">
+  <Fragment slot="headerBreadcrumb">
+    <div class="flex min-w-0 items-center gap-2 md:gap-3">
       <BackButton href="/programas" />
-
-      <div class="flex min-w-0 items-center gap-2 text-sm">
-        <a href="/programas" class="text-neutral-500 transition-colors hover:text-primary" >Programas Institucionales </a>
-        <span class="text-neutral-400">&rsaquo;</span>
-        <span id="programa-breadcrumb" class="truncate font-medium text-neutral-900">Detalle</span>
-      </div>
+      <a href="/programas" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">Programas Institucionales</a>
+      <span aria-hidden="true" class="text-neutral-300">›</span>
+      <span id="programa-breadcrumb" class="truncate text-sm font-semibold text-neutral-900">Detalle del programa</span>
     </div>
   </Fragment>
-  <section id="programa-detalle" data-id={id} class="w-full space-y-6">
+
+  <section id="programa-detalle" data-id={id} class="-mt-8 w-full space-y-5 md:-mt-10">
+    <p id="detalle-estado" role="status" aria-live="polite" class="py-2 text-sm text-neutral-500">Cargando programa…</p>
+    <p id="programa-confirmacion" role="status" hidden class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success"></p>
+    <p id="detalle-error" role="alert" hidden class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
+
     <div id="programa-recuperacion" hidden class="flex flex-wrap gap-3">
       <Button id="recargar-programa" variant="outline">Reintentar</Button>
-      <a href="/login" class="inline-flex items-center text-primary underline">Iniciar sesión</a>
+      <a href="/login" class="inline-flex min-h-[44px] items-center text-primary underline">Iniciar sesión</a>
     </div>
-    <p id="detalle-estado" role="status">Cargando programa…</p>
-    <p id="programa-confirmacion" role="status" hidden class="rounded-lg bg-green-50 p-4 text-green-800"></p>
-    <p id="detalle-error" role="alert" hidden class="rounded-lg bg-red-50 p-4 text-red-800"></p>
-    
-    <div id="detalle-contenido" hidden class="space-y-6">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 id="detalle-nombre" class="text-2xl font-bold md:text-3xl"></h1>
-        <div id="editar-programa-enlace" hidden><Button href={`/programas/${id}/editar`}>Editar programa</Button></div>
+
+    <p id="eliminar-estado" hidden role="status" aria-live="polite" class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
+
+    <div id="detalle-contenido" hidden class="space-y-5">
+      <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+        <div class="min-w-0">
+          <h1 id="detalle-nombre" class="break-words text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl"></h1>
+          <p class="mt-2 text-base text-neutral-600 md:text-lg">Objetivos, contexto y líneas de acción del programa.</p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-3">
+          <div id="editar-programa-enlace" hidden>
+            <Button href={`/programas/${encodeURIComponent(id ?? '')}/editar`} variant="outline">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
+              </svg>
+              Editar programa
+            </Button>
+          </div>
+          <div id="eliminar-programa-panel" hidden>
+            <Button id="eliminar-programa" variant="danger">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
+              </svg>
+              Eliminar programa
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div id="detalle-imagen-panel" hidden class="min-w-0">
+        <Card class="p-4 md:p-5">
+          <p id="detalle-imagen-estado" role="status" aria-live="polite" class="mb-3 text-sm text-neutral-500"></p>
+          <img id="detalle-imagen" hidden alt="Imagen representativa del programa" class="max-h-72 w-full rounded-xl object-contain" />
+          <div id="detalle-imagen-recuperacion" hidden class="space-y-3">
+            <p id="detalle-imagen-error" role="alert" class="rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
+            <Button id="reintentar-imagen" variant="outline">Reintentar imagen</Button>
+          </div>
+        </Card>
       </div>
-      <img id="detalle-imagen" hidden alt="Imagen representativa del programa" class="max-h-80 max-w-full rounded-xl object-contain" />
-      <p id="detalle-imagen-estado" role="status" aria-live="polite"></p>
-      <div id="detalle-imagen-recuperacion" hidden class="space-y-3">
-        <p id="detalle-imagen-error" role="alert" class="rounded-lg bg-red-50 p-4 text-red-800"></p>
-        <Button id="reintentar-imagen" variant="outline">Reintentar imagen</Button>
-      </div>
-      <div class="grid gap-5 md:grid-cols-2">
-        {secciones.map(([campo, titulo]) => (
-          <Card>
-            <h2 class="text-lg font-semibold">{titulo}</h2>
-            <p data-campo={campo} class="mt-3 whitespace-pre-line break-words text-neutral-700"></p>
-          </Card>
-        ))}
-      </div>
-      
-      <Card>
-        <h2 class="text-lg font-semibold">Líneas de acción y resultados esperados</h2>
-        <dl id="detalle-lineas" class="mt-4 space-y-4"></dl>
-        <p id="detalle-sin-lineas" hidden class="mt-4 text-sm text-neutral-700">Este programa no cuenta con líneas de acción estructuradas. Su información se mantiene como texto general.</p>
-        <div id="detalle-legado" hidden class="mt-4 rounded-lg bg-neutral-50 p-4 text-sm">
-          <h3 class="font-semibold">Componentes registrados</h3>
-          <p id="detalle-componentes" class="whitespace-pre-wrap"></p>
-          <h3 class="mt-3 font-semibold">Resultados registrados</h3>
-          <p id="detalle-resultados" class="whitespace-pre-wrap"></p>
+
+      <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <div class="mb-5">
+          <h2 class="text-lg font-bold text-neutral-900">Información general</h2>
+          <p class="mt-1 text-sm text-neutral-500">Resumen de los objetivos y el contexto del programa.</p>
+        </div>
+        <dl class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div class="min-w-0 rounded-xl bg-[#F5F2FB] p-4">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Objetivo general</dt>
+            <dd data-campo="objetivo_general" class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-800"></dd>
+          </div>
+          <div class="min-w-0 rounded-xl bg-[#F5F2FB] p-4">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Objetivos específicos</dt>
+            <dd data-campo="objetivos_especificos" class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-800"></dd>
+          </div>
+          <div class="min-w-0 rounded-xl bg-[#F5F2FB] p-4">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Descripción y contexto</dt>
+            <dd data-campo="descripcion" class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-800"></dd>
+          </div>
+        </dl>
+      </Card>
+
+      <Card class="border-t-4 border-t-[#1BAAC1] p-5 md:p-6">
+        <div class="mb-5 flex items-center gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F5FC] text-[#1BAAC1]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8.5"/></svg>
+          </span>
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Referencias y alineación</h2>
+            <p class="mt-1 text-sm text-neutral-500">Referencias ODS y ESG asociadas al programa.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="min-w-0 rounded-xl bg-[#EAF7FA] p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Referencias ODS</p>
+            <p data-campo="referencias_ods" class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-800"></p>
+          </div>
+          <div class="min-w-0 rounded-xl bg-[#EAF7FA] p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Referencias ESG</p>
+            <p data-campo="referencias_esg" class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-800"></p>
+          </div>
         </div>
       </Card>
 
-      <div id="eliminar-programa-panel" hidden>
-        <Card>
-          <h2 class="text-lg font-semibold">Eliminar programa</h2>
-          <p class="my-3 text-neutral-700">Se quitará del catálogo activo. Sus planes, líneas de acción y archivos se conservarán como historial.</p>
-          <Button id="eliminar-programa" variant="outline" class="!border-red-800 !text-red-800">Eliminar programa</Button>
-          <p id="eliminar-estado" role="status" aria-live="polite" class="mt-3 text-neutral-700"></p>
-        </Card>
-      </div>
+      <Card class="border-t-4 border-t-[#199D6B] p-5 md:p-6">
+        <div class="mb-5 flex items-center gap-3">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F5ED] text-[#199D6B]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5m0 14h17M8 15v-4m4 4V7m4 8V9m4 6V4"/></svg>
+          </span>
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Líneas de acción y resultados esperados</h2>
+            <p class="mt-1 text-sm text-neutral-500">Componentes que estructuran la intervención del programa.</p>
+          </div>
+        </div>
+        <dl id="detalle-lineas" class="grid grid-cols-1 gap-3 md:grid-cols-2"></dl>
+        <p id="detalle-sin-lineas" hidden class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-600">Este programa no cuenta con líneas de acción estructuradas. Su información se mantiene como texto general.</p>
+        <div id="detalle-legado" hidden class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="rounded-xl bg-[#EEF8F2] p-4">
+            <h3 class="text-sm font-semibold text-neutral-700">Componentes registrados</h3>
+            <p id="detalle-componentes" class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-700"></p>
+          </div>
+          <div class="rounded-xl bg-[#EEF8F2] p-4">
+            <h3 class="text-sm font-semibold text-neutral-700">Resultados registrados</h3>
+            <p id="detalle-resultados" class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-700"></p>
+          </div>
+        </div>
+      </Card>
     </div>
   </section>
 </AppLayout>
@@ -93,11 +152,15 @@ const secciones = [
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-programa')!;
   const raiz = document.querySelector<HTMLElement>('#programa-detalle')!;
   const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
+  const imagenPanel = document.querySelector<HTMLElement>('#detalle-imagen-panel')!;
   const imagen = document.querySelector<HTMLImageElement>('#detalle-imagen')!;
   const imagenEstado = document.querySelector<HTMLElement>('#detalle-imagen-estado')!;
   const imagenError = document.querySelector<HTMLElement>('#detalle-imagen-error')!;
   const imagenRecuperacion = document.querySelector<HTMLElement>('#detalle-imagen-recuperacion')!;
   const reintentarImagen = document.querySelector<HTMLButtonElement>('#reintentar-imagen')!;
+  const editarPanel = document.querySelector<HTMLElement>('#editar-programa-enlace')!;
+  const eliminarPanel = document.querySelector<HTMLElement>('#eliminar-programa-panel')!;
+  const eliminarEstado = document.querySelector<HTMLElement>('#eliminar-estado')!;
   let cargando = false;
   let secuenciaImagen = 0;
 
@@ -106,135 +169,146 @@ const secciones = [
     imagenEstado.textContent = '';
     imagenError.textContent = mensaje;
     imagenRecuperacion.hidden = false;
+    imagenPanel.hidden = false;
   }
 
   async function cargarImagen() {
     const solicitud = ++secuenciaImagen;
     reintentarImagen.disabled = true;
     imagenRecuperacion.hidden = true;
+    imagenPanel.hidden = true;
     imagen.hidden = true;
     imagen.removeAttribute('src');
-    imagenEstado.textContent = 'Cargando imagen…';
+    imagenEstado.textContent = '';
     try {
       const url = await obtenerImagen(raiz.dataset.id!);
       if (solicitud !== secuenciaImagen) return;
-      if (!url) { imagenEstado.textContent = ''; return; }
+      if (!url) return;
+      imagenEstado.textContent = 'Cargando imagen…';
       imagen.onload = () => { if (solicitud === secuenciaImagen) imagenEstado.textContent = ''; };
       imagen.onerror = () => {
         if (solicitud === secuenciaImagen) mostrarErrorImagen('No se pudo cargar la imagen actual. Vuelve a intentarlo.');
       };
       imagen.src = url;
       imagen.hidden = false;
+      imagenPanel.hidden = false;
     } catch (fallo) {
-      if (solicitud === secuenciaImagen) {
-        mostrarErrorImagen(fallo instanceof Error ? fallo.message : 'No se pudo cargar la imagen actual.');
-      }
+      if (solicitud === secuenciaImagen) mostrarErrorImagen(fallo instanceof Error ? fallo.message : 'No se pudo cargar la imagen actual.');
     } finally {
       if (solicitud === secuenciaImagen) reintentarImagen.disabled = false;
     }
   }
+
   reintentarImagen.addEventListener('click', () => void cargarImagen());
 
   async function cargar() {
     if (cargando) return;
-    cargando = true; recargar.disabled = true;
-    
+    cargando = true;
+    recargar.disabled = true;
+
     const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
     const error = document.querySelector<HTMLElement>('#detalle-error')!;
     const recuperacion = document.querySelector<HTMLElement>('#programa-recuperacion')!;
-    
+    const confirmacion = document.querySelector<HTMLElement>('#programa-confirmacion')!;
+
     estado.textContent = 'Cargando programa…';
     error.hidden = true;
     recuperacion.hidden = true;
+    eliminarEstado.hidden = true;
     raiz.setAttribute('aria-busy', 'true');
     contenido.hidden = true;
-    document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = true;
-    document.querySelector<HTMLElement>('#eliminar-programa-panel')!.hidden = true;
-    document.querySelector<HTMLElement>('#programa-confirmacion')!.hidden = true;
+    editarPanel.hidden = true;
+    eliminarPanel.hidden = true;
+    confirmacion.hidden = true;
+    imagenPanel.hidden = true;
     ++secuenciaImagen;
-    imagen.hidden = true;
-    imagen.removeAttribute('src');
-    imagenRecuperacion.hidden = true;
 
     try {
       if (!obtenerProgramaPorIdSchema.safeParse({ id_programa: raiz.dataset.id }).success) {
         throw new ErrorSolicitudPrograma('NO_ENCONTRADO', 'Programa no encontrado.');
       }
+
       const programa = await obtenerPrograma(raiz.dataset.id!);
-      
-      document.querySelector('#detalle-nombre')!.textContent = programa.nombre;
-      document.querySelector('#programa-breadcrumb')!.textContent = programa.nombre;
-      
-      raiz.querySelectorAll<HTMLElement>('[data-campo]').forEach(el => { 
-        el.textContent = String(programa[el.dataset.campo as keyof typeof programa] || 'Sin referencias registradas.');
+      document.querySelector<HTMLElement>('#detalle-nombre')!.textContent = programa.nombre;
+      document.querySelector<HTMLElement>('#programa-breadcrumb')!.textContent = programa.nombre;
+
+      raiz.querySelectorAll<HTMLElement>('[data-campo]').forEach((elemento) => {
+        const campo = elemento.dataset.campo as keyof typeof programa;
+        elemento.textContent = String(programa[campo] || 'Sin referencias registradas.');
       });
 
-      document.querySelector('#detalle-componentes')!.textContent = programa.componentes_linea_accion || '';
-      document.querySelector('#detalle-resultados')!.textContent = programa.resultados_esperados || '';
-      
-      const lineas = document.querySelector('#detalle-lineas')!;
+      document.querySelector<HTMLElement>('#detalle-componentes')!.textContent = programa.componentes_linea_accion || 'Sin componentes registrados.';
+      document.querySelector<HTMLElement>('#detalle-resultados')!.textContent = programa.resultados_esperados || 'Sin resultados registrados.';
+
+      const lineas = document.querySelector<HTMLElement>('#detalle-lineas')!;
       lineas.replaceChildren();
-      programa.lineas_accion.forEach(linea => {
-        const grupo = document.createElement('div'); grupo.className = 'rounded-lg bg-neutral-50 p-4';
-        const titulo = document.createElement('dt'); titulo.className = 'font-medium'; titulo.textContent = linea.linea_accion;
-        const resultado = document.createElement('dd'); resultado.className = 'mt-2 whitespace-pre-line break-words text-neutral-700'; resultado.textContent = linea.resultado_esperado;
-        grupo.append(titulo, resultado); lineas.append(grupo);
+      programa.lineas_accion.forEach((linea) => {
+        const grupo = document.createElement('div');
+        grupo.className = 'min-w-0 rounded-xl bg-[#EEF8F2] p-4';
+        const titulo = document.createElement('dt');
+        titulo.className = 'break-words text-sm font-semibold text-neutral-900';
+        titulo.textContent = linea.linea_accion;
+        const resultado = document.createElement('dd');
+        resultado.className = 'mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-700';
+        resultado.textContent = linea.resultado_esperado;
+        grupo.append(titulo, resultado);
+        lineas.append(grupo);
       });
-      
+
       const tieneLineas = programa.lineas_accion.length > 0;
       document.querySelector<HTMLElement>('#detalle-sin-lineas')!.hidden = tieneLineas;
       document.querySelector<HTMLElement>('#detalle-legado')!.hidden = tieneLineas;
 
-      const confirmacion = document.querySelector<HTMLElement>('#programa-confirmacion')!;
       if (new URLSearchParams(window.location.search).get('resultado') === 'guardado') {
-        confirmacion.textContent = 'Programa guardado correctamente.';
+        confirmacion.textContent = 'Programa modificado correctamente.';
         confirmacion.hidden = false;
-        history.replaceState(null, '', `/programas/${programa.id_programa}`);
+        history.replaceState(null, '', `/programas/${encodeURIComponent(programa.id_programa)}`);
       }
 
       contenido.hidden = false;
       document.title = `${programa.nombre} | Programas`;
       estado.textContent = '';
-      
+
       const roles = await getUserRoles();
-      if (roles.some(rol => rol.codigo === 'ADMIN')) {
-        document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = false;
-        document.querySelector<HTMLElement>('#eliminar-programa-panel')!.hidden = false;
+      if (roles.some((rol) => rol.codigo === 'ADMIN')) {
+        editarPanel.hidden = false;
+        eliminarPanel.hidden = false;
+
         const boton = document.querySelector<HTMLButtonElement>('#eliminar-programa')!;
-        const mensaje = document.querySelector<HTMLElement>('#eliminar-estado')!;
         boton.disabled = false;
-        mensaje.textContent = '';
         boton.onclick = async () => {
           if (boton.disabled || !confirm(`¿Eliminar «${programa.nombre}» del catálogo activo? Sus planes y archivos se conservarán.`)) return;
           boton.disabled = true;
-          mensaje.textContent = 'Eliminando programa…';
+          eliminarEstado.textContent = 'Eliminando programa…';
+          eliminarEstado.hidden = false;
           try {
             await archivarPrograma(programa.id_programa, programa.version);
-            document.querySelector<HTMLElement>('#editar-programa-enlace')!.hidden = true;
-            mensaje.textContent = 'Programa eliminado del catálogo. Su historial se conserva. Puedes volver al listado de programas.';
-            boton.textContent = 'Programa eliminado';
             window.location.replace('/programas?resultado=eliminado');
-          } catch (error) {
-            mensaje.textContent = error instanceof Error ? error.message : 'No se pudo eliminar el programa.';
+          } catch (fallo) {
+            eliminarEstado.textContent = fallo instanceof Error ? fallo.message : 'No se pudo eliminar el programa.';
+            eliminarEstado.hidden = false;
             boton.disabled = false;
           }
         };
       }
+
       void cargarImagen();
-    } catch (fallo) { 
+    } catch (fallo) {
       const inexistente = fallo instanceof ErrorSolicitudPrograma && fallo.codigo === 'NO_ENCONTRADO';
       estado.textContent = inexistente ? 'Programa no encontrado' : 'No fue posible cargar el programa';
       error.textContent = fallo instanceof Error ? fallo.message : 'Vuelve a intentarlo.';
-      error.hidden = false; recuperacion.hidden = inexistente;
+      error.hidden = false;
+      recuperacion.hidden = inexistente;
       contenido.hidden = true;
       document.title = estado.textContent;
     } finally {
-      cargando = false; recargar.disabled = false;
+      cargando = false;
+      recargar.disabled = false;
       raiz.setAttribute('aria-busy', 'false');
     }
   }
 
-  recargar.addEventListener('click', cargar);
-  window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
+  recargar.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', (evento) => { if (evento.persisted) void cargar(); });
   void cargar();
 </script>

@@ -4,231 +4,71 @@ import Card from '../ui/Card.astro';
 
 <div class="space-y-5">
   <!-- Información general -->
-  <Card>
+  <Card class="border-t-4 border-t-[#4C4688]">
     <div class="mb-5">
-      <h2 class="text-lg font-bold text-neutral-900">
-        Información general
-      </h2>
-      <p class="mt-1 text-sm text-neutral-500">
-        Datos principales del plan de intervención.
-      </p>
+      <h2 class="text-lg font-bold text-neutral-900">Información general</h2>
+      <p class="mt-1 text-sm text-neutral-500">Datos principales del plan de intervención.</p>
     </div>
 
-    <dl class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
-      <div class="min-w-0">
-        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Organización
-        </dt>
-        <dd
-          data-plan="organizacion"
-          class="mt-2 break-words text-sm font-semibold text-neutral-900"
-        >
-          —
-        </dd>
+    <dl class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div class="min-w-0 rounded-xl bg-[#F3F0FA] p-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">Organización</dt>
+        <dd data-plan="organizacion" class="mt-2 break-words text-sm font-semibold text-neutral-900">—</dd>
       </div>
 
-      <div class="min-w-0">
-        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Programa institucional
-        </dt>
-        <dd
-          data-plan="programa"
-          class="mt-2 break-words text-sm font-semibold text-neutral-900"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#F3F0FA] p-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">Programa institucional</dt>
+        <dd data-plan="programa" class="mt-2 break-words text-sm font-semibold text-neutral-900">—</dd>
       </div>
 
-      <div>
-        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Período anual
-        </dt>
-        <dd
-          data-plan="periodo_anual"
-          class="mt-2 text-sm font-semibold text-neutral-900"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#F3F0FA] p-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">Período anual</dt>
+        <dd data-plan="periodo_anual" class="mt-2 text-sm font-semibold text-neutral-900">—</dd>
       </div>
 
-      <div>
-        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Responsable
-        </dt>
-        <dd
-          data-plan="responsable_nombre"
-          class="mt-2 break-words text-sm font-semibold text-neutral-900"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#F3F0FA] p-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">Responsable</dt>
+        <dd data-plan="responsable_nombre" class="mt-2 break-words text-sm font-semibold text-neutral-900">—</dd>
       </div>
 
-      <div>
-        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Fecha de inicio
-        </dt>
-        <dd
-          data-plan="fecha_inicio"
-          class="mt-2 text-sm font-semibold text-neutral-900"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#F3F0FA] p-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">Fecha de inicio</dt>
+        <dd data-plan="fecha_inicio" class="mt-2 text-sm font-semibold text-neutral-900">—</dd>
       </div>
 
-      <div>
-        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Fecha de término
-        </dt>
-        <dd
-          data-plan="fecha_termino"
-          class="mt-2 text-sm font-semibold text-neutral-900"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#F3F0FA] p-4">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">Fecha de término</dt>
+        <dd data-plan="fecha_termino" class="mt-2 text-sm font-semibold text-neutral-900">—</dd>
       </div>
     </dl>
   </Card>
 
   <!-- Definición del plan -->
-  <Card>
+  <Card class="border-t-4 border-t-[#199D6B]">
     <div class="mb-5">
-      <h2 class="text-lg font-bold text-neutral-900">
-        Definición del plan
-      </h2>
-      <p class="mt-1 text-sm text-neutral-500">
-        Propósito, objetivos y resultados esperados de la intervención.
-      </p>
+      <h2 class="text-lg font-bold text-neutral-900">Definición del plan</h2>
+      <p class="mt-1 text-sm text-neutral-500">Propósito, objetivos y resultados esperados de la intervención.</p>
     </div>
 
     <dl class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <div class="rounded-xl bg-[#F0EEF9] p-4">
-        <div class="mb-3 flex items-center gap-2">
-          <span class="rounded-lg bg-white p-2 text-primary">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.8"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M7 3h7l5 5v13H5V3h2Zm7 0v5h5M8 13h8m-8 4h8"
-              />
-            </svg>
-          </span>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Situación o necesidad
-          </dt>
-        </div>
-
-        <dd
-          data-plan="situacion_necesidad"
-          class="whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#E8F6EF] p-4 md:p-5">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-[#267451]">Situación o necesidad</dt>
+        <dd data-plan="situacion_necesidad" class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800">—</dd>
       </div>
 
-      <div class="rounded-xl bg-[#E8F6EF] p-4">
-        <div class="mb-3 flex items-center gap-2">
-          <span class="rounded-lg bg-white p-2 text-brand-green">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.8"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="5" />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m12 12 7-7m-4 0h4v4"
-              />
-            </svg>
-          </span>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Objetivo general
-          </dt>
-        </div>
-
-        <dd
-          data-plan="objetivo_general"
-          class="whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#E8F6EF] p-4 md:p-5">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-[#267451]">Objetivo general</dt>
+        <dd data-plan="objetivo_general" class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800">—</dd>
       </div>
 
-      <div class="rounded-xl bg-[#FFF5DF] p-4">
-        <div class="mb-3 flex items-center gap-2">
-          <span class="rounded-lg bg-white p-2 text-[#946200]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.8"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"
-              />
-            </svg>
-          </span>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Objetivos específicos
-          </dt>
-        </div>
-
-        <dd
-          data-plan="objetivos_especificos"
-          class="whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#E8F6EF] p-4 md:p-5">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-[#267451]">Objetivos específicos</dt>
+        <dd data-plan="objetivos_especificos" class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800">—</dd>
       </div>
 
-      <div class="rounded-xl bg-[#FCE8F0] p-4">
-        <div class="mb-3 flex items-center gap-2">
-          <span class="rounded-lg bg-white p-2 text-brand-pink">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.8"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 19V5m0 14h17M8 15v-4m4 4V7m4 8V9m4 6V4"
-              />
-            </svg>
-          </span>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-            Resultado esperado
-          </dt>
-        </div>
-
-        <dd
-          data-plan="resultado_esperado"
-          class="whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800"
-        >
-          —
-        </dd>
+      <div class="min-w-0 rounded-xl bg-[#E8F6EF] p-4 md:p-5">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-[#267451]">Resultado esperado</dt>
+        <dd data-plan="resultado_esperado" class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-800">—</dd>
       </div>
     </dl>
   </Card>
