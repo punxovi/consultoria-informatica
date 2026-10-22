@@ -2,25 +2,43 @@
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
+import EmptyState from '../ui/EmptyState.astro';
 import { accept } from '../../lib/donaciones/modelo';
-
 interface Props {
   idOrganizacion: string;
 }
-
 const { idOrganizacion } = Astro.props;
+const camposDinero = [
+  { id: 'don-monto', name: 'monto', type: 'number', min: '0.01', step: 'any', label: 'Monto *', placeholder: 'Ej. 150000' },
+  { id: 'don-moneda', name: 'moneda', label: 'Moneda (3 letras) *', value: 'CLP', maxlength: 3, placeholder: 'CLP' },
+];
+const camposRecurso = [
+  { id: 'don-cantidad', name: 'cantidad', type: 'number', min: '0.01', step: 'any', label: 'Cantidad de recursos *', placeholder: 'Ej. 25' },
+  { id: 'don-unidad', name: 'unidad', label: 'Unidad de medida *', placeholder: 'Ej. cajas, kg, raciones, kits', maxlength: 50 },
+];
+const filtrosRespaldo = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'comprobante', label: 'Comprobantes' },
+  { value: 'acta_entrega', label: 'Actas de entrega' },
+  { value: 'certificado', label: 'Certificados' },
+  { value: 'fotografia', label: 'Fotografías' },
+];
+const tiposRespaldo = [
+  { value: 'comprobante', label: 'Comprobante (factura, boleta, transferencia)' },
+  { value: 'acta_entrega', label: 'Acta de entrega (firmada por partes)' },
+  { value: 'certificado', label: 'Certificado (de donación o exención)' },
+  { value: 'fotografia', label: 'Fotografía (evidencia visual de la entrega/recepción)' },
+];
 ---
-
-<section id="seccion-donaciones" data-organizacion={idOrganizacion} class="space-y-6">
+<section id="seccion-donaciones" data-organizacion={idOrganizacion} class="space-y-6 fge-donaciones">
   <!-- Encabezado de la sección -->
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h2 class="text-xl font-bold text-neutral-900">Donaciones y Respaldos</h2>
+      <h2 class="text-xl font-semibold text-neutral-900">Donaciones y Respaldos</h2>
       <p class="mt-1 text-sm text-neutral-600">
         Gestión de aportes en dinero o recursos y asociación de documentos de respaldo (comprobantes, actas de entrega, certificados y fotografías).
       </p>
     </div>
-
     <div class="flex flex-wrap items-center gap-3">
       <Button id="don-recargar" variant="outline" size="sm">
         Recargar
@@ -30,37 +48,29 @@ const { idOrganizacion } = Astro.props;
       </Button>
     </div>
   </div>
-
   <!-- Notificaciones y estados -->
   <div id="don-carga" hidden role="status" class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-sm font-medium text-blue-800 animate-pulse">
     Cargando información...
   </div>
   <div id="don-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 focus:outline-none"></div>
   <div id="don-exito" hidden role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"></div>
-
   <!-- Vista 1: Listado de Donaciones -->
   <div id="don-listado" class="space-y-4">
-    <div id="don-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50/50 p-8 text-center">
-      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-xl text-neutral-500">
-        📦
-      </div>
-      <h3 class="mt-3 text-base font-semibold text-neutral-900">No hay donaciones registradas</h3>
-      <p class="mt-1 text-sm text-neutral-500">
-        Esta organización no tiene registros de donaciones aún. Pulsa en «Registrar donación» para comenzar.
-      </p>
-    </div>
-
-    <div id="don-lista" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+    <EmptyState
+      id="don-vacio"
+      hidden
+      title="Todavía no hay donaciones"
+      description="Cuando registres una donación para esta organización, aparecerá aquí con sus aportes y respaldos documentales."
+    />
+    <div id="don-lista" class="grid gap-4"></div>
   </div>
-
   <!-- Vista 2: Formulario Nueva Donación -->
   <div id="don-form-donacion" hidden>
     <Card>
-      <h3 class="text-lg font-bold text-neutral-900">Registrar nueva donación</h3>
+      <h3 class="text-lg font-semibold text-neutral-900">Registrar nueva donación</h3>
       <p class="mt-1 text-sm text-neutral-500">
         Ingresa los datos de la donación. Una vez creada podrás adjuntar sus respaldos documentales.
       </p>
-
       <form id="don-form-donacion-tag" class="mt-6 space-y-5" novalidate>
         <fieldset id="don-campos" class="grid gap-5 sm:grid-cols-2">
           <div>
@@ -77,26 +87,23 @@ const { idOrganizacion } = Astro.props;
               <option value="entregada">Donación Entregada (aporte entregado a un beneficiario)</option>
             </select>
           </div>
-
           <Input
             id="don-fecha"
             name="fecha"
             type="date"
-            label="Fecha de la donación *"
+            label="Fecha de la donación"
             required
           />
-
           <div class="sm:col-span-2">
             <Input
               id="don-contraparte"
               name="contraparte_nombre"
-              label="Contraparte o Donante *"
+              label="Contraparte o Donante"
               placeholder="Ej. Empresa Alimentos del Sur, Fundación Amiga o Nombre de persona"
               required
               maxlength={200}
             />
           </div>
-
           <div class="sm:col-span-2">
             <label for="don-aporte-tipo" class="block text-sm font-medium text-neutral-800">
               Tipo de aporte *
@@ -111,48 +118,12 @@ const { idOrganizacion } = Astro.props;
               <option value="recurso">Aporte en recursos / especie (alimentos, insumos, etc.)</option>
             </select>
           </div>
-
-          <!-- Campos Dinero -->
           <div id="don-grupo-dinero" class="contents">
-            <Input
-              id="don-monto"
-              name="monto"
-              type="number"
-              min="0.01"
-              step="any"
-              label="Monto *"
-              placeholder="Ej. 150000"
-            />
-            <Input
-              id="don-moneda"
-              name="moneda"
-              label="Moneda (3 letras) *"
-              value="CLP"
-              maxlength={3}
-              placeholder="CLP"
-            />
+            {camposDinero.map((campo) => <Input {...campo} />)}
           </div>
-
-          <!-- Campos Recurso -->
           <div id="don-grupo-recurso" hidden class="contents">
-            <Input
-              id="don-cantidad"
-              name="cantidad"
-              type="number"
-              min="0.01"
-              step="any"
-              label="Cantidad de recursos *"
-              placeholder="Ej. 25"
-            />
-            <Input
-              id="don-unidad"
-              name="unidad"
-              label="Unidad de medida *"
-              placeholder="Ej. cajas, kg, raciones, kits"
-              maxlength={50}
-            />
+            {camposRecurso.map((campo) => <Input {...campo} />)}
           </div>
-
           <div class="sm:col-span-2">
             <label for="don-descripcion" class="block text-sm font-medium text-neutral-800">
               Descripción del aporte *
@@ -168,7 +139,6 @@ const { idOrganizacion } = Astro.props;
             ></textarea>
           </div>
         </fieldset>
-
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button id="don-cancelar" variant="outline">
             Cancelar
@@ -180,46 +150,40 @@ const { idOrganizacion } = Astro.props;
       </form>
     </Card>
   </div>
-
   <!-- Vista 3: Detalle de Donación y Respaldos -->
-  <div id="don-detalle" hidden class="space-y-6">
+  <div id="don-detalle" hidden class="space-y-5">
     <div class="flex items-center justify-between">
       <Button id="don-detalle-volver" variant="outline" size="sm">
         &larr; Volver a donaciones
       </Button>
     </div>
-
     <!-- Ficha resumen de la donación -->
     <Card>
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex flex-col gap-3 border-b border-[#EEEAF5] pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <span id="don-detalle-movimiento" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"></span>
-          <h3 id="don-detalle-contraparte" class="mt-2 text-xl font-bold text-neutral-900 break-words"></h3>
+          <h3 id="don-detalle-contraparte" class="mt-2 break-words text-xl font-semibold text-neutral-900"></h3>
         </div>
       </div>
-
-      <dl class="mt-4 grid gap-4 border-t border-neutral-100 pt-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <dt class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Fecha</dt>
-          <dd id="don-detalle-fecha" class="mt-1 text-sm font-medium text-neutral-900"></dd>
-        </div>
-        <div>
-          <dt class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Aporte</dt>
-          <dd id="don-detalle-aporte" class="mt-1 text-sm font-medium text-neutral-900"></dd>
-        </div>
-        <div class="sm:col-span-2 lg:col-span-1">
-          <dt class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Descripción</dt>
-          <dd id="don-detalle-descripcion" class="mt-1 text-sm text-neutral-700 whitespace-pre-wrap break-words"></dd>
-        </div>
+      <dl class="don-detalle-grid mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {[
+          { id: 'don-detalle-fecha', label: 'Fecha' },
+          { id: 'don-detalle-aporte', label: 'Aporte' },
+          { id: 'don-detalle-descripcion', label: 'Descripción', wide: true },
+        ].map((campo) => (
+          <div class={campo.wide ? 'sm:col-span-2 xl:col-span-1' : ''}>
+            <dt>{campo.label}</dt>
+            <dd id={campo.id}></dd>
+          </div>
+        ))}
       </dl>
     </Card>
-
     <!-- Sección de Respaldos Documentales -->
     <Card>
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-neutral-100 pb-4">
+      <div class="flex flex-col gap-4 border-b border-[#EEEAF5] pb-4 md:flex-row md:items-center md:justify-between">
         <div>
           <div class="flex items-center gap-3">
-            <h4 class="text-lg font-bold text-neutral-900">Respaldos documentales asociados</h4>
+            <h4 class="text-lg font-semibold text-neutral-900">Respaldos documentales asociados</h4>
             <span id="don-respaldos-contador" class="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-600">
               0 documentos
             </span>
@@ -228,56 +192,23 @@ const { idOrganizacion } = Astro.props;
             Comprobantes, actas de entrega, certificados o fotografías que justifican y sustentan esta donación.
           </p>
         </div>
-
         <Button id="don-adjuntar-respaldo" size="sm" class="solo-gestor shrink-0">
           + Adjuntar respaldo
         </Button>
       </div>
-
       <!-- Filtro por tipo de respaldo -->
-      <div class="mt-4 flex flex-wrap gap-2 text-xs">
-        <button
-          type="button"
-          data-tipo="todos"
-          class="chip-filtro-respaldo rounded-full px-3 py-1 font-semibold transition-colors bg-primary text-white"
-        >
-          Todos
-        </button>
-        <button
-          type="button"
-          data-tipo="comprobante"
-          class="chip-filtro-respaldo rounded-full px-3 py-1 font-semibold transition-colors bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-        >
-          Comprobantes
-        </button>
-        <button
-          type="button"
-          data-tipo="acta_entrega"
-          class="chip-filtro-respaldo rounded-full px-3 py-1 font-semibold transition-colors bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-        >
-          Actas de entrega
-        </button>
-        <button
-          type="button"
-          data-tipo="certificado"
-          class="chip-filtro-respaldo rounded-full px-3 py-1 font-semibold transition-colors bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-        >
-          Certificados
-        </button>
-        <button
-          type="button"
-          data-tipo="fotografia"
-          class="chip-filtro-respaldo rounded-full px-3 py-1 font-semibold transition-colors bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-        >
-          Fotografías
-        </button>
+      <div class="don-filtros mt-4 flex flex-wrap gap-2">
+        {filtrosRespaldo.map((filtro, indice) => (
+          <button type="button" data-tipo={filtro.value}
+            class:list={['chip-filtro-respaldo', indice === 0 && 'activo']}>
+            {filtro.label}
+          </button>
+        ))}
       </div>
-
       <!-- Formulario para adjuntar respaldo -->
-      <div id="don-respaldo-form-contenedor" hidden class="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-5">
+      <div id="don-respaldo-form-contenedor" hidden class="don-respaldo-form mt-5 rounded-xl border p-5">
         <h5 class="text-sm font-bold text-neutral-900">Adjuntar nuevo respaldo documental</h5>
         <div id="don-respaldo-pendiente-alerta" hidden class="mt-2 rounded-lg bg-amber-100 p-3 text-xs text-amber-900 font-medium"></div>
-
         <form id="don-respaldo-form" class="mt-4 space-y-4" novalidate>
           <fieldset id="don-respaldo-campos" class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -296,7 +227,6 @@ const { idOrganizacion } = Astro.props;
                 <option value="fotografia">Fotografía (evidencia visual de la entrega/recepción)</option>
               </select>
             </div>
-
             <div>
               <label for="don-respaldo-archivo" class="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
                 Archivo de respaldo * (máx. 50 MiB)
@@ -311,7 +241,6 @@ const { idOrganizacion } = Astro.props;
               />
               <p class="mt-1 text-xs text-neutral-500">Formatos permitidos: PDF, JPG, PNG, WebP.</p>
             </div>
-
             <div class="sm:col-span-2">
               <label for="don-respaldo-descripcion" class="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
                 Descripción o referencia del documento (opcional)
@@ -326,7 +255,6 @@ const { idOrganizacion } = Astro.props;
               />
             </div>
           </fieldset>
-
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button id="don-respaldo-cancelar" variant="outline" size="sm">
               Cancelar
@@ -337,16 +265,75 @@ const { idOrganizacion } = Astro.props;
           </div>
         </form>
       </div>
-
       <!-- Lista de respaldos adjuntos -->
       <div id="don-respaldos-vacio" hidden class="mt-6 rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 p-6 text-center text-sm text-neutral-500">
         Esta donación no tiene respaldos asociados para el filtro seleccionado.
       </div>
-
-      <div id="don-respaldos-lista" class="mt-6 grid gap-3 sm:grid-cols-2"></div>
+      <div id="don-respaldos-lista" class="mt-5 grid gap-3 sm:grid-cols-2"></div>
     </Card>
   </div>
 </section>
+
+<style>
+  #seccion-donaciones {
+    --don-morado: #4C4688;
+    --don-borde: #E3DFF0;
+    font-family: inherit;
+  }
+  #seccion-donaciones :global(input),
+  #seccion-donaciones :global(select),
+  #seccion-donaciones :global(textarea),
+  #seccion-donaciones :global(button) {
+    font-family: inherit;
+  }
+  #seccion-donaciones :global(#don-lista > article) {
+    overflow: hidden; border: 1px solid var(--don-borde); border-radius: 16px;
+    background: #fff; box-shadow: 0 2px 8px rgb(38 28 76 / 4%);
+    transition: box-shadow 160ms ease, border-color 160ms ease;
+  }
+  #seccion-donaciones :global(#don-lista > article:hover) {
+    border-color: #D5CFE8; box-shadow: 0 5px 16px rgb(38 28 76 / 7%);
+  }
+  #seccion-donaciones :global(#don-detalle .don-detalle-grid > div) {
+    min-width: 0; border: 1px solid #E5E0EF; border-radius: 12px;
+    background: #F7F5FB; padding: 14px 15px;
+  }
+  #seccion-donaciones :global(#don-detalle .don-detalle-grid dt) {
+    color: #817B98; font-size: .72rem; font-weight: 600; letter-spacing: .045em; text-transform: uppercase;
+  }
+  #seccion-donaciones :global(#don-detalle .don-detalle-grid dd) {
+    margin-top: 6px; color: #211E2B; font-size: .94rem; line-height: 1.55; overflow-wrap: anywhere;
+  }
+  #seccion-donaciones :global(#don-respaldos-lista > article) {
+    border: 1px solid #E6E1EF; border-radius: 13px; background: #FCFBFE; padding: 15px;
+  }
+  #seccion-donaciones :global(.chip-filtro-respaldo) {
+    border: 1px solid #E3DFF0; border-radius: 999px; padding: 6px 12px;
+    background: #F7F6FA; color: #5F5A78; font-size: .78rem; transition: background 140ms ease, color 140ms ease;
+  }
+  #seccion-donaciones :global(.chip-filtro-respaldo:hover) { background: #EEEAF6; }
+  #seccion-donaciones :global(.chip-filtro-respaldo.activo) {
+    border-color: var(--don-morado); background: var(--don-morado); color: white;
+  }
+  #seccion-donaciones :global(#don-form-donacion-tag input),
+  #seccion-donaciones :global(#don-form-donacion-tag select),
+  #seccion-donaciones :global(#don-form-donacion-tag textarea),
+  #seccion-donaciones :global(#don-respaldo-form input),
+  #seccion-donaciones :global(#don-respaldo-form select) {
+    border-color: #D8D2E8; border-radius: 11px;
+  }
+  #seccion-donaciones :global(#don-form-donacion-tag input:focus),
+  #seccion-donaciones :global(#don-form-donacion-tag select:focus),
+  #seccion-donaciones :global(#don-form-donacion-tag textarea:focus),
+  #seccion-donaciones :global(#don-respaldo-form input:focus),
+  #seccion-donaciones :global(#don-respaldo-form select:focus) {
+    border-color: var(--don-morado); outline: 2px solid rgb(76 70 136 / 14%); outline-offset: 1px;
+  }
+  #seccion-donaciones :global(#don-respaldo-pendiente-alerta) { border: 1px solid #F1D5A2; background: #FFF8E9; }
+  @media (max-width: 640px) {
+    #seccion-donaciones :global(#don-lista > article .don-card-layout) { padding: 14px; }
+  }
+</style>
 
 <script>
   import { iniciarDonaciones } from '../../lib/donaciones/interfaz';

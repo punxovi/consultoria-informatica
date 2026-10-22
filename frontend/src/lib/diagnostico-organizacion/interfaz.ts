@@ -1,8 +1,4 @@
-import {
-  camposDiagnosticoSchema,
-  type CamposDiagnostico,
-  type Diagnostico,
-} from './modelo';
+import { camposDiagnosticoSchema, type CamposDiagnostico, type Diagnostico } from './modelo';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteDiagnostico } from './cliente';
@@ -16,602 +12,206 @@ const servicio = crearClienteDiagnostico(
   },
 );
 
+const CAMPOS_TEXTO = [
+  ['mision', 'mision'], ['vision', 'vision'],
+  ['caracteristicas_infraestructura', 'caracteristicas-infraestructura'],
+  ['espacios_disponibles', 'espacios-disponibles'], ['recursos_existentes', 'recursos-existentes'],
+  ['danos_detectados', 'danos-detectados'], ['necesidades_prioritarias', 'necesidades-prioritarias'],
+  ['observaciones', 'observaciones'],
+] as const;
+const IDS_CAMPOS: Record<string, string> = {
+  mision: 'mision', vision: 'vision', caracteristicas_infraestructura: 'caracteristicas-infraestructura',
+  espacios_disponibles: 'espacios-disponibles', recursos_existentes: 'recursos-existentes',
+  danos_detectados: 'danos-detectados', necesidades_prioritarias: 'necesidades-prioritarias',
+  observaciones: 'observaciones', raciones: 'raciones', periodo_raciones: 'periodo-raciones',
+};
+const PERIODOS = { diaria: 'Diaria', semanal: 'Semanal', mensual: 'Mensual' } as const;
+
 let diagnosticoActual: Diagnostico | null = null;
 let editando = false;
 let ocupado = false;
 let conflicto = false;
 
-function obtenerElemento<T extends HTMLElement>(id: string): T {
+function el<T extends HTMLElement>(id: string): T {
   const elemento = document.querySelector<HTMLElement>('#diagnostico-organizacion')?.querySelector(`#${id}`);
-
-  if (!elemento) {
-    throw new Error(`No se encontró el elemento #${id}.`);
-  }
-
+  if (!elemento) throw new Error(`No se encontró el elemento #${id}.`);
   return elemento as T;
 }
 
-function obtenerOrganizacionId(): string {
-  const estadoOrganizacion =
-    document.querySelector<HTMLElement>('#estado-organizacion');
-
-  const idOrganizacion = estadoOrganizacion?.dataset.id;
-
-  if (!idOrganizacion) {
-    throw new Error(
-      'No fue posible obtener el identificador de la organización.',
-    );
-  }
-
-  return idOrganizacion;
+function organizacionId(): string {
+  const id = document.querySelector<HTMLElement>('#estado-organizacion')?.dataset.id;
+  if (!id) throw new Error('No fue posible obtener el identificador de la organización.');
+  return id;
 }
 
-function ocultarTodo() {
-  obtenerElemento<HTMLElement>('estado-sin-diagnostico').hidden = true;
-  obtenerElemento<HTMLFormElement>('form-diagnostico').hidden = true;
-  obtenerElemento<HTMLElement>('diagnostico-registrado').hidden = true;
+function ocultarVistas() {
+  el<HTMLElement>('estado-sin-diagnostico').hidden = true;
+  el<HTMLFormElement>('form-diagnostico').hidden = true;
+  el<HTMLElement>('diagnostico-registrado').hidden = true;
 }
 
-function mostrarCarga(mostrar: boolean) {
-  obtenerElemento<HTMLElement>('diagnostico-carga').hidden = !mostrar;
+function mostrarCarga(valor: boolean) { el<HTMLElement>('diagnostico-carga').hidden = !valor; }
+function mensaje(id: string, texto: string | null) {
+  const nodo = el<HTMLElement>(id);
+  nodo.textContent = texto ?? '';
+  nodo.hidden = !texto;
 }
 
 function ocupar(valor: boolean) {
   ocupado = valor;
-  obtenerElemento<HTMLFieldSetElement>('diagnostico-campos').disabled = valor;
-  obtenerElemento<HTMLButtonElement>('btn-registrar-diagnostico').disabled = valor;
-  obtenerElemento<HTMLButtonElement>('btn-recargar-diagnostico').disabled = valor;
-  document.querySelector('#diagnostico-organizacion')!.setAttribute('aria-busy', String(valor));
-  obtenerElemento<HTMLButtonElement>('btn-guardar-diagnostico').disabled = valor || conflicto;
+  el<HTMLFieldSetElement>('diagnostico-campos').disabled = valor;
+  el<HTMLButtonElement>('btn-registrar-diagnostico').disabled = valor;
+  el<HTMLButtonElement>('btn-recargar-diagnostico').disabled = valor;
+  document.querySelector<HTMLElement>('#diagnostico-organizacion')!.setAttribute('aria-busy', String(valor));
+  el<HTMLButtonElement>('btn-guardar-diagnostico').disabled = valor || conflicto;
 }
 
-function mostrarError(mensaje: string | null) {
-  const elemento = obtenerElemento<HTMLElement>('diagnostico-error');
-
-  if (!mensaje) {
-    elemento.textContent = '';
-    elemento.hidden = true;
-    return;
-  }
-
-  elemento.textContent = mensaje;
-  elemento.hidden = false;
-}
-
-function mostrarConfirmacion(mensaje: string | null) {
-  const elemento = obtenerElemento<HTMLElement>(
-    'diagnostico-confirmacion',
-  );
-
-  if (!mensaje) {
-    elemento.textContent = '';
-    elemento.hidden = true;
-    return;
-  }
-
-  elemento.textContent = mensaje;
-  elemento.hidden = false;
-}
-
-function mostrarEstadoSinDiagnostico() {
-  ocultarTodo();
-
-  obtenerElemento<HTMLElement>('estado-sin-diagnostico').hidden = false;
-
-  obtenerElemento<HTMLButtonElement>(
-    'btn-registrar-diagnostico',
-  ).hidden = false;
-
+function mostrarEstadoVacio() {
+  ocultarVistas();
+  el<HTMLElement>('estado-sin-diagnostico').hidden = false;
+  const boton = el<HTMLButtonElement>('btn-registrar-diagnostico');
+  boton.hidden = false;
+  el<HTMLElement>('btn-registrar-diagnostico-texto').textContent = 'Registrar diagnóstico';
   diagnosticoActual = null;
   editando = false;
-  obtenerElemento<HTMLButtonElement>('btn-registrar-diagnostico').textContent = 'Registrar diagnóstico';
-
   limpiarFormulario();
 }
 
-function mostrarFormulario(diagnostico: Diagnostico | null = null) {
+function abrirFormulario(diagnostico: Diagnostico | null = null) {
   if (ocupado) return;
-  ocultarTodo();
-
-  const formulario =
-    obtenerElemento<HTMLFormElement>('form-diagnostico');
-
+  ocultarVistas();
+  const formulario = el<HTMLFormElement>('form-diagnostico');
   formulario.hidden = false;
-
-  obtenerElemento<HTMLButtonElement>(
-    'btn-registrar-diagnostico',
-  ).hidden = true;
-
-  mostrarConfirmacion(null);
-  mostrarError(null);
-
-  editando = diagnostico !== null;
+  el<HTMLButtonElement>('btn-registrar-diagnostico').hidden = true;
+  mensaje('diagnostico-confirmacion', null);
+  mensaje('diagnostico-error', null);
+  editando = !!diagnostico;
   diagnosticoActual = diagnostico;
-
-  if (diagnostico) {
-    cargarDiagnosticoEnFormulario(diagnostico);
-  } else {
-    limpiarFormulario();
-  }
+  diagnostico ? cargarEnFormulario(diagnostico) : limpiarFormulario();
   limpiarErrores();
   ocupar(false);
-
-  window.requestAnimationFrame(() => {
-    formulario.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  });
+  requestAnimationFrame(() => formulario.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
-function mostrarDiagnosticoRegistrado(
-  diagnostico: Diagnostico,
-) {
-  ocultarTodo();
-
-  const resumen =
-    obtenerElemento<HTMLElement>('diagnostico-registrado');
-
-  resumen.hidden = false;
-
-  obtenerElemento<HTMLButtonElement>(
-    'btn-registrar-diagnostico',
-  ).hidden = false;
-
-  obtenerElemento<HTMLButtonElement>(
-    'btn-registrar-diagnostico',
-  ).textContent = 'Editar diagnóstico';
-
+function mostrarRegistrado(diagnostico: Diagnostico) {
+  ocultarVistas();
+  el<HTMLElement>('diagnostico-registrado').hidden = false;
+  const boton = el<HTMLButtonElement>('btn-registrar-diagnostico');
+  boton.hidden = false;
+  el<HTMLElement>('btn-registrar-diagnostico-texto').textContent = 'Editar diagnóstico';
   diagnosticoActual = diagnostico;
   editando = false;
-
   asignarResumen(diagnostico);
 }
 
 function limpiarFormulario() {
-  const formulario =
-    obtenerElemento<HTMLFormElement>('form-diagnostico');
-
-  formulario.reset();
-
-  const radios =
-    document.querySelectorAll<HTMLInputElement>(
-      'input[name="tiene-espacio-fisico"]',
-    );
-
-  radios.forEach((radio) => {
-    radio.checked = false;
-  });
-
+  el<HTMLFormElement>('form-diagnostico').reset();
+  document.querySelectorAll<HTMLInputElement>('#diagnostico-organizacion input[name="tiene-espacio-fisico"]').forEach(radio => { radio.checked = false; });
   limpiarErrores();
 }
 
-function cargarDiagnosticoEnFormulario(
-  diagnostico: Diagnostico,
-) {
-  const mision = obtenerElemento<HTMLTextAreaElement>('mision');
-  const vision = obtenerElemento<HTMLTextAreaElement>('vision');
-
-  const infraestructura = obtenerElemento<HTMLTextAreaElement>(
-    'caracteristicas-infraestructura',
-  );
-
-  const espacios = obtenerElemento<HTMLTextAreaElement>(
-    'espacios-disponibles',
-  );
-
-  const recursos = obtenerElemento<HTMLTextAreaElement>(
-    'recursos-existentes',
-  );
-
-  const danos = obtenerElemento<HTMLTextAreaElement>(
-    'danos-detectados',
-  );
-
-  const necesidades = obtenerElemento<HTMLTextAreaElement>(
-    'necesidades-prioritarias',
-  );
-
-  const observaciones =
-    obtenerElemento<HTMLTextAreaElement>('observaciones');
-
-  const raciones =
-    obtenerElemento<HTMLInputElement>('raciones');
-
-  const periodo =
-    obtenerElemento<HTMLSelectElement>('periodo-raciones');
-
-  mision.value = diagnostico.mision;
-  vision.value = diagnostico.vision;
-
-  infraestructura.value =
-    diagnostico.caracteristicas_infraestructura;
-
-  espacios.value = diagnostico.espacios_disponibles;
-
-  recursos.value = diagnostico.recursos_existentes;
-
-  danos.value = diagnostico.danos_detectados;
-
-  necesidades.value =
-    diagnostico.necesidades_prioritarias;
-
-  observaciones.value = diagnostico.observaciones;
-
-  raciones.value =
-    diagnostico.raciones !== null
-      ? String(diagnostico.raciones)
-      : '';
-
-  periodo.value =
-    diagnostico.periodo_raciones ?? '';
-
-  const radios =
-    document.querySelectorAll<HTMLInputElement>(
-      'input[name="tiene-espacio-fisico"]',
-    );
-
-  radios.forEach((radio) => {
-    radio.checked =
-      diagnostico.tiene_espacio_fisico === true
-        ? radio.value === 'si'
-        : diagnostico.tiene_espacio_fisico === false
-          ? radio.value === 'no'
-          : false;
+function cargarEnFormulario(diagnostico: Diagnostico) {
+  for (const [propiedad, id] of CAMPOS_TEXTO) el<HTMLTextAreaElement>(id).value = diagnostico[propiedad];
+  el<HTMLInputElement>('raciones').value = diagnostico.raciones === null ? '' : String(diagnostico.raciones);
+  el<HTMLSelectElement>('periodo-raciones').value = diagnostico.periodo_raciones ?? '';
+  document.querySelectorAll<HTMLInputElement>('#diagnostico-organizacion input[name="tiene-espacio-fisico"]').forEach(radio => {
+    radio.checked = diagnostico.tiene_espacio_fisico === true ? radio.value === 'si'
+      : diagnostico.tiene_espacio_fisico === false ? radio.value === 'no' : false;
   });
 }
-
 
 function limpiarErrores() {
-  const ids = [
-    'mision',
-    'vision',
-    'caracteristicas-infraestructura',
-    'espacios-disponibles',
-    'recursos-existentes',
-    'danos-detectados',
-    'necesidades-prioritarias',
-    'observaciones',
-    'raciones',
-    'periodo-raciones',
-  ];
-
-  ids.forEach((id) => {
-    const campo = document.getElementById(id);
-    const error = document.getElementById(`${id}-error`);
-
-    if (error) {
-      error.textContent = '';
-    }
-
-    if (campo) {
-      // Quitar la asociación con el mensaje de error anterior.
-      const descripciones = (
-        campo.getAttribute('aria-describedby') ?? ''
-      )
-        .split(/\s+/)
-        .filter((referencia) => referencia && referencia !== `${id}-error`);
-
-      if (descripciones.length > 0) {
-        campo.setAttribute(
-          'aria-describedby',
-          descripciones.join(' '),
-        );
-      } else {
-        campo.removeAttribute('aria-describedby');
-      }
-
-      campo.removeAttribute('aria-invalid');
-      campo.classList.remove('border-red-500');
-      campo.classList.add('border-neutral-300');
-    }
-  });
+  for (const id of new Set(Object.values(IDS_CAMPOS))) {
+    const campo = el<HTMLElement>(id);
+    const error = el<HTMLElement>(`${id}-error`);
+    error.textContent = '';
+    campo.removeAttribute('aria-invalid');
+    campo.classList.remove('border-red-500', 'border-danger');
+    campo.classList.add('border-neutral-300');
+    const descripciones = (campo.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(ref => ref && ref !== error.id);
+    descripciones.length ? campo.setAttribute('aria-describedby', descripciones.join(' ')) : campo.removeAttribute('aria-describedby');
+  }
 }
 
-
-
-function establecerError(
-  campoId: string,
-  mensaje: string,
-) {
-  const campo = document.getElementById(campoId);
-  const error = document.getElementById(`${campoId}-error`);
-
-  if (!campo || !error) {
-    return;
-  }
-
-  error.textContent = mensaje;
-
-  // Marcar visualmente el campo como inválido.
+function establecerError(id: string, texto: string) {
+  const campo = el<HTMLElement>(id);
+  const error = el<HTMLElement>(`${id}-error`);
+  error.textContent = texto;
   campo.setAttribute('aria-invalid', 'true');
   campo.classList.remove('border-neutral-300');
   campo.classList.add('border-red-500');
-
-  // Vincular el campo con su mensaje de error.
-  const descripciones = new Set(
-    (campo.getAttribute('aria-describedby') ?? '')
-      .split(/\s+/)
-      .filter(Boolean),
-  );
-
+  const descripciones = new Set((campo.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean));
   descripciones.add(error.id);
-
-  campo.setAttribute(
-    'aria-describedby',
-    [...descripciones].join(' '),
-  );
+  campo.setAttribute('aria-describedby', [...descripciones].join(' '));
 }
 
+function valorTexto(id: string) { return el<HTMLTextAreaElement>(id).value; }
 
-function obtenerValorTexto(id: string): string {
-  return obtenerElemento<HTMLTextAreaElement>(id).value;
-}
-
-function obtenerDatosFormulario(): CamposDiagnostico {
-  const espacioSeleccionado =
-    document.querySelector<HTMLInputElement>(
-      'input[name="tiene-espacio-fisico"]:checked',
-    );
-
-  const racionesTexto =
-    obtenerElemento<HTMLInputElement>('raciones').value.trim();
-
-  const periodoTexto =
-    obtenerElemento<HTMLSelectElement>(
-      'periodo-raciones',
-    ).value;
-
+function datosFormulario(): CamposDiagnostico {
+  const seleccionado = document.querySelector<HTMLInputElement>('#diagnostico-organizacion input[name="tiene-espacio-fisico"]:checked');
+  const raciones = el<HTMLInputElement>('raciones').value.trim();
+  const periodo = el<HTMLSelectElement>('periodo-raciones').value;
   return {
-    mision: obtenerValorTexto('mision'),
-
-    vision: obtenerValorTexto('vision'),
-
-    tiene_espacio_fisico:
-      espacioSeleccionado?.value === 'si'
-        ? true
-        : espacioSeleccionado?.value === 'no'
-          ? false
-          : null,
-
-    caracteristicas_infraestructura:
-      obtenerValorTexto(
-        'caracteristicas-infraestructura',
-      ),
-
-    espacios_disponibles:
-      obtenerValorTexto('espacios-disponibles'),
-
-    recursos_existentes:
-      obtenerValorTexto('recursos-existentes'),
-
-    danos_detectados:
-      obtenerValorTexto('danos-detectados'),
-
-    necesidades_prioritarias:
-      obtenerValorTexto('necesidades-prioritarias'),
-
-    observaciones:
-      obtenerValorTexto('observaciones'),
-
-    raciones:
-      racionesTexto === ''
-        ? null
-        : Number(racionesTexto),
-
-    periodo_raciones:
-      periodoTexto === ''
-        ? null
-        : (periodoTexto as 'diaria' | 'semanal' | 'mensual'),
+    mision: valorTexto('mision'), vision: valorTexto('vision'),
+    tiene_espacio_fisico: seleccionado?.value === 'si' ? true : seleccionado?.value === 'no' ? false : null,
+    caracteristicas_infraestructura: valorTexto('caracteristicas-infraestructura'),
+    espacios_disponibles: valorTexto('espacios-disponibles'), recursos_existentes: valorTexto('recursos-existentes'),
+    danos_detectados: valorTexto('danos-detectados'), necesidades_prioritarias: valorTexto('necesidades-prioritarias'),
+    observaciones: valorTexto('observaciones'), raciones: raciones === '' ? null : Number(raciones),
+    periodo_raciones: periodo === '' ? null : periodo as 'diaria' | 'semanal' | 'mensual',
   };
 }
 
-function validarFormulario(
-  datos: CamposDiagnostico,
-): boolean {
+function validar(datos: CamposDiagnostico): boolean {
   limpiarErrores();
-
-  const resultado =
-    camposDiagnosticoSchema.safeParse(datos);
-
-  if (resultado.success) {
-    return true;
-  }
-
-  const idsPorCampo: Record<string, string> = {
-    mision: 'mision',
-    vision: 'vision',
-    caracteristicas_infraestructura: 'caracteristicas-infraestructura',
-    espacios_disponibles: 'espacios-disponibles',
-    recursos_existentes: 'recursos-existentes',
-    danos_detectados: 'danos-detectados',
-    necesidades_prioritarias: 'necesidades-prioritarias',
-    observaciones: 'observaciones',
-    raciones: 'raciones',
-    periodo_raciones: 'periodo-raciones',
-  };
-
-  resultado.error.issues.forEach((issue) => {
+  const resultado = camposDiagnosticoSchema.safeParse(datos);
+  if (resultado.success) return true;
+  resultado.error.issues.forEach(issue => {
     const clave = issue.path[0];
-
-    if (typeof clave !== 'string') {
-      return;
-    }
-
-    const campoId = idsPorCampo[clave] ?? clave.replaceAll('_', '-');
-
-    if (campoId) {
-      establecerError(campoId, issue.message);
-    }
+    if (typeof clave !== 'string') return;
+    const id = IDS_CAMPOS[clave] ?? clave.replaceAll('_', '-');
+    if (id) establecerError(id, issue.message);
   });
-
-  const primerCampo = Object.values(idsPorCampo)
-    .map((id) => document.getElementById(id))
-    .find(
-      (campo) =>
-        campo?.getAttribute('aria-invalid') === 'true',
-    );
-
-  primerCampo?.focus();
-
+  Object.values(IDS_CAMPOS).map(id => el<HTMLElement>(id)).find(campo => campo.getAttribute('aria-invalid') === 'true')?.focus();
   return false;
 }
 
-function asignarTexto(
-  id: string,
-  valor: string,
-) {
-  obtenerElemento<HTMLElement>(id).textContent = valor;
+function asignarResumen(diagnostico: Diagnostico) {
+  const valores: [string, string][] = [
+    ['resumen-mision', diagnostico.mision], ['resumen-vision', diagnostico.vision],
+    ['resumen-espacio-fisico', diagnostico.tiene_espacio_fisico === true ? 'Sí' : diagnostico.tiene_espacio_fisico === false ? 'No' : 'No informado'],
+    ['resumen-caracteristicas-infraestructura', diagnostico.caracteristicas_infraestructura],
+    ['resumen-espacios-disponibles', diagnostico.espacios_disponibles], ['resumen-recursos-existentes', diagnostico.recursos_existentes],
+    ['resumen-danos-detectados', diagnostico.danos_detectados], ['resumen-necesidades-prioritarias', diagnostico.necesidades_prioritarias],
+    ['resumen-observaciones', diagnostico.observaciones], ['resumen-raciones', diagnostico.raciones === null ? 'No informado' : String(diagnostico.raciones)],
+    ['resumen-periodo-raciones', diagnostico.periodo_raciones ? PERIODOS[diagnostico.periodo_raciones] : 'No informado'],
+    ['fecha-actualizacion-diagnostico', formatearFecha(diagnostico.updated_at)],
+  ];
+  valores.forEach(([id, valor]) => { el<HTMLElement>(id).textContent = valor || 'Sin información'; });
 }
 
-function asignarResumen(
-  diagnostico: Diagnostico,
-) {
-  asignarTexto(
-    'resumen-mision',
-    diagnostico.mision || 'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-vision',
-    diagnostico.vision || 'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-espacio-fisico',
-    diagnostico.tiene_espacio_fisico === true
-      ? 'Sí'
-      : diagnostico.tiene_espacio_fisico === false
-        ? 'No'
-        : 'No informado',
-  );
-
-  asignarTexto(
-    'resumen-caracteristicas-infraestructura',
-    diagnostico.caracteristicas_infraestructura ||
-      'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-espacios-disponibles',
-    diagnostico.espacios_disponibles ||
-      'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-recursos-existentes',
-    diagnostico.recursos_existentes ||
-      'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-danos-detectados',
-    diagnostico.danos_detectados ||
-      'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-necesidades-prioritarias',
-    diagnostico.necesidades_prioritarias ||
-      'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-observaciones',
-    diagnostico.observaciones ||
-      'Sin información',
-  );
-
-  asignarTexto(
-    'resumen-raciones',
-    diagnostico.raciones !== null
-      ? String(diagnostico.raciones)
-      : 'No informado',
-  );
-
-  asignarTexto(
-    'resumen-periodo-raciones',
-    diagnostico.periodo_raciones
-      ? formatearPeriodo(
-          diagnostico.periodo_raciones,
-        )
-      : 'No informado',
-  );
-
-  asignarTexto(
-    'fecha-actualizacion-diagnostico',
-    formatearFecha(
-      diagnostico.updated_at,
-    ),
-  );
-}
-
-function formatearPeriodo(
-  periodo: 'diaria' | 'semanal' | 'mensual',
-): string {
-  const valores = {
-    diaria: 'Diaria',
-    semanal: 'Semanal',
-    mensual: 'Mensual',
-  };
-
-  return valores[periodo];
-}
-
-function formatearFecha(
-  fecha: string,
-): string {
-  const resultado = new Date(fecha);
-
-  if (Number.isNaN(resultado.getTime())) {
-    return fecha;
-  }
-
-  return resultado.toLocaleDateString(
-    'es-CL',
-    {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    },
-  );
+function formatearFecha(valor: string) {
+  const fecha = new Date(valor);
+  return Number.isNaN(fecha.getTime()) ? valor : fecha.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 async function cargarDiagnostico() {
   if (ocupado) return;
-  if (!obtenerElemento<HTMLFormElement>('form-diagnostico').hidden &&
-      !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
+  if (!el<HTMLFormElement>('form-diagnostico').hidden && !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
   ocupar(true);
-  ocultarTodo();
-  obtenerElemento<HTMLButtonElement>('btn-registrar-diagnostico').hidden = true;
-  obtenerElemento<HTMLElement>('diagnostico-recuperacion').hidden = true;
-  mostrarConfirmacion(null);
+  ocultarVistas();
+  el<HTMLButtonElement>('btn-registrar-diagnostico').hidden = true;
+  el<HTMLElement>('diagnostico-recuperacion').hidden = true;
+  mensaje('diagnostico-confirmacion', null);
   mostrarCarga(true);
-  mostrarError(null);
-
+  mensaje('diagnostico-error', null);
   try {
-    const idOrganizacion =
-      obtenerOrganizacionId();
-
-    const diagnostico =
-      await servicio.obtener(idOrganizacion);
+    const diagnostico = await servicio.obtener(organizacionId());
     conflicto = false;
-
-    if (!diagnostico) {
-      mostrarEstadoSinDiagnostico();
-      return;
-    }
-
-    mostrarDiagnosticoRegistrado(
-      diagnostico,
-    );
-  } catch (error) {
-    obtenerElemento<HTMLElement>('diagnostico-recuperacion').hidden = false;
-    mostrarError(
-      error instanceof Error
-        ? error.message
-        : 'No fue posible cargar el diagnóstico.',
-    );
+    diagnostico ? mostrarRegistrado(diagnostico) : mostrarEstadoVacio();
+  } catch (fallo) {
+    el<HTMLElement>('diagnostico-recuperacion').hidden = false;
+    mensaje('diagnostico-error', fallo instanceof Error ? fallo.message : 'No fue posible cargar el diagnóstico.');
   } finally {
     mostrarCarga(false);
     ocupar(false);
@@ -620,80 +220,26 @@ async function cargarDiagnostico() {
 
 async function guardarDiagnostico() {
   if (ocupado || conflicto) return;
-  const datos = obtenerDatosFormulario();
-
-  if (!validarFormulario(datos)) {
-    return;
-  }
-
-  const boton =
-    obtenerElemento<HTMLButtonElement>(
-      'btn-guardar-diagnostico',
-    );
-
-  const textoOriginal =
-    boton.textContent ?? 'Guardar diagnóstico';
-
+  const datos = datosFormulario();
+  if (!validar(datos)) return;
+  const boton = el<HTMLButtonElement>('btn-guardar-diagnostico');
+  const textoOriginal = boton.textContent ?? 'Guardar diagnóstico';
   ocupar(true);
-  boton.textContent = editando
-    ? 'Actualizando…'
-    : 'Guardando…';
-
-  mostrarError(null);
-  mostrarConfirmacion(null);
-
+  boton.textContent = editando ? 'Actualizando…' : 'Guardando…';
+  mensaje('diagnostico-error', null);
+  mensaje('diagnostico-confirmacion', null);
+  const eraEdicion = editando;
   try {
-    const idOrganizacion =
-      obtenerOrganizacionId();
-
-    let resultado: Diagnostico;
-
-    if (
-      editando &&
-      diagnosticoActual
-    ) {
-      resultado =
-        await servicio.actualizar(
-          idOrganizacion,
-          diagnosticoActual.id_diagnostico,
-          diagnosticoActual.version,
-          {
-            campos: datos,
-          },
-        );
-
-      mostrarDiagnosticoRegistrado(
-        resultado,
-      );
-
-      mostrarConfirmacion(
-        'El diagnóstico se ha actualizado correctamente.',
-      );
-    } else {
-      resultado =
-        await servicio.crear(
-          idOrganizacion,
-          {
-            campos: datos,
-          },
-        );
-
-      mostrarDiagnosticoRegistrado(
-        resultado,
-      );
-
-      mostrarConfirmacion(
-        'El diagnóstico se ha guardado correctamente.',
-      );
-    }
-  } catch (error) {
-    conflicto = error instanceof ApiError && ['CONFLICTO_CONCURRENCIA', 'DIAGNOSTICO_EXISTENTE', 'NO_ENCONTRADO', 'NO_ENCONTRADA'].includes(error.code);
-    obtenerElemento<HTMLElement>('diagnostico-recuperacion').hidden = !conflicto;
-    mostrarError(
-      error instanceof Error
-        ? error.message
-        : 'No fue posible guardar el diagnóstico.',
-    );
+    const org = organizacionId();
+    const resultado = editando && diagnosticoActual
+      ? await servicio.actualizar(org, diagnosticoActual.id_diagnostico, diagnosticoActual.version, { campos: datos })
+      : await servicio.crear(org, { campos: datos });
+    mostrarRegistrado(resultado);
+    mensaje('diagnostico-confirmacion', eraEdicion ? 'El diagnóstico se ha actualizado correctamente.' : 'El diagnóstico se ha guardado correctamente.');
+  } catch (fallo) {
+    conflicto = fallo instanceof ApiError && ['CONFLICTO_CONCURRENCIA', 'DIAGNOSTICO_EXISTENTE', 'NO_ENCONTRADO', 'NO_ENCONTRADA'].includes(fallo.code);
+    el<HTMLElement>('diagnostico-recuperacion').hidden = !conflicto;
+    mensaje('diagnostico-error', fallo instanceof Error ? fallo.message : 'No fue posible guardar el diagnóstico.');
   } finally {
     ocupar(false);
     boton.textContent = textoOriginal;
@@ -702,62 +248,19 @@ async function guardarDiagnostico() {
 
 function cancelarFormulario() {
   if (ocupado) return;
-  mostrarError(null);
-  mostrarConfirmacion(null);
-
-  if (diagnosticoActual) {
-    mostrarDiagnosticoRegistrado(
-      diagnosticoActual,
-    );
-    return;
-  }
-
-  mostrarEstadoSinDiagnostico();
+  mensaje('diagnostico-error', null);
+  mensaje('diagnostico-confirmacion', null);
+  diagnosticoActual ? mostrarRegistrado(diagnosticoActual) : mostrarEstadoVacio();
 }
 
 function configurarEventos() {
-  obtenerElemento<HTMLButtonElement>('btn-recargar-diagnostico').addEventListener('click', () => void cargarDiagnostico());
-  const botonRegistrar =
-    obtenerElemento<HTMLButtonElement>(
-      'btn-registrar-diagnostico',
-    );
-
-  const botonCancelar =
-    obtenerElemento<HTMLButtonElement>(
-      'btn-cancelar-diagnostico',
-    );
-
-  const formulario =
-    obtenerElemento<HTMLFormElement>(
-      'form-diagnostico',
-    );
-
-  botonRegistrar.addEventListener(
-    'click',
-    () => {
-      if (diagnosticoActual) {
-        mostrarFormulario(
-          diagnosticoActual,
-        );
-      } else {
-        mostrarFormulario();
-      }
-    },
-  );
-
-  botonCancelar.addEventListener(
-    'click',
-    cancelarFormulario,
-  );
-
-  formulario.addEventListener(
-    'submit',
-    async (evento) => {
-      evento.preventDefault();
-
-      await guardarDiagnostico();
-    },
-  );
+  el<HTMLButtonElement>('btn-recargar-diagnostico').addEventListener('click', () => void cargarDiagnostico());
+  el<HTMLButtonElement>('btn-registrar-diagnostico').addEventListener('click', () => abrirFormulario(diagnosticoActual));
+  el<HTMLButtonElement>('btn-cancelar-diagnostico').addEventListener('click', cancelarFormulario);
+  el<HTMLFormElement>('form-diagnostico').addEventListener('submit', async evento => {
+    evento.preventDefault();
+    await guardarDiagnostico();
+  });
 }
 
 export async function iniciarDiagnostico() {
@@ -765,6 +268,5 @@ export async function iniciarDiagnostico() {
   if (!raiz || raiz.dataset.iniciado) return;
   raiz.dataset.iniciado = 'true';
   configurarEventos();
-
   await cargarDiagnostico();
 }

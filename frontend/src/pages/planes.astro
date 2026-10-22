@@ -99,6 +99,8 @@ import AppLayout from '../layouts/AppLayout.astro';
         </div>
       </div>
 
+      <p id="planes-contexto-organizacion" hidden class="mt-4 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]" aria-live="polite"></p>
+
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         <p id="planes-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando planes…</p>
         <Button id="limpiar-filtros" variant="outline" disabled>
@@ -149,11 +151,11 @@ import AppLayout from '../layouts/AppLayout.astro';
         <dl class="mt-4 grid grid-cols-1 gap-4 pl-0 sm:grid-cols-2 xl:grid-cols-4">
           <div class="min-w-0">
             <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Organización</dt>
-            <dd data-organizacion class="mt-1 break-words text-sm font-medium text-neutral-800"></dd>
+            <dd class="mt-1 break-words text-sm font-medium"><a data-organizacion class="text-neutral-800 underline decoration-neutral-300 underline-offset-2 transition hover:text-primary hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="#">—</a></dd>
           </div>
           <div class="min-w-0">
             <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Programa</dt>
-            <dd data-programa class="mt-1 break-words text-sm font-medium text-neutral-800"></dd>
+            <dd class="mt-1 break-words text-sm font-medium"><a data-programa class="text-neutral-800 underline decoration-neutral-300 underline-offset-2 transition hover:text-primary hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="#">—</a></dd>
           </div>
           <div class="min-w-0">
             <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Año del plan</dt>
@@ -177,8 +179,10 @@ import AppLayout from '../layouts/AppLayout.astro';
 
 <script>
   import { listarPlanes } from '../lib/planes/cliente';
+  import { listarOrganizaciones } from '../lib/organizaciones/cliente';
 
   type PlanListado = Awaited<ReturnType<typeof listarPlanes>>[number];
+  type OrganizacionListado = Awaited<ReturnType<typeof listarOrganizaciones>>[number];
 
   const listado = document.querySelector<HTMLElement>('#planes-listado')!;
   const estado = document.querySelector<HTMLElement>('#planes-estado')!;
@@ -191,12 +195,15 @@ import AppLayout from '../layouts/AppLayout.astro';
   const planesVacio = document.querySelector<HTMLElement>('#planes-vacio')!;
   const planesVacioTitulo = document.querySelector<HTMLElement>('#planes-vacio-titulo')!;
   const planesVacioDescripcion = document.querySelector<HTMLElement>('#planes-vacio-descripcion')!;
+  const contextoOrganizacion = document.querySelector<HTMLElement>('#planes-contexto-organizacion')!;
   const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-plan')!;
   const total = document.querySelector<HTMLElement>('#planes-total')!;
   const enEjecucion = document.querySelector<HTMLElement>('#planes-ejecucion')!;
   const pendientes = document.querySelector<HTMLElement>('#planes-pendientes')!;
 
   let planes: PlanListado[] = [];
+  let organizacionesRegistradas: OrganizacionListado[] = [];
+  let organizacionContextual: string | null = new URLSearchParams(window.location.search).get('id_organizacion');
   let cargando = false;
 
   function obtenerEstado(inicio: string, termino: string) {
@@ -232,9 +239,14 @@ import AppLayout from '../layouts/AppLayout.astro';
     const programas = new Map<string, string>();
     const organizaciones = new Map<string, string>();
 
+    for (const organizacion of organizacionesRegistradas) {
+      organizaciones.set(String(organizacion.id_organizacion), organizacion.nombre);
+    }
     for (const plan of planes) {
       programas.set(String(plan.id_programa), plan.programa.nombre);
-      organizaciones.set(String(plan.id_organizacion), plan.organizacion.nombre);
+      if (!organizaciones.has(String(plan.id_organizacion))) {
+        organizaciones.set(String(plan.id_organizacion), plan.organizacion.nombre);
+      }
     }
 
     llenarOpciones(filtroAnio, 'Todos los años', anios.map(anio => ({ valor: anio, etiqueta: anio })), anioAnterior);
@@ -252,11 +264,32 @@ import AppLayout from '../layouts/AppLayout.astro';
     );
   }
 
+  function idOrganizacionFiltro(): string {
+    return filtroOrganizacion.value || organizacionContextual || '';
+  }
+
+  function sincronizarFiltrosEnUrl() {
+    const url = new URL(window.location.href);
+    const filtros: Array<[string, string]> = [
+      ['anio', filtroAnio.value],
+      ['id_programa', filtroPrograma.value],
+      ['id_organizacion', idOrganizacionFiltro()],
+    ];
+
+    for (const [clave, valor] of filtros) {
+      if (valor) url.searchParams.set(clave, valor);
+      else url.searchParams.delete(clave);
+    }
+    url.searchParams.delete('resultado');
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
   function obtenerFiltrados() {
+    const idOrganizacion = idOrganizacionFiltro();
     return planes.filter(plan =>
       (!filtroAnio.value || String(plan.periodo_anual) === filtroAnio.value) &&
       (!filtroPrograma.value || String(plan.id_programa) === filtroPrograma.value) &&
-      (!filtroOrganizacion.value || String(plan.id_organizacion) === filtroOrganizacion.value)
+      (!idOrganizacion || String(plan.id_organizacion) === idOrganizacion)
     );
   }
 
@@ -275,8 +308,15 @@ import AppLayout from '../layouts/AppLayout.astro';
     for (const plan of resultados) {
       const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
       tarjeta.querySelector<HTMLElement>('[data-nombre]')!.textContent = plan.nombre;
-      tarjeta.querySelector<HTMLElement>('[data-organizacion]')!.textContent = plan.organizacion.nombre;
-      tarjeta.querySelector<HTMLElement>('[data-programa]')!.textContent = plan.programa.nombre;
+      const enlaceOrganizacion = tarjeta.querySelector<HTMLAnchorElement>('[data-organizacion]')!;
+      enlaceOrganizacion.textContent = plan.organizacion.nombre;
+      enlaceOrganizacion.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+      enlaceOrganizacion.setAttribute('aria-label', `Ver organización ${plan.organizacion.nombre}`);
+
+      const enlacePrograma = tarjeta.querySelector<HTMLAnchorElement>('[data-programa]')!;
+      enlacePrograma.textContent = plan.programa.nombre;
+      enlacePrograma.href = `/programas/${encodeURIComponent(plan.id_programa)}`;
+      enlacePrograma.setAttribute('aria-label', `Ver programa institucional ${plan.programa.nombre}`);
       tarjeta.querySelector<HTMLElement>('[data-anio]')!.textContent = String(plan.periodo_anual);
       tarjeta.querySelector<HTMLElement>('[data-vigencia]')!.textContent = periodo(plan.fecha_inicio, plan.fecha_termino);
 
@@ -286,12 +326,29 @@ import AppLayout from '../layouts/AppLayout.astro';
       etiqueta.classList.add(...calculado.clase.split(' '));
 
       const enlace = tarjeta.querySelector<HTMLAnchorElement>('[data-detalle]')!;
-      enlace.href = `/planes/${encodeURIComponent(plan.id_plan)}`;
+      const parametrosRetorno = new URLSearchParams();
+      if (filtroAnio.value) parametrosRetorno.set('anio', filtroAnio.value);
+      if (filtroPrograma.value) parametrosRetorno.set('id_programa', filtroPrograma.value);
+      const idOrgActual = idOrganizacionFiltro();
+      if (idOrgActual) parametrosRetorno.set('id_organizacion', idOrgActual);
+      const queryRetorno = parametrosRetorno.toString();
+      enlace.href = `/planes/${encodeURIComponent(plan.id_plan)}${queryRetorno ? `?${queryRetorno}` : ''}`;
       enlace.setAttribute('aria-label', `Ver detalle de ${plan.nombre}`);
       listado.append(tarjeta);
     }
 
-    const hayFiltros = Boolean(filtroAnio.value || filtroPrograma.value || filtroOrganizacion.value);
+    const idOrgActual = idOrganizacionFiltro();
+    const organizacionActiva = organizacionesRegistradas.find(
+      organizacion => String(organizacion.id_organizacion) === idOrgActual
+    );
+    const nombreOrganizacion = organizacionActiva?.nombre
+      ?? planes.find(plan => String(plan.id_organizacion) === idOrgActual)?.organizacion.nombre;
+    contextoOrganizacion.hidden = !idOrgActual;
+    contextoOrganizacion.textContent = idOrgActual
+      ? `Mostrando los planes relacionados con ${nombreOrganizacion || 'la organización seleccionada'}.`
+      : '';
+
+    const hayFiltros = Boolean(filtroAnio.value || filtroPrograma.value || idOrgActual);
     limpiarFiltros.disabled = !hayFiltros;
     planesVacio.hidden = resultados.length !== 0;
     if (!resultados.length) {
@@ -313,7 +370,9 @@ import AppLayout from '../layouts/AppLayout.astro';
     if (resultado === 'guardado' || resultado === 'eliminado') {
       confirmacion.textContent = resultado === 'eliminado' ? 'Plan eliminado correctamente.' : 'Plan guardado correctamente.';
       confirmacion.hidden = false;
-      history.replaceState(null, '', '/planes');
+      const urlLimpia = new URL(window.location.href);
+      urlLimpia.searchParams.delete('resultado');
+      history.replaceState(null, '', `${urlLimpia.pathname}${urlLimpia.search}${urlLimpia.hash}`);
     }
 
     if (cargando) return;
@@ -325,7 +384,22 @@ import AppLayout from '../layouts/AppLayout.astro';
 
     try {
       planes = await listarPlanes();
+      try {
+        organizacionesRegistradas = await listarOrganizaciones();
+      } catch {
+        // El listado de planes puede funcionar aunque falle la carga del catálogo de organizaciones.
+        organizacionesRegistradas = [];
+      }
       poblarFiltros();
+
+      const parametros = new URLSearchParams(window.location.search);
+      filtroAnio.value = parametros.get('anio') ?? '';
+      filtroPrograma.value = parametros.get('id_programa') ?? '';
+      const idOrgInicial = parametros.get('id_organizacion');
+      if (idOrgInicial) {
+        organizacionContextual = idOrgInicial;
+        filtroOrganizacion.value = idOrgInicial;
+      }
       renderizar();
     } catch (fallo) {
       estado.textContent = '';
@@ -338,13 +412,25 @@ import AppLayout from '../layouts/AppLayout.astro';
     }
   }
 
-  filtroAnio.addEventListener('change', renderizar);
-  filtroPrograma.addEventListener('change', renderizar);
-  filtroOrganizacion.addEventListener('change', renderizar);
+  filtroAnio.addEventListener('change', () => {
+    sincronizarFiltrosEnUrl();
+    renderizar();
+  });
+  filtroPrograma.addEventListener('change', () => {
+    sincronizarFiltrosEnUrl();
+    renderizar();
+  });
+  filtroOrganizacion.addEventListener('change', () => {
+    organizacionContextual = null;
+    sincronizarFiltrosEnUrl();
+    renderizar();
+  });
   limpiarFiltros.addEventListener('click', () => {
     filtroAnio.value = '';
     filtroPrograma.value = '';
     filtroOrganizacion.value = '';
+    organizacionContextual = null;
+    sincronizarFiltrosEnUrl();
     renderizar();
   });
   recargar.addEventListener('click', () => void cargar());
