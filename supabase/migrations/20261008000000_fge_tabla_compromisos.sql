@@ -18,8 +18,9 @@ create table if not exists public.compromisos (
     updated_by uuid null
 );
 
--- Índices para optimizar las consultas por organización y acta
-create index if not exists idx_compromisos_organizacion on public.compromisos(id_organizacion);
+-- La organización de un compromiso se obtiene a través de su acta; la tabla
+-- canónica (creada en 20260908002323_fge_estructura.sql) no tiene id_organizacion.
+-- Indexamos la FK que usan las consultas y políticas posteriores.
 create index if not exists idx_compromisos_acta on public.compromisos(id_acta);
 
 -- Políticas de seguridad (RLS)

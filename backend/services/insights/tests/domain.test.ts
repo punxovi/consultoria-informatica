@@ -45,9 +45,24 @@ describe('calculo de Dashboard y privacidad de Reportes', () => {
     assert.equal(result.progress.total, 2);
     assert.equal(result.metrics.activeAlerts, 1);
   });
+  test('filtra por año de gestión en el Backend y devuelve los doce meses del período', () => {
+    const result = buildSnapshot(raw, { year: 2026 }, new Date('2026-10-01T12:00:00.000Z'));
+    assert.equal(result.metrics.organizations, 1);
+    assert.equal(result.metrics.activePlans, 1);
+    assert.equal(result.metrics.beneficiaries, 10);
+    assert.equal(result.progress.total, 2);
+    assert.equal(result.progress.percentage, 50);
+    assert.equal(result.monthlyActions.length, 12);
+    assert.equal(result.monthlyActions[0].key, '2026-01');
+    assert.equal(result.monthlyActions.at(-1)?.key, '2026-12');
+    assert.deepEqual(result.pendingActions.map((action) => action.id_accion), ['a2']);
+  });
   test('valida filtros de pais y propiedades adicionales', () => {
     assert.equal(parseInsightFilters(new URL(`http://local/v1/dashboard?id_pais=${countryA}`)).countryId, countryA);
+    assert.deepEqual(parseInsightFilters(new URL(`http://local/v1/dashboard?id_pais=${countryA}&anio=2026`)), { countryId: countryA, year: 2026 });
+    assert.equal(parseInsightFilters(new URL('http://local/v1/dashboard?anio=2025')).year, 2025);
     assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?id_pais=invalido')), /UUID/);
+    assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?anio=20x6')), /año/);
     assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?otro=1')), /no/);
   });
   test('prepara una salida externa agregada sin identificadores ni datos restringidos', () => {
