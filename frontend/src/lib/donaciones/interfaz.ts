@@ -1,11 +1,15 @@
 import { ApiError } from '../api/transporte.ts';
 import { getSupabaseClient } from '../supabase.ts';
 import { crearClienteDonaciones } from './cliente.ts';
+import { listarProgramas } from '../programas/cliente.ts';
 import {
-  donacionFormSchema,
+  esDinero,
+  etiquetasTipoDonante,
   etiquetasTipoRespaldo,
+  siguienteEstado,
   normalizarTipoRespaldo,
   tipoArchivo,
+  validarRegistroDonacion,
   type Donacion,
   type RespaldoDonacion,
   type TipoRespaldo,
@@ -39,6 +43,13 @@ export function iniciarDonaciones() {
   let respaldosActuales: RespaldoDonacion[] = [];
   let filtroTipoRespaldo: TipoRespaldo | 'todos' = 'todos';
   let reservaPendiente: RespaldoDonacion | null = null;
+  let programas: { id: string; nombre: string }[] = [];
+  let programasCargados = false;
+
+  const nombreOrganizacion = () => raiz.dataset.organizacionNombre || 'Esta organización';
+  const nombrePais = () => raiz.dataset.paisNombre || '—';
+  const nombrePrograma = (id?: string | null) =>
+    id ? (programas.find((p) => p.id === id)?.nombre ?? 'Programa asociado') : 'Sin Programa asociado';
 
   function bloquear(estado: boolean, mensaje = '') {
     ocupado = estado;
@@ -82,7 +93,9 @@ export function iniciarDonaciones() {
     input.setAttribute('aria-invalid', 'true');
     const p = document.createElement('p');
     p.dataset.errorCampo = '';
-    p.className = 'mt-1 text-xs text-red-600';
+    p.dataset.campo = (input as HTMLInputElement).name ?? '';
+    p.className = 'mt-1 text-sm text-[#AD174F]';
+    p.setAttribute('role', 'alert');
     p.textContent = mensaje;
     input.parentElement?.append(p);
   }
@@ -102,6 +115,31 @@ export function iniciarDonaciones() {
     return f;
   }
 
+  const claseEstado: Record<string, string> = {
+    Comprometida: 'bg-[#FFF3DC] text-[#925500]',
+    Recibida: 'bg-[#E7F7FA] text-[#167F91]',
+    Entregada: 'bg-[#E5F6ED] text-[#14784D]',
+    Cerrada: 'bg-[#F0EDF8] text-[#4C4688]',
+  };
+
+  function describirAporte(item: Donacion) {
+    if (item.tipo_aporte === 'dinero') {
+      return `$${Number(item.monto).toLocaleString('es-CL')} ${item.moneda ?? ''}`.trim();
+    }
+    return item.cantidad ? `${item.cantidad} ${item.unidad ?? ''}`.trim() : 'Sin cantidad indicada';
+  }
+
+  function describirCategoria(item: Donacion) {
+    const base = item.categoria ?? (item.tipo_aporte === 'dinero' ? 'Dinero' : 'Recurso');
+    return item.categoria === 'Otro' && item.categoria_otro ? `Otro: ${item.categoria_otro}` : base;
+  }
+
+  function describirValor(item: Donacion) {
+    if (item.valor_estimado === null || item.valor_estimado === undefined) return 'Sin valorización';
+    const valor = Number(item.valor_estimado).toLocaleString('es-CL');
+    return `${valor} ${item.moneda_valorizacion ?? ''} · ${item.metodo_valorizacion ?? 'Método no indicado'}`.trim();
+  }
+
   function formatearTamano(bytes: number) {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
@@ -117,10 +155,8 @@ export function iniciarDonaciones() {
     q('vacio').hidden = donaciones.length > 0;
     for (const item of donaciones) {
       const recibida = item.tipo_movimiento === 'recibida';
-      const dinero = item.tipo_aporte === 'dinero';
-      const aporte = dinero
-        ? `$${Number(item.monto).toLocaleString('es-CL')} ${item.moneda ?? ''} (Dinero)`
-        : `${item.cantidad ?? '—'} ${item.unidad ?? ''} (Recurso)`;
+      const aporte = `${describirCategoria(item)} · ${describirAporte(item)}`;
+      const estado = item.estado ?? 'Sin estado';
       const card = document.createElement('article');
       card.innerHTML = `
         <div class="h-0.5 bg-[#D8D3E8]"></div>
@@ -136,10 +172,13 @@ export function iniciarDonaciones() {
                   <h3 class="mt-1 break-words text-base font-semibold text-neutral-900">${htmlSeguro(item.contraparte_nombre)}</h3>
                 </div>
               </div>
-              <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'}">${recibida ? 'Donación recibida' : 'Donación entregada'}</span>
+              <div class="flex flex-wrap gap-2">
+                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'}">${recibida ? 'Recibida' : 'Entregada'}</span>
+                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${claseEstado[estado] ?? 'bg-neutral-100 text-neutral-600'}">${htmlSeguro(estado)}</span>
+              </div>
             </div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              ${[['Fecha', formatearFecha(item.fecha)], ['Aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              ${[['Fecha', formatearFecha(item.fecha)], ['Organización receptora', nombreOrganizacion()], ['Tipo de aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
             </div>
           </div>
           <div class="flex items-center justify-end border-t border-[#F0EDF6] pt-3 lg:min-w-[190px] lg:justify-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
@@ -280,6 +319,26 @@ export function iniciarDonaciones() {
     }
   }
 
+  function renderDetalle(donacion: Donacion) {
+    q('detalle-fecha').textContent = formatearFecha(donacion.fecha);
+    q('detalle-organizacion').textContent = nombreOrganizacion();
+    q('detalle-pais').textContent = nombrePais();
+    q('detalle-programa').textContent = nombrePrograma(donacion.id_programa);
+    const tipoDonante = etiquetasTipoDonante[donacion.tipo_donante as keyof typeof etiquetasTipoDonante];
+    q('detalle-donante').textContent =
+      [tipoDonante ?? donacion.tipo_donante, donacion.origen].filter(Boolean).join(' · ') || 'Sin información';
+    q('detalle-categoria').textContent = describirCategoria(donacion);
+    q('detalle-aporte').textContent = describirAporte(donacion);
+    q('detalle-valor').textContent = describirValor(donacion);
+    q('detalle-estado').textContent = donacion.estado ?? 'Sin estado registrado';
+    q('detalle-descripcion').textContent = donacion.descripcion;
+
+    const siguiente = siguienteEstado(donacion.estado);
+    const boton = q<HTMLButtonElement>('avanzar-estado');
+    boton.hidden = !siguiente || !puedeGestionar;
+    boton.textContent = siguiente ? `Avanzar a ${siguiente}` : '';
+  }
+
   async function abrirDetalle(donacion: Donacion) {
     donacionActual = donacion;
     reservaPendiente = null;
@@ -294,14 +353,7 @@ export function iniciarDonaciones() {
     }`;
     badgeMov.textContent = esRecibida ? 'Donación Recibida' : 'Donación Entregada';
 
-    q('detalle-fecha').textContent = formatearFecha(donacion.fecha);
-    if (donacion.tipo_aporte === 'dinero') {
-      const montoStr = Number(donacion.monto).toLocaleString('es-CL');
-      q('detalle-aporte').textContent = `$${montoStr} ${donacion.moneda ?? ''} (Dinero)`;
-    } else {
-      q('detalle-aporte').textContent = `${donacion.cantidad} ${donacion.unidad ?? ''} (Recurso)`;
-    }
-    q('detalle-descripcion').textContent = donacion.descripcion;
+    renderDetalle(donacion);
 
     cerrarFormRespaldo();
     actualizarFiltrosUI();
@@ -364,24 +416,57 @@ export function iniciarDonaciones() {
   q('respaldo-cancelar').addEventListener('click', cerrarFormRespaldo);
 
   const formDonacion = q<HTMLFormElement>('form-donacion-tag');
-  const tipoAporteSelect = q<HTMLSelectElement>('aporte-tipo');
   const grupoDinero = q('grupo-dinero');
   const grupoRecurso = q('grupo-recurso');
 
+  const categoriaSelect = q<HTMLSelectElement>('categoria');
+  const aporteTipo = q<HTMLInputElement>('aporte-tipo');
+
   function actualizarCamposAporte() {
-    const esDinero = tipoAporteSelect.value === 'dinero';
-    grupoDinero.hidden = !esDinero;
-    grupoRecurso.hidden = esDinero;
-    const categoria = q<HTMLSelectElement>('categoria');
-    for (const option of categoria.options) option.disabled = esDinero ? option.value !== 'Dinero' : option.value === 'Dinero';
-    if (categoria.selectedOptions[0]?.disabled) categoria.value = esDinero ? 'Dinero' : 'Producto';
+    const dinero = esDinero(categoriaSelect.value);
+    aporteTipo.value = dinero ? 'dinero' : 'recurso';
+    grupoDinero.hidden = !dinero;
+    grupoRecurso.hidden = dinero;
+    const otro = categoriaSelect.value === 'Otro';
+    q('grupo-otro').hidden = !otro;
+    q<HTMLInputElement>('categoria-otro').required = otro;
+    for (const nombre of ['monto', 'moneda']) q<HTMLInputElement>(nombre).required = dinero;
+    raiz.querySelectorAll('[data-error-campo]').forEach((n) => n.remove());
   }
-  tipoAporteSelect.addEventListener('change', actualizarCamposAporte);
+  categoriaSelect.addEventListener('change', actualizarCamposAporte);
+
+  async function cargarProgramas() {
+    if (programasCargados) return;
+    try {
+      const lista = await listarProgramas();
+      programas = lista.filter((p) => !p.archived_at).map((p) => ({ id: p.id_programa, nombre: p.nombre }));
+      programasCargados = true;
+      const select = q<HTMLSelectElement>('programa');
+      for (const programa of programas) {
+        const option = document.createElement('option');
+        option.value = programa.id;
+        option.textContent = programa.nombre;
+        select.append(option);
+      }
+    } catch {
+      q('programa-ayuda').textContent = 'No fue posible cargar los Programas. Puedes registrar la donación sin Programa.';
+    }
+  }
 
   q('nueva').addEventListener('click', () => {
     formDonacion.reset();
+    q<HTMLInputElement>('pais').value = nombrePais();
+    q<HTMLInputElement>('organizacion').value = nombreOrganizacion();
     actualizarCamposAporte();
     cambiarVista('form-donacion');
+    void cargarProgramas();
+  });
+
+  // Quita el error de un campo en cuanto la persona lo corrige.
+  formDonacion.addEventListener('input', (e) => {
+    const campo = (e.target as HTMLInputElement).name;
+    formDonacion.querySelectorAll<HTMLElement>(`[data-error-campo][data-campo="${campo}"]`).forEach((n) => n.remove());
+    (e.target as HTMLElement).setAttribute('aria-invalid', 'false');
   });
 
   q('cancelar').addEventListener('click', () => {
@@ -394,34 +479,45 @@ export function iniciarDonaciones() {
     limpiarAlertas();
 
     const fd = new FormData(formDonacion);
-    const tipoAporte = fd.get('tipo_aporte') as 'dinero' | 'recurso';
+    const texto = (nombre: string) => String(fd.get(nombre) ?? '').trim() || undefined;
+    const numero = (nombre: string) => (fd.get(nombre) ? Number(fd.get(nombre)) : undefined);
+    const dinero = esDinero(String(fd.get('categoria')));
 
     const raw = {
       id_pais: raiz.dataset.pais,
-      categoria: String(fd.get('categoria') ?? ''),
-      categoria_otro: String(fd.get('categoria_otro') ?? '').trim() || undefined,
-      tipo_donante: String(fd.get('tipo_donante') ?? ''),
-      origen: String(fd.get('origen') ?? ''),
-      estado: String(fd.get('estado') ?? ''),
+      id_programa: texto('id_programa'),
+      categoria: texto('categoria'),
+      categoria_otro: texto('categoria_otro'),
+      tipo_donante: texto('tipo_donante'),
+      origen: texto('origen'),
+      estado: texto('estado'),
       fecha: String(fd.get('fecha') ?? ''),
       tipo_movimiento: fd.get('tipo_movimiento') as 'recibida' | 'entregada',
       contraparte_nombre: String(fd.get('contraparte_nombre') ?? ''),
       descripcion: String(fd.get('descripcion') ?? ''),
-      tipo_aporte: tipoAporte,
-      monto: tipoAporte === 'dinero' && fd.get('monto') ? Number(fd.get('monto')) : undefined,
-      moneda: tipoAporte === 'dinero' && fd.get('moneda') ? String(fd.get('moneda')) : undefined,
-      cantidad: tipoAporte === 'recurso' && fd.get('cantidad') ? Number(fd.get('cantidad')) : undefined,
-      unidad: tipoAporte === 'recurso' && fd.get('unidad') ? String(fd.get('unidad')) : undefined,
+      tipo_aporte: (dinero ? 'dinero' : 'recurso') as 'dinero' | 'recurso',
+      monto: dinero ? numero('monto') : undefined,
+      moneda: dinero ? texto('moneda')?.toUpperCase() : undefined,
+      cantidad: dinero ? undefined : numero('cantidad'),
+      unidad: dinero ? undefined : texto('unidad'),
+      valor_estimado: numero('valor_estimado'),
+      moneda_valorizacion: texto('moneda_valorizacion')?.toUpperCase(),
+      metodo_valorizacion: texto('metodo_valorizacion'),
     };
 
-    const val = donacionFormSchema.safeParse(raw);
+    const val = validarRegistroDonacion(raw);
     if (!val.success) {
-      for (const issue of val.error.issues) {
+      let primero: HTMLElement | null = null;
+      for (const issue of val.issues) {
         const campo = issue.path[0] as string;
         const input = formDonacion.elements.namedItem(campo) as HTMLElement | null;
-        if (input) errorCampo(input, issue.message);
+        if (input && !formDonacion.querySelector(`[data-error-campo][data-campo="${campo}"]`)) {
+          errorCampo(input, issue.message);
+          primero ??= input;
+        }
       }
       mostrarError(new Error('Corrige los campos marcados antes de continuar.'));
+      primero?.focus();
       return;
     }
 
@@ -530,6 +626,31 @@ export function iniciarDonaciones() {
     }
   });
 
+  q('avanzar-estado').addEventListener('click', async () => {
+    if (ocupado || !donacionActual) return;
+    const siguiente = siguienteEstado(donacionActual.estado);
+    if (!siguiente) return;
+    limpiarAlertas();
+    bloquear(true, 'Actualizando estado...');
+    try {
+      const actualizada = await cliente.actualizarDonacion(
+        idOrganizacion,
+        donacionActual.id_donacion,
+        donacionActual.version,
+        { estado: siguiente },
+      );
+      donacionActual = actualizada;
+      const idx = donaciones.findIndex((d) => d.id_donacion === actualizada.id_donacion);
+      if (idx >= 0) donaciones[idx] = actualizada;
+      renderDetalle(actualizada);
+      mostrarExito(`El estado de la donación cambió a ${siguiente}.`);
+    } catch (err) {
+      mostrarError(err, 'No fue posible cambiar el estado. ');
+    } finally {
+      bloquear(false);
+    }
+  });
+
   q('detalle-volver').addEventListener('click', () => {
     cambiarVista('listado');
     renderListadoDonaciones();
@@ -541,6 +662,12 @@ export function iniciarDonaciones() {
     } else {
       cargarDonaciones();
     }
+  });
+
+  // La ficha entrega el nombre de la organización y del país después de montar la sección.
+  raiz.addEventListener('organizacion-cargada', () => {
+    renderListadoDonaciones();
+    if (donacionActual && !q('detalle').hidden) renderDetalle(donacionActual);
   });
 
   void cargarDonaciones();

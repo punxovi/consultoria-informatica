@@ -435,7 +435,12 @@ const hrefVolverOrganizaciones = `/organizaciones${queryRetorno ? `?${queryRetor
 
   function mostrarFicha(organizacion: Organizacion) {
     const donaciones = document.querySelector<HTMLElement>('#seccion-donaciones');
-    if (donaciones) donaciones.dataset.pais = organizacion.id_pais;
+    if (donaciones) {
+      donaciones.dataset.pais = organizacion.id_pais;
+      donaciones.dataset.paisNombre = organizacion.pais?.nombre ?? '';
+      donaciones.dataset.organizacionNombre = organizacion.nombre;
+      donaciones.dispatchEvent(new CustomEvent('organizacion-cargada'));
+    }
     const tipoOrganizacion = formatearTipoOrganizacion(organizacion);
     asignarTexto('org-total-beneficiarios', organizacion.numero_beneficiarios);
     asignarTexto('org-ubicacion', organizacion.comuna_municipio_ciudad);

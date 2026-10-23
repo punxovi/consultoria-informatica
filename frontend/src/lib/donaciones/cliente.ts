@@ -123,6 +123,24 @@ export function crearClienteDonaciones(
       return validarDonacion(respuesta.data?.donation);
     },
 
+    async actualizarDonacion(
+      idOrganizacion: string,
+      idDonacion: string,
+      versionEsperada: number,
+      cambios: Partial<DatosDonacionForm>,
+    ): Promise<Donacion> {
+      const accessToken = await token();
+      const respuesta = await http.request<{ donation: unknown }>(
+        `/api/v1/organizations/${encodeURIComponent(idOrganizacion)}/donations/${encodeURIComponent(idDonacion)}`,
+        {
+          method: 'PATCH',
+          body: { version_esperada: versionEsperada, cambios },
+          accessToken,
+        },
+      );
+      return validarDonacion(respuesta.data?.donation);
+    },
+
     async listarRespaldos(idOrganizacion: string, idDonacion: string): Promise<RespaldoDonacion[]> {
       const accessToken = await token();
       const respuesta = await http.request<{ files: unknown[] }>(
