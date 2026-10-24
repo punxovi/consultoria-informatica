@@ -198,7 +198,7 @@ describe('API Gateway', () => {
   });
 
   test('enruta Dashboard y Reportes al contexto de Insights', async () => {
-    for (const path of ['/api/v1/dashboard?id_pais=11111111-1111-4111-8111-111111111111', '/api/v1/reports/overview']) {
+    for (const path of ['/api/v1/dashboard?id_pais=11111111-1111-4111-8111-111111111111&anio=2026', '/api/v1/reports/overview']) {
       const response = await fetch(`${gatewayUrl}${path}`, { headers: { authorization: 'Bearer sesion-insights' } });
       const body = await response.json();
       assert.equal(body.path, path.replace('/api', ''));

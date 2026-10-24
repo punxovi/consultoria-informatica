@@ -16,7 +16,7 @@ export interface InsightsRepository {
   auditExport(accessToken: string, audit: ReportAudit): Promise<void>;
   loadConsolidated(accessToken: string, filters: ConsolidatedReportFilters): Promise<ConsolidatedReportSnapshot>;
 }
-export interface InsightFilters { countryId?: string }
+export interface InsightFilters { countryId?: string; year?: number }
 export const REPORT_DESTINATIONS = ['interno', 'donante', 'externo'] as const;
 export type ReportDestination = typeof REPORT_DESTINATIONS[number];
 export interface ReportRequest { destination: ReportDestination; filters: InsightFilters }
@@ -64,15 +64,22 @@ export interface InternalReport {
 export type PreparedReport = ExternalReport | InternalReport;
 
 export function parseInsightFilters(url: URL): InsightFilters {
-  const allowed = new Set(['id_pais']);
+  const allowed = new Set(['id_pais', 'anio']);
   const extra = [...url.searchParams.keys()].find((key) => !allowed.has(key));
   if (extra) throw new ServiceError('DATOS_INVALIDOS', `El filtro ${extra} no está permitido.`, 400);
   const countryId = url.searchParams.get('id_pais');
-  if (!countryId) return {};
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(countryId)) {
+  if (countryId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(countryId)) {
     throw new ServiceError('DATOS_INVALIDOS', 'El país debe ser un UUID válido.', 400);
   }
-  return { countryId };
+  const rawYear = url.searchParams.get('anio');
+  let year: number | undefined;
+  if (rawYear !== null) {
+    if (!/^\d{4}$/.test(rawYear) || Number(rawYear) < 1900 || Number(rawYear) > 9999) {
+      throw new ServiceError('DATOS_INVALIDOS', 'El año debe ser un número de cuatro dígitos entre 1900 y 9999.', 400);
+    }
+    year = Number(rawYear);
+  }
+  return { ...(countryId ? { countryId } : {}), ...(year ? { year } : {}) };
 }
 
 export function parseReportRequest(url: URL): ReportRequest {
@@ -90,28 +97,40 @@ export function parseReportRequest(url: URL): ReportRequest {
   return { destination, filters: countryId ? { countryId } : {} };
 }
 
-function monthWindow(now: Date): Array<{ key: string; label: string }> {
+function monthWindow(now: Date, year?: number): Array<{ key: string; label: string }> {
   const formatter = new Intl.DateTimeFormat('es-CL', { month: 'short', timeZone: 'UTC' });
-  return Array.from({ length: 9 }, (_, index) => {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (8 - index), 1));
+  return Array.from({ length: year ? 12 : 9 }, (_, index) => {
+    const date = year
+      ? new Date(Date.UTC(year, index, 1))
+      : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (8 - index), 1));
     const raw = formatter.format(date).replace('.', '');
     return { key: date.toISOString().slice(0, 7), label: raw.charAt(0).toUpperCase() + raw.slice(1) };
   });
 }
 
 export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = new Date()): DashboardSnapshot {
-  const organizations = filters.countryId
+  let organizations = filters.countryId
     ? raw.organizations.filter((item) => item.id_pais === filters.countryId)
     : raw.organizations;
-  const organizationIds = new Set(organizations.map((item) => item.id_organizacion));
-  const plans = raw.plans.filter((item) => organizationIds.has(item.id_organizacion));
+  let organizationIds = new Set(organizations.map((item) => item.id_organizacion));
+  let plans = raw.plans.filter((item) => organizationIds.has(item.id_organizacion));
+  if (filters.year) {
+    const yearStart = `${filters.year}-01-01`;
+    const yearEnd = `${filters.year}-12-31`;
+    plans = plans.filter((item) => item.fecha_inicio <= yearEnd && item.fecha_termino >= yearStart);
+    organizationIds = new Set(plans.map((item) => item.id_organizacion));
+    organizations = organizations.filter((item) => organizationIds.has(item.id_organizacion));
+  }
   const planIds = new Set(plans.map((item) => item.id_plan));
-  const actions = raw.actions.filter((item) => planIds.has(item.id_plan));
+  const actions = raw.actions.filter((item) =>
+    planIds.has(item.id_plan) && (!filters.year || item.fecha_termino.startsWith(`${filters.year}-`)),
+  );
   const today = now.toISOString().slice(0, 10);
   const completed = actions.filter((item) => item.estado === 'cumplida').length;
   const overdue = actions.filter((item) => item.estado === 'atrasada').length;
   const activeAlerts = actions.filter((item) => item.estado === 'atrasada' || item.estado === 'cancelada').length;
-  const months = monthWindow(now);
+  const months = monthWindow(now, filters.year);
+  const plansInScope = filters.year ? plans.length : plans.filter((item) => item.fecha_inicio <= today && item.fecha_termino >= today).length;
 
   // Porcentaje de avance de los Planes de Intervención.
   // Fórmula definida: (Acciones cumplidas / Total de acciones vinculadas a planes activos) * 100
@@ -144,7 +163,7 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
     metrics: {
       organizations: organizations.length,
       // Planes activos (fecha actual entre inicio y término)
-      activePlans: plans.filter((item) => item.fecha_inicio <= today && item.fecha_termino >= today).length,
+      activePlans: plansInScope,
       beneficiaries: organizations.reduce((total, item) => total + Math.max(0, item.numero_beneficiarios ?? 0), 0),
       activeAlerts,
     },
