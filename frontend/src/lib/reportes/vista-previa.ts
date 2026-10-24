@@ -62,10 +62,12 @@ export function verificarCorrespondencia(vista: ReportPreview, parametros: Repor
     if (declarado === filtro.todos) return `el filtro «${filtro.prefijo.slice(0, -1)}» no se aplicó`;
     // En destino interno el servicio declara los identificadores aplicados; en los
     // agregados solo indica que hubo selección (y su cantidad, en listas).
-    if (destino === 'interno' && !ids.every((id) => declarado.includes(id))) {
-      return `el filtro «${filtro.prefijo.slice(0, -1)}» no corresponde a lo solicitado`;
-    }
-    if (destino !== 'interno' && Array.isArray(valor) && !declarado.includes(`${valor.length} seleccionados`)) {
+    const seleccion = declarado.slice(filtro.prefijo.length).trim();
+    const recibidos = seleccion.split(',').map((id) => id.trim());
+    const coincide = destino === 'interno'
+      ? recibidos.length === ids.length && new Set(recibidos).size === ids.length && ids.every((id) => recibidos.includes(id))
+      : seleccion === (Array.isArray(valor) ? `${valor.length} seleccionados` : 'selección aplicada');
+    if (!coincide) {
       return `el filtro «${filtro.prefijo.slice(0, -1)}» no corresponde a lo solicitado`;
     }
   }

@@ -61,3 +61,31 @@ test('verificarCorrespondencia: sin filtros declarados no se puede comprobar', (
   vista.document = { ...vista.document, filters: undefined };
   assert.match(verificarCorrespondencia(vista, base), /no informó los filtros/);
 });
+
+test('verificarCorrespondencia: exige la selección completa de indicadores y resultados, sin depender del orden', () => {
+  for (const campo of ['indicadores', 'resultados']) {
+    const solicitado = { ...base, [campo]: [uuid(4), uuid(5)] };
+    assert.equal(verificarCorrespondencia(respuestaSimulada({ ...base, [campo]: [uuid(5), uuid(4)] }), solicitado), null);
+    for (const recibidos of [[uuid(4)], [uuid(4), uuid(5), uuid(6)], [uuid(4), uuid(4)]]) {
+      assert.match(verificarCorrespondencia(respuestaSimulada({ ...base, [campo]: recibidos }), solicitado) ?? '', /no corresponde/);
+    }
+  }
+});
+
+test('verificarCorrespondencia: compara cantidades externas exactas (1 no equivale a 11)', () => {
+  for (const destino of ['donante', 'externo']) {
+    for (const campo of ['indicadores', 'resultados']) {
+      const solicitado = { ...base, destino, [campo]: [uuid(1)] };
+      const recibido = respuestaSimulada({ ...solicitado, [campo]: Array.from({ length: 11 }, (_, i) => uuid(i + 1)) });
+      assert.match(verificarCorrespondencia(recibido, solicitado) ?? '', /no corresponde/);
+      assert.equal(verificarCorrespondencia(respuestaSimulada(solicitado), solicitado), null);
+    }
+  }
+});
+
+test('verificarCorrespondencia: rechaza coincidencias parciales en filtros individuales', () => {
+  const solicitado = { ...base, id_pais: uuid(1) };
+  const recibido = respuestaSimulada(solicitado);
+  recibido.document.filters[0] += 'texto adicional';
+  assert.match(verificarCorrespondencia(recibido, solicitado) ?? '', /País.*no corresponde/);
+});
