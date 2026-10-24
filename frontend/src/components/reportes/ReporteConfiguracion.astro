@@ -149,12 +149,8 @@ const listas = [
       <p class="text-sm font-semibold text-neutral-900">Solicitud preparada</p>
       <p class="mt-1 text-sm text-neutral-500">Los criterios son válidos y están listos para generar la vista previa.</p>
     </div>
-    <div id="rep-consulta-exito" hidden role="status">
-      <Card class="border-t-4 border-t-brand-green p-4 md:p-5">
-        <p class="text-sm font-semibold text-neutral-900">Vista previa lista</p>
-        <p id="rep-vista-meta" class="mt-1 text-sm text-neutral-500"></p>
-        <dl id="rep-vista-resumen" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></dl>
-      </Card>
+    <div id="rep-consulta-exito" hidden role="status" class="rounded-2xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-[#14784D]">
+      Vista previa lista. Revisa la información antes de exportar el reporte.
     </div>
     <div id="rep-consulta-parametros" hidden>
       <Card class="p-4 md:p-5">
@@ -163,6 +159,8 @@ const listas = [
       </Card>
     </div>
   </section>
+
+  <section id="rep-vista-previa" hidden aria-label="Vista previa del reporte" class="space-y-4"></section>
 </section>
 
 <style>
@@ -187,6 +185,52 @@ const listas = [
   .reporte-config :global(.rep-param) { min-width: 0; padding: .75rem; border: 1px solid #E5E0EF; border-radius: .75rem; background: #F7F5FB; }
   .reporte-config :global(.rep-param dt) { color: #817B98; font-size: .72rem; font-weight: 600; letter-spacing: .045em; text-transform: uppercase; }
   .reporte-config :global(.rep-param dd) { margin-top: .35rem; color: #211E2B; font-size: .9rem; overflow-wrap: anywhere; }
+  /* SCRUM-138: vista previa del reporte. */
+  .reporte-config :global(.rep-vp-indice-enlace) {
+    display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: .4rem .5rem .4rem .85rem;
+    border: 1px solid #DCD8EA; border-radius: 999px; background: #fff; color: #423C76; font-size: .8125rem; font-weight: 500;
+  }
+  .reporte-config :global(.rep-vp-indice-enlace:hover) { background: #F4F2FA; }
+  .reporte-config :global(.rep-vp-contador) {
+    display: inline-flex; align-items: center; min-height: 24px; padding: .1rem .55rem; border-radius: 999px;
+    background: #F0EDF8; color: #4C4688; font-size: .75rem; font-weight: 600; white-space: nowrap;
+  }
+  .reporte-config :global(.rep-vp-seccion) { scroll-margin-top: 5rem; }
+  .reporte-config :global(.rep-vp-plegar),
+  .reporte-config :global(.rep-vp-mas) {
+    min-height: 44px; padding: .4rem .9rem; border: 1px solid #DCD8EA; border-radius: .75rem;
+    background: #fff; color: #4C4688; font-size: .8125rem; font-weight: 600;
+  }
+  .reporte-config :global(.rep-vp-plegar:hover),
+  .reporte-config :global(.rep-vp-mas:hover) { background: #F0EEF8; }
+  .reporte-config :global(.rep-vp-mas) { margin-top: .75rem; }
+  .reporte-config :global(.rep-vp-vacio) {
+    padding: 1rem; border: 1px dashed #D8D3E8; border-radius: .75rem; background: #FAF9FC; color: #6B6680; font-size: .875rem; text-align: center;
+  }
+  .reporte-config :global(.rep-vp-tabla) { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .reporte-config :global(.rep-vp-tabla th) {
+    padding: .6rem .75rem; border-bottom: 1px solid #E5E0EF; background: #F7F5FB; color: #5F5A78;
+    font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-align: left; text-transform: uppercase;
+  }
+  .reporte-config :global(.rep-vp-tabla td) {
+    padding: .65rem .75rem; border-bottom: 1px solid #F0EDF6; color: #211E2B; vertical-align: top;
+    white-space: pre-line; overflow-wrap: anywhere;
+  }
+  .reporte-config :global(.rep-vp-tabla tbody tr:hover) { background: #FCFBFE; }
+  /* En pantallas pequeñas cada fila se presenta como tarjeta, sin desborde horizontal. */
+  @media (max-width: 767px) {
+    .reporte-config :global(.rep-vp-tabla thead) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .reporte-config :global(.rep-vp-tabla tr) {
+      display: block; margin-bottom: .75rem; padding: .5rem .75rem; border: 1px solid #E5E0EF; border-radius: .75rem; background: #FCFBFE;
+    }
+    .reporte-config :global(.rep-vp-tabla td) {
+      display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: .75rem; padding: .4rem 0; border-bottom: 1px solid #F0EDF6;
+    }
+    .reporte-config :global(.rep-vp-tabla td:last-child) { border-bottom: 0; }
+    .reporte-config :global(.rep-vp-tabla td::before) {
+      content: attr(data-etiqueta); color: #817B98; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    }
+  }
 </style>
 
 <script>

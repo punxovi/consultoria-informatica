@@ -1,5 +1,6 @@
 import { ApiError } from '../api/transporte.ts';
 import type { ReportFilters, ReportPreview } from './pdf.ts';
+import { verificarCorrespondencia } from './vista-previa.ts';
 
 // Estados del proceso de consulta de la vista previa. "preparada" significa que los
 // parámetros son válidos pero todavía nadie atendió la solicitud.
@@ -30,6 +31,7 @@ export function reporteSinResultados(vista: ReportPreview): boolean {
 
 export function describirErrorConsulta(error: unknown): { mensaje: string; reintentable: boolean } {
   if (error instanceof ApiError) {
+    if (error.code === 'VISTA_NO_CORRESPONDE') return { mensaje: error.message, reintentable: true };
     if (error.status === 401) return { mensaje: 'Tu sesión expiró. Vuelve a iniciar sesión para consultar el reporte.', reintentable: false };
     if (error.status === 403) return { mensaje: 'Tu cuenta no tiene permiso para consultar reportes con estos criterios.', reintentable: false };
     if (error.status === 400) {
@@ -84,6 +86,10 @@ export function crearControladorConsulta(alCambiar: (estado: EstadoConsulta) => 
       if (propio !== turno) return;
       if (!vista?.document || !Array.isArray(vista.document.sections)) {
         throw new ApiError('RESPUESTA_INVALIDA', 'La vista previa recibida no es válida.', 502);
+      }
+      const diferencia = verificarCorrespondencia(vista, parametros);
+      if (diferencia) {
+        throw new ApiError('VISTA_NO_CORRESPONDE', `La vista previa recibida no corresponde a los criterios solicitados: ${diferencia}. Inténtalo nuevamente.`, 502);
       }
       cambiar(reporteSinResultados(vista) ? { tipo: 'vacio', parametros, vista } : { tipo: 'exito', parametros, vista });
     } catch (error) {
