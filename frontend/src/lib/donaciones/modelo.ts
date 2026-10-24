@@ -184,7 +184,7 @@ export function validarRegistroDonacion(
   reglasAporte((raw ?? {}) as Partial<CamposDonacion>, {
     addIssue: (issue: { path?: PropertyKey[]; message?: string }) =>
       cruzados.push({ path: issue.path ?? [], message: issue.message ?? '' }),
-  } as z.RefinementCtx);
+  } as unknown as z.RefinementCtx);
   for (const issue of cruzados) {
     if (!issues.some((existente) => existente.path[0] === issue.path[0])) issues.push(issue);
   }
