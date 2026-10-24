@@ -429,7 +429,10 @@ export function iniciarDonaciones() {
     grupoRecurso.hidden = dinero;
     const otro = categoriaSelect.value === 'Otro';
     q('grupo-otro').hidden = !otro;
-    q<HTMLInputElement>('categoria-otro').required = otro;
+    const campoOtro = q<HTMLInputElement>('categoria-otro');
+    campoOtro.required = otro;
+    // El texto de "Otro" no debe viajar con otra categoría aunque el campo esté oculto.
+    if (!otro) campoOtro.value = '';
     for (const nombre of ['monto', 'moneda']) q<HTMLInputElement>(nombre).required = dinero;
     raiz.querySelectorAll('[data-error-campo]').forEach((n) => n.remove());
   }
@@ -525,8 +528,8 @@ export function iniciarDonaciones() {
     try {
       const nueva = await cliente.crearDonacion(idOrganizacion, val.data);
       donaciones.unshift(nueva);
+      await abrirDetalle(nueva);
       mostrarExito('Donación registrada correctamente.');
-      abrirDetalle(nueva);
     } catch (err) {
       if (err instanceof ApiError && err.fields) {
         for (const [campo, mensajes] of Object.entries(err.fields)) {
@@ -656,12 +659,27 @@ export function iniciarDonaciones() {
     renderListadoDonaciones();
   });
 
-  q('recargar').addEventListener('click', () => {
-    if (donacionActual && !q('detalle').hidden) {
-      abrirDetalle(donacionActual);
-    } else {
-      cargarDonaciones();
+  q('recargar').addEventListener('click', async () => {
+    if (ocupado) return;
+    if (!donacionActual || q('detalle').hidden) {
+      void cargarDonaciones();
+      return;
     }
+    // En el detalle se vuelve a consultar la donación, no solo sus respaldos, para recuperar estado y versión.
+    limpiarAlertas();
+    bloquear(true, 'Actualizando donación...');
+    try {
+      const vigente = await cliente.obtenerDonacion(idOrganizacion, donacionActual.id_donacion);
+      const idx = donaciones.findIndex((d) => d.id_donacion === vigente.id_donacion);
+      if (idx >= 0) donaciones[idx] = vigente;
+      donacionActual = vigente;
+    } catch (err) {
+      mostrarError(err, 'No fue posible actualizar la donación. ');
+      bloquear(false);
+      return;
+    }
+    bloquear(false);
+    await abrirDetalle(donacionActual);
   });
 
   // La ficha entrega el nombre de la organización y del país después de montar la sección.

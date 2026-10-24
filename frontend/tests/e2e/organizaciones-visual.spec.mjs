@@ -85,13 +85,14 @@ test('accesos internos, formulario de donaciones y estado vacío del listado',as
 const donacion = {id_donacion:'17600000-0000-4000-8000-0000000000d1',id_organizacion:id,id_pais:id,id_programa:null,fecha:'2026-10-21',tipo_movimiento:'recibida',contraparte_nombre:'Empresa de prueba',tipo_donante:'empresa',origen:'Campaña local',categoria:'Servicio',tipo_aporte:'recurso',descripcion:'Horas profesionales',cantidad:2,unidad:'horas',valor_estimado:100,moneda_valorizacion:'CLP',metodo_valorizacion:'Cotización',estado:'Comprometida',version:1};
 test('donaciones: listado, validación del formulario y avance de estado',async({page},info)=>{
   const errores=[]; page.on('pageerror',e=>errores.push(e.message));
-  const cuerpos=[];
+  const cuerpos=[]; let consultasDetalle=0;
   await page.route('**/api/v1/programs',r=>r.fulfill({json:{ok:true,data:{programs:[{id_programa:'17600000-0000-4000-8000-0000000000a1',nombre:'Programa Alimentación',archived_at:null,lineas_accion:[]}]}}}));
   await page.route('**/donations**',r=>{
     const req=r.request(), path=new URL(req.url()).pathname;
     if (req.method()==='PATCH') { cuerpos.push(req.postDataJSON()); return r.fulfill({json:{ok:true,data:{donation:{...donacion,estado:'Recibida',version:2}}}}); }
     if (req.method()==='POST') { cuerpos.push(req.postDataJSON()); return r.fulfill({json:{ok:true,data:{donation:{...donacion,id_donacion:'17600000-0000-4000-8000-0000000000d2',version:1}}}}); }
     if (path.endsWith('/files')) return r.fulfill({json:{ok:true,data:{files:[]}}});
+    if (/\/donations\/[0-9a-f-]{36}$/.test(path)) { consultasDetalle++; return r.fulfill({json:{ok:true,data:{donation:{...donacion,estado:'Entregada',version:3}}}}); }
     return r.fulfill({json:{ok:true,data:{donations:[donacion]}}});
   });
   await page.setViewportSize({width:1440,height:1050});
@@ -118,8 +119,10 @@ test('donaciones: listado, validación del formulario y avance de estado',async(
   expect(cuerpos).toHaveLength(0);
   await page.locator('#don-fecha').fill('2026-10-21');
   await expect(page.locator('[data-error-campo][data-campo="fecha"]')).toHaveCount(0);
+  await page.locator('#don-categoria-otro').fill('Transporte');
   await page.locator('#don-categoria').selectOption('Servicio');
   await expect(page.locator('#don-grupo-otro')).toBeHidden();
+  await expect(page.locator('#don-categoria-otro')).toHaveValue('');
   await page.locator('#don-contraparte').fill('Empresa de prueba');
   await page.locator('#don-tipo-donante').selectOption('empresa');
   await page.locator('#don-origen').fill('Campaña local');
@@ -133,6 +136,7 @@ test('donaciones: listado, validación del formulario y avance de estado',async(
   await page.locator('#don-metodo-valorizacion').fill('Cotización');
   await page.locator('#don-guardar').click();
   await expect(page.locator('#don-detalle')).toBeVisible();
+  await expect(page.locator('#don-exito')).toHaveText('Donación registrada correctamente.');
   expect(cuerpos[0]).toMatchObject({categoria:'Servicio',tipo_aporte:'recurso',estado:'Comprometida',id_pais:id,moneda_valorizacion:'CLP'});
   expect(cuerpos[0].monto).toBeUndefined();
 
@@ -140,6 +144,10 @@ test('donaciones: listado, validación del formulario y avance de estado',async(
   await page.locator('#don-avanzar-estado').click();
   await expect(page.locator('#don-detalle-estado')).toHaveText('Recibida');
   expect(cuerpos[1]).toEqual({version_esperada:1,cambios:{estado:'Recibida'}});
+  await page.locator('#don-recargar').click();
+  await expect(page.locator('#don-detalle-estado')).toHaveText('Entregada');
+  await expect(page.locator('#don-avanzar-estado')).toHaveText('Avanzar a Cerrada');
+  expect(consultasDetalle).toBe(1);
   await page.setViewportSize({width:390,height:844});
   await captura(page,info,'donaciones-detalle-movil');
   expect(errores).toEqual([]);
