@@ -1,0 +1,195 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import { DESTINOS, etiquetasDestino } from '../../lib/reportes/configuracion';
+
+const claseSelect =
+  'min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400';
+const claseEtiqueta = 'block text-sm font-medium text-neutral-800';
+const selectores = [
+  { id: 'rep-pais', name: 'id_pais', label: 'País', vacio: 'Todos los países' },
+  { id: 'rep-organizacion', name: 'id_organizacion', label: 'Organización', vacio: 'Todas las organizaciones' },
+  { id: 'rep-programa', name: 'id_programa', label: 'Programa Institucional', vacio: 'Todos los programas' },
+];
+const listas = [
+  { id: 'indicadores', titulo: 'Indicadores', ayuda: 'Selecciona los indicadores que deseas incluir.' },
+  { id: 'resultados', titulo: 'Resultados', ayuda: 'Selecciona los resultados que deseas incluir.' },
+];
+---
+
+<section id="reporte-configuracion" class="reporte-config space-y-6" aria-busy="true">
+  <header class="min-w-0">
+    <p class="text-sm font-medium text-primary">Reportes consolidados</p>
+    <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Configurar nuevo reporte</h1>
+    <p class="mt-2 max-w-2xl text-sm text-neutral-500">
+      Define el período y los criterios del reporte antes de solicitar su vista previa. Los campos marcados con
+      <span class="font-semibold text-[#C81E5B]">*</span> son obligatorios.
+    </p>
+  </header>
+
+  <div
+    id="rep-catalogos-estado"
+    role="status"
+    aria-live="polite"
+    class="rounded-xl border border-[#E4E0F2] bg-white px-4 py-3 text-sm text-neutral-500"
+  >
+    Cargando opciones de filtro…
+  </div>
+  <div
+    id="rep-catalogos-error"
+    role="alert"
+    hidden
+    class="flex flex-col gap-3 rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger sm:flex-row sm:items-center sm:justify-between"
+  >
+    <p id="rep-catalogos-error-texto"></p>
+    <Button id="rep-reintentar" variant="outline" size="sm" class="shrink-0">Reintentar</Button>
+  </div>
+
+  <form id="rep-form" novalidate class="space-y-6">
+    <Card class="border-t-4 border-t-primary p-4 md:p-5">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Período del reporte</h2>
+        <p class="mt-1 text-sm text-neutral-500">Ambas fechas son obligatorias para solicitar el reporte.</p>
+      </div>
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div data-campo-wrap="fecha_inicio">
+          <Input id="rep-fecha-inicio" name="fecha_inicio" type="date" label="Fecha de inicio" required min="0001-01-01" max="9999-12-31" />
+        </div>
+        <div data-campo-wrap="fecha_termino">
+          <Input id="rep-fecha-termino" name="fecha_termino" type="date" label="Fecha de término" required min="0001-01-01" max="9999-12-31" />
+        </div>
+      </div>
+    </Card>
+
+    <Card class="border-t-4 border-t-brand-green p-4 md:p-5">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Filtros</h2>
+        <p class="mt-1 text-sm text-neutral-500">Opcionales. Sin filtros se consideran todos los datos visibles para tu sesión.</p>
+      </div>
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+        {selectores.map((campo) => (
+          <div data-campo-wrap={campo.name} class="space-y-1.5">
+            <label for={campo.id} class={claseEtiqueta}>{campo.label}</label>
+            <select id={campo.id} name={campo.name} class={claseSelect} disabled>
+              <option value="">{campo.vacio}</option>
+            </select>
+            <p id={`${campo.id}-ayuda`} class="text-xs text-neutral-500" hidden></p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+        {listas.map((lista) => (
+          <div data-campo-wrap={lista.id}>
+            <fieldset class="rep-lista rounded-xl border border-neutral-200 p-3" aria-describedby={`rep-${lista.id}-ayuda`}>
+              <legend class="px-1 text-sm font-medium text-neutral-800">
+                {lista.titulo} <span id={`rep-${lista.id}-contador`} class="font-normal text-neutral-500"></span>
+              </legend>
+              <p id={`rep-${lista.id}-ayuda`} class="px-1 text-xs text-neutral-500">{lista.ayuda}</p>
+              <div id={`rep-${lista.id}-opciones`} class="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1">
+                <p class="px-1 py-2 text-sm text-neutral-500">Cargando opciones…</p>
+              </div>
+            </fieldset>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div data-campo-wrap="destino" class="space-y-1.5">
+          <label for="rep-destino" class={claseEtiqueta}>Destino del reporte</label>
+          <select id="rep-destino" name="destino" class={claseSelect}>
+            {DESTINOS.map((destino) => <option value={destino}>{etiquetasDestino[destino]}</option>)}
+          </select>
+          <p class="text-xs text-neutral-500">Donantes y organismos externos reciben solo información agregada.</p>
+        </div>
+      </div>
+    </Card>
+
+    <Card class="border-t-4 border-t-brand-yellow p-4 md:p-5">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-neutral-900">Filtros seleccionados</h2>
+          <p id="rep-seleccion-resumen" class="mt-1 text-sm text-neutral-500" aria-live="polite"></p>
+        </div>
+        <Button id="rep-restablecer" variant="outline" size="sm" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 9A7 7 0 0 1 18 6l2 4M19 15a7 7 0 0 1-12.5 3L4 14" /></svg>
+          Restablecer filtros
+        </Button>
+      </div>
+      <ul id="rep-seleccion" class="flex flex-wrap gap-2" aria-label="Filtros seleccionados"></ul>
+    </Card>
+
+    <p id="rep-error-general" role="alert" hidden class="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger"></p>
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <Button href="/reportes" variant="outline">Cancelar</Button>
+      <Button id="rep-solicitar" type="submit" disabled>Solicitar vista previa</Button>
+    </div>
+  </form>
+
+  <section id="rep-consulta" aria-labelledby="rep-consulta-titulo" aria-live="polite" class="space-y-3">
+    <h2 id="rep-consulta-titulo" class="text-lg font-semibold text-neutral-900">Solicitud</h2>
+    <div id="rep-consulta-inactivo" class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-6 text-center text-sm text-neutral-500">
+      Configura el período y los filtros para preparar la solicitud de la vista previa.
+    </div>
+    <div id="rep-consulta-carga" hidden role="status" class="flex items-center justify-center gap-3 rounded-2xl border border-[#E4E0F2] bg-white p-6 text-sm text-neutral-500">
+      <span class="h-4 w-4 animate-spin rounded-full border-2 border-[#D8D3E8] border-t-primary" aria-hidden="true"></span>
+      Preparando la vista previa del reporte…
+    </div>
+    <div id="rep-consulta-error" hidden role="alert" class="flex flex-col gap-3 rounded-2xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger sm:flex-row sm:items-center sm:justify-between">
+      <p id="rep-consulta-error-texto"></p>
+      <Button id="rep-consulta-reintentar" variant="outline" size="sm" class="shrink-0">Reintentar</Button>
+    </div>
+    <div id="rep-consulta-vacio" hidden role="status" class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-6 text-center text-sm text-neutral-500">
+      <p class="font-semibold text-neutral-800">No hay resultados para los criterios seleccionados.</p>
+      <p class="mt-1">Amplía el período o quita algunos filtros y vuelve a solicitar la vista previa.</p>
+    </div>
+    <div id="rep-consulta-listo" hidden class="rounded-2xl border border-[#E4E0F2] bg-white p-4 md:p-5">
+      <p class="text-sm font-semibold text-neutral-900">Solicitud preparada</p>
+      <p class="mt-1 text-sm text-neutral-500">Los criterios son válidos y están listos para generar la vista previa.</p>
+    </div>
+    <div id="rep-consulta-exito" hidden role="status">
+      <Card class="border-t-4 border-t-brand-green p-4 md:p-5">
+        <p class="text-sm font-semibold text-neutral-900">Vista previa lista</p>
+        <p id="rep-vista-meta" class="mt-1 text-sm text-neutral-500"></p>
+        <dl id="rep-vista-resumen" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></dl>
+      </Card>
+    </div>
+    <div id="rep-consulta-parametros" hidden>
+      <Card class="p-4 md:p-5">
+        <p class="text-sm font-semibold text-neutral-900">Criterios de la solicitud</p>
+        <dl id="rep-parametros" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"></dl>
+      </Card>
+    </div>
+  </section>
+</section>
+
+<style>
+  .reporte-config :global([aria-invalid='true']) { border-color: #C81E5B; }
+  .reporte-config :global(.rep-lista label) {
+    display: flex; align-items: flex-start; gap: .6rem; min-height: 40px; padding: .35rem .5rem;
+    border-radius: .6rem; font-size: .875rem; color: #292536; cursor: pointer;
+  }
+  .reporte-config :global(.rep-lista label:hover) { background: #F5F3FA; }
+  .reporte-config :global(.rep-lista input[type='checkbox']) { margin-top: .2rem; width: 1.05rem; height: 1.05rem; accent-color: #4C4688; }
+  .reporte-config :global(.rep-chip) {
+    display: inline-flex; align-items: center; gap: .4rem; max-width: 100%; min-height: 36px;
+    padding: .25rem .35rem .25rem .8rem; border: 1px solid #DCD8EA; border-radius: 999px;
+    background: #F4F2FA; color: #423C76; font-size: .8125rem; font-weight: 500;
+  }
+  .reporte-config :global(.rep-chip span) { overflow-wrap: anywhere; }
+  .reporte-config :global(.rep-chip button) {
+    display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0;
+    border-radius: 999px; color: #4C4688; line-height: 1;
+  }
+  .reporte-config :global(.rep-chip button:hover) { background: #E6E1F4; }
+  .reporte-config :global(.rep-param) { min-width: 0; padding: .75rem; border: 1px solid #E5E0EF; border-radius: .75rem; background: #F7F5FB; }
+  .reporte-config :global(.rep-param dt) { color: #817B98; font-size: .72rem; font-weight: 600; letter-spacing: .045em; text-transform: uppercase; }
+  .reporte-config :global(.rep-param dd) { margin-top: .35rem; color: #211E2B; font-size: .9rem; overflow-wrap: anywhere; }
+</style>
+
+<script>
+  import { iniciarConfiguracionReporte } from '../../lib/reportes/interfaz-configuracion';
+  iniciarConfiguracionReporte();
+</script>
