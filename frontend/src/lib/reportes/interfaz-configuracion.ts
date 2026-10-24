@@ -3,6 +3,8 @@ import { getSupabaseClient } from '../supabase.ts';
 import { crearClienteIndicadores } from '../indicadores/cliente.ts';
 import { listarOrganizaciones, listarPaisesOrganizaciones } from '../organizaciones/cliente.ts';
 import { listarProgramas } from '../programas/cliente.ts';
+import { listarAcciones } from '../acciones/cliente.ts';
+import { cargarOpcionesResultados } from './resultados.ts';
 import {
   MAX_SELECCION,
   configuracionInicial,
@@ -17,7 +19,7 @@ import {
 } from './configuracion.ts';
 
 type Opcion = { valor: string; etiqueta: string; detalle?: string };
-type NombreCatalogo = 'Países' | 'Organizaciones' | 'Programas' | 'Indicadores';
+type NombreCatalogo = 'Países' | 'Organizaciones' | 'Programas' | 'Indicadores' | 'Resultados';
 
 export function iniciarConfiguracionReporte() {
   const contenedor = document.querySelector<HTMLElement>('#reporte-configuracion');
@@ -45,8 +47,6 @@ export function iniciarConfiguracionReporte() {
     resultados: new Map(),
   };
   let opcionesIndicadores: Opcion[] = [];
-  // El sistema no ofrece un listado independiente de resultados; se muestra como sin opciones disponibles.
-  let opcionesResultados: Opcion[] = [];
   let intentado = false;
   let secuenciaOrganizaciones = 0;
   let fallidos: NombreCatalogo[] = [];
@@ -138,6 +138,7 @@ export function iniciarConfiguracionReporte() {
         config = quitarFiltro(config, filtro);
         pintarFormulario();
         actualizar();
+        if (filtro.campo === 'id_pais') void cargarOrganizaciones();
       });
       item.append(texto, quitar);
       lista.append(item);
@@ -160,6 +161,7 @@ export function iniciarConfiguracionReporte() {
 
   function actualizar() {
     leerFormulario();
+    estadoConsulta('inactivo');
     pintarSeleccion();
     revalidar();
   }
@@ -267,6 +269,11 @@ export function iniciarConfiguracionReporte() {
       })]);
     }
     if (quiere('Organizaciones')) tareas.push(['Organizaciones', cargarOrganizaciones()]);
+    if (quiere('Resultados')) {
+      tareas.push(['Resultados', cargarOpcionesResultados(() => listarAcciones(), (accion) => indicadores.listar(accion)).then((opciones) => {
+        pintarLista('resultados', opciones, 'No hay resultados disponibles para seleccionar.');
+      })]);
+    }
 
     const resultados = await Promise.allSettled(tareas.map(([, tarea]) => tarea));
     resultados.forEach((resultado, indice) => {
@@ -280,12 +287,9 @@ export function iniciarConfiguracionReporte() {
         if (nombre === 'Países') avisoSelect(selectores.id_pais, 'No fue posible cargar los países.');
         if (nombre === 'Programas') avisoSelect(selectores.id_programa, 'No fue posible cargar los programas.');
         if (nombre === 'Indicadores') pintarLista('indicadores', [], 'No fue posible cargar los indicadores.');
+        if (nombre === 'Resultados') pintarLista('resultados', [], 'No fue posible cargar los resultados.');
       }
     });
-
-    if (!solo) {
-      pintarLista('resultados', opcionesResultados, 'No hay resultados disponibles para seleccionar.');
-    }
 
     raiz.setAttribute('aria-busy', 'false');
     q<HTMLButtonElement>('reintentar').disabled = false;
@@ -346,6 +350,7 @@ export function iniciarConfiguracionReporte() {
   });
 
   selectores.id_pais.addEventListener('change', () => {
+    estadoConsulta('inactivo');
     leerFormulario();
     config.id_organizacion = '';
     selectores.id_organizacion.value = '';
@@ -355,6 +360,7 @@ export function iniciarConfiguracionReporte() {
   });
 
   q('restablecer').addEventListener('click', () => {
+    estadoConsulta('inactivo');
     leerFormulario();
     const paisAnterior = config.id_pais;
     config = restablecerFiltros(config);
