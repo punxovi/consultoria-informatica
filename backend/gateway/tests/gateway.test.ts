@@ -125,11 +125,12 @@ describe('API Gateway', () => {
   });
 
   test('enruta Organizaciones con filtros y sesión', async () => {
-    const response = await fetch(`${gatewayUrl}/api/v1/organizations?incluir_archivadas=false`, {
+    const query = 'search=comedor&id_pais=11111111-1111-4111-8111-111111111111&id_programa=22222222-2222-4222-8222-222222222222';
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations?${query}`, {
       headers: { authorization: 'Bearer sesion-organizaciones' },
     });
     const body = await response.json();
-    assert.equal(body.path, '/v1/organizations?incluir_archivadas=false');
+    assert.equal(body.path, `/v1/organizations?${query}`);
     assert.equal(body.authorization, 'Bearer sesion-organizaciones');
   });
 
@@ -198,7 +199,7 @@ describe('API Gateway', () => {
   });
 
   test('enruta Dashboard y Reportes al contexto de Insights', async () => {
-    for (const path of ['/api/v1/dashboard?id_pais=11111111-1111-4111-8111-111111111111', '/api/v1/reports/overview']) {
+    for (const path of ['/api/v1/dashboard?id_pais=11111111-1111-4111-8111-111111111111&anio=2026', '/api/v1/reports/overview']) {
       const response = await fetch(`${gatewayUrl}${path}`, { headers: { authorization: 'Bearer sesion-insights' } });
       const body = await response.json();
       assert.equal(body.path, path.replace('/api', ''));

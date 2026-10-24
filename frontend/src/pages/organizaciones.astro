@@ -112,7 +112,7 @@ import Button from '../components/ui/Button.astro';
       </div>
 
       <p id="filtro-programa-hint" role="status" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        El programa seleccionado se conservará como parámetro para la siguiente tarea de integración. Su efecto sobre los resultados se habilitará al conectar la consulta del backend.
+        Los filtros se consultan en el Backend y los resultados respetan los permisos territoriales de tu sesión.
       </p>
 
       <div class="mt-4">
@@ -180,16 +180,17 @@ import Button from '../components/ui/Button.astro';
   const limpiarBoton = document.querySelector<HTMLButtonElement>('#limpiar-organizaciones')!;
   const actualizarBoton = document.querySelector<HTMLButtonElement>('#actualizar-organizaciones')!;
 
+  selectPais.disabled = true;
+  selectPrograma.disabled = true;
+
   const parametrosIniciales = new URLSearchParams(window.location.search);
   inputBusqueda.value = parametrosIniciales.get('q') ?? '';
 
-  let todasLasOrganizaciones: Organizacion[] = [];
   let nombresProgramas = new Map<string, string>();
   let catalogoProgramasDisponible = true;
-
-  function normalizar(texto: string): string {
-    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CL').trim();
-  }
+  let catalogosListos = false;
+  let solicitudActual = 0;
+  let temporizadorBusqueda: number | undefined;
 
   function obtenerFiltrosSeleccionados(): FiltrosListado {
     return {
@@ -228,7 +229,6 @@ import Button from '../components/ui/Button.astro';
   }
 
   async function cargarProgramasDisponibles() {
-    selectPrograma.disabled = false;
     try {
       const programas = await listarProgramas();
       nombresProgramas = new Map(programas.map((programa): [string, string] => [String(programa.id_programa), programa.nombre]));
@@ -242,11 +242,13 @@ import Button from '../components/ui/Button.astro';
       selectPrograma.value = valorAnterior;
       if (selectPrograma.value !== valorAnterior) selectPrograma.value = '';
       catalogoProgramasDisponible = true;
-      hintPrograma.textContent = 'El filtro de programa está preparado. Su efecto sobre los resultados se habilitará al conectar la consulta del backend en la tarea de integración.';
+      hintPrograma.textContent = 'Los filtros se consultan en el Backend y los resultados respetan los permisos territoriales de tu sesión.';
+      hintPrograma.className = 'mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600';
     } catch {
       catalogoProgramasDisponible = false;
       selectPrograma.replaceChildren(new Option('Programas no disponibles', ''));
       selectPrograma.disabled = true;
+      selectPrograma.value = '';
       hintPrograma.textContent = 'No se pudo cargar el catálogo de programas. Puedes seguir usando la búsqueda por nombre y el filtro por país; revisa la conexión para volver a cargar el catálogo.';
       hintPrograma.className = 'mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger';
     }
@@ -266,7 +268,7 @@ import Button from '../components/ui/Button.astro';
       if (programa) activos.push(`Programa: ${programa}`);
     }
 
-    limpiarBoton.disabled = activos.length === 0;
+    limpiarBoton.disabled = !catalogosListos || activos.length === 0;
 
     if (activos.length === 0) {
       const vacio = document.createElement('span');
@@ -315,6 +317,12 @@ import Button from '../components/ui/Button.astro';
     totalElement.textContent = new Intl.NumberFormat('es-CL').format(datos.length);
     activasElement.textContent = new Intl.NumberFormat('es-CL').format(activas);
     inactivasElement.textContent = new Intl.NumberFormat('es-CL').format(datos.length - activas);
+  }
+
+  function limpiarResumen() {
+    totalElement.textContent = '—';
+    activasElement.textContent = '—';
+    inactivasElement.textContent = '—';
   }
 
   function formatearTipoOrganizacion(organizacion: Organizacion): string {
@@ -398,17 +406,17 @@ import Button from '../components/ui/Button.astro';
     return tarjeta;
   }
 
-  function mostrarOrganizaciones(datos: Organizacion[], totalSinFiltrar = datos.length) {
+  function mostrarOrganizaciones(datos: Organizacion[], hayFiltros: boolean) {
     limpiarLista();
 
     if (datos.length === 0) {
       mostrarMensajeVacio(
-        totalSinFiltrar === 0 ? 'No hay organizaciones para mostrar' : 'No se encontraron organizaciones',
-        totalSinFiltrar === 0
-          ? 'Cuando existan organizaciones registradas, aparecerán en este listado.'
-          : 'Prueba con otro nombre o selecciona un país diferente.',
+        hayFiltros ? 'No se encontraron organizaciones' : 'No hay organizaciones para mostrar',
+        hayFiltros
+          ? 'Prueba con otro nombre o selecciona un país o programa diferente.'
+          : 'Cuando existan organizaciones registradas, aparecerán en este listado.',
       );
-      contadorElement.textContent = totalSinFiltrar === 0 ? '0 organizaciones registradas' : '0 resultados';
+      contadorElement.textContent = hayFiltros ? '0 resultados' : '0 organizaciones registradas';
       return;
     }
 
@@ -416,86 +424,128 @@ import Button from '../components/ui/Button.astro';
     contadorElement.textContent = datos.length === 1 ? '1 organización encontrada' : `${new Intl.NumberFormat('es-CL').format(datos.length)} organizaciones encontradas`;
   }
 
-  function aplicarFiltros() {
-    const filtros = obtenerFiltrosSeleccionados();
-    sincronizarFiltrosEnUrl(filtros);
-    renderizarFiltrosActivos(filtros);
-
-    const textoBuscado = normalizar(filtros.q);
-    const filtradas = todasLasOrganizaciones.filter((organizacion) => {
-      const coincideNombre = !textoBuscado || normalizar(organizacion.nombre).includes(textoBuscado);
-      const coincidePais = !filtros.id_pais || organizacion.id_pais === filtros.id_pais || organizacion.pais?.id_pais === filtros.id_pais;
-      return coincideNombre && coincidePais;
-    });
-
-    if (filtros.id_programa && catalogoProgramasDisponible) {
-      const nombrePrograma = nombresProgramas.get(filtros.id_programa) ?? 'seleccionado';
-      hintPrograma.textContent = `Programa seleccionado: ${nombrePrograma}. La selección se conserva como parámetro; el listado se filtrará por la relación con los planes cuando se complete la integración del backend.`;
-      hintPrograma.className = 'mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800';
-    } else if (catalogoProgramasDisponible) {
-      hintPrograma.textContent = 'El filtro de programa está preparado. Su efecto sobre los resultados se habilitará al conectar la consulta del backend en la tarea de integración.';
-      hintPrograma.className = 'mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800';
-    }
-
-    mostrarOrganizaciones(filtradas, todasLasOrganizaciones.length);
-  }
-
-  async function cargarOrganizaciones() {
+  function mostrarCargando() {
     lista.setAttribute('aria-busy', 'true');
     errorElement.hidden = true;
     contadorElement.textContent = 'Cargando organizaciones…';
+    limpiarResumen();
     limpiarLista();
     const cargando = document.createElement('p');
     cargando.className = 'text-sm text-neutral-500';
     cargando.textContent = 'Cargando organizaciones…';
     lista.append(cargando);
     actualizarBoton.disabled = true;
+  }
+
+  function mostrarErrorListado(fallo: unknown, solicitud: number) {
+    if (solicitud !== solicitudActual) return;
+    limpiarLista();
+    limpiarResumen();
+    errorElement.textContent = fallo instanceof Error
+      ? fallo.message
+      : 'Ocurrió un error inesperado al cargar las organizaciones.';
+    errorElement.hidden = false;
+    contadorElement.textContent = 'No se pudieron cargar las organizaciones.';
+
+    const reintentar = document.createElement('button');
+    reintentar.type = 'button';
+    reintentar.className = 'mt-3 inline-flex min-h-[44px] items-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+    reintentar.textContent = 'Reintentar';
+    reintentar.addEventListener('click', () => aplicarFiltros(false));
+    lista.append(reintentar);
+  }
+
+  async function consultarOrganizaciones(filtros: FiltrosListado, solicitud: number) {
+    try {
+      const datos = await listarOrganizaciones({
+        q: filtros.q,
+        idPais: filtros.id_pais || undefined,
+        idPrograma: filtros.id_programa || undefined,
+      });
+      if (solicitud !== solicitudActual) return;
+
+      actualizarResumen(datos);
+      mostrarOrganizaciones(datos, Boolean(filtros.q || filtros.id_pais || filtros.id_programa));
+    } catch (fallo) {
+      mostrarErrorListado(fallo, solicitud);
+    } finally {
+      if (solicitud === solicitudActual) {
+        lista.setAttribute('aria-busy', 'false');
+        actualizarBoton.disabled = false;
+      }
+    }
+  }
+
+  function aplicarFiltros(debounce = true) {
+    const filtros = obtenerFiltrosSeleccionados();
+    sincronizarFiltrosEnUrl(filtros);
+    renderizarFiltrosActivos(filtros);
+    if (!catalogosListos) return;
+
+    if (temporizadorBusqueda !== undefined) window.clearTimeout(temporizadorBusqueda);
+    const solicitud = ++solicitudActual;
+    mostrarCargando();
+    const consultar = () => void consultarOrganizaciones(filtros, solicitud);
+    if (debounce) temporizadorBusqueda = window.setTimeout(consultar, 300);
+    else consultar();
+  }
+
+  async function cargarCatalogos() {
+    catalogosListos = false;
+    mostrarCargando();
+    actualizarBoton.disabled = true;
 
     try {
-      const [datos, paises] = await Promise.all([
-        listarOrganizaciones(),
+      const [paises] = await Promise.all([
         listarPaisesOrganizaciones(),
         cargarProgramasDisponibles(),
       ]);
-      todasLasOrganizaciones = datos;
-      actualizarResumen(datos);
       poblarFiltroPaises(paises);
+      selectPais.disabled = false;
       selectPais.value = parametrosIniciales.get('id_pais') ?? '';
-      selectPrograma.value = parametrosIniciales.get('id_programa') ?? '';
-      aplicarFiltros();
+      if (selectPais.value !== (parametrosIniciales.get('id_pais') ?? '')) selectPais.value = '';
+      if (catalogoProgramasDisponible) {
+        selectPrograma.disabled = false;
+        selectPrograma.value = parametrosIniciales.get('id_programa') ?? '';
+        if (selectPrograma.value !== (parametrosIniciales.get('id_programa') ?? '')) selectPrograma.value = '';
+      }
+      catalogosListos = true;
+      aplicarFiltros(false);
     } catch (fallo) {
-      todasLasOrganizaciones = [];
-      actualizarResumen([]);
+      solicitudActual += 1;
       limpiarLista();
-      errorElement.textContent = fallo instanceof Error ? fallo.message : 'Ocurrió un error inesperado al cargar las organizaciones.';
+      limpiarResumen();
+      errorElement.textContent = fallo instanceof Error ? fallo.message : 'Ocurrió un error inesperado al cargar los filtros.';
       errorElement.hidden = false;
-      contadorElement.textContent = 'No se pudieron cargar las organizaciones.';
+      contadorElement.textContent = 'No se pudieron cargar los filtros.';
 
       const reintentar = document.createElement('button');
       reintentar.type = 'button';
       reintentar.className = 'mt-3 inline-flex min-h-[44px] items-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
       reintentar.textContent = 'Reintentar';
-      reintentar.addEventListener('click', () => void cargarOrganizaciones());
+      reintentar.addEventListener('click', () => void cargarCatalogos());
       lista.append(reintentar);
     } finally {
-      lista.setAttribute('aria-busy', 'false');
-      actualizarBoton.disabled = false;
+      if (!catalogosListos) {
+        lista.setAttribute('aria-busy', 'false');
+        actualizarBoton.disabled = false;
+      }
     }
   }
 
-  inputBusqueda.addEventListener('input', aplicarFiltros);
-  selectPais.addEventListener('change', aplicarFiltros);
-  selectPrograma.addEventListener('change', aplicarFiltros);
+  inputBusqueda.addEventListener('input', () => aplicarFiltros(true));
+  selectPais.addEventListener('change', () => aplicarFiltros(false));
+  selectPrograma.addEventListener('change', () => aplicarFiltros(false));
 
   limpiarBoton.addEventListener('click', () => {
     inputBusqueda.value = '';
     selectPais.value = '';
     selectPrograma.value = '';
-    aplicarFiltros();
+    aplicarFiltros(false);
     inputBusqueda.focus();
   });
 
-  actualizarBoton.addEventListener('click', () => void cargarOrganizaciones());
+  actualizarBoton.addEventListener('click', () => aplicarFiltros(false));
   renderizarFiltrosActivos();
-  void cargarOrganizaciones();
+  void cargarCatalogos();
 </script>

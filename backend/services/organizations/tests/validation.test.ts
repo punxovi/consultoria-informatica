@@ -54,8 +54,23 @@ describe('validaciones de Organizaciones', () => {
 
   test('valida filtros HTTP', () => {
     assert.deepEqual(
+      parseOrganizationFilters(new URL(
+        'http://test/v1/organizations?search=comedores&id_pais=11111111-1111-4111-8111-111111111111&id_programa=22222222-2222-4222-8222-222222222222',
+      )),
+      {
+        search: 'comedores',
+        idPais: '11111111-1111-4111-8111-111111111111',
+        idPrograma: '22222222-2222-4222-8222-222222222222',
+        includeArchived: false,
+      },
+    );
+    assert.deepEqual(
       parseOrganizationFilters(new URL('http://test/v1/organizations?incluir_archivadas=true')),
       { includeArchived: true },
+    );
+    assert.throws(
+      () => parseOrganizationFilters(new URL('http://test/v1/organizations?q=comedores')),
+      ServiceError,
     );
     assert.throws(
       () => parseOrganizationFilters(new URL('http://test/v1/organizations?desconocido=1')),
