@@ -8,14 +8,15 @@ interface Props {
   idOrganizacion: string;
 }
 const { idOrganizacion } = Astro.props;
-const camposDinero = [
-  { id: 'don-monto', name: 'monto', type: 'number', min: '0.01', step: 'any', label: 'Monto *', placeholder: 'Ej. 150000' },
-  { id: 'don-moneda', name: 'moneda', label: 'Moneda (3 letras) *', value: 'CLP', maxlength: 3, placeholder: 'CLP' },
+const claseSelect = 'mt-1.5 min-h-[48px] w-full rounded-xl border border-[#DCD8E8] bg-white px-3 text-base text-[#1A1A1A] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5]';
+const campoSoloLectura = 'min-h-[48px] w-full rounded-xl border border-[#E8E5EF] bg-[#F7F5FB] px-3.5 py-2.5 text-base text-[#4A4660]';
+const categorias = ['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro'];
+const tiposDonante = [
+  { value: 'empresa', label: 'Empresa' },
+  { value: 'persona', label: 'Persona' },
+  { value: 'organizacion', label: 'Organización' },
 ];
-const camposRecurso = [
-  { id: 'don-cantidad', name: 'cantidad', type: 'number', min: '0.01', step: 'any', label: 'Cantidad de recursos *', placeholder: 'Ej. 25' },
-  { id: 'don-unidad', name: 'unidad', label: 'Unidad de medida *', placeholder: 'Ej. cajas, kg, raciones, kits', maxlength: 50 },
-];
+const estados = ['Comprometida', 'Recibida', 'Entregada', 'Cerrada'];
 const filtrosRespaldo = [
   { value: 'todos', label: 'Todos' },
   { value: 'comprobante', label: 'Comprobantes' },
@@ -34,9 +35,9 @@ const tiposRespaldo = [
   <!-- Encabezado de la sección -->
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h2 class="text-xl font-semibold text-neutral-900">Donaciones y Respaldos</h2>
-      <p class="mt-1 text-sm text-neutral-600">
-        Gestión de aportes en dinero o recursos y asociación de documentos de respaldo (comprobantes, actas de entrega, certificados y fotografías).
+      <h2 class="text-xl font-semibold text-neutral-900">Donaciones y recursos</h2>
+      <p class="mt-1 text-sm text-neutral-500">
+        Consulta los aportes recibidos y entregados, registra nuevas donaciones y adjunta sus documentos de respaldo.
       </p>
     </div>
     <div class="flex flex-wrap items-center gap-3">
@@ -69,114 +70,111 @@ const tiposRespaldo = [
     <Card>
       <h3 class="text-lg font-semibold text-neutral-900">Registrar nueva donación</h3>
       <p class="mt-1 text-sm text-neutral-500">
-        Ingresa los datos de la donación. Una vez creada podrás adjuntar sus respaldos documentales.
+        Los campos marcados con <span class="font-semibold text-[#C81E5B]">*</span> son obligatorios. Una vez creada podrás adjuntar sus respaldos documentales.
       </p>
-      <form id="don-form-donacion-tag" class="mt-6 space-y-5" novalidate>
-        <fieldset id="don-campos" class="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label for="don-tipo-movimiento" class="block text-sm font-medium text-neutral-800">
-              Tipo de movimiento *
-            </label>
-            <select
-              id="don-tipo-movimiento"
-              name="tipo_movimiento"
-              required
-              class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="recibida">Donación Recibida (ingreso para la organización)</option>
-              <option value="entregada">Donación Entregada (aporte entregado a un beneficiario)</option>
-            </select>
-          </div>
-          <Input
-            id="don-fecha"
-            name="fecha"
-            type="date"
-            label="Fecha de la donación"
-            required
-          />
-          <div class="sm:col-span-2">
-            <Input
-              id="don-contraparte"
-              name="contraparte_nombre"
-              label="Contraparte o Donante"
-              placeholder="Ej. Empresa Alimentos del Sur, Fundación Amiga o Nombre de persona"
-              required
-              maxlength={200}
-            />
-          </div>
-          <div class="sm:col-span-2">
-            <label for="don-aporte-tipo" class="block text-sm font-medium text-neutral-800">
-              Tipo de aporte *
-            </label>
-            <select
-              id="don-aporte-tipo"
-              name="tipo_aporte"
-              required
-              class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="dinero">Aporte en dinero (monto económico)</option>
-              <option value="recurso">Aporte en recursos / especie (alimentos, insumos, etc.)</option>
-            </select>
-          </div>
-          <!-- Metadatos HU20 -->
-          <div>
-            <label for="don-categoria" class="block text-sm font-medium text-neutral-800">Categoría del aporte *</label>
-            <select id="don-categoria" name="categoria" required class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm">
-              <option value="Dinero">Dinero</option>
-              <option value="Producto">Producto</option>
-              <option value="Servicio">Servicio</option>
-              <option value="Insumos">Insumos</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-          <Input id="don-categoria-otro" name="categoria_otro" label="Descripción de Otro (si seleccionaste Otro)" maxlength={2000} />
-          <div>
-            <label for="don-tipo-donante" class="block text-sm font-medium text-neutral-800">Tipo de donante *</label>
-            <select id="don-tipo-donante" name="tipo_donante" required class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm">
-              <option value="">Selecciona un tipo</option>
-              <option value="empresa">Empresa</option>
-              <option value="persona">Persona</option>
-              <option value="organizacion">Organización</option>
-            </select>
-          </div>
-          <Input id="don-origen" name="origen" label="Origen del donante *" required maxlength={2000} />
-          <div>
-            <label for="don-estado" class="block text-sm font-medium text-neutral-800">Estado del aporte *</label>
-            <select id="don-estado" name="estado" required class="mt-1.5 min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm">
-              <option value="Comprometida">Comprometida</option>
-              <option value="Recibida">Recibida</option>
-              <option value="Entregada">Entregada</option>
-              <option value="Cerrada">Cerrada</option>
-            </select>
-          </div>
-          <div id="don-grupo-dinero" class="contents">
-            {camposDinero.map((campo) => <Input {...campo} />)}
-          </div>
-          <div id="don-grupo-recurso" hidden class="contents">
-            {camposRecurso.map((campo) => <Input {...campo} />)}
-          </div>
-          <div class="sm:col-span-2">
-            <label for="don-descripcion" class="block text-sm font-medium text-neutral-800">
-              Descripción del aporte *
-            </label>
-            <textarea
-              id="don-descripcion"
-              name="descripcion"
-              required
-              rows="3"
-              maxlength="2000"
-              placeholder="Detalla en qué consistió el aporte, el destino o contexto de la donación..."
-              class="mt-1.5 w-full rounded-lg border border-neutral-300 p-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            ></textarea>
-          </div>
+      <form id="don-form-donacion-tag" class="mt-6 space-y-6" novalidate>
+        <fieldset id="don-campos" class="space-y-6">
+          <section class="don-grupo don-grupo-morado" aria-labelledby="don-g-general">
+            <h4 id="don-g-general">Datos generales</h4>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <Input id="don-fecha" name="fecha" type="date" label="Fecha de la donación" required />
+              <div>
+                <label for="don-tipo-movimiento" class="text-sm font-semibold text-[#383165]">Tipo de movimiento <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <select id="don-tipo-movimiento" name="tipo_movimiento" required class={claseSelect}>
+                  <option value="recibida">Recibida (ingreso para la organización)</option>
+                  <option value="entregada">Entregada (aporte entregado)</option>
+                </select>
+              </div>
+              <div>
+                <label for="don-pais" class="text-sm font-semibold text-[#383165]">País <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <input id="don-pais" type="text" readonly aria-describedby="don-pais-ayuda" class={`mt-1.5 ${campoSoloLectura}`} />
+                <p id="don-pais-ayuda" class="mt-1 text-xs text-neutral-500">Corresponde al país de la organización receptora.</p>
+              </div>
+              <div>
+                <label for="don-organizacion" class="text-sm font-semibold text-[#383165]">Organización receptora <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <input id="don-organizacion" type="text" readonly class={`mt-1.5 ${campoSoloLectura}`} />
+              </div>
+              <div class="sm:col-span-2">
+                <label for="don-programa" class="text-sm font-semibold text-[#383165]">Programa Institucional <span class="font-normal text-neutral-500">(opcional)</span></label>
+                <select id="don-programa" name="id_programa" class={claseSelect}>
+                  <option value="">Sin Programa asociado</option>
+                </select>
+                <p id="don-programa-ayuda" class="mt-1 text-xs text-neutral-500">Asocia la donación a un Programa cuando corresponda.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="don-grupo don-grupo-verde" aria-labelledby="don-g-donante">
+            <h4 id="don-g-donante">Donante</h4>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <Input id="don-contraparte" name="contraparte_nombre" label="Nombre o identificación del donante" placeholder="Ej. Empresa Alimentos del Sur" required maxlength={200} />
+              </div>
+              <div>
+                <label for="don-tipo-donante" class="text-sm font-semibold text-[#383165]">Tipo de donante <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <select id="don-tipo-donante" name="tipo_donante" required class={claseSelect}>
+                  <option value="">Selecciona un tipo</option>
+                  {tiposDonante.map((t) => <option value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <Input id="don-origen" name="origen" label="Origen del donante" placeholder="Ej. Campaña local, aporte corporativo" required maxlength={2000} />
+            </div>
+          </section>
+
+          <section class="don-grupo don-grupo-amarillo" aria-labelledby="don-g-aporte">
+            <h4 id="don-g-aporte">Aporte</h4>
+            <input type="hidden" id="don-aporte-tipo" name="tipo_aporte" value="dinero" />
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="don-categoria" class="text-sm font-semibold text-[#383165]">Categoría del aporte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <select id="don-categoria" name="categoria" required class={claseSelect}>
+                  {categorias.map((c) => <option value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div id="don-grupo-otro" hidden>
+                <Input id="don-categoria-otro" name="categoria_otro" label="Describe el aporte (Otro)" required maxlength={2000} />
+              </div>
+              <div class="sm:col-span-2">
+                <label for="don-descripcion" class="text-sm font-semibold text-[#383165]">Descripción del aporte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <textarea id="don-descripcion" name="descripcion" required rows="3" maxlength="2000" placeholder="Detalla en qué consistió el aporte, su destino o contexto." class="mt-1.5 w-full rounded-xl border border-[#DCD8E8] p-3 text-base focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5]"></textarea>
+              </div>
+              <div id="don-grupo-dinero" class="contents">
+                <Input id="don-monto" name="monto" type="number" min="0.01" step="any" label="Monto" placeholder="Ej. 150000" required />
+                <Input id="don-moneda" name="moneda" label="Moneda (3 letras)" value="CLP" maxlength={3} placeholder="CLP" required />
+              </div>
+              <div id="don-grupo-recurso" hidden class="contents">
+                <Input id="don-cantidad" name="cantidad" type="number" min="0.01" step="any" label="Cantidad" placeholder="Ej. 25" hint="Opcional. Si la indicas, completa también la unidad." />
+                <Input id="don-unidad" name="unidad" label="Unidad de medida" placeholder="Ej. cajas, kg, horas" maxlength={50} hint="Opcional. Si la indicas, completa también la cantidad." />
+              </div>
+            </div>
+          </section>
+
+          <section class="don-grupo don-grupo-morado" aria-labelledby="don-g-valor">
+            <h4 id="don-g-valor">Valorización estimada <span class="text-sm font-normal text-neutral-500">(opcional)</span></h4>
+            <p class="mb-4 text-sm text-neutral-500">Completa los tres campos o déjalos vacíos.</p>
+            <div class="grid gap-5 sm:grid-cols-3">
+              <Input id="don-valor-estimado" name="valor_estimado" type="number" min="0" step="any" label="Valor estimado" />
+              <Input id="don-moneda-valorizacion" name="moneda_valorizacion" label="Moneda (3 letras)" maxlength={3} placeholder="CLP" />
+              <Input id="don-metodo-valorizacion" name="metodo_valorizacion" label="Método de valorización" maxlength={200} placeholder="Ej. Cotización" />
+            </div>
+          </section>
+
+          <section class="don-grupo don-grupo-verde" aria-labelledby="don-g-estado">
+            <h4 id="don-g-estado">Estado</h4>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="don-estado" class="text-sm font-semibold text-[#383165]">Estado del aporte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <select id="don-estado" name="estado" required class={claseSelect}>
+                  {estados.map((e) => <option value={e}>{e}</option>)}
+                </select>
+                <p class="mt-1 text-xs text-neutral-500">Después solo podrá avanzar en orden: Comprometida, Recibida, Entregada y Cerrada.</p>
+              </div>
+            </div>
+          </section>
         </fieldset>
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button id="don-cancelar" variant="outline">
-            Cancelar
-          </Button>
-          <Button id="don-guardar" type="submit">
-            Guardar donación
-          </Button>
+          <Button id="don-cancelar" variant="outline">Cancelar</Button>
+          <Button id="don-guardar" type="submit">Guardar donación</Button>
         </div>
       </form>
     </Card>
@@ -195,14 +193,22 @@ const tiposRespaldo = [
           <span id="don-detalle-movimiento" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"></span>
           <h3 id="don-detalle-contraparte" class="mt-2 break-words text-xl font-semibold text-neutral-900"></h3>
         </div>
+        <button id="don-avanzar-estado" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#4C4688] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#423C76] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"></button>
       </div>
       <dl class="don-detalle-grid mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {[
           { id: 'don-detalle-fecha', label: 'Fecha' },
+          { id: 'don-detalle-organizacion', label: 'Organización receptora' },
+          { id: 'don-detalle-pais', label: 'País' },
+          { id: 'don-detalle-programa', label: 'Programa Institucional' },
+          { id: 'don-detalle-donante', label: 'Tipo y origen del donante' },
+          { id: 'don-detalle-categoria', label: 'Categoría' },
           { id: 'don-detalle-aporte', label: 'Aporte' },
+          { id: 'don-detalle-valor', label: 'Valorización estimada' },
+          { id: 'don-detalle-estado', label: 'Estado' },
           { id: 'don-detalle-descripcion', label: 'Descripción', wide: true },
         ].map((campo) => (
-          <div class={campo.wide ? 'sm:col-span-2 xl:col-span-1' : ''}>
+          <div class={campo.wide ? 'sm:col-span-2 xl:col-span-3' : ''}>
             <dt>{campo.label}</dt>
             <dd id={campo.id}></dd>
           </div>
@@ -361,6 +367,14 @@ const tiposRespaldo = [
     border-color: var(--don-morado); outline: 2px solid rgb(76 70 136 / 14%); outline-offset: 1px;
   }
   #seccion-donaciones :global(#don-respaldo-pendiente-alerta) { border: 1px solid #F1D5A2; background: #FFF8E9; }
+  #seccion-donaciones :global(.don-grupo) {
+    border: 1px solid #E8E5EF; border-top-width: 3px; border-radius: 16px; background: #fff; padding: 18px 18px 20px;
+  }
+  #seccion-donaciones :global(.don-grupo h4) { margin-bottom: 14px; color: #292536; font-size: 1rem; font-weight: 600; }
+  #seccion-donaciones :global(.don-grupo-morado) { border-top-color: #8C81BC; }
+  #seccion-donaciones :global(.don-grupo-verde) { border-top-color: #6CBA9B; }
+  #seccion-donaciones :global(.don-grupo-amarillo) { border-top-color: #E4B93F; }
+  #seccion-donaciones :global([aria-invalid='true']) { border-color: #C81E5B; }
   @media (max-width: 640px) {
     #seccion-donaciones :global(#don-lista > article .don-card-layout) { padding: 14px; }
   }

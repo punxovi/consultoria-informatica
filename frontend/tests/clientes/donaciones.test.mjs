@@ -216,3 +216,24 @@ test('cliente donaciones: falla limpiamente si la carga no queda en estado dispo
     (err) => err.code === 'CARGA_PENDIENTE',
   );
 });
+
+test('cliente donaciones: cambia el estado con la versión esperada', async () => {
+  const llamadas = [];
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'jwt-token', async (url, init) => {
+    llamadas.push({ url, init });
+    return Response.json({
+      ok: true,
+      code: 'DONACION_ACTUALIZADA',
+      message: 'Donación actualizada',
+      data: { donation: { ...donacionEjemplo, estado: 'Recibida', version: 2 } },
+    });
+  });
+
+  const actualizada = await cliente.actualizarDonacion(idOrg, idDonacion, 1, { estado: 'Recibida' });
+  assert.equal(actualizada.estado, 'Recibida');
+  assert.equal(actualizada.version, 2);
+  assert.equal(llamadas[0].init.method, 'PATCH');
+  assert.ok(llamadas[0].url.endsWith(`/organizations/${idOrg}/donations/${idDonacion}`));
+  assert.deepEqual(JSON.parse(llamadas[0].init.body), { version_esperada: 1, cambios: { estado: 'Recibida' } });
+  assert.equal(llamadas[0].init.headers.authorization, 'Bearer jwt-token');
+});

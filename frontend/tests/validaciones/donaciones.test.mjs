@@ -4,6 +4,9 @@ import {
   MAX_BYTES,
   accept,
   donacionFormSchema,
+  donacionRegistroSchema,
+  siguienteEstado,
+  validarRegistroDonacion,
   donacionSchema,
   normalizarTipoRespaldo,
   respaldoFormSchema,
@@ -116,4 +119,84 @@ test('respaldoSchema y donacionSchema: validan modelos persistidos', () => {
     version: 2,
   });
   assert.ok(respaldo.success);
+});
+
+const registroBase = {
+  id_pais: '13100000-0000-4000-8000-000000000002',
+  categoria: 'Servicio',
+  tipo_donante: 'empresa',
+  origen: 'Campaña local',
+  estado: 'Comprometida',
+  fecha: '2026-10-21',
+  tipo_movimiento: 'recibida',
+  contraparte_nombre: 'Empresa de prueba',
+  descripcion: 'Horas profesionales',
+  tipo_aporte: 'recurso',
+};
+
+test('donacionRegistroSchema: exige los campos obligatorios de HU20', () => {
+  assert.ok(donacionRegistroSchema.safeParse(registroBase).success);
+
+  for (const campo of ['id_pais', 'categoria', 'tipo_donante', 'origen', 'estado']) {
+    const resultado = donacionRegistroSchema.safeParse({ ...registroBase, [campo]: undefined });
+    assert.equal(resultado.success, false, `${campo} debería ser obligatorio`);
+    assert.equal(resultado.error.issues[0].path[0], campo);
+  }
+  assert.equal(donacionRegistroSchema.safeParse({ ...registroBase, estado: 'Archivada' }).success, false);
+  assert.equal(donacionRegistroSchema.safeParse({ ...registroBase, tipo_donante: 'gobierno' }).success, false);
+});
+
+test('donacionRegistroSchema: la categoría Otro exige su descripción y solo ella la admite', () => {
+  const sinTexto = donacionRegistroSchema.safeParse({ ...registroBase, categoria: 'Otro' });
+  assert.equal(sinTexto.success, false);
+  assert.equal(sinTexto.error.issues[0].path[0], 'categoria_otro');
+  assert.ok(donacionRegistroSchema.safeParse({ ...registroBase, categoria: 'Otro', categoria_otro: 'Transporte' }).success);
+  assert.equal(donacionRegistroSchema.safeParse({ ...registroBase, categoria_otro: 'Transporte' }).success, false);
+});
+
+test('donacionRegistroSchema: cantidad y unidad van juntas o ninguna; dinero exige monto y moneda', () => {
+  assert.equal(donacionRegistroSchema.safeParse({ ...registroBase, cantidad: 2 }).success, false);
+  assert.equal(donacionRegistroSchema.safeParse({ ...registroBase, unidad: 'horas' }).success, false);
+  assert.ok(donacionRegistroSchema.safeParse({ ...registroBase, cantidad: 2, unidad: 'horas' }).success);
+
+  const dinero = { ...registroBase, categoria: 'Dinero', tipo_aporte: 'dinero' };
+  assert.equal(donacionRegistroSchema.safeParse(dinero).success, false);
+  assert.ok(donacionRegistroSchema.safeParse({ ...dinero, monto: 1000, moneda: 'CLP' }).success);
+  assert.equal(donacionRegistroSchema.safeParse({ ...dinero, monto: 1000, moneda: 'clp' }).success, false);
+});
+
+test('donacionRegistroSchema: la valorización se completa entera o se omite', () => {
+  assert.ok(donacionRegistroSchema.safeParse({
+    ...registroBase, valor_estimado: 0, moneda_valorizacion: 'CLP', metodo_valorizacion: 'Cotización',
+  }).success);
+  const parcial = donacionRegistroSchema.safeParse({ ...registroBase, valor_estimado: 100 });
+  assert.equal(parcial.success, false);
+  assert.deepEqual(
+    parcial.error.issues.map((issue) => issue.path[0]).sort(),
+    ['metodo_valorizacion', 'moneda_valorizacion'],
+  );
+  assert.equal(donacionRegistroSchema.safeParse({
+    ...registroBase, valor_estimado: -1, moneda_valorizacion: 'CLP', metodo_valorizacion: 'x',
+  }).success, false);
+});
+
+test('siguienteEstado: solo permite avanzar en la secuencia autorizada', () => {
+  assert.equal(siguienteEstado('Comprometida'), 'Recibida');
+  assert.equal(siguienteEstado('Recibida'), 'Entregada');
+  assert.equal(siguienteEstado('Entregada'), 'Cerrada');
+  assert.equal(siguienteEstado('Cerrada'), null);
+  assert.equal(siguienteEstado(null), 'Comprometida');
+  assert.equal(siguienteEstado('Desconocido'), null);
+});
+
+test('validarRegistroDonacion: informa todos los errores a la vez, incluidas las reglas cruzadas', () => {
+  const resultado = validarRegistroDonacion({
+    ...registroBase, fecha: '', categoria: 'Otro', contraparte_nombre: '', valor_estimado: 5,
+  });
+  assert.equal(resultado.success, false);
+  const campos = resultado.issues.map((issue) => issue.path[0]);
+  for (const esperado of ['fecha', 'contraparte_nombre', 'categoria_otro', 'moneda_valorizacion', 'metodo_valorizacion']) {
+    assert.ok(campos.includes(esperado), `falta el error de ${esperado}`);
+  }
+  assert.ok(validarRegistroDonacion(registroBase).success);
 });
