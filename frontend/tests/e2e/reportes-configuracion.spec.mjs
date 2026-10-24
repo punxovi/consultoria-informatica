@@ -89,7 +89,7 @@ test('valida fechas obligatorias y orden, y no continúa con errores', async ({ 
 
 test('filtros: etiquetas seleccionadas, país acota organizaciones, quitar y restablecer conservan el período', async ({ page }, info) => {
   await abrir(page);
-  await page.evaluate(() => document.querySelector('#reporte-configuracion').addEventListener('reporte:solicitar', (e) => { window.detalleSolicitud = e.detail; }));
+  await page.evaluate(() => document.querySelector('#reporte-configuracion').addEventListener('reporte:solicitar', (e) => { window.detalleSolicitud = e.detail.parametros; }));
   await page.locator('#rep-fecha-inicio').fill('2026-01-01');
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await page.locator('#rep-pais').selectOption({ label: 'Chile' });
@@ -155,7 +155,7 @@ test('resultados reales: carga, error recuperable y parámetros de selección', 
   await expect(page.locator('#rep-resultados-opciones')).toContainText('Entrega de alimentos · Raciones: 80 raciones');
   await page.locator('#rep-resultados-opciones input').check();
   await expect(page.locator('#rep-seleccion')).toContainText('Resultado: Entrega de alimentos');
-  await page.evaluate(() => document.querySelector('#reporte-configuracion').addEventListener('reporte:solicitar', e => {window.detalleSolicitud=e.detail;}));
+  await page.evaluate(() => document.querySelector('#reporte-configuracion').addEventListener('reporte:solicitar', e => {window.detalleSolicitud=e.detail.parametros;}));
   await page.locator('#rep-fecha-inicio').fill('2026-01-01');
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await page.locator('#rep-solicitar').click();
@@ -184,4 +184,113 @@ test('móvil sin desbordes', async ({ page }, info) => {
   await abrir(page);
   await page.locator('#rep-solicitar').click();
   await captura(page, info, 'reporte-configuracion-movil');
+});
+
+// --- Estados de la consulta con RESPUESTAS SIMULADAS -------------------------
+// No se llama al Backend: un listener de prueba ocupa el lugar de la integración HTTP
+// posterior y responde a `reporte:solicitar` con promesas controladas desde la prueba.
+const vistaConDatos = {
+  destination: 'interno', title: 'Reporte Consolidado Institucional',
+  document: { title: 'Reporte consolidado de intervenciones', destination: 'interno', generatedAt: '2026-10-24T12:00:00.000Z',
+    period: { start: '2026-01-01', end: '2026-12-31' }, filters: [], summary: [{ label: 'Beneficiarios', value: '120' }, { label: 'Acciones cumplidas', value: '4' }],
+    sections: [{ key: 'organizations', title: 'Organizaciones', columns: ['Organización', 'País', 'Beneficiarios'], rows: [['Comedor Las Palmas', 'Chile', '120']] },
+      { key: 'plans', title: 'Planes', columns: ['Plan'], rows: [] }] },
+  download: { id: 'x', url: '/api/v1/reports/x/pdf', fileName: 'reporte.pdf', mimeType: 'application/pdf', expiresAt: '2026-10-24T12:05:00.000Z' },
+};
+const vistaVacia = { ...vistaConDatos, document: { ...vistaConDatos.document, sections: [{ key: 'organizations', title: 'Organizaciones', columns: ['Organización'], rows: [] }] } };
+
+async function simularIntegracion(page) {
+  await page.evaluate(() => {
+    window.solicitudesSimuladas = [];
+    document.querySelector('#reporte-configuracion').addEventListener('reporte:solicitar', (e) => {
+      const pendiente = {};
+      e.detail.responder(new Promise((resolver, rechazar) => { pendiente.resolver = resolver; pendiente.rechazar = rechazar; }));
+      window.solicitudesSimuladas.push({ parametros: e.detail.parametros, ...pendiente });
+    });
+  });
+}
+const responderSimulado = (page, indice, vista) => page.evaluate(([i, v]) => window.solicitudesSimuladas[i].resolver(v), [indice, vista]);
+const fallarSimulado = (page, indice) => page.evaluate((i) => window.solicitudesSimuladas[i].rechazar(new Error('fallo simulado')), indice);
+async function completarPeriodo(page) {
+  await page.locator('#rep-fecha-inicio').fill('2026-01-01');
+  await page.locator('#rep-fecha-termino').fill('2026-12-31');
+}
+
+test('(respuesta simulada) carga y éxito: bloquea la solicitud y muestra el resumen de la vista previa', async ({ page }, info) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await expect(page.locator('#rep-consulta-carga')).toBeVisible();
+  await expect(page.locator('#rep-consulta')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#rep-solicitar')).toBeDisabled();
+  await expect(page.locator('#rep-parametros')).toContainText('01/01/2026 al 31/12/2026');
+  await responderSimulado(page, 0, vistaConDatos);
+  await expect(page.locator('#rep-consulta-exito')).toBeVisible();
+  await expect(page.locator('#rep-consulta-carga')).toBeHidden();
+  await expect(page.locator('#rep-solicitar')).toBeEnabled();
+  await expect(page.locator('#rep-vista-meta')).toContainText('Reporte consolidado de intervenciones');
+  await expect(page.locator('#rep-vista-resumen .rep-param')).toHaveText(['Beneficiarios120', 'Acciones cumplidas4', 'Secciones con datos1 de 2']);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await captura(page, info, 'reporte-consulta-exito-movil');
+});
+
+test('(respuesta simulada) ausencia de resultados', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 0, vistaVacia);
+  await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
+  await expect(page.locator('#rep-consulta-vacio')).toContainText('No hay resultados para los criterios seleccionados.');
+  await expect(page.locator('#rep-consulta-exito')).toBeHidden();
+});
+
+test('(respuesta simulada) error y reintento con los mismos criterios', async ({ page }, info) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-pais').selectOption({ label: 'Chile' });
+  await page.locator('#rep-solicitar').click();
+  await fallarSimulado(page, 0);
+  await expect(page.locator('#rep-consulta-error')).toBeVisible();
+  await expect(page.locator('#rep-consulta-error-texto')).toHaveText('No fue posible preparar la vista previa. Inténtalo nuevamente.');
+  await expect(page.locator('#rep-solicitar')).toBeEnabled();
+  await captura(page, info, 'reporte-consulta-error');
+  await page.locator('#rep-consulta-reintentar').click();
+  await expect(page.locator('#rep-consulta-carga')).toBeVisible();
+  const solicitudes = await page.evaluate(() => window.solicitudesSimuladas.map((s) => s.parametros));
+  expect(solicitudes).toHaveLength(2);
+  expect(solicitudes[1]).toEqual(solicitudes[0]);
+  expect(solicitudes[1].id_pais).toBe(id);
+  await responderSimulado(page, 1, vistaConDatos);
+  await expect(page.locator('#rep-consulta-exito')).toBeVisible();
+  await expect(page.locator('#rep-consulta-error')).toBeHidden();
+});
+
+test('(respuesta simulada) cambiar criterios durante la carga descarta la respuesta anterior', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await expect(page.locator('#rep-consulta-carga')).toBeVisible();
+  await page.locator('#rep-indicadores-opciones label', { hasText: 'Raciones entregadas' }).click();
+  await expect(page.locator('#rep-consulta-inactivo')).toBeVisible();
+  await expect(page.locator('#rep-solicitar')).toBeEnabled();
+  await responderSimulado(page, 0, vistaConDatos);
+  await expect(page.locator('#rep-consulta-exito')).toBeHidden();
+  await expect(page.locator('#rep-consulta-inactivo')).toBeVisible();
+  await page.locator('#rep-solicitar').click();
+  const segunda = await page.evaluate(() => window.solicitudesSimuladas[1].parametros);
+  expect(segunda.indicadores).toEqual([catalogo[0].id_indicador]);
+  await responderSimulado(page, 1, vistaVacia);
+  await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
+});
+
+test('sin integración conectada la solicitud queda preparada y no simula una consulta', async ({ page }) => {
+  await abrir(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await expect(page.locator('#rep-consulta-listo')).toBeVisible();
+  for (const estado of ['carga', 'error', 'vacio', 'exito']) await expect(page.locator(`#rep-consulta-${estado}`)).toBeHidden();
 });

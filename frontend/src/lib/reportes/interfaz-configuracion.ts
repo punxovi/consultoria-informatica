@@ -5,6 +5,8 @@ import { listarOrganizaciones, listarPaisesOrganizaciones } from '../organizacio
 import { listarProgramas } from '../programas/cliente.ts';
 import { listarAcciones } from '../acciones/cliente.ts';
 import { cargarOpcionesResultados } from './resultados.ts';
+import { crearControladorConsulta, type EstadoConsulta, type SolicitudReporte } from './consulta.ts';
+import type { ReportFilters } from './pdf.ts';
 import {
   MAX_SELECCION,
   configuracionInicial,
@@ -161,7 +163,7 @@ export function iniciarConfiguracionReporte() {
 
   function actualizar() {
     leerFormulario();
-    estadoConsulta('inactivo');
+    consulta.reiniciar();
     pintarSeleccion();
     revalidar();
   }
@@ -293,7 +295,8 @@ export function iniciarConfiguracionReporte() {
 
     raiz.setAttribute('aria-busy', 'false');
     q<HTMLButtonElement>('reintentar').disabled = false;
-    q<HTMLButtonElement>('solicitar').disabled = false;
+    catalogosListos = true;
+    q<HTMLButtonElement>('solicitar').disabled = consulta.estado.tipo === 'carga';
     if (fallidos.length > 0) {
       q('catalogos-estado').hidden = true;
       q('catalogos-error-texto').textContent =
@@ -306,12 +309,53 @@ export function iniciarConfiguracionReporte() {
   }
 
   // --- Estados de la solicitud -----------------------------------------------
-  type EstadoConsulta = 'inactivo' | 'carga' | 'error' | 'vacio' | 'listo';
-  function estadoConsulta(estado: EstadoConsulta, mensaje = '') {
-    for (const nombre of ['inactivo', 'carga', 'error', 'vacio', 'listo'] as EstadoConsulta[]) {
-      q(`consulta-${nombre}`).hidden = nombre !== estado;
+  let catalogosListos = false;
+  const paneles = { inactivo: 'inactivo', preparada: 'listo', carga: 'carga', error: 'error', vacio: 'vacio', exito: 'exito' } as const;
+
+  function pintarConsulta(estado: EstadoConsulta) {
+    for (const panel of Object.values(paneles)) q(`consulta-${panel}`).hidden = panel !== paneles[estado.tipo];
+    q('consulta-parametros').hidden = estado.tipo === 'inactivo';
+    q('consulta').setAttribute('aria-busy', String(estado.tipo === 'carga'));
+    q<HTMLButtonElement>('solicitar').disabled = !catalogosListos || estado.tipo === 'carga';
+    if (estado.tipo === 'error') {
+      q('consulta-error-texto').textContent = estado.mensaje;
+      q('consulta-reintentar').hidden = !estado.reintentable;
     }
-    if (estado === 'error') q('consulta-error').textContent = mensaje;
+    if (estado.tipo === 'exito') pintarVista(estado.vista);
+  }
+
+  function pintarVista(vista: Extract<EstadoConsulta, { tipo: 'exito' }>['vista']) {
+    const generado = new Date(vista.document.generatedAt);
+    const fecha = Number.isNaN(generado.getTime()) ? '' : ` · Generada el ${generado.toLocaleString('es-CL')}`;
+    q('vista-meta').textContent = `${vista.document.title}${fecha}`;
+    const lista = q('vista-resumen');
+    lista.replaceChildren();
+    const secciones = vista.document.sections.filter((seccion) => seccion.rows.length > 0).length;
+    const filas: [string, string][] = [
+      ...vista.document.summary.map((item): [string, string] => [item.label, item.value]),
+      ['Secciones con datos', `${secciones} de ${vista.document.sections.length}`],
+    ];
+    for (const [titulo, valor] of filas) {
+      const caja = document.createElement('div');
+      caja.className = 'rep-param';
+      const dt = document.createElement('dt');
+      dt.textContent = titulo;
+      const dd = document.createElement('dd');
+      dd.textContent = valor;
+      caja.append(dt, dd);
+      lista.append(caja);
+    }
+  }
+
+  const consulta = crearControladorConsulta(pintarConsulta);
+
+  // Prepara la solicitud y la publica. La integración HTTP posterior debe escuchar
+  // `reporte:solicitar` y llamar a `detail.responder(cliente.preparar(detail.parametros))`.
+  function solicitar(parametros: ReportFilters) {
+    pintarParametros();
+    const responder = consulta.preparar(parametros);
+    const detalle: SolicitudReporte = { parametros, responder };
+    raiz.dispatchEvent(new CustomEvent<SolicitudReporte>('reporte:solicitar', { detail: detalle, bubbles: true }));
   }
 
   function formatearFecha(valor: string) {
@@ -350,7 +394,7 @@ export function iniciarConfiguracionReporte() {
   });
 
   selectores.id_pais.addEventListener('change', () => {
-    estadoConsulta('inactivo');
+    consulta.reiniciar();
     leerFormulario();
     config.id_organizacion = '';
     selectores.id_organizacion.value = '';
@@ -360,7 +404,7 @@ export function iniciarConfiguracionReporte() {
   });
 
   q('restablecer').addEventListener('click', () => {
-    estadoConsulta('inactivo');
+    consulta.reiniciar();
     leerFormulario();
     const paisAnterior = config.id_pais;
     config = restablecerFiltros(config);
@@ -389,14 +433,16 @@ export function iniciarConfiguracionReporte() {
       }
       q('error-general').textContent = 'Corrige los campos marcados antes de continuar.';
       q('error-general').hidden = false;
-      estadoConsulta('inactivo');
+      consulta.reiniciar();
       primero?.focus();
       return;
     }
-    pintarParametros();
-    estadoConsulta('listo');
-    // Punto de integración: el envío al Backend se conectará escuchando este evento.
-    raiz.dispatchEvent(new CustomEvent('reporte:solicitar', { detail: resultado.parametros, bubbles: true }));
+    solicitar(resultado.parametros);
+  });
+
+  q('consulta-reintentar').addEventListener('click', () => {
+    const estado = consulta.estado;
+    if (estado.tipo === 'error' && estado.reintentable) solicitar(estado.parametros);
   });
 
   q('indicadores-opciones').addEventListener('change', () => {
@@ -407,6 +453,6 @@ export function iniciarConfiguracionReporte() {
   });
 
   pintarSeleccion();
-  estadoConsulta('inactivo');
+  consulta.reiniciar();
   void cargarCatalogos();
 }
