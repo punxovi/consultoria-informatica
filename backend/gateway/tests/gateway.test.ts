@@ -125,11 +125,12 @@ describe('API Gateway', () => {
   });
 
   test('enruta Organizaciones con filtros y sesión', async () => {
-    const response = await fetch(`${gatewayUrl}/api/v1/organizations?incluir_archivadas=false`, {
+    const query = 'search=comedor&id_pais=11111111-1111-4111-8111-111111111111&id_programa=22222222-2222-4222-8222-222222222222';
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations?${query}`, {
       headers: { authorization: 'Bearer sesion-organizaciones' },
     });
     const body = await response.json();
-    assert.equal(body.path, '/v1/organizations?incluir_archivadas=false');
+    assert.equal(body.path, `/v1/organizations?${query}`);
     assert.equal(body.authorization, 'Bearer sesion-organizaciones');
   });
 
