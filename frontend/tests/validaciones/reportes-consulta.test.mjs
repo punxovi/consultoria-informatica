@@ -1,25 +1,15 @@
 // Pruebas del manejo de estados de la consulta de reportes con respuestas SIMULADAS:
 // no se llama al Backend; cada promesa representa lo que devolvería cliente.preparar().
+// Los documentos se generan con la función real del Backend (tests/helpers/reporte-contrato.mjs).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError } from '../../src/lib/api/transporte.ts';
 import { crearControladorConsulta, describirErrorConsulta, reporteSinResultados } from '../../src/lib/reportes/consulta.ts';
+import { consolidadoConDatos, resumenConDatos, respuestaSimulada } from '../helpers/reporte-contrato.mjs';
 
 const parametros = { fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31', destino: 'interno' };
-
-function vistaSimulada(sections, destination = 'interno') {
-  return {
-    destination,
-    title: 'Reporte Consolidado Institucional',
-    document: {
-      title: 'Reporte consolidado de intervenciones', destination, generatedAt: '2026-10-24T12:00:00.000Z',
-      period: { start: '2026-01-01', end: '2026-12-31' }, filters: [], summary: [{ label: 'Beneficiarios', value: '120' }], sections,
-    },
-    download: { id: 'x', url: '/api/v1/reports/x/pdf', fileName: 'reporte.pdf', mimeType: 'application/pdf', expiresAt: '2026-10-24T12:05:00.000Z' },
-  };
-}
-const conDatos = vistaSimulada([{ key: 'organizations', title: 'Organizaciones', columns: ['Organización', 'País', 'Beneficiarios'], rows: [['Comedor', 'Chile', '120']] }]);
-const sinFilas = vistaSimulada([{ key: 'organizations', title: 'Organizaciones', columns: ['Organización'], rows: [] }, { key: 'plans', title: 'Planes', columns: ['Plan'], rows: [] }]);
+const conDatos = respuestaSimulada(parametros, consolidadoConDatos, resumenConDatos);
+const sinFilas = respuestaSimulada(parametros);
 
 function diferida() {
   let resolver, rechazar;
@@ -37,12 +27,12 @@ function controlador() {
 test('reporteSinResultados: secciones vacías o agregados en cero son ausencia de resultados', () => {
   assert.equal(reporteSinResultados(sinFilas), true);
   assert.equal(reporteSinResultados(conDatos), false);
-  const agregadoCero = vistaSimulada([{ key: 'organizations', title: 'Org', columns: ['Medida', 'Valor'], rows: [['Organizaciones', '0'], ['Beneficiarios', '0']] }], 'donante');
-  const agregadoConDatos = vistaSimulada([{ key: 'organizations', title: 'Org', columns: ['Medida', 'Valor'], rows: [['Organizaciones', '0'], ['Beneficiarios', '35']] }], 'donante');
-  assert.equal(reporteSinResultados(agregadoCero), true);
-  assert.equal(reporteSinResultados(agregadoConDatos), false);
-  // Una fila con texto (no un cero) cuenta como dato aunque el número sea 0.
-  assert.equal(reporteSinResultados(vistaSimulada([{ key: 'organizations', title: 'Org', columns: ['Organización', 'País', 'Beneficiarios'], rows: [['Comedor', 'Chile', '0']] }])), false);
+  const donante = { ...parametros, destino: 'donante' };
+  assert.equal(reporteSinResultados(respuestaSimulada(donante)), true, 'agregados en cero');
+  assert.equal(reporteSinResultados(respuestaSimulada(donante, consolidadoConDatos, resumenConDatos)), false);
+  // Una fila con texto cuenta como dato aunque su número sea 0.
+  const organizacionSinBeneficiarios = respuestaSimulada(parametros, { organizations: [{ nombre: 'Comedor', pais: 'Chile', numero_beneficiarios: 0 }] });
+  assert.equal(reporteSinResultados(organizacionSinBeneficiarios), false);
 });
 
 test('transición: preparada → carga → éxito con respuesta simulada con datos', async () => {
@@ -66,6 +56,7 @@ test('transición: carga → ausencia de resultados con respuesta simulada vací
   c.preparar(parametros)(Promise.resolve(sinFilas));
   await tick();
   assert.equal(c.estado.tipo, 'vacio');
+  assert.equal(c.estado.vista, sinFilas, 'conserva la vista para mostrar las secciones vacías');
 });
 
 test('transición: carga → error; distingue errores reintentables de los que no lo son', async () => {
@@ -96,6 +87,20 @@ test('una respuesta sin documento válido se informa como error', async () => {
   assert.equal(c.estado.reintentable, true);
 });
 
+test('una respuesta de otro período o con otros filtros no se presenta como válida', async () => {
+  const otroPeriodo = respuestaSimulada({ ...parametros, fecha_inicio: '2025-01-01' }, consolidadoConDatos, resumenConDatos);
+  const otroPais = respuestaSimulada({ ...parametros, id_pais: '13700000-0000-4000-8000-000000000009' }, consolidadoConDatos, resumenConDatos);
+  for (const [vista, motivo] of [[otroPeriodo, /período/], [otroPais, /País/]]) {
+    const { c } = controlador();
+    c.preparar(parametros)(Promise.resolve(vista));
+    await tick();
+    assert.equal(c.estado.tipo, 'error');
+    assert.match(c.estado.mensaje, /no corresponde a los criterios solicitados/);
+    assert.match(c.estado.mensaje, motivo);
+    assert.equal(c.estado.reintentable, true);
+  }
+});
+
 test('modificar criterios durante la carga descarta la respuesta tardía', async () => {
   const { c } = controlador();
   const respuesta = diferida();
@@ -116,7 +121,7 @@ test('una solicitud nueva invalida el responder y el error de la anterior', asyn
   const responderSegunda = c.preparar(segunda);
   responderPrimera(Promise.resolve(conDatos)); // ya no corresponde: se ignora
   assert.equal(c.estado.tipo, 'preparada');
-  responderSegunda(Promise.resolve(sinFilas));
+  responderSegunda(Promise.resolve(respuestaSimulada(segunda)));
   primera.rechazar(new ApiError('ERROR_INTERNO', 'x', 503));
   await tick();
   assert.equal(c.estado.tipo, 'vacio');

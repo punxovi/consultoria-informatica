@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { consolidadoConDatos, resumenConDatos, respuestaSimulada } from '../helpers/reporte-contrato.mjs';
 const id = '13700000-0000-4000-8000-000000000001';
 const idOtro = '13700000-0000-4000-8000-000000000002';
 const paises = [{ id_pais: id, nombre: 'Chile', codigo_iso: 'CL' }, { id_pais: idOtro, nombre: 'Perú', codigo_iso: 'PE' }];
@@ -186,19 +187,10 @@ test('móvil sin desbordes', async ({ page }, info) => {
   await captura(page, info, 'reporte-configuracion-movil');
 });
 
-// --- Estados de la consulta con RESPUESTAS SIMULADAS -------------------------
+// --- Estados de la consulta y vista previa con RESPUESTAS SIMULADAS ----------
 // No se llama al Backend: un listener de prueba ocupa el lugar de la integración HTTP
-// posterior y responde a `reporte:solicitar` con promesas controladas desde la prueba.
-const vistaConDatos = {
-  destination: 'interno', title: 'Reporte Consolidado Institucional',
-  document: { title: 'Reporte consolidado de intervenciones', destination: 'interno', generatedAt: '2026-10-24T12:00:00.000Z',
-    period: { start: '2026-01-01', end: '2026-12-31' }, filters: [], summary: [{ label: 'Beneficiarios', value: '120' }, { label: 'Acciones cumplidas', value: '4' }],
-    sections: [{ key: 'organizations', title: 'Organizaciones', columns: ['Organización', 'País', 'Beneficiarios'], rows: [['Comedor Las Palmas', 'Chile', '120']] },
-      { key: 'plans', title: 'Planes', columns: ['Plan'], rows: [] }] },
-  download: { id: 'x', url: '/api/v1/reports/x/pdf', fileName: 'reporte.pdf', mimeType: 'application/pdf', expiresAt: '2026-10-24T12:05:00.000Z' },
-};
-const vistaVacia = { ...vistaConDatos, document: { ...vistaConDatos.document, sections: [{ key: 'organizations', title: 'Organizaciones', columns: ['Organización'], rows: [] }] } };
-
+// posterior y responde a `reporte:solicitar`. Los documentos se generan con la función
+// real del Backend (tests/helpers/reporte-contrato.mjs) a partir de los parámetros recibidos.
 async function simularIntegracion(page) {
   await page.evaluate(() => {
     window.solicitudesSimuladas = [];
@@ -209,14 +201,19 @@ async function simularIntegracion(page) {
     });
   });
 }
-const responderSimulado = (page, indice, vista) => page.evaluate(([i, v]) => window.solicitudesSimuladas[i].resolver(v), [indice, vista]);
+const parametrosSimulados = (page, indice) => page.evaluate((i) => window.solicitudesSimuladas[i].parametros, indice);
+async function responderSimulado(page, indice, secciones = {}, resumen = {}, ajustar = (p) => p) {
+  const vista = respuestaSimulada(ajustar(await parametrosSimulados(page, indice)), secciones, resumen);
+  await page.evaluate(([i, v]) => window.solicitudesSimuladas[i].resolver(v), [indice, vista]);
+}
 const fallarSimulado = (page, indice) => page.evaluate((i) => window.solicitudesSimuladas[i].rechazar(new Error('fallo simulado')), indice);
 async function completarPeriodo(page) {
   await page.locator('#rep-fecha-inicio').fill('2026-01-01');
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
 }
+const titulosHU22 = ['Organizaciones y beneficiarios', 'Planes de Intervención', 'Acciones', 'Acciones ejecutadas', 'Compromisos cumplidos', 'Donaciones y recursos', 'Indicadores', 'Resultados obtenidos'];
 
-test('(respuesta simulada) carga y éxito: bloquea la solicitud y muestra el resumen de la vista previa', async ({ page }, info) => {
+test('(respuesta simulada) carga y éxito: bloquea la solicitud y muestra la vista previa', async ({ page }) => {
   await abrir(page);
   await simularIntegracion(page);
   await completarPeriodo(page);
@@ -224,26 +221,166 @@ test('(respuesta simulada) carga y éxito: bloquea la solicitud y muestra el res
   await expect(page.locator('#rep-consulta-carga')).toBeVisible();
   await expect(page.locator('#rep-consulta')).toHaveAttribute('aria-busy', 'true');
   await expect(page.locator('#rep-solicitar')).toBeDisabled();
+  await expect(page.locator('#rep-vista-previa')).toBeHidden();
   await expect(page.locator('#rep-parametros')).toContainText('01/01/2026 al 31/12/2026');
-  await responderSimulado(page, 0, vistaConDatos);
+  await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
   await expect(page.locator('#rep-consulta-exito')).toBeVisible();
   await expect(page.locator('#rep-consulta-carga')).toBeHidden();
   await expect(page.locator('#rep-solicitar')).toBeEnabled();
-  await expect(page.locator('#rep-vista-meta')).toContainText('Reporte consolidado de intervenciones');
-  await expect(page.locator('#rep-vista-resumen .rep-param')).toHaveText(['Beneficiarios120', 'Acciones cumplidas4', 'Secciones con datos1 de 2']);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await captura(page, info, 'reporte-consulta-exito-movil');
+  await expect(page.locator('#rep-vista-previa')).toBeVisible();
 });
 
-test('(respuesta simulada) ausencia de resultados', async ({ page }) => {
+test('(respuesta simulada) vista previa: período, criterios, secciones de HU22 y valores tal como llegan', async ({ page }, info) => {
+  const errores = []; page.on('pageerror', (e) => errores.push(e.message));
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-pais').selectOption({ label: 'Chile' });
+  await page.locator('#rep-indicadores-opciones label', { hasText: 'Familias atendidas' }).click();
+  await page.locator('#rep-solicitar').click();
+  const parametros = await parametrosSimulados(page, 0);
+  const datos = {
+    ...consolidadoConDatos,
+    organizations: [...consolidadoConDatos.organizations, { nombre: '<img src=x onerror="window.inyectado=1">', pais: 'Chile', numero_beneficiarios: 0 }],
+    results: [],
+  };
+  await responderSimulado(page, 0, datos, resumenConDatos);
+  const vista = page.locator('#rep-vista-previa');
+  await expect(vista).toBeVisible();
+
+  // Período y criterios aplicados, con los nombres elegidos por el usuario.
+  await expect(vista.locator('[data-vp-periodo] dd')).toHaveText('01/01/2026 al 31/12/2026');
+  await expect(vista.locator('[data-vp-criterio]')).toHaveText(['PaísChile', 'IndicadorFamilias atendidas']);
+  await expect(vista.locator('header')).toContainText('Uso interno');
+
+  // Las 8 secciones diferenciadas, en el orden del contrato, con su cantidad de registros.
+  const secciones = vista.locator('.rep-vp-seccion');
+  await expect(secciones.locator('h4')).toHaveText(titulosHU22);
+  await expect(vista.locator('.rep-vp-indice-enlace')).toHaveCount(8);
+  await expect(vista.locator('#rep-seccion-organizations .rep-vp-contador')).toHaveText('3 registros');
+  await expect(vista.locator('#rep-seccion-completedActions tbody tr')).toHaveCount(1);
+  await expect(vista.locator('#rep-seccion-completedActions')).toContainText('Entrega de canastas');
+  await expect(vista.locator('#rep-seccion-commitments tbody tr')).toHaveCount(1);
+  await expect(vista.locator('#rep-seccion-commitments')).not.toContainText('Gestionar refrigerador');
+
+  // Valores sin recalcular ni formatear, y celdas de varias líneas legibles.
+  await expect(vista.locator('.rep-vp-resumen dd')).toHaveText(['155', '1', '150000.5']);
+  await expect(vista.locator('#rep-seccion-donations td').nth(3)).toHaveText('150000.5');
+  await expect(vista.locator('#rep-seccion-donations td').nth(4)).toHaveText('No informado');
+  await expect(vista.locator('#rep-seccion-donations')).toContainText('no informa moneda');
+  await expect(vista.locator('#rep-seccion-plans td').nth(1)).toHaveText('Comedor Las Palmas\nPrograma Alimentación', { useInnerText: true });
+
+  // Sección vacía con mensaje comprensible.
+  await expect(vista.locator('#rep-seccion-results .rep-vp-vacio')).toHaveText('Esta sección no tiene registros para el período y los filtros seleccionados.');
+  await expect(vista.locator('#rep-seccion-results table')).toHaveCount(0);
+
+  // Los textos recibidos se muestran como texto, nunca como HTML.
+  await expect(vista.locator('#rep-seccion-organizations')).toContainText('<img src=x');
+  expect(await page.evaluate(() => window.inyectado)).toBeUndefined();
+
+  // Navegación por el índice y secciones plegables.
+  await vista.locator('.rep-vp-indice-enlace', { hasText: 'Donaciones y recursos' }).click();
+  await expect(page).toHaveURL(/#rep-seccion-donations$/);
+  await expect(vista.locator('#rep-seccion-donations')).toBeInViewport();
+  const plegar = vista.locator('#rep-seccion-actions .rep-vp-plegar');
+  await plegar.click();
+  await expect(vista.locator('#rep-seccion-actions-cuerpo')).toBeHidden();
+  await expect(plegar).toHaveAttribute('aria-expanded', 'false');
+  await plegar.click();
+  await expect(vista.locator('#rep-seccion-actions-cuerpo')).toBeVisible();
+
+  expect(parametros.id_pais).toBe(id);
+  await captura(page, info, 'vista-previa-escritorio');
+  expect(errores).toEqual([]);
+});
+
+test('(respuesta simulada) vista previa en móvil: filas como tarjetas legibles y sin desbordes', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await abrir(page);
   await simularIntegracion(page);
   await completarPeriodo(page);
   await page.locator('#rep-solicitar').click();
-  await responderSimulado(page, 0, vistaVacia);
+  await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
+  const fila = page.locator('#rep-seccion-plans tbody tr').first();
+  await expect(fila).toBeVisible();
+  await expect(page.locator('#rep-seccion-plans thead')).toHaveCSS('position', 'absolute');
+  // Cada celda muestra su columna como etiqueta y no se superpone con la siguiente.
+  const celdas = await fila.locator('td').evaluateAll((tds) => tds.map((td) => {
+    const r = td.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, right: r.right, etiqueta: getComputedStyle(td, '::before').content };
+  }));
+  expect(celdas.map((c) => c.etiqueta)).toEqual(['"Plan"', '"Organización / Programa"', '"Inicio"', '"Término"']);
+  for (let i = 1; i < celdas.length; i++) expect(celdas[i].top).toBeGreaterThanOrEqual(celdas[i - 1].bottom - 1);
+  expect(Math.max(...celdas.map((c) => c.right))).toBeLessThanOrEqual(390);
+  await captura(page, info, 'vista-previa-movil');
+  for (const seccion of ['plans', 'donations']) {
+    await page.locator(`#rep-seccion-${seccion}`).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: info.outputPath(`vista-previa-movil-${seccion}.png`) });
+  }
+});
+
+test('(respuesta simulada) secciones extensas se muestran por tramos', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  const acciones = Array.from({ length: 60 }, (_, i) => ({ nombre: `Acción ${i + 1}`, estado: 'en_proceso', fecha_inicio: '2026-01-01', fecha_termino: '2026-02-01', plan: 'Plan' }));
+  await responderSimulado(page, 0, { ...consolidadoConDatos, actions: acciones }, resumenConDatos);
+  const seccion = page.locator('#rep-seccion-actions');
+  await expect(seccion.locator('.rep-vp-contador')).toHaveText('60 registros');
+  await expect(seccion.locator('tbody tr')).toHaveCount(25);
+  const mas = seccion.locator('.rep-vp-mas');
+  await expect(mas).toHaveText('Mostrar 25 más (quedan 35)');
+  await mas.click();
+  await expect(seccion.locator('tbody tr')).toHaveCount(50);
+  await expect(mas).toHaveText('Mostrar 10 más (quedan 10)');
+  await mas.click();
+  await expect(seccion.locator('tbody tr')).toHaveCount(60);
+  await expect(seccion.locator('tbody tr').last()).toContainText('Acción 60');
+  await expect(mas).toBeHidden();
+});
+
+test('(respuesta simulada) ausencia de resultados: aviso general y secciones vacías comprensibles', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 0);
   await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
   await expect(page.locator('#rep-consulta-vacio')).toContainText('No hay resultados para los criterios seleccionados.');
   await expect(page.locator('#rep-consulta-exito')).toBeHidden();
+  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(8);
+  await expect(page.locator('#rep-vista-previa .rep-vp-vacio')).toHaveCount(8);
+  await expect(page.locator('#rep-vista-previa table')).toHaveCount(0);
+});
+
+test('(respuesta simulada) destino externo: solo agregados y aviso de información agregada', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-destino').selectOption('donante');
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
+  const vista = page.locator('#rep-vista-previa');
+  await expect(vista.locator('header')).toContainText('Donantes');
+  await expect(vista.locator('header')).toContainText('solo información agregada');
+  await expect(vista.locator('#rep-seccion-organizations th')).toHaveText(['Medida', 'Valor']);
+  await expect(vista.locator('#rep-seccion-organizations tbody tr')).toHaveText(['Organizaciones2', 'Beneficiarios155']);
+  await expect(vista).not.toContainText('Comedor Las Palmas');
+});
+
+test('(respuesta simulada) una respuesta que no corresponde al período no se muestra como reporte', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos, (p) => ({ ...p, fecha_termino: '2026-06-30' }));
+  await expect(page.locator('#rep-consulta-error')).toBeVisible();
+  await expect(page.locator('#rep-consulta-error-texto')).toContainText('no corresponde a los criterios solicitados');
+  await expect(page.locator('#rep-vista-previa')).toBeHidden();
+  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(0);
+  await expect(page.locator('#rep-consulta-reintentar')).toBeVisible();
 });
 
 test('(respuesta simulada) error y reintento con los mismos criterios', async ({ page }, info) => {
@@ -263,9 +400,10 @@ test('(respuesta simulada) error y reintento con los mismos criterios', async ({
   expect(solicitudes).toHaveLength(2);
   expect(solicitudes[1]).toEqual(solicitudes[0]);
   expect(solicitudes[1].id_pais).toBe(id);
-  await responderSimulado(page, 1, vistaConDatos);
+  await responderSimulado(page, 1, consolidadoConDatos, resumenConDatos);
   await expect(page.locator('#rep-consulta-exito')).toBeVisible();
   await expect(page.locator('#rep-consulta-error')).toBeHidden();
+  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(8);
 });
 
 test('(respuesta simulada) cambiar criterios durante la carga descarta la respuesta anterior', async ({ page }) => {
@@ -277,20 +415,38 @@ test('(respuesta simulada) cambiar criterios durante la carga descarta la respue
   await page.locator('#rep-indicadores-opciones label', { hasText: 'Raciones entregadas' }).click();
   await expect(page.locator('#rep-consulta-inactivo')).toBeVisible();
   await expect(page.locator('#rep-solicitar')).toBeEnabled();
-  await responderSimulado(page, 0, vistaConDatos);
+  await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
   await expect(page.locator('#rep-consulta-exito')).toBeHidden();
+  await expect(page.locator('#rep-vista-previa')).toBeHidden();
   await expect(page.locator('#rep-consulta-inactivo')).toBeVisible();
   await page.locator('#rep-solicitar').click();
-  const segunda = await page.evaluate(() => window.solicitudesSimuladas[1].parametros);
+  const segunda = await parametrosSimulados(page, 1);
   expect(segunda.indicadores).toEqual([catalogo[0].id_indicador]);
-  await responderSimulado(page, 1, vistaVacia);
+  await responderSimulado(page, 1);
   await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
 });
 
-test('sin integración conectada la solicitud queda preparada y no simula una consulta', async ({ page }) => {
+test('(respuesta simulada) modificar criterios con la vista previa abierta la retira hasta volver a solicitarla', async ({ page }) => {
+  await abrir(page);
+  await simularIntegracion(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
+  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(8);
+  await page.locator('#rep-fecha-termino').fill('2026-06-30');
+  await expect(page.locator('#rep-vista-previa')).toBeHidden();
+  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(0);
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 1, consolidadoConDatos, resumenConDatos);
+  await expect(page.locator('#rep-vista-previa [data-vp-periodo] dd')).toHaveText('01/01/2026 al 30/06/2026');
+});
+
+test('sin integración conectada la solicitud queda preparada y no muestra datos simulados', async ({ page }) => {
   await abrir(page);
   await completarPeriodo(page);
   await page.locator('#rep-solicitar').click();
   await expect(page.locator('#rep-consulta-listo')).toBeVisible();
   for (const estado of ['carga', 'error', 'vacio', 'exito']) await expect(page.locator(`#rep-consulta-${estado}`)).toBeHidden();
+  await expect(page.locator('#rep-vista-previa')).toBeHidden();
+  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(0);
 });

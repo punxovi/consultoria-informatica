@@ -6,6 +6,7 @@ import { listarProgramas } from '../programas/cliente.ts';
 import { listarAcciones } from '../acciones/cliente.ts';
 import { cargarOpcionesResultados } from './resultados.ts';
 import { crearControladorConsulta, type EstadoConsulta, type SolicitudReporte } from './consulta.ts';
+import { renderizarVistaPrevia } from './interfaz-vista-previa.ts';
 import type { ReportFilters } from './pdf.ts';
 import {
   MAX_SELECCION,
@@ -312,39 +313,23 @@ export function iniciarConfiguracionReporte() {
   let catalogosListos = false;
   const paneles = { inactivo: 'inactivo', preparada: 'listo', carga: 'carga', error: 'error', vacio: 'vacio', exito: 'exito' } as const;
 
+  // Criterios de la solicitud vigente, con nombres de catálogo, para identificarlos en la vista previa.
+  let criteriosSolicitud: [string, string][] = [];
+
   function pintarConsulta(estado: EstadoConsulta) {
     for (const panel of Object.values(paneles)) q(`consulta-${panel}`).hidden = panel !== paneles[estado.tipo];
-    q('consulta-parametros').hidden = estado.tipo === 'inactivo';
+    const conVista = estado.tipo === 'exito' || estado.tipo === 'vacio';
+    q('consulta-parametros').hidden = estado.tipo === 'inactivo' || conVista;
     q('consulta').setAttribute('aria-busy', String(estado.tipo === 'carga'));
     q<HTMLButtonElement>('solicitar').disabled = !catalogosListos || estado.tipo === 'carga';
     if (estado.tipo === 'error') {
       q('consulta-error-texto').textContent = estado.mensaje;
       q('consulta-reintentar').hidden = !estado.reintentable;
     }
-    if (estado.tipo === 'exito') pintarVista(estado.vista);
-  }
-
-  function pintarVista(vista: Extract<EstadoConsulta, { tipo: 'exito' }>['vista']) {
-    const generado = new Date(vista.document.generatedAt);
-    const fecha = Number.isNaN(generado.getTime()) ? '' : ` · Generada el ${generado.toLocaleString('es-CL')}`;
-    q('vista-meta').textContent = `${vista.document.title}${fecha}`;
-    const lista = q('vista-resumen');
-    lista.replaceChildren();
-    const secciones = vista.document.sections.filter((seccion) => seccion.rows.length > 0).length;
-    const filas: [string, string][] = [
-      ...vista.document.summary.map((item): [string, string] => [item.label, item.value]),
-      ['Secciones con datos', `${secciones} de ${vista.document.sections.length}`],
-    ];
-    for (const [titulo, valor] of filas) {
-      const caja = document.createElement('div');
-      caja.className = 'rep-param';
-      const dt = document.createElement('dt');
-      dt.textContent = titulo;
-      const dd = document.createElement('dd');
-      dd.textContent = valor;
-      caja.append(dt, dd);
-      lista.append(caja);
-    }
+    const contenedorVista = q('vista-previa');
+    contenedorVista.hidden = !conVista;
+    if (conVista) renderizarVistaPrevia(contenedorVista, estado.vista, { criterios: criteriosSolicitud });
+    else contenedorVista.replaceChildren();
   }
 
   const consulta = crearControladorConsulta(pintarConsulta);
@@ -352,6 +337,7 @@ export function iniciarConfiguracionReporte() {
   // Prepara la solicitud y la publica. La integración HTTP posterior debe escuchar
   // `reporte:solicitar` y llamar a `detail.responder(cliente.preparar(detail.parametros))`.
   function solicitar(parametros: ReportFilters) {
+    criteriosSolicitud = criteriosActuales();
     pintarParametros();
     const responder = consulta.preparar(parametros);
     const detalle: SolicitudReporte = { parametros, responder };
@@ -363,10 +349,8 @@ export function iniciarConfiguracionReporte() {
     return `${dia}/${mes}/${anio}`;
   }
 
-  function pintarParametros() {
-    const lista = q('parametros');
-    lista.replaceChildren();
-    const filas: [string, string][] = [
+  function criteriosActuales(): [string, string][] {
+    return [
       ['Período', `${formatearFecha(config.fecha_inicio)} al ${formatearFecha(config.fecha_termino)}`],
       ['Destino', etiquetasDestino[config.destino]],
       ...filtrosSeleccionados(config, nombres).map((f): [string, string] => {
@@ -374,7 +358,12 @@ export function iniciarConfiguracionReporte() {
         return [titulo, resto.join(': ')];
       }),
     ];
-    for (const [titulo, valor] of filas) {
+  }
+
+  function pintarParametros() {
+    const lista = q('parametros');
+    lista.replaceChildren();
+    for (const [titulo, valor] of criteriosSolicitud) {
       const caja = document.createElement('div');
       caja.className = 'rep-param';
       const dt = document.createElement('dt');
