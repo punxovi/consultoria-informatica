@@ -125,7 +125,11 @@ test('donaciones: listado, validación del formulario y avance de estado',async(
   await page.route('**/api/v1/programs',r=>r.fulfill({json:{ok:true,data:{programs:[{id_programa:'17600000-0000-4000-8000-0000000000a1',nombre:'Programa Alimentación',archived_at:null,lineas_accion:[]}]}}}));
   await page.route('**/donations**',r=>{
     const req=r.request(), path=new URL(req.url()).pathname;
-    if (req.method()==='PATCH') { cuerpos.push(req.postDataJSON()); return r.fulfill({json:{ok:true,data:{donation:{...donacion,estado:'Recibida',version:2}}}}); }
+    if (req.method()==='PATCH') {
+      const body=req.postDataJSON(); cuerpos.push(body);
+      const cambios=body.cambios;
+      return r.fulfill({json:{ok:true,data:{donation:{...donacion,...cambios,version:cambios.estado==='Recibida'?3:2}}}});
+    }
     if (req.method()==='POST') { cuerpos.push(req.postDataJSON()); return r.fulfill({json:{ok:true,data:{donation:{...donacion,id_donacion:'17600000-0000-4000-8000-0000000000d2',version:1}}}}); }
     if (path.endsWith('/files')) return r.fulfill({json:{ok:true,data:{files:[]}}});
     if (/\/donations\/[0-9a-f-]{36}$/.test(path)) { consultasDetalle++; return r.fulfill({json:{ok:true,data:{donation:{...donacion,estado:'Entregada',version:3}}}}); }
@@ -176,10 +180,18 @@ test('donaciones: listado, validación del formulario y avance de estado',async(
   expect(cuerpos[0]).toMatchObject({categoria:'Servicio',tipo_aporte:'recurso',estado:'Comprometida',id_pais:id,moneda_valorizacion:'CLP'});
   expect(cuerpos[0].monto).toBeUndefined();
 
+  await page.locator('#don-editar').click();
+  await expect(page.locator('#don-form-titulo')).toHaveText(/Editar donaci.n/);
+  await page.locator('#don-descripcion').fill('Horas profesionales actualizadas');
+  await page.locator('#don-guardar').click();
+  await expect(page.locator('#don-detalle')).toBeVisible();
+  await expect(page.locator('#don-exito')).toHaveText(/actualizada correctamente/);
+  expect(cuerpos[1]).toEqual({version_esperada:1,cambios:{descripcion:'Horas profesionales actualizadas'}});
+
   await expect(page.locator('#don-avanzar-estado')).toHaveText('Avanzar a Recibida');
   await page.locator('#don-avanzar-estado').click();
   await expect(page.locator('#don-detalle-estado')).toHaveText('Recibida');
-  expect(cuerpos[1]).toEqual({version_esperada:1,cambios:{estado:'Recibida'}});
+  expect(cuerpos[2]).toEqual({version_esperada:2,cambios:{estado:'Recibida'}});
   await page.locator('#don-recargar').click();
   await expect(page.locator('#don-detalle-estado')).toHaveText('Entregada');
   await expect(page.locator('#don-avanzar-estado')).toHaveText('Avanzar a Cerrada');

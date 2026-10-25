@@ -26,8 +26,8 @@ WHERE roles.codigo = 'COORD'
 
 SELECT is(
   (SELECT file_size_limit FROM storage.buckets WHERE id = 'fge-archivos'),
-  614400::bigint,
-  'Bucket limita archivos de imagen a 600 KB'
+  52428800::bigint,
+  'Bucket admite respaldos documentales de hasta 50 MiB'
 );
 
 SELECT ok(

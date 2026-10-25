@@ -169,6 +169,17 @@ export const donacionRegistroSchema = z
 
 export type DatosDonacionForm = z.infer<typeof donacionFormSchema>;
 export type DatosDonacionRegistro = z.infer<typeof donacionRegistroSchema>;
+export type CambiosDonacion = Partial<Omit<DatosDonacionForm, 'id_pais'>> & {
+  id_programa?: string | null;
+  categoria_otro?: string | null;
+  valor_estimado?: number | null;
+  moneda_valorizacion?: string | null;
+  metodo_valorizacion?: string | null;
+  monto?: number | null;
+  moneda?: string | null;
+  cantidad?: number | null;
+  unidad?: string | null;
+};
 
 export type ErrorRegistro = { path: PropertyKey[]; message: string };
 

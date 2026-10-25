@@ -723,17 +723,37 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       bytes: Buffer,
       mimeType: string,
     ): Promise<DonationFile> {
-      const file = await this.getDonationFileById(accessToken, donationId, fileId);
+      let file = await this.getDonationFileById(accessToken, donationId, fileId);
       if (file.version !== expectedVersion) {
         throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El archivo cambió. Recarga antes de cargarlo.', 409);
       }
-      if (file.estado_carga !== 'reservado') {
+      if (!['reservado', 'fallido'].includes(file.estado_carga)) {
         throw new ServiceError('CARGA_NO_DISPONIBLE', 'Este archivo ya no acepta cargas.', 409);
       }
       if (mimeType !== file.mime_type || bytes.length !== file.tamano_bytes) {
         throw new ServiceError('ARCHIVO_INVALIDO', 'El tipo o tamaño no coincide con los metadatos registrados.', 400);
       }
       assertFileSignature(bytes, mimeType);
+
+      // A failed upload remains auditable. Re-open only that same reservation
+      // before retrying it, so Storage keeps accepting the exact private path.
+      if (file.estado_carga === 'fallido') {
+        const reactivated = await request('archivos', accessToken, new URLSearchParams({
+          id_archivo: `eq.${fileId}`,
+          id_donacion: `eq.${donationId}`,
+          version: `eq.${expectedVersion}`,
+          archived_at: 'is.null',
+          select: DONATION_FILE_FIELDS,
+        }), {
+          method: 'PATCH',
+          headers: { prefer: 'return=representation' },
+          body: JSON.stringify({ estado_carga: 'reservado' }),
+        });
+        if (!Array.isArray(reactivated) || !reactivated[0]) {
+          throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El archivo cambi\u00f3. Recarga antes de reintentar la carga.', 409);
+        }
+        file = donationFile(reactivated[0]);
+      }
 
       const response = await fetchImpl(`${baseUrl}/storage/v1/object/fge-archivos/${file.ruta_objeto}`, {
         method: 'POST',
@@ -762,7 +782,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
       const updated = await request('archivos', accessToken, new URLSearchParams({
         id_archivo: `eq.${fileId}`,
-        version: `eq.${expectedVersion}`,
+        version: `eq.${file.version}`,
         select: DONATION_FILE_FIELDS,
       }), {
         method: 'PATCH',
