@@ -7,7 +7,7 @@ import { listarAcciones } from '../acciones/cliente.ts';
 import { cargarOpcionesResultados } from './resultados.ts';
 import { crearControladorConsulta, type EstadoConsulta, type SolicitudReporte } from './consulta.ts';
 import { renderizarVistaPrevia } from './interfaz-vista-previa.ts';
-import type { ReportFilters } from './pdf.ts';
+import { crearClienteReportesPdf, type ReportFilters, type ReportPreview } from './pdf.ts';
 import {
   MAX_SELECCION,
   configuracionInicial,
@@ -40,6 +40,7 @@ export function iniciarConfiguracionReporte() {
     return data.session.access_token;
   }
   const indicadores = crearClienteIndicadores(createApiTransport(apiBase), token);
+  const reportes = crearClienteReportesPdf(apiBase, token);
 
   let config: ConfiguracionReporte = configuracionInicial();
   const nombres: NombresCatalogo = {
@@ -315,6 +316,66 @@ export function iniciarConfiguracionReporte() {
 
   // Criterios de la solicitud vigente, con nombres de catálogo, para identificarlos en la vista previa.
   let criteriosSolicitud: [string, string][] = [];
+  let vistaParaExportar: ReportPreview | null = null;
+
+  type EstadoExportacion = 'oculto' | 'lista' | 'confirmacion' | 'generando' | 'exito' | 'error';
+  const estadosExportacion: Record<EstadoExportacion, string | null> = {
+    oculto: null,
+    lista: 'lista',
+    confirmacion: 'confirmacion',
+    generando: 'generando',
+    exito: 'exito',
+    error: 'error',
+  };
+
+  function pintarExportacion(estado: EstadoExportacion, mensaje?: string) {
+    const seccion = q('exportacion');
+    seccion.hidden = estado === 'oculto';
+    seccion.setAttribute('aria-busy', String(estado === 'generando'));
+    for (const panel of ['lista', 'confirmacion', 'generando', 'exito', 'error']) {
+      q(`exportacion-${panel}`).hidden = estadosExportacion[estado] !== panel;
+    }
+    if (estado === 'exito') q('exportacion-exito').textContent = mensaje ?? 'El PDF fue descargado correctamente.';
+    if (estado === 'error') q('exportacion-error-texto').textContent = mensaje ?? 'No fue posible descargar el PDF.';
+  }
+
+  function describirErrorPdf(error: unknown): string {
+    if (error instanceof ApiError) {
+      if (error.code === 'REPORTE_NO_DISPONIBLE') return 'La vista previa ya no está disponible. Solicita una nueva antes de descargar el PDF.';
+      if (error.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión antes de descargar el PDF.';
+      if (error.status === 403) return 'Tu cuenta no tiene permiso para exportar este reporte.';
+      if (error.status === 413) return 'El reporte supera el límite de exportación. Reduce el período o los filtros.';
+      if (error.status === 429) return 'Hay demasiados reportes en preparación. Espera un momento e inténtalo nuevamente.';
+      if (error.status === 0 || error.status >= 500) return 'No fue posible generar el PDF. Inténtalo nuevamente.';
+      return error.message || 'No fue posible descargar el PDF.';
+    }
+    return 'No fue posible descargar el PDF. Inténtalo nuevamente.';
+  }
+
+  function iniciarDescarga(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = fileName;
+    enlace.hidden = true;
+    document.body.append(enlace);
+    enlace.click();
+    enlace.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  async function descargarPdf() {
+    const vista = vistaParaExportar;
+    if (!vista) return;
+    pintarExportacion('generando');
+    try {
+      const archivo = await reportes.descargar(vista.download);
+      iniciarDescarga(archivo.blob, archivo.fileName);
+      pintarExportacion('exito', `PDF descargado: ${archivo.fileName}`);
+    } catch (error) {
+      pintarExportacion('error', describirErrorPdf(error));
+    }
+  }
 
   function pintarConsulta(estado: EstadoConsulta) {
     for (const panel of Object.values(paneles)) q(`consulta-${panel}`).hidden = panel !== paneles[estado.tipo];
@@ -328,20 +389,33 @@ export function iniciarConfiguracionReporte() {
     }
     const contenedorVista = q('vista-previa');
     contenedorVista.hidden = !conVista;
-    if (conVista) renderizarVistaPrevia(contenedorVista, estado.vista, { criterios: criteriosSolicitud });
-    else contenedorVista.replaceChildren();
+    if (conVista) {
+      vistaParaExportar = estado.vista;
+      renderizarVistaPrevia(contenedorVista, estado.vista, { criterios: criteriosSolicitud });
+      pintarExportacion('lista');
+    } else {
+      vistaParaExportar = null;
+      contenedorVista.replaceChildren();
+      pintarExportacion('oculto');
+    }
   }
 
   const consulta = crearControladorConsulta(pintarConsulta);
 
-  // Prepara la solicitud y la publica. La integración HTTP posterior debe escuchar
-  // `reporte:solicitar` y llamar a `detail.responder(cliente.preparar(detail.parametros))`.
+  // El evento conserva el punto de extensión para instrumentación y pruebas. Si
+  // nadie responde desde allí, la interfaz usa el cliente HTTP real.
   function solicitar(parametros: ReportFilters) {
     criteriosSolicitud = criteriosActuales();
     pintarParametros();
-    const responder = consulta.preparar(parametros);
+    const responderConsulta = consulta.preparar(parametros);
+    let atendidaPorExtension = false;
+    const responder: SolicitudReporte['responder'] = (respuesta) => {
+      atendidaPorExtension = true;
+      responderConsulta(respuesta);
+    };
     const detalle: SolicitudReporte = { parametros, responder };
     raiz.dispatchEvent(new CustomEvent<SolicitudReporte>('reporte:solicitar', { detail: detalle, bubbles: true }));
+    if (!atendidaPorExtension) responder(reportes.preparar(parametros));
   }
 
   function formatearFecha(valor: string) {
@@ -434,6 +508,11 @@ export function iniciarConfiguracionReporte() {
     if (estado.tipo === 'error' && estado.reintentable) solicitar(estado.parametros);
   });
 
+  q('exportar-pdf').addEventListener('click', () => pintarExportacion('confirmacion'));
+  q('cancelar-pdf').addEventListener('click', () => pintarExportacion('lista'));
+  q('confirmar-pdf').addEventListener('click', () => { void descargarPdf(); });
+  q('exportacion-reintentar').addEventListener('click', () => pintarExportacion('confirmacion'));
+
   q('indicadores-opciones').addEventListener('change', () => {
     if (marcados('indicadores').length > MAX_SELECCION) {
       q('error-general').textContent = `Puedes seleccionar hasta ${MAX_SELECCION} indicadores.`;
@@ -443,5 +522,6 @@ export function iniciarConfiguracionReporte() {
 
   pintarSeleccion();
   consulta.reiniciar();
+  pintarExportacion('oculto');
   void cargarCatalogos();
 }

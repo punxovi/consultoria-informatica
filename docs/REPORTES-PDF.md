@@ -92,8 +92,11 @@ implementa `preparar(filtros)` y `descargar(referencia)`. Este último devuelve
 `{blob,fileName}` para gestionar una descarga con `URL.createObjectURL` y un
 enlace con atributo `download`. Rechaza URLs ajenas al Gateway, referencias
 alteradas, respuestas JSON en lugar de PDF, archivos incompletos y fallos de red.
-Esta entrega implementa operación y cliente de integración; no reemplaza la
-pantalla de Reportes actualmente pendiente de desarrollo.
+La pantalla de Reportes usa este cliente para solicitar la vista previa y,
+después de una confirmación explícita, descargar el PDF de la referencia ya
+preparada. No vuelve a consultar el consolidado al exportar. La guía manual y
+las pruebas del recorrido integrado están en
+[INTEGRACION-REPORTES-PDF](INTEGRACION-REPORTES-PDF.md).
 
 ## Contenido y fidelidad
 
