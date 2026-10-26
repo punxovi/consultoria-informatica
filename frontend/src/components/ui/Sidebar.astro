@@ -1,5 +1,5 @@
 ---
-interface NavItem {label: string; href: string;}
+interface NavItem {label: string; href: string; roles?: string[];}
 
 interface Props {items: NavItem[]; }
 
@@ -69,6 +69,8 @@ const currentPath = Astro.url.pathname;
       return (
         <a
           href={item.href}
+          hidden={item.roles ? true : undefined}
+          data-nav-roles={item.roles ? JSON.stringify(item.roles) : undefined}
           aria-current={isActive ? 'page' : undefined}
           class:list={[
             'group flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5',
@@ -127,6 +129,13 @@ const currentPath = Astro.url.pathname;
                 </>
               )}
 
+              {item.href.startsWith('/administracion') && (
+                <>
+                  <circle cx="9" cy="8" r="3" />
+                  <path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 4.5a3 3 0 0 1 0 6M17.5 14a5 5 0 0 1 3 5" />
+                </>
+              )}
+
               {item.href.startsWith('/reportes') && (
                 <>
                   <path d="M6 3h8l5 5v13H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
@@ -140,6 +149,7 @@ const currentPath = Astro.url.pathname;
                 '/programas',
                 '/planes',
                 '/reportes',
+                '/administracion',
               ].some((href) =>
                 href === '/dashboard'
                   ? item.href === href

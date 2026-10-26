@@ -1,6 +1,8 @@
 export interface NavItem {
   label: string;
   href: string;
+  // Roles que ven el ítem; si se omite, lo ven todos los usuarios con sesión.
+  roles?: string[];
 }
 
 // Navegación provisional de páginas internas (RF19, HU08).
@@ -11,4 +13,5 @@ export const mainNavItems: NavItem[] = [
   { label: 'Programas Institucionales', href: '/programas' },
   { label: 'Planes de Intervención', href: '/planes' },
   { label: 'Reportes', href: '/reportes' },
+  { label: 'Coordinadores', href: '/administracion/coordinadores', roles: ['ADMIN'] },
 ];
