@@ -125,9 +125,25 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
   const actions = raw.actions.filter((item) =>
     planIds.has(item.id_plan) && (!filters.year || item.fecha_termino.startsWith(`${filters.year}-`)),
   );
-  const today = now.toISOString().slice(0, 10);
-  const completed = actions.filter((item) => item.estado === 'cumplida').length;
-  const overdue = actions.filter((item) => item.estado === 'atrasada').length;
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+
+  const completed = actions.filter(
+    (item) => item.estado === 'cumplida',
+  ).length;
+
+  const overdue = actions.filter(
+    (item) =>
+      item.estado === 'atrasada' ||
+      (
+        item.fecha_termino < today &&
+        !['cumplida', 'cancelada'].includes(item.estado)
+      ),
+  ).length;
   const activeAlerts = actions.filter((item) => item.estado === 'atrasada' || item.estado === 'cancelada').length;
   const months = monthWindow(now, filters.year);
   const plansInScope = filters.year ? plans.length : plans.filter((item) => item.fecha_inicio <= today && item.fecha_termino >= today).length;
