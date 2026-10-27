@@ -129,10 +129,26 @@ const currentPath = Astro.url.pathname;
                 </>
               )}
 
-              {item.href.startsWith('/administracion') && (
+              {item.href.startsWith('/administracion/paises') && (
+                <>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+                </>
+              )}
+
+              {item.href.startsWith('/administracion/coordinadores') && (
                 <>
                   <circle cx="9" cy="8" r="3" />
                   <path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 4.5a3 3 0 0 1 0 6M17.5 14a5 5 0 0 1 3 5" />
+                </>
+              )}
+
+              {item.href.startsWith('/administracion/coberturas') && (
+                <>
+                  <rect x="3" y="4" width="18" height="17" rx="2" />
+                  <path d="M8 2v4M16 2v4M3 10h18" />
+                  <circle cx="16.5" cy="16.5" r="3.2" />
+                  <path d="M16.5 14.8v1.9l1.2.8" />
                 </>
               )}
 
