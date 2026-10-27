@@ -11,6 +11,57 @@ INSERT INTO public.roles (codigo, nombre) VALUES
 ('INVIT', 'Invitado')
 ON CONFLICT (codigo) DO UPDATE SET nombre = EXCLUDED.nombre;
 
+INSERT INTO public.indicadores (nombre, descripcion, unidad_medida, criterio_medicion)
+VALUES
+  ('Personas beneficiadas', 'Cantidad de personas beneficiadas por la accion.', 'Personas', 'Conteo de personas beneficiadas.'),
+  ('Participantes', 'Cantidad de participantes de la actividad.', 'Personas', 'Conteo de participantes.'),
+  ('Actividades realizadas', 'Cantidad de actividades ejecutadas.', 'Actividades', 'Conteo de actividades realizadas.'),
+  ('Organizaciones acompañadas', 'Cantidad de organizaciones acompañadas.', 'Organizaciones', 'Conteo de organizaciones acompañadas.'),
+  ('Raciones entregadas', 'Cantidad de raciones o apoyos alimentarios entregados.', 'Raciones', 'Conteo de raciones entregadas.'),
+  ('Acciones ejecutadas', 'Cantidad de acciones completadas.', 'Acciones', 'Conteo de acciones en estado cumplida.')
+ON CONFLICT (nombre) DO UPDATE SET
+  descripcion = EXCLUDED.descripcion, unidad_medida = EXCLUDED.unidad_medida,
+  criterio_medicion = EXCLUDED.criterio_medicion, archived_at = NULL;
+
+-- Cuenta de prueba para validar que un Coordinador no puede administrar
+-- paises, cuentas, coberturas ni auditoria. Credencial local: password.
+INSERT INTO auth.users (
+  id, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data
+) VALUES (
+  '14600000-0000-4000-8000-000000000002',
+  'coordinador@prueba.com',
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  now(), '{}'::jsonb, '{"full_name":"Coordinador de Prueba"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  email = EXCLUDED.email,
+  email_confirmed_at = EXCLUDED.email_confirmed_at,
+  raw_user_meta_data = EXCLUDED.raw_user_meta_data;
+
+INSERT INTO public.perfiles (id_usuario, nombre)
+VALUES ('14600000-0000-4000-8000-000000000002', 'Coordinador de Prueba')
+ON CONFLICT (id_usuario) DO UPDATE SET nombre = EXCLUDED.nombre, activo = true, archived_at = NULL;
+
+INSERT INTO public.asignaciones_roles (id_usuario, id_rol, alcance, id_pais, otorgado_por)
+SELECT '14600000-0000-4000-8000-000000000002', r.id_rol, 'pais', p.id_pais,
+       '14600000-0000-4000-8000-000000000002'
+FROM public.roles r CROSS JOIN public.paises p
+WHERE r.codigo = 'COORD' AND p.codigo_iso = 'CL'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.asignaciones_roles a
+    WHERE a.id_usuario = '14600000-0000-4000-8000-000000000002'
+      AND a.id_rol = r.id_rol AND a.revocado_at IS NULL
+  );
+
+INSERT INTO fge_private.cuentas_coordinadores (id_usuario, id_pais, id_pais_aplicado, solicitado_por)
+SELECT '14600000-0000-4000-8000-000000000002', p.id_pais, p.id_pais,
+       '14600000-0000-4000-8000-000000000002'
+FROM public.paises p
+WHERE p.codigo_iso = 'CL'
+ON CONFLICT (id_usuario) DO UPDATE SET
+  id_pais = EXCLUDED.id_pais, id_pais_aplicado = EXCLUDED.id_pais_aplicado;
+
 -- Los contenidos de estos seis programas provienen del documento oficial
 -- `PROGRAMAS FGE.docx`, entregado por la clienta el 20 de agosto de 2026.
 -- Sus UUID permanecen estables para conservar imágenes y futuras referencias.
