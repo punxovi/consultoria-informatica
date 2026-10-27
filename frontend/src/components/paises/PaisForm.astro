@@ -1,0 +1,225 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Card from '../ui/Card.astro';
+import Button from '../ui/Button.astro';
+import BackButton from '../ui/BackButton.astro';
+import Input from '../ui/Input.astro';
+import { mainNavItems } from '../../config/nav';
+
+interface PaisFormulario {
+  id: string;
+  nombre: string;
+  codigo_area_telefonica: string;
+  zona_horaria: string;
+}
+
+interface Props {
+  mode: 'create' | 'edit';
+  pais?: PaisFormulario;
+  idPais?: string;
+}
+
+const { mode, pais, idPais = '' } = Astro.props;
+const isEdit = mode === 'edit';
+const pageTitle = isEdit ? 'Editar país' : 'Nuevo país';
+const backHref = '/administracion/paises';
+---
+
+<AppLayout title={pageTitle} navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <Fragment slot="headerBreadcrumb">
+    <div class="flex min-w-0 items-center gap-2 md:gap-3">
+      <BackButton href={backHref} />
+      <a href={backHref} class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">
+        Países
+      </a>
+      <span aria-hidden="true" class="text-neutral-300">›</span>
+      <span class="truncate text-sm font-semibold text-neutral-900">{pageTitle}</span>
+    </div>
+  </Fragment>
+
+  <section class="space-y-6" aria-labelledby="pais-form-title">
+    <header class="space-y-1">
+      <p class="mb-1 text-sm font-semibold text-[#4C4688]">Administración territorial</p>
+
+      <h1 id="pais-form-title" class="text-2xl font-bold text-neutral-900 md:text-3xl">
+        {pageTitle}
+      </h1>
+
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 md:text-base">
+        {isEdit
+          ? 'Actualiza la configuración territorial sin modificar las organizaciones asociadas.'
+          : 'Registra un país y define su código de área telefónica y zona horaria local.'}
+      </p>
+    </header>
+
+    <form id="pais-form" data-mode={mode} data-pais-id={idPais} class="space-y-6" novalidate>
+      <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <header class="mb-5 flex items-start gap-3 border-b border-[#EEEAF5] pb-4">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAE8F5] text-[#4C4688]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+            </svg>
+          </span>
+
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Información del país</h2>
+            <p class="mt-1 text-sm text-neutral-500">
+              Completa los tres datos requeridos para identificar el territorio.
+            </p>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div class="md:col-span-2">
+            <Input
+              label="Nombre del país"
+              id="nombre"
+              name="nombre"
+              placeholder="Ej.: Chile"
+              value={pais?.nombre ?? ''}
+              required
+              maxlength={100}
+              autocomplete="off"
+            />
+            <p data-field-error="nombre" class="mt-1 hidden text-sm text-[#AD174F]" role="alert"></p>
+          </div>
+
+          <div>
+            <Input
+              label="Código de área telefónica"
+              id="codigo_area_telefonica"
+              name="codigo_area_telefonica"
+              type="tel"
+              placeholder="Ej.: +56"
+              value={pais?.codigo_area_telefonica ?? ''}
+              required
+              maxlength={6}
+              hint="Incluye el prefijo internacional, por ejemplo +56."
+              autocomplete="off"
+            />
+            <p data-field-error="codigo_area_telefonica" class="mt-1 hidden text-sm text-[#AD174F]" role="alert"></p>
+          </div>
+
+          <div>
+            <Input
+              label="Zona horaria local"
+              id="zona_horaria"
+              name="zona_horaria"
+              placeholder="Ej.: America/Santiago"
+              value={pais?.zona_horaria ?? ''}
+              required
+              maxlength={100}
+              hint="Usa un identificador de zona horaria, como America/Montevideo."
+              autocomplete="off"
+            />
+            <p data-field-error="zona_horaria" class="mt-1 hidden text-sm text-[#AD174F]" role="alert"></p>
+          </div>
+        </div>
+      </Card>
+
+      <p id="pais-feedback" class="hidden rounded-xl border p-4 text-sm leading-6" role="status" aria-live="polite"></p>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button href={backHref} variant="outline" size="lg">Cancelar</Button>
+        <Button type="submit" variant="primary" size="lg">
+          {isEdit ? 'Guardar cambios' : 'Guardar país'}
+        </Button>
+      </div>
+    </form>
+  </section>
+</AppLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#pais-form');
+  const feedback = document.querySelector<HTMLElement>('#pais-feedback');
+
+  if (form && feedback && !form.dataset.initialized) {
+    form.dataset.initialized = 'true';
+
+    const fields = Array.from(
+      form.querySelectorAll<HTMLInputElement>('input[required]')
+    );
+
+    function showFieldError(field: HTMLInputElement, message: string) {
+      const error = form?.querySelector<HTMLElement>(
+        `[data-field-error="${field.id}"]`
+      );
+
+      if (error) {
+        error.textContent = message;
+        error.classList.toggle('hidden', !message);
+        error.id = `${field.id}-error`;
+      }
+
+      field.setAttribute('aria-invalid', message ? 'true' : 'false');
+
+      if (message) {
+        field.setAttribute('aria-describedby', `${field.id}-error`);
+      } else {
+        field.removeAttribute('aria-describedby');
+      }
+    }
+
+    function validateField(field: HTMLInputElement): string {
+      const value = field.value.trim();
+
+      if (!value) return 'Este campo es obligatorio.';
+
+      if (
+        field.id === 'codigo_area_telefonica' &&
+        !/^\+?[0-9]{1,5}$/.test(value)
+      ) {
+        return 'Ingresa un código válido, con + opcional y hasta 5 dígitos.';
+      }
+
+      if (
+        field.id === 'zona_horaria' &&
+        !/^[A-Za-z_+-]+(?:\/[A-Za-z0-9_+-]+)+$/.test(value)
+      ) {
+        return 'Usa un formato de zona horaria, por ejemplo America/Santiago.';
+      }
+
+      return '';
+    }
+
+    fields.forEach((field) => {
+      field.addEventListener('input', () => {
+        showFieldError(field, validateField(field));
+        feedback.classList.add('hidden');
+      });
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      let valid = true;
+
+      for (const field of fields) {
+        const message = validateField(field);
+        showFieldError(field, message);
+        if (message) valid = false;
+      }
+
+      feedback.className = 'rounded-xl border p-4 text-sm leading-6';
+
+      if (!valid) {
+        feedback.classList.add(
+          'border-[#F3B6CC]',
+          'bg-[#FCE8F0]',
+          'text-[#AD174F]'
+        );
+        feedback.textContent = 'Revisa los campos indicados antes de continuar.';
+        fields.find((field) => validateField(field))?.focus();
+        return;
+      }
+
+      feedback.classList.add(
+        'border-[#DCD8E8]',
+        'bg-[#F0EEF8]',
+        'text-[#383165]'
+      );
+      feedback.textContent = 'Los campos ingresados son válidos.';
+    });
+  }
+</script>
