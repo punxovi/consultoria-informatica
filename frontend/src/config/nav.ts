@@ -13,5 +13,6 @@ export const mainNavItems: NavItem[] = [
   { label: 'Programas Institucionales', href: '/programas' },
   { label: 'Planes de Intervención', href: '/planes' },
   { label: 'Reportes', href: '/reportes' },
+  { label: 'Países', href: '/administracion/paises', roles: ['ADMIN'] },
   { label: 'Coordinadores', href: '/administracion/coordinadores', roles: ['ADMIN'] },
 ];
