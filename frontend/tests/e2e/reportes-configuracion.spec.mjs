@@ -22,6 +22,19 @@ test.beforeEach(async ({ context }) => {
   await context.route('**/api/v1/programs', (r) => r.fulfill({ json: { ok: true, data: { programs: programas } } }));
   await context.route('**/api/v1/indicators/catalog', (r) => r.fulfill({ json: { ok: true, data: { catalogo } } }));
   await context.route('**/api/v1/actions', (r) => r.fulfill({ json: { ok: true, data: { actions: [] } } }));
+  await context.route('**/api/v1/reports/consolidated**', (r) => {
+    const query = new URL(r.request().url()).searchParams;
+    const parametros = {
+      fecha_inicio: query.get('fecha_inicio'), fecha_termino: query.get('fecha_termino'),
+      destino: query.get('destino') ?? 'interno',
+      ...(query.get('id_pais') ? { id_pais: query.get('id_pais') } : {}),
+      ...(query.get('id_organizacion') ? { id_organizacion: query.get('id_organizacion') } : {}),
+      ...(query.get('id_programa') ? { id_programa: query.get('id_programa') } : {}),
+      ...(query.get('indicadores') ? { indicadores: query.get('indicadores').split(',') } : {}),
+      ...(query.get('resultados') ? { resultados: query.get('resultados').split(',') } : {}),
+    };
+    return r.fulfill({ json: { ok: true, data: { report: respuestaSimulada(parametros) } } });
+  });
   await context.route('**/api/v1/organizations**', (r) => {
     const url = new URL(r.request().url());
     if (url.pathname.endsWith('/countries')) return r.fulfill({ json: { ok: true, data: { countries: paises } } });
@@ -84,7 +97,7 @@ test('valida fechas obligatorias y orden, y no continúa con errores', async ({ 
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await expect(page.locator('[data-error-campo]')).toHaveCount(0);
   await page.locator('#rep-solicitar').click();
-  await expect(page.locator('#rep-consulta-listo')).toBeVisible();
+  await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
   expect(await page.evaluate(() => window.eventosSolicitud)).toBe(1);
 });
 
@@ -133,7 +146,7 @@ test('quitar el país recarga organizaciones y editar el período invalida la so
   await page.locator('#rep-fecha-inicio').fill('2026-01-01');
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await page.locator('#rep-solicitar').click();
-  await expect(page.locator('#rep-consulta-listo')).toBeVisible();
+  await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
   await page.locator('#rep-fecha-inicio').fill('2026-06-01');
   await expect(page.locator('#rep-consulta-listo')).toBeHidden();
   await page.locator('#rep-solicitar').click();
@@ -441,12 +454,50 @@ test('(respuesta simulada) modificar criterios con la vista previa abierta la re
   await expect(page.locator('#rep-vista-previa [data-vp-periodo] dd')).toHaveText('01/01/2026 al 30/06/2026');
 });
 
-test('sin integración conectada la solicitud queda preparada y no muestra datos simulados', async ({ page }) => {
+test('integración HTTP: la vista previa usa el Gateway y el PDF descarga exactamente su referencia preparada', async ({ page, context }) => {
+  const consultas = [];
+  let descargas = 0;
+  await context.route('**/api/v1/reports/consolidated**', (r) => {
+    const query = new URL(r.request().url()).searchParams;
+    consultas.push(Object.fromEntries(query));
+    return r.fulfill({ json: { ok: true, data: { report: respuestaSimulada({
+      fecha_inicio: query.get('fecha_inicio'), fecha_termino: query.get('fecha_termino'), destino: query.get('destino'),
+      ...(query.get('id_pais') ? { id_pais: query.get('id_pais') } : {}),
+    }, consolidadoConDatos, resumenConDatos) } } });
+  });
+  await context.route('**/api/v1/reports/13800000-0000-4000-8000-000000000001/pdf', (r) => {
+    descargas++;
+    return r.fulfill({ contentType: 'application/pdf', body: Buffer.from('%PDF-1.3\nReporte QA\n%%EOF') });
+  });
+  await abrir(page);
+  await completarPeriodo(page);
+  await page.locator('#rep-pais').selectOption(id);
+  await page.locator('#rep-solicitar').click();
+  await expect(page.locator('#rep-consulta-exito')).toBeVisible();
+  await expect(page.locator('#rep-vista-previa')).toBeVisible();
+  await expect(page.locator('#rep-exportacion')).toBeVisible();
+  expect(consultas).toEqual([{ fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31', destino: 'interno', id_pais: id }]);
+
+  await page.locator('#rep-exportar-pdf').click();
+  await expect(page.locator('#rep-exportacion-confirmacion')).toBeVisible();
+  const descarga = page.waitForEvent('download');
+  await page.locator('#rep-confirmar-pdf').click();
+  expect((await descarga).suggestedFilename()).toBe('reporte-fge-2026-01-01_2026-12-31-interno.pdf');
+  await expect(page.locator('#rep-exportacion-exito')).toContainText('PDF descargado');
+  expect(descargas).toBe(1);
+  expect(consultas).toHaveLength(1);
+});
+
+test('integración HTTP: un error del PDF se informa sin mostrar una descarga exitosa', async ({ page, context }) => {
+  await context.route('**/api/v1/reports/13800000-0000-4000-8000-000000000001/pdf', (r) =>
+    r.fulfill({ status: 500, json: { ok: false, error: { code: 'PDF_GENERACION_FALLIDA', message: 'No se pudo generar', requestId: 'qa' } } }),
+  );
   await abrir(page);
   await completarPeriodo(page);
   await page.locator('#rep-solicitar').click();
-  await expect(page.locator('#rep-consulta-listo')).toBeVisible();
-  for (const estado of ['carga', 'error', 'vacio', 'exito']) await expect(page.locator(`#rep-consulta-${estado}`)).toBeHidden();
-  await expect(page.locator('#rep-vista-previa')).toBeHidden();
-  await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(0);
+  await expect(page.locator('#rep-exportacion')).toBeVisible();
+  await page.locator('#rep-exportar-pdf').click();
+  await page.locator('#rep-confirmar-pdf').click();
+  await expect(page.locator('#rep-exportacion-error')).toContainText('No fue posible generar el PDF');
+  await expect(page.locator('#rep-exportacion-exito')).toBeHidden();
 });

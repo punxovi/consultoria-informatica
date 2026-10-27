@@ -161,6 +161,31 @@ const listas = [
   </section>
 
   <section id="rep-vista-previa" hidden aria-label="Vista previa del reporte" class="space-y-4"></section>
+
+  <section id="rep-exportacion" hidden aria-live="polite" class="rounded-2xl border border-[#E4E0F2] bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5">
+    <div id="rep-exportacion-lista">
+      <h2 class="text-lg font-semibold text-neutral-900">Exportar PDF</h2>
+      <p class="mt-1 text-sm text-neutral-500">El archivo se generará con la misma vista previa, período y filtros que acabas de revisar.</p>
+      <Button id="rep-exportar-pdf" type="button" class="mt-4">Descargar PDF</Button>
+    </div>
+    <div id="rep-exportacion-confirmacion" hidden>
+      <h2 class="text-lg font-semibold text-neutral-900">Confirmar descarga</h2>
+      <p class="mt-1 text-sm text-neutral-500">No se volverán a consultar datos ni se modificarán los filtros de la vista previa.</p>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <Button id="rep-confirmar-pdf" type="button">Generar y descargar PDF</Button>
+        <Button id="rep-cancelar-pdf" type="button" variant="outline">Volver</Button>
+      </div>
+    </div>
+    <div id="rep-exportacion-generando" hidden role="status" class="flex items-center gap-3">
+      <span class="h-4 w-4 animate-spin rounded-full border-2 border-[#D8D3E8] border-t-primary" aria-hidden="true"></span>
+      <span class="text-sm text-neutral-600">Generando y descargando el PDF…</span>
+    </div>
+    <div id="rep-exportacion-exito" hidden role="status" class="rounded-xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-[#14784D]"></div>
+    <div id="rep-exportacion-error" hidden role="alert" class="flex flex-col gap-3 rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger sm:flex-row sm:items-center sm:justify-between">
+      <p id="rep-exportacion-error-texto"></p>
+      <Button id="rep-exportacion-reintentar" type="button" variant="outline" size="sm" class="shrink-0">Reintentar</Button>
+    </div>
+  </section>
 </section>
 
 <style>
