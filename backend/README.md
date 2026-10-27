@@ -8,7 +8,7 @@ pública mediante el API Gateway.
 | Componente | Puerto | Responsabilidad |
 | --- | ---: | --- |
 | `gateway` | 4000 | CORS, request ID y rutas públicas `/api/v1`. |
-| `services/auth` | 4101 | Login, recuperación, sesión y cierre de sesión. |
+| `services/auth` | 4101 | Login, recuperación, sesión, cierre y administración de Coordinadores. |
 | `services/organizations` | 4102 | Organizaciones, catálogo y administración de países. |
 | `services/programs` | 4103 | Programas y líneas de acción. |
 | `services/interventions` | 4104 | Planes de intervención y acciones. |
@@ -53,3 +53,8 @@ La administración `/api/v1/countries` exige ADMIN y la migración de SCRUM-149.
 El catálogo básico de formularios mantiene `/api/v1/organizations/countries`.
 Consultar [`CONTRATO-PAISES.md`](../docs/CONTRATO-PAISES.md) para los campos,
 respuestas, migración y pruebas.
+
+Las operaciones `/api/v1/coordinators` requieren la migración de SCRUM-145.
+El alta requiere además `SUPABASE_SERVICE_ROLE_KEY`, exclusiva del Backend.
+Parámetros, respuestas, ciclo de vida y pruebas en
+[`CONTRATO-COORDINADORES.md`](../docs/CONTRATO-COORDINADORES.md).

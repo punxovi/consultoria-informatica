@@ -36,7 +36,8 @@ export async function routeRequest(
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }
-  if (incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`)) {
+  if (incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`) ||
+      incomingUrl.pathname === `${API_PREFIX}/coordinators` || incomingUrl.pathname.startsWith(`${API_PREFIX}/coordinators/`)) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
     const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.auth);
     await proxyRequest(request, response, targetUrl, requestId);

@@ -4,9 +4,13 @@ import { getRequestId, logEvent } from '../../../shared/observability/src/index.
 import { createAuthApplication, type AuthApplication } from './application/auth-service.ts';
 import { routeAuth } from './http/routes.ts';
 import { createSupabaseAuthRepositoryFromEnv } from './infrastructure/supabase-auth.repository.ts';
+import { createCoordinatorApplication, type CoordinatorApplication } from './application/coordinators-service.ts';
+import { createSupabaseCoordinatorRepositoryFromEnv } from './infrastructure/supabase-coordinators.repository.ts';
+import { routeCoordinators } from './http/coordinators-routes.ts';
 
 export interface AuthServerOptions {
   application?: AuthApplication;
+  coordinators?: CoordinatorApplication;
 }
 
 function defaultApplication(): AuthApplication {
@@ -18,10 +22,14 @@ function defaultApplication(): AuthApplication {
 
 export function createAuthServer(options: AuthServerOptions = {}): Server {
   const application = options.application ?? defaultApplication();
+  const coordinators = options.coordinators ?? createCoordinatorApplication(createSupabaseCoordinatorRepositoryFromEnv());
   return createServer((request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'auth.request', { requestId, method: request.method, path: request.url });
-    void routeAuth(request, response, requestId, application);
+    const path = new URL(request.url ?? '/', 'http://auth.local').pathname;
+    if (path === '/v1/coordinators' || path.startsWith('/v1/coordinators/')) {
+      void routeCoordinators(request, response, requestId, coordinators);
+    } else void routeAuth(request, response, requestId, application);
   });
 }
 
