@@ -9,7 +9,7 @@ pública mediante el API Gateway.
 | --- | ---: | --- |
 | `gateway` | 4000 | CORS, request ID y rutas públicas `/api/v1`. |
 | `services/auth` | 4101 | Login, recuperación, sesión y cierre de sesión. |
-| `services/organizations` | 4102 | Organizaciones y catálogo de países. |
+| `services/organizations` | 4102 | Organizaciones, catálogo y administración de países. |
 | `services/programs` | 4103 | Programas y líneas de acción. |
 | `services/interventions` | 4104 | Planes de intervención y acciones. |
 | `services/insights` | 4105 | Métricas de Dashboard y resumen de Reportes. |
@@ -48,3 +48,8 @@ npm.cmd run build:frontend
 La decisión de arquitectura se documenta en
 `docs/architecture/ADR-001-separacion-frontend-backend.md` y cada dominio posee
 su documento de migración en esa misma carpeta.
+
+La administración `/api/v1/countries` exige ADMIN y la migración de SCRUM-149.
+El catálogo básico de formularios mantiene `/api/v1/organizations/countries`.
+Consultar [`CONTRATO-PAISES.md`](../docs/CONTRATO-PAISES.md) para los campos,
+respuestas, migración y pruebas.
