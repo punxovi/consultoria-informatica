@@ -150,7 +150,7 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
 
     const [planesRes, accionesRes, compromisosRes, donacionesRes] = await Promise.all([
       request('planes', new URLSearchParams({ id_organizacion: inOrgs, select: 'id_plan,nombre,id_organizacion,fecha_inicio,fecha_termino,programa:programas(nombre)', archived_at: 'is.null' }), token),
-      request('acciones', new URLSearchParams({ select: 'id_accion,nombre,estado,fecha_inicio,fecha_termino,plan:planes!inner(nombre, id_organizacion)', archived_at: 'is.null' }), token),
+      request('acciones', new URLSearchParams({ select: 'id_accion,nombre,estado,fecha_inicio,fecha_termino,plan:planes!inner(id_organizacion,nombre)', archived_at: 'is.null' }), token),
       request('compromisos', compromisosParams, token),
       request('donaciones', donacionesParams, token)
     ]);
@@ -160,7 +160,57 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
     const compromisosRaw = Array.isArray(compromisosRes) ? compromisosRes : [];
     const donacionesRaw = Array.isArray(donacionesRes) ? donacionesRes : [];
 
+    // Indicadores y resultados se consultan después de las acciones para
+    // limitar la consulta al alcance territorial visible para la sesión.
+    const actionIds = accionesRaw.map(item => item.id_accion).filter((id): id is string => typeof id === 'string');
+    const indicadoresRaw = actionIds.length
+      ? await request('indicadores', new URLSearchParams({
+        id_accion: `in.(${actionIds.join(',')})`,
+        archived_at: 'is.null',
+        select: 'id_indicador,nombre,id_accion',
+      }), token)
+      : [];
+    const indicadoresVisibles = Array.isArray(indicadoresRaw) ? indicadoresRaw : [];
+    const indicatorIds = indicadoresVisibles
+      .map(item => item.id_indicador)
+      .filter((id): id is string => typeof id === 'string');
+    const resultadosRaw = indicatorIds.length
+      ? await request('resultados', new URLSearchParams({
+        id_indicador: `in.(${indicatorIds.join(',')})`,
+        fecha_medicion: `gte.${filters.startDate}`,
+        archived_at: 'is.null',
+        select: 'id_resultado,id_indicador,valor_medido,fecha_medicion,observaciones',
+        order: 'fecha_medicion.desc,created_at.desc',
+      }), token)
+      : [];
+    const resultadosVisibles = Array.isArray(resultadosRaw) ? resultadosRaw : [];
+
     const findOrgName = (id: string) => orgsRaw.find(o => o.id_organizacion === id)?.nombre || 'Desconocida';
+
+    const actionOrganization = new Map(
+      accionesRaw.map(action => [action.id_accion, action.plan?.id_organizacion]).filter((entry): entry is [string, string] =>
+        typeof entry[0] === 'string' && typeof entry[1] === 'string'),
+    );
+    const selectedIndicatorIds = filters.indicatorIds ? new Set(filters.indicatorIds) : null;
+    const selectedResultIds = filters.resultIds ? new Set(filters.resultIds) : null;
+    const scopedIndicators = indicadoresVisibles.filter(indicator =>
+      orgIds.includes(actionOrganization.get(indicator.id_accion) ?? '')
+      && (!selectedIndicatorIds || selectedIndicatorIds.has(indicator.id_indicador)),
+    );
+    const scopedIndicatorIds = new Set(scopedIndicators.map(indicator => indicator.id_indicador));
+    const scopedResults = resultadosVisibles.filter(result =>
+      scopedIndicatorIds.has(result.id_indicador)
+      && (!selectedResultIds || selectedResultIds.has(result.id_resultado))
+      && typeof result.fecha_medicion === 'string'
+      && result.fecha_medicion <= filters.endDate,
+    );
+    const resultByIndicator = new Map<string, Record<string, unknown>>();
+    for (const result of scopedResults) {
+      if (typeof result.id_indicador === 'string' && !resultByIndicator.has(result.id_indicador)) {
+        resultByIndicator.set(result.id_indicador, result);
+      }
+    }
+    const indicatorsWithResults = scopedIndicators.filter(indicator => resultByIndicator.has(indicator.id_indicador));
 
     const completedActions = accionesRaw.filter(a => a.estado === 'cumplida' && orgIds.includes(a.plan?.id_organizacion)).length;
     const totalDonations = donacionesRaw.reduce((acc, d) => acc + (Number(d.monto) || 0), 0);
@@ -176,8 +226,24 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
         actions: accionesRaw.filter(a => orgIds.includes(a.plan?.id_organizacion)).map(a => ({ id_accion: a.id_accion, nombre: a.nombre || 'Acción', estado: a.estado, fecha_inicio: a.fecha_inicio, fecha_termino: a.fecha_termino, plan: a.plan?.nombre || 'N/A' })),
         commitments: compromisosRaw.map(c => ({ id_compromiso: c.id_compromiso, acuerdo: c.descripcion || 'Sin descripción', estado: c.estado, fecha_cumplimiento: c.cumplido_at || null, organizacion: 'Asociada a un acta' })),
         donations: donacionesRaw.map(d => ({ id_donacion: d.id_donacion, fecha: d.fecha, tipo_aporte: d.tipo_aporte, monto: d.monto, cantidad: d.cantidad, organizacion: findOrgName(d.id_organizacion) })),
-        indicators: [],
-        results: []
+        indicators: indicatorsWithResults.map(indicator => {
+          const result = resultByIndicator.get(indicator.id_indicador)!;
+          return {
+            id_indicador: indicator.id_indicador,
+            nombre: indicator.nombre || 'Indicador',
+            valor_obtenido: Number(result.valor_medido),
+            organizacion: findOrgName(actionOrganization.get(indicator.id_accion) ?? ''),
+          };
+        }),
+        results: scopedResults.map(result => {
+          const indicator = indicadoresVisibles.find(item => item.id_indicador === result.id_indicador);
+          return {
+            id_resultado: result.id_resultado,
+            descripcion: result.observaciones || `Resultado de ${indicator?.nombre || 'indicador'}`,
+            fecha_obtencion: result.fecha_medicion,
+            organizacion: findOrgName(actionOrganization.get(indicator?.id_accion) ?? ''),
+          };
+        })
       },
       summary: { totalBeneficiaries, totalDonationsAmount: totalDonations, completedActions }
     };

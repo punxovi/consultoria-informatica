@@ -181,3 +181,19 @@ La migración no se aplicó al Supabase remoto. El entorno local no tenía
 `SUPABASE_SERVICE_ROLE_KEY`: el alta real queda pendiente de esa configuración,
 la migración y una prueba integrada con Auth/SMTP. No se crearon cuentas reales,
 no se enviaron correos ni se modificaron los archivos locales del usuario.
+
+## Casos de autorizaciÃ³n verificables
+
+| Actor y operaciÃ³n directa | Resultado |
+|---|---|
+| Administrador activo y global sobre las rutas de Coordinadores | Permitido |
+| Coordinador, Invitado, Administrador inactivo o sesiÃ³n ausente | 403; el intento autenticado queda registrado |
+| Coordinador sobre paÃ­ses, cuentas, coberturas o auditorÃ­a | Rechazado por RLS/RPC |
+| Coordinador que cambia una asignaciÃ³n de rol propia o ajena | 42501 y registro de auditorÃ­a |
+| Revocar el Ãºltimo ADMIN global activo | 42501/P0152 |
+| Crear un segundo ADMIN global activo | Rechazado por la protecciÃ³n de asignaciones |
+| Desactivar un Coordinador | Bloquea nuevos logins y conserva historial y registros |
+
+La cuenta local `coordinador@prueba.com` se crea desde `supabase/seed.sql`, queda
+asignada a Chile y no recibe permisos administrativos. Su contraseÃ±a es solo de
+desarrollo (`password`) y no debe reutilizarse fuera del entorno local.

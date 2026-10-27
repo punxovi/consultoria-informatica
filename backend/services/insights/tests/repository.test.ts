@@ -44,6 +44,28 @@ describe('repositorio Supabase de Insights', () => {
     });
     await assert.rejects(offline.load('token'), (error: any) => error.code === 'SUPABASE_NO_DISPONIBLE');
   });
+  test('carga indicadores y resultados visibles en el consolidado respetando el periodo', async () => {
+    const repository = createSupabaseInsightsRepository({
+      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async input => {
+        const url = String(input);
+        if (url.includes('/organizaciones?')) return Response.json([{ id_organizacion: 'o', nombre: 'Organizacion QA', id_pais: 'p', numero_beneficiarios: 4 }]);
+        if (url.includes('/planes?')) return Response.json([{ id_plan: 'pl', nombre: 'Plan QA', id_organizacion: 'o', fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31' }]);
+        if (url.includes('/acciones?')) return Response.json([{ id_accion: 'a', id_plan: 'pl', nombre: 'Accion QA', estado: 'cumplida', fecha_inicio: '2026-01-01', fecha_termino: '2026-02-01', plan: { nombre: 'Plan QA', id_organizacion: 'o' } }]);
+        if (url.includes('/compromisos?')) return Response.json([]);
+        if (url.includes('/donaciones?')) return Response.json([]);
+        if (url.includes('/indicadores?')) return Response.json([{ id_indicador: 'i', id_accion: 'a', nombre: 'Personas beneficiadas' }]);
+        if (url.includes('/resultados?')) return Response.json([{ id_resultado: 'r', id_indicador: 'i', valor_medido: 12, fecha_medicion: '2026-03-10', observaciones: 'Registro QA' }]);
+        throw new Error(`URL inesperada: ${url}`);
+      },
+    });
+    const report = await repository.loadConsolidated('access-token', {
+      startDate: '2026-01-01', endDate: '2026-12-31', indicatorIds: ['i'], resultIds: ['r'],
+    });
+    assert.deepEqual(report.sections.indicators, [{ id_indicador: 'i', nombre: 'Personas beneficiadas', valor_obtenido: 12, organizacion: 'Organizacion QA' }]);
+    assert.deepEqual(report.sections.results, [{ id_resultado: 'r', descripcion: 'Registro QA', fecha_obtencion: '2026-03-10', organizacion: 'Organizacion QA' }]);
+  });
+
   test('registra la exportacion mediante la RPC autenticada y conserva destino/filtros', async () => {
     let request: { method?: string; body?: string; authorization?: string } = {};
     const repository = createSupabaseInsightsRepository({
