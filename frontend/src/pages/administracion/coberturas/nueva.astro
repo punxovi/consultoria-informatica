@@ -1,0 +1,415 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/ui/Card.astro';
+import Button from '../../../components/ui/Button.astro';
+import BackButton from '../../../components/ui/BackButton.astro';
+import { mainNavItems } from '../../../config/nav';
+
+const backHref = '/administracion/coberturas';
+
+const claseControl =
+  'min-h-12 w-full rounded-xl border border-[#DCD8E8] bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary';
+---
+
+<AppLayout
+  title="Nueva cobertura"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <div class="flex min-w-0 items-center gap-2 md:gap-3">
+      <BackButton href={backHref} />
+
+      <a
+        href={backHref}
+        class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+      >
+        Coberturas temporales
+      </a>
+
+      <span aria-hidden="true" class="text-neutral-300">›</span>
+
+      <span class="truncate text-sm font-semibold text-neutral-900">
+        Nueva cobertura
+      </span>
+    </div>
+  </Fragment>
+
+  <section class="space-y-6" aria-labelledby="cobertura-title">
+    <header class="space-y-1">
+      <p class="mb-1 text-sm font-semibold text-[#4C4688]">
+        Administración territorial
+      </p>
+
+      <h1
+        id="cobertura-title"
+        class="text-2xl font-bold text-neutral-900 md:text-3xl"
+      >
+        Nueva cobertura temporal
+      </h1>
+
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 md:text-base">
+        Autoriza temporalmente a un Coordinador para trabajar en un país
+        adicional durante un periodo determinado.
+      </p>
+    </header>
+
+    <form id="cobertura-form" class="space-y-6" novalidate>
+      <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <header class="mb-5 flex items-start gap-3 border-b border-[#EEEAF5] pb-4">
+          <span
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAE8F5] text-[#4C4688]"
+            aria-hidden="true"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6" />
+            </svg>
+          </span>
+
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">
+              Información de la cobertura
+            </h2>
+            <p class="mt-1 text-sm text-neutral-500">
+              Completa los datos del Coordinador, el territorio y el motivo
+              de autorización.
+            </p>
+          </div>
+        </header>
+
+        <p class="mb-5 text-sm text-neutral-500">
+          Los campos marcados con * son obligatorios.
+        </p>
+
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div class="space-y-1.5">
+            <label
+              for="cobertura-coordinador"
+              class="block text-sm font-medium text-[#383165]"
+            >
+              Coordinador *
+            </label>
+
+            <select
+              id="cobertura-coordinador"
+              name="id_usuario_beneficiario"
+              class={claseControl}
+              required
+              aria-describedby="cobertura-coordinador-error"
+            >
+              <option value="">Selecciona un Coordinador</option>
+            </select>
+
+            <p
+              id="cobertura-coordinador-error"
+              data-field-error="cobertura-coordinador"
+              class="hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+          </div>
+
+          <div class="space-y-1.5">
+            <label
+              for="cobertura-pais"
+              class="block text-sm font-medium text-[#383165]"
+            >
+              País adicional autorizado *
+            </label>
+
+            <select
+              id="cobertura-pais"
+              name="id_pais"
+              class={claseControl}
+              required
+              aria-describedby="cobertura-pais-error"
+            >
+              <option value="">Selecciona un país</option>
+            </select>
+
+            <p
+              id="cobertura-pais-error"
+              data-field-error="cobertura-pais"
+              class="hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+          </div>
+
+          <div class="space-y-1.5 md:col-span-2">
+            <label
+              for="cobertura-motivo"
+              class="block text-sm font-medium text-[#383165]"
+            >
+              Motivo de la cobertura *
+            </label>
+
+            <textarea
+              id="cobertura-motivo"
+              name="motivo"
+              rows="4"
+              minlength="5"
+              maxlength="1000"
+              required
+              placeholder="Describe por qué se necesita la autorización temporal."
+              class="w-full rounded-xl border border-[#DCD8E8] bg-white px-3 py-3 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-describedby="cobertura-motivo-error"
+            ></textarea>
+
+            <p
+              data-field-error="cobertura-motivo"
+              id="cobertura-motivo-error"
+              class="hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+
+            <p class="text-xs text-neutral-500">
+              Explica brevemente la razón de la cobertura.
+            </p>
+          </div>
+        </div>
+
+        <section
+          class="mt-6 space-y-4 border-t border-[#EEEAF5] pt-6"
+          aria-labelledby="cobertura-periodo-title"
+        >
+          <header>
+            <h2
+              id="cobertura-periodo-title"
+              class="text-lg font-bold text-neutral-900"
+            >
+              Periodo de autorización
+            </h2>
+
+            <p class="mt-1 text-sm text-neutral-500">
+              La fecha de término debe ser posterior a la fecha de inicio.
+            </p>
+          </header>
+
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div class="space-y-1.5">
+              <label
+                for="cobertura-inicio"
+                class="block text-sm font-medium text-[#383165]"
+              >
+                Fecha de inicio *
+              </label>
+
+              <input
+                id="cobertura-inicio"
+                name="inicio"
+                type="date"
+                required
+                class={claseControl}
+                aria-describedby="cobertura-inicio-error"
+              />
+
+              <p
+                id="cobertura-inicio-error"
+                data-field-error="cobertura-inicio"
+                class="hidden text-sm text-[#AD174F]"
+                role="alert"
+              ></p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label
+                for="cobertura-termino"
+                class="block text-sm font-medium text-[#383165]"
+              >
+                Fecha de término *
+              </label>
+
+              <input
+                id="cobertura-termino"
+                name="termino"
+                type="date"
+                required
+                class={claseControl}
+                aria-describedby="cobertura-termino-error"
+              />
+
+              <p
+                id="cobertura-termino-error"
+                data-field-error="cobertura-termino"
+                class="hidden text-sm text-[#AD174F]"
+                role="alert"
+              ></p>
+            </div>
+          </div>
+        </section>
+
+        <div
+          id="cobertura-feedback"
+          hidden
+          tabindex="-1"
+          role="status"
+          aria-live="polite"
+          class="mt-6 rounded-xl border p-4 text-sm leading-6"
+        ></div>
+      </Card>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button href={backHref} variant="outline" size="lg">
+          Cancelar
+        </Button>
+
+        <Button
+          id="cobertura-guardar"
+          type="submit"
+          variant="primary"
+          size="lg"
+        >
+          Guardar cobertura
+        </Button>
+      </div>
+    </form>
+  </section>
+</AppLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#cobertura-form');
+  const feedback = document.querySelector<HTMLElement>('#cobertura-feedback');
+  const inicio = document.querySelector<HTMLInputElement>('#cobertura-inicio');
+  const termino = document.querySelector<HTMLInputElement>('#cobertura-termino');
+
+  if (form && feedback && inicio && termino && !form.dataset.initialized) {
+    form.dataset.initialized = 'true';
+
+    const fields = Array.from(
+      form.querySelectorAll<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >('[required]'),
+    );
+
+    function showFieldError(
+      field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+      message: string,
+    ) {
+      const error = form?.querySelector<HTMLElement>(
+        `[data-field-error="${field.id}"]`,
+      );
+
+      if (error) {
+        error.textContent = message;
+        error.classList.toggle('hidden', !message);
+      }
+
+      field.setAttribute('aria-invalid', message ? 'true' : 'false');
+    }
+
+    function validateField(
+      field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+    ): string {
+      const value = field.value.trim();
+
+      if (!value) return 'Este campo es obligatorio.';
+
+      if (field.id === 'cobertura-motivo' && value.length < 5) {
+        return 'Describe el motivo con al menos 5 caracteres.';
+      }
+
+      return '';
+    }
+
+    function validateDates(): boolean {
+      let valid = true;
+
+      const errorInicio =
+        inicio.value && termino.value && termino.value <= inicio.value
+          ? 'La fecha de inicio debe ser anterior a la fecha de término.'
+          : '';
+
+      const errorTermino =
+        inicio.value && termino.value && termino.value <= inicio.value
+          ? 'La fecha de término debe ser posterior a la fecha de inicio.'
+          : '';
+
+      showFieldError(inicio, errorInicio);
+      showFieldError(termino, errorTermino);
+
+      if (errorInicio || errorTermino) valid = false;
+
+      return valid;
+    }
+
+    for (const field of fields) {
+      field.addEventListener('input', () => {
+        showFieldError(field, validateField(field));
+        feedback.hidden = true;
+      });
+
+      field.addEventListener('change', () => {
+        showFieldError(field, validateField(field));
+
+        if (field === inicio && inicio.value) {
+          termino.min = inicio.value;
+        }
+
+        validateDates();
+        feedback.hidden = true;
+      });
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      let valid = true;
+
+      for (const field of fields) {
+        const error = validateField(field);
+        showFieldError(field, error);
+
+        if (error) valid = false;
+      }
+
+      if (!validateDates()) valid = false;
+
+      feedback.hidden = false;
+      feedback.className = 'mt-6 rounded-xl border p-4 text-sm leading-6';
+
+      if (!valid) {
+        feedback.classList.add(
+          'border-[#F3B6CC]',
+          'bg-[#FCE8F0]',
+          'text-[#AD174F]',
+        );
+
+        feedback.textContent =
+          'Revisa los campos indicados antes de continuar.';
+
+        fields.find((field) => validateField(field))?.focus();
+
+        if (inicio.value && termino.value && termino.value <= inicio.value) {
+          termino.focus();
+        } else if (!valid) {
+          const primerError = fields.find((field) =>
+            field.getAttribute('aria-invalid') === 'true',
+          );
+          primerError?.focus();
+        }
+
+        feedback.focus();
+        return;
+      }
+
+      feedback.classList.add(
+        'border-[#DCD8E8]',
+        'bg-[#F0EEF8]',
+        'text-[#383165]',
+      );
+
+      feedback.textContent =
+        'Los datos son válidos, pero la cobertura todavía no se ha guardado. La operación quedará disponible cuando se integre el servicio de administración.';
+      feedback.focus();
+    });
+  }
+</script>

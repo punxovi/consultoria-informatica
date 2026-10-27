@@ -15,4 +15,5 @@ export const mainNavItems: NavItem[] = [
   { label: 'Reportes', href: '/reportes' },
   { label: 'Países', href: '/administracion/paises', roles: ['ADMIN'] },
   { label: 'Coordinadores', href: '/administracion/coordinadores', roles: ['ADMIN'] },
+  { label: 'Coberturas temporales', href: '/administracion/coberturas', roles: ['ADMIN'] },
 ];
