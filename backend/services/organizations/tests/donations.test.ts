@@ -181,6 +181,52 @@ test('Respaldos: valida firmas binarias de formatos admitidos (PDF, JPEG, PNG, W
   assert.throws(() => assertFileSignature(fakeBytes, 'application/pdf'), /El contenido del archivo no corresponde/);
 });
 
+test('Respaldos: una reserva fallida puede reintentarse sin crear otro metadato', async () => {
+  const donationId = '77777777-7777-4777-8777-777777777777';
+  const fileId = '88888888-8888-4888-8888-888888888888';
+  const bytes = Buffer.from('%PDF-1.4 reintento');
+  let state = {
+    id_archivo: fileId,
+    id_donacion: donationId,
+    bucket_id: 'fge-archivos',
+    ruta_objeto: `donaciones/${donationId}/${fileId}.pdf`,
+    nombre_original: 'comprobante.pdf',
+    mime_type: 'application/pdf',
+    tamano_bytes: bytes.length,
+    categoria: 'comprobante',
+    tipo_respaldo: 'comprobante',
+    estado_carga: 'fallido',
+    version: 2,
+  } as any;
+  const cambios: string[] = [];
+  const repository = createSupabaseOrganizationsRepository({
+    supabaseUrl: 'https://supabase.invalid',
+    anonKey: 'public-test',
+    fetchImpl: async (url, init) => {
+      const pathname = new URL(String(url)).pathname;
+      if (pathname.endsWith('/archivos')) {
+        if (init?.method === 'PATCH') {
+          const body = JSON.parse(String(init.body));
+          cambios.push(body.estado_carga);
+          state = { ...state, ...body, version: state.version + 1 };
+        }
+        return Response.json([state]);
+      }
+      if (pathname.includes('/storage/v1/object/fge-archivos/')) {
+        assert.equal(state.estado_carga, 'reservado');
+        return new Response(null, { status: 200 });
+      }
+      throw new Error(`Solicitud inesperada: ${pathname}`);
+    },
+  });
+
+  const uploaded = await repository.uploadDonationFile('session', donationId, fileId, 2, bytes, 'application/pdf');
+  assert.deepEqual(cambios, ['reservado', 'disponible']);
+  assert.equal(uploaded.id_archivo, fileId);
+  assert.equal(uploaded.estado_carga, 'disponible');
+  assert.equal(uploaded.version, 4);
+});
+
 test('HTTP: flujo completo de creación de donación, reserva, carga y descarga de respaldo', async () => {
   const donationId = '77777777-7777-4777-8777-777777777777';
   const orgId = '11111111-1111-4111-8111-111111111111';

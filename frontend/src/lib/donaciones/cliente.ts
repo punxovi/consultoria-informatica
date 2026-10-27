@@ -2,6 +2,7 @@ import { ApiError, createApiTransport } from '../api/transporte.ts';
 import {
   donacionSchema,
   respaldoSchema,
+  type CambiosDonacion,
   type DatosDonacionForm,
   type Donacion,
   type RespaldoDonacion,
@@ -127,7 +128,7 @@ export function crearClienteDonaciones(
       idOrganizacion: string,
       idDonacion: string,
       versionEsperada: number,
-      cambios: Partial<DatosDonacionForm>,
+      cambios: CambiosDonacion,
     ): Promise<Donacion> {
       const accessToken = await token();
       const respuesta = await http.request<{ donation: unknown }>(

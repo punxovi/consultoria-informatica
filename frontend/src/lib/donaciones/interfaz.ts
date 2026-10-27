@@ -10,6 +10,7 @@ import {
   normalizarTipoRespaldo,
   tipoArchivo,
   validarRegistroDonacion,
+  type CambiosDonacion,
   type Donacion,
   type RespaldoDonacion,
   type TipoRespaldo,
@@ -38,6 +39,7 @@ export function iniciarDonaciones() {
 
   let ocupado = false;
   let puedeGestionar = true;
+  let modoFormulario: 'crear' | 'editar' = 'crear';
   let donaciones: Donacion[] = [];
   let donacionActual: Donacion | null = null;
   let respaldosActuales: RespaldoDonacion[] = [];
@@ -334,6 +336,7 @@ export function iniciarDonaciones() {
     q('detalle-descripcion').textContent = donacion.descripcion;
 
     const siguiente = siguienteEstado(donacion.estado);
+    q<HTMLButtonElement>('editar').hidden = !puedeGestionar;
     const boton = q<HTMLButtonElement>('avanzar-estado');
     boton.hidden = !siguiente || !puedeGestionar;
     boton.textContent = siguiente ? `Avanzar a ${siguiente}` : '';
@@ -402,11 +405,11 @@ export function iniciarDonaciones() {
   }
 
   function prepararReintento(item: RespaldoDonacion) {
-    reservaPendiente = item;
     abrirFormRespaldo();
+    reservaPendiente = item;
     q('respaldo-pendiente-alerta').hidden = false;
     q('respaldo-pendiente-alerta').textContent =
-      `Reintentando carga para «${item.nombre_original}». Selecciona el archivo correspondiente (${item.mime_type}, máx. ${formatearTamano(item.tamano_bytes)}).`;
+      `Reintentando carga para «${item.nombre_original}». Selecciona el mismo archivo (${item.mime_type}, ${formatearTamano(item.tamano_bytes)} exactos).`;
     q<HTMLSelectElement>('respaldo-tipo').value = item.tipo_respaldo;
     q<HTMLInputElement>('respaldo-descripcion').value = item.descripcion ?? '';
     q('respaldo-guardar').textContent = 'Reintentar subida';
@@ -456,14 +459,51 @@ export function iniciarDonaciones() {
     }
   }
 
-  q('nueva').addEventListener('click', () => {
+  function abrirFormularioCreacion() {
+    modoFormulario = 'crear';
     formDonacion.reset();
     q<HTMLInputElement>('pais').value = nombrePais();
     q<HTMLInputElement>('organizacion').value = nombreOrganizacion();
+    q('form-titulo').textContent = 'Registrar nueva donaci\u00f3n';
+    q('form-ayuda').textContent = 'Los campos marcados con * son obligatorios. Una vez creada podr\u00e1s adjuntar sus respaldos documentales.';
     actualizarCamposAporte();
     cambiarVista('form-donacion');
     void cargarProgramas();
-  });
+  }
+
+  async function abrirFormularioEdicion() {
+    if (!donacionActual || ocupado || !puedeGestionar) return;
+    modoFormulario = 'editar';
+    const donacion = donacionActual;
+    formDonacion.reset();
+    q<HTMLInputElement>('pais').value = nombrePais();
+    q<HTMLInputElement>('organizacion').value = nombreOrganizacion();
+    q<HTMLInputElement>('fecha').value = donacion.fecha.slice(0, 10);
+    q<HTMLSelectElement>('tipo-movimiento').value = donacion.tipo_movimiento;
+    q<HTMLInputElement>('contraparte').value = donacion.contraparte_nombre;
+    q<HTMLSelectElement>('tipo-donante').value = donacion.tipo_donante ?? '';
+    q<HTMLInputElement>('origen').value = donacion.origen ?? '';
+    categoriaSelect.value = donacion.categoria ?? (donacion.tipo_aporte === 'dinero' ? 'Dinero' : 'Servicio');
+    actualizarCamposAporte();
+    q<HTMLInputElement>('categoria-otro').value = donacion.categoria_otro ?? '';
+    q<HTMLTextAreaElement>('descripcion').value = donacion.descripcion;
+    q<HTMLInputElement>('monto').value = donacion.monto == null ? '' : String(donacion.monto);
+    q<HTMLInputElement>('moneda').value = donacion.moneda ?? 'CLP';
+    q<HTMLInputElement>('cantidad').value = donacion.cantidad == null ? '' : String(donacion.cantidad);
+    q<HTMLInputElement>('unidad').value = donacion.unidad ?? '';
+    q<HTMLInputElement>('valor-estimado').value = donacion.valor_estimado == null ? '' : String(donacion.valor_estimado);
+    q<HTMLInputElement>('moneda-valorizacion').value = donacion.moneda_valorizacion ?? '';
+    q<HTMLInputElement>('metodo-valorizacion').value = donacion.metodo_valorizacion ?? '';
+    q<HTMLSelectElement>('estado').value = donacion.estado ?? 'Comprometida';
+    q('form-titulo').textContent = 'Editar donaci\u00f3n';
+    q('form-ayuda').textContent = 'Modifica los datos permitidos. La Organizaci\u00f3n y su pa\u00eds no se pueden cambiar.';
+    cambiarVista('form-donacion');
+    await cargarProgramas();
+    q<HTMLSelectElement>('programa').value = donacion.id_programa ?? '';
+  }
+
+  q('nueva').addEventListener('click', abrirFormularioCreacion);
+  q('editar').addEventListener('click', () => { void abrirFormularioEdicion(); });
 
   // Quita el error de un campo en cuanto la persona lo corrige.
   formDonacion.addEventListener('input', (e) => {
@@ -473,8 +513,45 @@ export function iniciarDonaciones() {
   });
 
   q('cancelar').addEventListener('click', () => {
+    if (modoFormulario === 'editar' && donacionActual) {
+      cambiarVista('detalle');
+      renderDetalle(donacionActual);
+      return;
+    }
     cambiarVista('listado');
   });
+
+  function obtenerCambiosEdicion(datos: Record<string, unknown>): Record<string, unknown> {
+    if (!donacionActual) return {};
+    const candidatos: Record<string, unknown> = {
+      id_programa: datos.id_programa ?? null,
+      categoria: datos.categoria,
+      categoria_otro: datos.categoria_otro ?? null,
+      tipo_donante: datos.tipo_donante,
+      origen: datos.origen,
+      estado: datos.estado,
+      valor_estimado: datos.valor_estimado ?? null,
+      moneda_valorizacion: datos.moneda_valorizacion ?? null,
+      metodo_valorizacion: datos.metodo_valorizacion ?? null,
+      fecha: datos.fecha,
+      tipo_movimiento: datos.tipo_movimiento,
+      contraparte_nombre: datos.contraparte_nombre,
+      descripcion: datos.descripcion,
+      tipo_aporte: datos.tipo_aporte,
+      monto: datos.monto ?? null,
+      moneda: datos.moneda ?? null,
+      cantidad: datos.cantidad ?? null,
+      unidad: datos.unidad ?? null,
+    };
+    return Object.fromEntries(Object.entries(candidatos).filter(([campo, valor]) => {
+      const previo = (donacionActual as Record<string, unknown>)[campo] ?? null;
+      if (previo === valor) return false;
+      // El layout capitaliza textos al enviar. No debe generar una escritura
+      // accidental al editar otro campo de un registro ya existente.
+      return !(typeof previo === 'string' && typeof valor === 'string'
+        && previo.localeCompare(valor, 'es-CL', { sensitivity: 'accent' }) === 0);
+    }));
+  }
 
   formDonacion.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -524,12 +601,32 @@ export function iniciarDonaciones() {
       return;
     }
 
-    bloquear(true, 'Registrando donación...');
+    const cambios = modoFormulario === 'editar' ? obtenerCambiosEdicion(val.data as Record<string, unknown>) : null;
+    if (cambios && Object.keys(cambios).length === 0) {
+      mostrarExito('No hay cambios para guardar.');
+      return;
+    }
+
+    bloquear(true, modoFormulario === 'editar' ? 'Guardando cambios...' : 'Registrando donación...');
     try {
-      const nueva = await cliente.crearDonacion(idOrganizacion, val.data);
-      donaciones.unshift(nueva);
-      await abrirDetalle(nueva);
-      mostrarExito('Donación registrada correctamente.');
+      if (modoFormulario === 'editar' && donacionActual && cambios) {
+        const actualizada = await cliente.actualizarDonacion(
+          idOrganizacion,
+          donacionActual.id_donacion,
+          donacionActual.version,
+          cambios as CambiosDonacion,
+        );
+        const indice = donaciones.findIndex((item) => item.id_donacion === actualizada.id_donacion);
+        if (indice >= 0) donaciones[indice] = actualizada;
+        donacionActual = actualizada;
+        await abrirDetalle(actualizada);
+        mostrarExito('Donación actualizada correctamente.');
+      } else {
+        const nueva = await cliente.crearDonacion(idOrganizacion, val.data);
+        donaciones.unshift(nueva);
+        await abrirDetalle(nueva);
+        mostrarExito('Donación registrada correctamente.');
+      }
     } catch (err) {
       if (err instanceof ApiError && err.fields) {
         for (const [campo, mensajes] of Object.entries(err.fields)) {
@@ -537,7 +634,7 @@ export function iniciarDonaciones() {
           if (input && Array.isArray(mensajes) && typeof mensajes[0] === 'string') errorCampo(input, mensajes[0]);
         }
       }
-      mostrarError(err, 'No fue posible registrar la donación. ');
+      mostrarError(err, modoFormulario === 'editar' ? 'No fue posible actualizar la donación. ' : 'No fue posible registrar la donación. ');
     } finally {
       bloquear(false);
     }
