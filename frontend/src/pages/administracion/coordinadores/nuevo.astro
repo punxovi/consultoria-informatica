@@ -1,0 +1,18 @@
+---
+import BackButton from '../../../components/ui/BackButton.astro';
+import CoordinadorForm from '../../../components/coordinadores/CoordinadorForm.astro';
+import { mainNavItems } from '../../../config/nav';
+import AppLayout from '../../../layouts/AppLayout.astro';
+---
+
+<AppLayout title="Nuevo coordinador" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/administracion/coordinadores" />
+    <a href="/administracion/coordinadores" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">
+      Coordinadores
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">Nuevo coordinador</span>
+  </Fragment>
+  <CoordinadorForm modo="crear" />
+</AppLayout>

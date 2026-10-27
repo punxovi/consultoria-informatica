@@ -225,6 +225,17 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       console.error('Error obteniendo los datos de perfil:', error);
     }
 
+    // Ítems del menú restringidos por rol: se muestran solo si la sesión tiene alguno.
+    document.querySelectorAll<HTMLElement>('[data-nav-roles]').forEach((enlace) => {
+      let rolesItem: string[] = [];
+      try {
+        rolesItem = JSON.parse(enlace.dataset.navRoles ?? '[]');
+      } catch {
+        rolesItem = [];
+      }
+      enlace.hidden = !roles.some((role) => rolesItem.includes(role.codigo));
+    });
+
     if (allowedRoles.length > 0) {
       const userHasRole = roles.some((role) => allowedRoles.includes(role.codigo));
 
