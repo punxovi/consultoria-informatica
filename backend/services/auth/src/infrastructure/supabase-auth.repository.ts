@@ -79,12 +79,48 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
 
   return {
     async login(input: LoginInput) {
-      const body = await request('/token?grant_type=password', {
-        method: 'POST',
-        body: JSON.stringify({ email: input.correo, password: input.password }),
-      });
-      return validSession(body);
+      let body: Record<string, unknown>;
+      try {
+        body = await request('/token?grant_type=password', {
+          method: 'POST',
+          body: JSON.stringify({ email: input.correo, password: input.password }),
+        });
+      } catch (error) {
+        // Login fallido (Llamada limpia a REST RPC)
+        try {
+          await fetchImpl(`${baseUrl.replace(/\/auth\/v1$/, '')}/rest/v1/rpc/registrar_evento_autenticacion`, {
+            method: 'POST',
+            headers: {
+              apikey: options.anonKey,
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ p_exitoso: false, p_detalles: { correo_intentado: input.correo } })
+          });
+        } catch (auditErr) {
+          console.error('Error registrando auditoría de login fallido:', auditErr);
+        }
+        throw error;
+      }
+
+      // Login exitoso
+      const session = validSession(body);
+      try {
+        await fetchImpl(`${baseUrl.replace(/\/auth\/v1$/, '')}/rest/v1/rpc/registrar_evento_autenticacion`, {
+          method: 'POST',
+          headers: {
+            apikey: options.anonKey,
+            authorization: `Bearer ${session.access_token}`,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ p_exitoso: true, p_detalles: { correo: input.correo } })
+        });
+      } catch (auditErr) {
+        console.error('Error registrando auditoría de login exitoso:', auditErr);
+      }
+
+      return session;
     },
+
 
     async requestPasswordRecovery(input: RecoveryInput, redirectTo: string) {
       const redirect = encodeURIComponent(redirectTo);
