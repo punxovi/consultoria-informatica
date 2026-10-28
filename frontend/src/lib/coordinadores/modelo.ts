@@ -9,6 +9,7 @@ export const coordinadorSchema = z.object({
   id_pais: z.uuid(),
   pais: z.object({ id_pais: z.uuid(), nombre: z.string().min(1), codigo_iso: z.string().optional() }).optional(),
   activo: z.boolean(),
+  cambio_pais_pendiente: z.boolean().optional(),
   version: z.number().int().positive(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),

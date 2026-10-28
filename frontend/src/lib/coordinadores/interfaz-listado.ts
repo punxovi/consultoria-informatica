@@ -110,6 +110,11 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     cambiar.addEventListener('click', () => (c.activo ? abrirDialogo(c) : void cambiarEstado(c, true)));
     acciones.append(editar, cambiar);
 
+    if (c.cambio_pais_pendiente) {
+      const pendiente = crear('p', 'rounded-xl border border-[#E8D8AA] bg-[#FFF9E9] px-3 py-2 text-sm text-[#7A5A00]', 'El país principal cambiará los permisos en el próximo inicio de sesión.');
+      pendiente.setAttribute('role', 'status');
+      datos.append(pendiente);
+    }
     li.append(cabecera, datos, acciones);
     return li;
   }
