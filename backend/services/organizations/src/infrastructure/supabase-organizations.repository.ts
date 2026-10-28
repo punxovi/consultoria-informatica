@@ -277,6 +277,14 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     });
     const body = await request('informacion_legal', accessToken, params);
     if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
+    
+    if (body[0] && typeof body[0].id_informacion_legal === 'string') {
+      await request('rpc/registrar_acceso_documento', accessToken, new URLSearchParams(), {
+        method: 'POST',
+        body: JSON.stringify({ p_id_documento: body[0].id_informacion_legal })
+      }).catch(() => null); // Silenciar error si falla la inserción de auditoría
+    }
+
     return body[0] ? legalRecord(body[0]) : null;
   }
 
