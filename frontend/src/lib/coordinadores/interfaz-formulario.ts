@@ -98,6 +98,13 @@ export function iniciarFormularioCoordinador(cliente: ClienteCoordinadores = cli
     nodo.append(badge, document.createTextNode(c.activo
       ? 'El Coordinador puede iniciar sesión. Para desactivarla usa el listado de cuentas.'
       : 'El Coordinador no puede iniciar sesión. Para activarla usa el listado de cuentas.'));
+    if (c.cambio_pais_pendiente) {
+      const pendiente = document.createElement('span');
+      pendiente.className = 'basis-full rounded-lg border border-[#E8D8AA] bg-[#FFF9E9] px-3 py-2 text-sm text-[#7A5A00]';
+      pendiente.textContent = 'El nuevo país y sus permisos se aplicarán en el próximo inicio de sesión.';
+      pendiente.setAttribute('role', 'status');
+      nodo.append(pendiente);
+    }
   }
 
   async function cargar() {

@@ -60,6 +60,12 @@ test('obtener y actualizar rechazan una cuenta distinta a la solicitada', async 
   await assert.rejects(cliente.actualizar(id, 1, { nombre: 'X' }), (e) => e.code === 'RESPUESTA_INVALIDA');
 });
 
+test('preserva el indicador de país pendiente devuelto por Backend', async () => {
+  const pendiente = { ...cuenta, cambio_pais_pendiente: true };
+  const { cliente } = clienteCon([ok({ coordinator: pendiente })]);
+  assert.equal((await cliente.obtener(id)).cambio_pais_pendiente, true);
+});
+
 test('conserva los errores por campo del Backend', async () => {
   const fields = { correo: ['Ya existe una cuenta con ese correo.'] };
   const { cliente } = clienteCon([{ status: 409, body: { ok: false, error: { code: 'CORREO_DUPLICADO', message: 'Correo en uso.', fields }, data: null } }]);
