@@ -1,236 +1,302 @@
+
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 import EmptyState from '../../components/ui/EmptyState.astro';
 import { mainNavItems } from '../../config/nav';
-
-interface PaisListado {
-  id: string;
-  nombre: string;
-  codigoArea: string;
-  zonaHoraria: string;
-  codigo: string;
-}
-
-// Los países se cargarán desde el cliente HTTP en la tarea de integración.
-const paises: PaisListado[] = [];
-
-const totalPaises = paises.length;
-const totalCodigos = paises.filter((pais) => Boolean(pais.codigoArea)).length;
-const totalZonasHorarias = paises.filter((pais) => Boolean(pais.zonaHoraria)).length;
 ---
 
 <AppLayout title="Países" navItems={mainNavItems} allowedRoles={['ADMIN']}>
   <section class="space-y-6" aria-labelledby="paises-title">
-
-    <!-- Encabezado -->
     <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div class="min-w-0">
         <p class="text-sm font-medium text-primary">Administración</p>
-
         <h1 id="paises-title" class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">
           Países
         </h1>
-
         <p class="mt-2 max-w-2xl text-sm text-neutral-500">
           Administra los países de operación de la Fundación y su configuración territorial.
         </p>
       </div>
 
-      <Button
-        href="/administracion/paises/nuevo"
-        size="lg"
-        class="shrink-0"
-      >
+      <Button href="/administracion/paises/nuevo" size="lg" class="shrink-0">
         <span aria-hidden="true">+</span>
         Nuevo país
       </Button>
     </header>
 
-    <!-- Tarjetas de resumen -->
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Resumen de países">
-
       <Card class="border-l-4 border-l-primary p-4">
-        <div class="flex items-center gap-3">
-          <span
-            class="rounded-xl bg-primary/10 p-3 text-primary"
-            aria-hidden="true"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <circle cx="12" cy="12" r="9" />
-              <path stroke-linecap="round" d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-            </svg>
-          </span>
-
-          <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Países registrados
-            </p>
-            <p class="mt-1 text-2xl font-bold text-neutral-900">
-              {totalPaises}
-            </p>
-          </div>
-        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Países registrados
+        </p>
+        <p id="paises-total" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
 
       <Card class="border-l-4 border-l-brand-green p-4">
-        <div class="flex items-center gap-3">
-          <span
-            class="rounded-xl bg-brand-green/10 p-3 text-brand-green"
-            aria-hidden="true"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </span>
-
-          <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Códigos telefónicos
-            </p>
-            <p class="mt-1 text-2xl font-bold text-neutral-900">
-              {totalCodigos}
-            </p>
-          </div>
-        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Códigos telefónicos
+        </p>
+        <p id="paises-codigos" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
 
       <Card class="border-l-4 border-l-brand-yellow p-4">
-        <div class="flex items-center gap-3">
-          <span
-            class="rounded-xl bg-brand-yellow/20 p-3 text-[#946200]"
-            aria-hidden="true"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <circle cx="12" cy="12" r="9" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
-            </svg>
-          </span>
-
-          <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Zonas horarias
-            </p>
-            <p class="mt-1 text-2xl font-bold text-neutral-900">
-              {totalZonasHorarias}
-            </p>
-          </div>
-        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Zonas horarias
+        </p>
+        <p id="paises-zonas" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
     </div>
 
-    <!-- Listado de países -->
     <section aria-labelledby="paises-listado-titulo" class="space-y-4">
-
-      <header class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 id="paises-listado-titulo" class="text-lg font-semibold text-neutral-900">
             Listado de países
           </h2>
-
           <p class="mt-1 text-sm text-neutral-500">
             Consulta y administra la configuración territorial de la Fundación.
           </p>
         </div>
 
-        <span class="inline-flex w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          {totalPaises} {totalPaises === 1 ? 'país' : 'países'}
-        </span>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <label for="paises-buscar" class="sr-only">Buscar país</label>
+          <input
+            id="paises-buscar"
+            type="search"
+            placeholder="Buscar país o código ISO..."
+            class="min-h-11 w-full min-w-0 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-72 md:w-80"
+          />
+          <Button id="paises-recargar" type="button" variant="outline">
+            Recargar
+          </Button>
+        </div>
       </header>
 
-      {paises.length > 0 ? (
-        <ul class="grid grid-cols-1 gap-4" aria-label="Países registrados">
-          {paises.map((pais) => (
-            <li>
-              <Card class="p-5 md:p-6">
-                <article class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+      <p id="paises-loading" role="status" aria-live="polite"
+        class="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-500">
+        Cargando países...
+      </p>
 
-                  <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-3">
-                      <span
-                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary"
-                        aria-hidden="true"
-                      >
-                        {pais.codigo}
-                      </span>
+      <div id="paises-error" hidden role="alert"
+        class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <p id="paises-error-texto">No fue posible cargar los países.</p>
+        <Button id="paises-reintentar" type="button" variant="outline">
+          Intentar nuevamente
+        </Button>
+      </div>
 
-                      <h3 class="text-lg font-bold text-neutral-900">
-                        {pais.nombre}
-                      </h3>
-                    </div>
-
-                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Código de área
-                        </p>
-
-                        <p class="mt-1 text-base font-medium text-neutral-800">
-                          {pais.codigoArea}
-                        </p>
-                      </div>
-
-                      <div class="min-w-0">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Zona horaria local
-                        </p>
-
-                        <p class="mt-1 break-words text-base font-medium text-neutral-800">
-                          {pais.zonaHoraria}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="border-t border-neutral-100 pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0">
-                    <Button
-                      href={`/administracion/paises/${encodeURIComponent(pais.id)}/editar`}
-                      variant="outline"
-                      size="lg"
-                      class="w-full md:w-auto"
-                    >
-                      Editar país
-                      <span aria-hidden="true">→</span>
-                    </Button>
-                  </div>
-
-                </article>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      ) : (
+      <div id="paises-vacio" hidden>
         <EmptyState
           title="Todavía no hay países registrados"
-          description="Cuando registres un país, aparecerá aquí con su código de área telefónica y su zona horaria local."
+          description="Cuando registres un país, aparecerá aquí con su código ISO, código de área telefónica y zona horaria."
         >
           <Button href="/administracion/paises/nuevo" size="lg">
             Crear el primer país
           </Button>
         </EmptyState>
-      )}
+      </div>
 
-      <!-- Estados preparados para la integración -->
-      <p
-        id="paises-loading"
-        hidden
-        role="status"
-        aria-live="polite"
-        class="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-500"
-      >
-        Cargando países…
+      <p id="paises-sin-resultados" hidden role="status"
+        class="rounded-xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
+        No se encontraron países que coincidan con la búsqueda.
       </p>
 
-      <p
-        id="paises-error"
-        hidden
-        role="alert"
-        class="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger"
-      >
-        No fue posible cargar los países. Intenta nuevamente.
-      </p>
-
+      <ul id="paises-lista" hidden class="grid grid-cols-1 gap-4"
+        aria-label="Países registrados"></ul>
     </section>
   </section>
+
+  <script>
+    import { clientePaisesNavegador } from '../../lib/paises/cliente';
+    import type { Pais } from '../../lib/paises/modelo';
+    import { ApiError } from '../../lib/api/transporte';
+
+    const lista = document.querySelector<HTMLUListElement>('#paises-lista');
+    const carga = document.querySelector<HTMLElement>('#paises-loading');
+    const errorPanel = document.querySelector<HTMLElement>('#paises-error');
+    const errorTexto = document.querySelector<HTMLElement>('#paises-error-texto');
+    const vacio = document.querySelector<HTMLElement>('#paises-vacio');
+    const sinResultados = document.querySelector<HTMLElement>('#paises-sin-resultados');
+    const busqueda = document.querySelector<HTMLInputElement>('#paises-buscar');
+
+    const total = document.querySelector<HTMLElement>('#paises-total');
+    const codigos = document.querySelector<HTMLElement>('#paises-codigos');
+    const zonas = document.querySelector<HTMLElement>('#paises-zonas');
+
+    const cliente = clientePaisesNavegador();
+    let paises: Pais[] = [];
+
+    function escapar(valor: string): string {
+      return valor.replace(/[&<>"']/g, (caracter) => {
+        const entidades: Record<string, string> = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        };
+        return entidades[caracter];
+      });
+    }
+
+    function fechaLegible(valor: string): string {
+      const fecha = new Date(valor);
+      if (Number.isNaN(fecha.getTime())) return 'No disponible';
+
+      return new Intl.DateTimeFormat('es-CL', {
+        dateStyle: 'medium',
+        timeZone: 'UTC',
+      }).format(fecha);
+    }
+
+    function mostrarError(mensaje: string) {
+      if (errorTexto) errorTexto.textContent = mensaje;
+      if (errorPanel) errorPanel.hidden = false;
+    }
+
+    function ocultarEstados() {
+      if (carga) carga.hidden = true;
+      if (errorPanel) errorPanel.hidden = true;
+      if (vacio) vacio.hidden = true;
+      if (sinResultados) sinResultados.hidden = true;
+      if (lista) lista.hidden = true;
+    }
+
+    function actualizarResumen(datos: Pais[]) {
+      if (total) total.textContent = String(datos.length);
+      if (codigos) {
+        codigos.textContent = String(
+          datos.filter((pais) => Boolean(pais.codigo_area_telefonica)).length,
+        );
+      }
+      if (zonas) {
+        zonas.textContent = String(
+          datos.filter((pais) => Boolean(pais.zona_horaria)).length,
+        );
+      }
+    }
+
+    function renderizarPaises() {
+      if (!lista) return;
+
+      const termino = busqueda?.value.trim().toLocaleLowerCase('es-CL') ?? '';
+
+      const filtrados = paises.filter((pais) =>
+        [
+          pais.nombre,
+          pais.codigo_iso,
+          pais.codigo_area_telefonica ?? '',
+          pais.zona_horaria ?? '',
+        ].some((valor) => valor.toLocaleLowerCase('es-CL').includes(termino)),
+      );
+
+      ocultarEstados();
+
+      if (paises.length === 0) {
+        if (vacio) vacio.hidden = false;
+        return;
+      }
+
+      if (filtrados.length === 0) {
+        if (sinResultados) sinResultados.hidden = false;
+        return;
+      }
+
+      lista.innerHTML = filtrados
+        .map((pais) => {
+          const id = encodeURIComponent(pais.id_pais);
+          const pendiente = pais.configuracion_pendiente;
+
+          return `
+            <li>
+              <article class="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-3">
+                      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                        ${escapar(pais.codigo_iso)}
+                      </span>
+                      <div>
+                        <h3 class="text-lg font-bold text-neutral-900">${escapar(pais.nombre)}</h3>
+                        <p class="mt-1 text-xs text-neutral-500">Código ISO: ${escapar(pais.codigo_iso)}</p>
+                      </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Código de área</p>
+                        <p class="mt-1 text-sm font-medium text-neutral-800">${escapar(pais.codigo_area_telefonica ?? 'No configurado')}</p>
+                      </div>
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Zona horaria</p>
+                        <p class="mt-1 break-words text-sm font-medium text-neutral-800">${escapar(pais.zona_horaria ?? 'No configurada')}</p>
+                      </div>
+                      <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Última actualización</p>
+                        <p class="mt-1 text-sm font-medium text-neutral-800">${escapar(fechaLegible(pais.updated_at))}</p>
+                      </div>
+                    </div>
+
+                    ${
+                      pendiente
+                        ? '<p class="mt-4 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Configuración pendiente</p>'
+                        : ''
+                    }
+                  </div>
+
+                  <a href="/administracion/paises/${id}/editar"
+                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50">
+                    Editar país <span aria-hidden="true">→</span>
+                  </a>
+                </div>
+              </article>
+            </li>
+          `;
+        })
+        .join('');
+
+      lista.hidden = false;
+    }
+
+    async function cargarPaises() {
+      ocultarEstados();
+      if (carga) carga.hidden = false;
+
+      const recargar = document.querySelector<HTMLButtonElement>('#paises-recargar');
+      const reintentar = document.querySelector<HTMLButtonElement>('#paises-reintentar');
+
+      if (recargar) recargar.disabled = true;
+      if (reintentar) reintentar.disabled = true;
+
+      try {
+        paises = await cliente.listar();
+        actualizarResumen(paises);
+        renderizarPaises();
+      } catch (error) {
+        ocultarEstados();
+
+        const mensaje =
+          error instanceof ApiError && error.status === 401
+            ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
+            : error instanceof ApiError && error.status === 403
+              ? 'No tienes permisos para consultar los países.'
+              : error instanceof Error
+                ? error.message
+                : 'No fue posible cargar los países. Inténtalo nuevamente.';
+
+        mostrarError(mensaje);
+      } finally {
+        if (recargar) recargar.disabled = false;
+        if (reintentar) reintentar.disabled = false;
+      }
+    }
+
+    busqueda?.addEventListener('input', renderizarPaises);
+    document.querySelector('#paises-recargar')?.addEventListener('click', cargarPaises);
+    document.querySelector('#paises-reintentar')?.addEventListener('click', cargarPaises);
+
+    void cargarPaises();
+  </script>
 </AppLayout>
