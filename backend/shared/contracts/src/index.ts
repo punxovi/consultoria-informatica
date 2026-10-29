@@ -1,5 +1,6 @@
 export const API_VERSION = 'v1' as const;
 export const API_PREFIX = `/api/${API_VERSION}` as const;
+export * from './coverages.contracts.ts';
 
 export interface ApiError {
   code: string;
