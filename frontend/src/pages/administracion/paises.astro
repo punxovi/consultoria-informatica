@@ -26,6 +26,9 @@ import { mainNavItems } from '../../config/nav';
       </Button>
     </header>
 
+    <p id="paises-confirmacion" hidden role="status" aria-live="polite"
+      class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"></p>
+
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Resumen de países">
       <Card class="border-l-4 border-l-primary p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -109,9 +112,11 @@ import { mainNavItems } from '../../config/nav';
   </section>
 
   <script>
-    import { clientePaisesNavegador } from '../../lib/paises/cliente';
+    import {
+      clientePaisesNavegador,
+      mensajeErrorPaises,
+    } from '../../lib/paises/cliente';
     import type { Pais } from '../../lib/paises/modelo';
-    import { ApiError } from '../../lib/api/transporte';
 
     const lista = document.querySelector<HTMLUListElement>('#paises-lista');
     const carga = document.querySelector<HTMLElement>('#paises-loading');
@@ -124,9 +129,24 @@ import { mainNavItems } from '../../config/nav';
     const total = document.querySelector<HTMLElement>('#paises-total');
     const codigos = document.querySelector<HTMLElement>('#paises-codigos');
     const zonas = document.querySelector<HTMLElement>('#paises-zonas');
+    const confirmacion = document.querySelector<HTMLElement>('#paises-confirmacion');
 
     const cliente = clientePaisesNavegador();
     let paises: Pais[] = [];
+
+    function mostrarConfirmacionInicial() {
+      const resultado = new URLSearchParams(window.location.search).get('resultado');
+      const mensajes: Record<string, string> = {
+        creado: 'País creado correctamente.',
+        actualizado: 'País actualizado correctamente.',
+      };
+      const mensaje = resultado ? mensajes[resultado] : undefined;
+      if (!mensaje || !confirmacion) return;
+
+      confirmacion.textContent = mensaje;
+      confirmacion.hidden = false;
+      window.history.replaceState({}, '', window.location.pathname);
+    }
 
     function escapar(valor: string): string {
       return valor.replace(/[&<>"']/g, (caracter) => {
@@ -275,18 +295,10 @@ import { mainNavItems } from '../../config/nav';
         actualizarResumen(paises);
         renderizarPaises();
       } catch (error) {
+        paises = [];
+        actualizarResumen(paises);
         ocultarEstados();
-
-        const mensaje =
-          error instanceof ApiError && error.status === 401
-            ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
-            : error instanceof ApiError && error.status === 403
-              ? 'No tienes permisos para consultar los países.'
-              : error instanceof Error
-                ? error.message
-                : 'No fue posible cargar los países. Inténtalo nuevamente.';
-
-        mostrarError(mensaje);
+        mostrarError(mensajeErrorPaises(error, 'cargar los países'));
       } finally {
         if (recargar) recargar.disabled = false;
         if (reintentar) reintentar.disabled = false;
@@ -297,6 +309,7 @@ import { mainNavItems } from '../../config/nav';
     document.querySelector('#paises-recargar')?.addEventListener('click', cargarPaises);
     document.querySelector('#paises-reintentar')?.addEventListener('click', cargarPaises);
 
+    mostrarConfirmacionInicial();
     void cargarPaises();
   </script>
 </AppLayout>
