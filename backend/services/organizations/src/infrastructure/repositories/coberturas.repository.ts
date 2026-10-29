@@ -1,5 +1,16 @@
-import { ServiceError } from '../../../../../shared/errors/src/index.ts';
-import type { OtorgarCoberturaInput, ExtenderCoberturaInput, RevocarCoberturaInput, PermisoTemporalResponse } from '@backend/shared-contracts';
+import type {
+  OtorgarCoberturaInput,
+  ExtenderCoberturaInput,
+  RevocarCoberturaInput,
+  PermisoTemporalResponse,
+} from '@backend/shared-contracts';
+
+export interface CoberturaVigenteResponse {
+  id_permiso_temporal: string;
+  id_pais: string;
+  inicio_at: string;
+  fin_at: string;
+}
 
 export class CoberturaRepository {
   public supabaseClient: any;
@@ -7,15 +18,10 @@ export class CoberturaRepository {
   constructor(supabaseClient: any) {
     this.supabaseClient = supabaseClient;
   }
-  async otorgar(data: OtorgarCoberturaInput & { id_usuario_otorga: string }): Promise<PermisoTemporalResponse> {
-    console.log('DEBUG REPOSITORY - Objeto insertando a Supabase:', {
-      id_usuario_beneficiario: data.id_usuario_beneficiario,
-      id_usuario_otorga: data.id_usuario_otorga,
-      id_pais: data.id_pais,
-      inicio_at: data.inicio_at,
-      fin_at: data.fin_at,
-      motivo: data.motivo,
-    });
+
+  async otorgar(
+    data: OtorgarCoberturaInput & { id_usuario_otorga: string },
+  ): Promise<PermisoTemporalResponse> {
     const { data: permisoData, error: permisoError } = await this.supabaseClient
       .from('permisos_temporales')
       .insert({
@@ -33,9 +39,6 @@ export class CoberturaRepository {
       throw new Error(`Error al otorgar cobertura temporal: ${permisoError.message}`);
     }
 
-    // -------------------------------------------------------------
-    // NUEVO: Registrar el evento de otorgamiento en el historial
-    // -------------------------------------------------------------
     const { error: historialError } = await this.supabaseClient
       .from('permisos_temporales_historial')
       .insert({
@@ -48,7 +51,9 @@ export class CoberturaRepository {
       });
 
     if (historialError) {
-      throw new Error(`Error al registrar el historial de otorgamiento: ${historialError.message}`);
+      throw new Error(
+        `Error al registrar el historial de otorgamiento: ${historialError.message}`,
+      );
     }
 
     if (data.permisos && data.permisos.length > 0) {
@@ -71,7 +76,9 @@ export class CoberturaRepository {
     return permisoData as PermisoTemporalResponse;
   }
 
-  async buscarPorId(idPermisoTemporal: string): Promise<PermisoTemporalResponse | null> {
+  async buscarPorId(
+    idPermisoTemporal: string,
+  ): Promise<PermisoTemporalResponse | null> {
     const { data, error } = await this.supabaseClient
       .from('permisos_temporales')
       .select('*')
@@ -85,15 +92,53 @@ export class CoberturaRepository {
     return data as PermisoTemporalResponse;
   }
 
-  async extender(idPermisoTemporal: string, data: ExtenderCoberturaInput & { id_usuario_admin: string }): Promise<PermisoTemporalResponse> {
-    // 1. Obtener la cobertura actual para conocer la fecha fin anterior
+  /**
+   * Devuelve únicamente las coberturas vigentes del usuario autenticado.
+   * El idUsuario debe obtenerse validando el token de la sesión en el controlador,
+   * nunca de un parámetro enviado libremente por el navegador.
+   */
+  async listarVigentesPorUsuario(
+    idUsuario: string,
+  ): Promise<CoberturaVigenteResponse[]> {
+    if (!idUsuario?.trim()) {
+      throw new Error('Se requiere un usuario para consultar las coberturas vigentes.');
+    }
+
+    const ahora = new Date().toISOString();
+
+    const { data, error } = await this.supabaseClient
+      .from('permisos_temporales')
+      .select('id_permiso_temporal, id_pais, inicio_at, fin_at')
+      .eq('id_usuario_beneficiario', idUsuario)
+      .is('revocado_at', null)
+      .is('archived_at', null)
+      .lte('inicio_at', ahora)
+      .gte('fin_at', ahora)
+      .order('fin_at', { ascending: true });
+
+    if (error) {
+      throw new Error(`Error al consultar coberturas vigentes: ${error.message}`);
+    }
+
+    return (data ?? []).map((cobertura: any) => ({
+      id_permiso_temporal: String(cobertura.id_permiso_temporal),
+      id_pais: String(cobertura.id_pais),
+      inicio_at: String(cobertura.inicio_at),
+      fin_at: String(cobertura.fin_at),
+    }));
+  }
+
+  async extender(
+    idPermisoTemporal: string,
+    data: ExtenderCoberturaInput & { id_usuario_admin: string },
+  ): Promise<PermisoTemporalResponse> {
     const actual = await this.buscarPorId(idPermisoTemporal);
     if (!actual) {
       throw new Error('La cobertura temporal a extender no existe.');
     }
+
     const finAtAnterior = actual.fin_at;
 
-    // 2. Actualizar el registro con la nueva fecha de fin
     const { data: updatedData, error } = await this.supabaseClient
       .from('permisos_temporales')
       .update({
@@ -109,7 +154,6 @@ export class CoberturaRepository {
       throw new Error(`Error al extender la cobertura temporal: ${error.message}`);
     }
 
-    // 3. Registrar el evento en el historial append-only
     const { error: historialError } = await this.supabaseClient
       .from('permisos_temporales_historial')
       .insert({
@@ -128,21 +172,23 @@ export class CoberturaRepository {
     return updatedData as PermisoTemporalResponse;
   }
 
-  async revocar(idPermisoTemporal: string, data: RevocarCoberturaInput & { id_usuario_admin: string }): Promise<PermisoTemporalResponse> {
-    // 1. Obtener la cobertura actual para conocer los detalles previos si es necesario
+  async revocar(
+    idPermisoTemporal: string,
+    data: RevocarCoberturaInput & { id_usuario_admin: string },
+  ): Promise<PermisoTemporalResponse> {
     const actual = await this.buscarPorId(idPermisoTemporal);
     if (!actual) {
       throw new Error('La cobertura temporal a revocar no existe.');
     }
 
-    // 2. Actualizar el registro marcándolo como revocado
+    const ahora = new Date().toISOString();
     const { data: updatedData, error } = await this.supabaseClient
       .from('permisos_temporales')
       .update({
-        revocado_at: new Date().toISOString(),
+        revocado_at: ahora,
         revocado_por: data.id_usuario_admin,
         motivo_revocacion: data.motivo_revocacion,
-        updated_at: new Date().toISOString(),
+        updated_at: ahora,
         updated_by: data.id_usuario_admin,
       })
       .eq('id_permiso_temporal', idPermisoTemporal)
@@ -153,14 +199,13 @@ export class CoberturaRepository {
       throw new Error(`Error al revocar la cobertura temporal: ${error.message}`);
     }
 
-    // 3. Registrar el evento en el historial append-only
     const { error: historialError } = await this.supabaseClient
       .from('permisos_temporales_historial')
       .insert({
         id_permiso_temporal: idPermisoTemporal,
         tipo_evento: 'REVOCAR',
         fin_at_anterior: actual.fin_at,
-        fin_at_nuevo: actual.fin_at, // Al revocar, la fecha fin se mantiene como referencia del cierre
+        fin_at_nuevo: actual.fin_at,
         motivo: data.motivo_revocacion,
         accion_por: data.id_usuario_admin,
       });
@@ -172,8 +217,6 @@ export class CoberturaRepository {
     return updatedData as PermisoTemporalResponse;
   }
 
-  
-
   async listarHistorialAuditoria(filtros: {
     accion_por?: string;
     id_pais?: string;
@@ -184,10 +227,10 @@ export class CoberturaRepository {
     limit: number;
     offset: number;
   }) {
-    // Construimos la consulta base uniendo el historial con la tabla de permisos temporales para poder filtrar por país u otros campos
     let query = this.supabaseClient
       .from('permisos_temporales_historial')
-      .select(`
+      .select(
+        `
         id_historial,
         id_permiso_temporal,
         tipo_evento,
@@ -200,9 +243,10 @@ export class CoberturaRepository {
           id_pais,
           id_usuario_beneficiario
         )
-      `, { count: 'exact' });
+      `,
+        { count: 'exact' },
+      );
 
-    // Aplicar filtros condicionales
     if (filtros.accion_por) {
       query = query.eq('accion_por', filtros.accion_por);
     }
@@ -222,10 +266,11 @@ export class CoberturaRepository {
       query = query.lte('created_at', filtros.fecha_hasta);
     }
 
-    // Paginación para asegurar el rendimiento (RNF14: <= 1.5s)
     const limit = filtros.limit || 20;
     const offset = filtros.offset || 0;
-    query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
+    query = query
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false });
 
     const { data, error, count } = await query;
 
@@ -240,9 +285,4 @@ export class CoberturaRepository {
       offset,
     };
   }
-
-  
-
-  
-
 }

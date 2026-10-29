@@ -20,6 +20,7 @@ export function createCoveragesRouter(supabaseClient: any): Router {
   router.patch('/temporary-coverages/:id/extend', (req, res) => controller.extender(req, res));
   router.patch('/temporary-coverages/:id/revoke', (req, res) => controller.revocar(req, res));
   router.get('/temporary-coverages/audit-logs', (req, res) => controller.listarHistorial(req, res));
+  router.get('/temporary-coverages/mine', (req, res) => controller.listarMisCoberturasVigentes(req, res),);
 
   return router;
 }

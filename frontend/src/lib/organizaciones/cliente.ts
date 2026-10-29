@@ -1,8 +1,21 @@
-import type { ActualizarOrganizacionInput, CrearOrganizacionInput, FiltrosOrganizaciones, Organizacion, PaisResumen,} from '../modelos/organizaciones.ts';
+import type {
+  ActualizarOrganizacionInput,
+  CrearOrganizacionInput,
+  FiltrosOrganizaciones,
+  Organizacion,
+  PaisResumen,
+} from '../modelos/organizaciones.ts';
 import { ApiError, createApiTransport, type ApiTransport } from '../api/transporte.ts';
 
 const API_BASE_URL = import.meta.env?.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
 const transport = createApiTransport(API_BASE_URL);
+
+export interface CoberturaTerritorialVigente {
+  id_permiso_temporal: string;
+  id_pais: string;
+  inicio_at: string;
+  fin_at: string;
+}
 
 async function accessToken(): Promise<string> {
   const { getSupabaseClient } = await import('../supabase.ts');
@@ -28,8 +41,7 @@ export function crearClienteListadoOrganizaciones(
   return async (filtros = {}) => {
     const params = new URLSearchParams();
     const consulta = filtros.q?.trim();
-    // El cliente conserva `q` en el estado de la pantalla; el contrato Backend
-    // denomina `search` al texto de búsqueda.
+
     if (consulta) params.set('search', consulta);
     if (filtros.idPais) params.set('id_pais', filtros.idPais);
     if (filtros.idPrograma) params.set('id_programa', filtros.idPrograma);
@@ -85,7 +97,31 @@ export async function listarPaisesOrganizaciones(): Promise<PaisResumen[]> {
     '/api/v1/organizations/countries',
     { accessToken: await accessToken() },
   );
+
+  if (!Array.isArray(response.data.countries)) {
+    throw new ApiError('RESPUESTA_INVALIDA', 'El servicio devolvió un catálogo de países inválido.', 502);
+  }
+
   return response.data.countries;
+}
+
+export async function listarMisCoberturasVigentes(): Promise<CoberturaTerritorialVigente[]> {
+  const response = await transport.request<{
+    coverages: CoberturaTerritorialVigente[];
+  }>(
+    '/api/v1/organizations/temporary-coverages/mine',
+    { accessToken: await accessToken() },
+  );
+
+  if (!Array.isArray(response.data.coverages)) {
+    throw new ApiError(
+      'RESPUESTA_INVALIDA',
+      'El servicio devolvió una lista de coberturas vigente inválida.',
+      502,
+    );
+  }
+
+  return response.data.coverages;
 }
 
 export { ApiError as OrganizacionesApiError } from '../api/transporte.ts';

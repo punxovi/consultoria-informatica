@@ -2,20 +2,20 @@ import { OtorgarCoberturaUseCase } from '../../application/use-cases/otorgar-cob
 import { ExtenderCoberturaUseCase } from '../../application/use-cases/extender-cobertura.ts';
 import { RevocarCoberturaUseCase } from '../../application/use-cases/revocar-cobertura.ts';
 import { ServiceError } from '../../../../../shared/errors/src/index.ts';
-import { readJsonBody } from '../body.ts'; // Importamos la función para leer el body
+import { readJsonBody } from '../body.ts';
 import { CoberturaRepository } from '../../infrastructure/repositories/coberturas.repository.ts';
 
 export class CoveragesController {
   private otorgarUseCase: OtorgarCoberturaUseCase;
   private extenderUseCase: ExtenderCoberturaUseCase;
   private revocarUseCase: RevocarCoberturaUseCase;
-  private repository: CoberturaRepository; // Añade esta propiedad
+  private repository: CoberturaRepository;
 
   constructor(
     otorgarUseCase: OtorgarCoberturaUseCase,
     extenderUseCase: ExtenderCoberturaUseCase,
     revocarUseCase: RevocarCoberturaUseCase,
-    repository: CoberturaRepository // Añade este parámetro al constructor
+    repository: CoberturaRepository,
   ) {
     this.otorgarUseCase = otorgarUseCase;
     this.extenderUseCase = extenderUseCase;
@@ -26,14 +26,9 @@ export class CoveragesController {
   async otorgar(req: any, res: any): Promise<void> {
     try {
       const adminId = ((req.headers['x-user-id'] as string) || 'sistema').trim();
-      
-      // Leemos el body usando la utilidad nativa de tu proyecto
       const bodyDatos = req.body ? req.body : await readJsonBody(req);
-      console.log('DEBUG - adminId:', adminId);
-      console.log('DEBUG - bodyDatos recibidos:', bodyDatos);
-
       const resultado = await this.otorgarUseCase.ejecutar(bodyDatos, adminId);
-      
+
       res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(resultado));
     } catch (error: any) {
@@ -46,12 +41,10 @@ export class CoveragesController {
   async extender(req: any, res: any): Promise<void> {
     try {
       const adminId = (req.headers['x-user-id'] as string) || 'sistema';
-      const idPermiso = req.params?.id; // Usamos el encadenamiento opcional por si no existe
-      
+      const idPermiso = req.params?.id;
       const bodyDatos = req.body ? req.body : await readJsonBody(req);
-      
       const resultado = await this.extenderUseCase.ejecutar(idPermiso, bodyDatos, adminId);
-      
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(resultado));
     } catch (error: any) {
@@ -65,17 +58,53 @@ export class CoveragesController {
     try {
       const adminId = (req.headers['x-user-id'] as string) || 'sistema';
       const idPermiso = req.params?.id;
-      
       const bodyDatos = req.body ? req.body : await readJsonBody(req);
-      
       const resultado = await this.revocarUseCase.ejecutar(idPermiso, bodyDatos, adminId);
-      
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(resultado));
     } catch (error: any) {
       const status = error instanceof ServiceError ? error.status : 400;
       res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: error?.message || 'Error al revocar cobertura temporal' }));
+    }
+  }
+
+  /**
+   * Consulta las coberturas vigentes del usuario autenticado.
+   * La identidad se extrae de un JWT verificado por Supabase; no se usa x-user-id
+   * ni un id enviado como parámetro por el cliente para decidir qué datos devolver.
+   */
+  async listarMisCoberturasVigentes(req: any, res: any): Promise<void> {
+    try {
+      const authorization = req.headers?.authorization ?? req.headers?.Authorization;
+      const token = typeof authorization === 'string'
+        ? authorization.match(/^Bearer\s+(.+)$/i)?.[1]
+        : undefined;
+
+      if (!token) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Debes iniciar sesión para consultar tus coberturas.' }));
+        return;
+      }
+
+      // getUser(token) valida el JWT con Supabase y devuelve la identidad autenticada.
+      const { data, error } = await this.repository.supabaseClient.auth.getUser(token);
+      const userId = data?.user?.id;
+
+      if (error || !userId) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'La sesión no es válida o ha expirado.' }));
+        return;
+      }
+
+      const coverages = await this.repository.listarVigentesPorUsuario(userId);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ coverages }));
+    } catch (error: any) {
+      console.error('Error al consultar coberturas vigentes del usuario:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'No fue posible consultar las coberturas vigentes.' }));
     }
   }
 
@@ -88,20 +117,12 @@ export class CoveragesController {
         return;
       }
 
-      // 1. Validar que el usuario tenga rol de Administrador en la tabla perfiles
-      // USAMOS this.repository EN LUGAR DE this.otorgarUseCase['repository']
       const supabaseClient = this.repository.supabaseClient;
-
-      //console.log('DEBUG ADMIN - Buscando id_usuario:', adminId);
-
       const { data: perfil, error: perfilError } = await supabaseClient
         .from('perfiles')
         .select('nombre')
         .eq('id_usuario', adminId)
         .single();
-
-      //console.log('DEBUG ADMIN - Resultado perfil:', perfil);
-      //console.log('DEBUG ADMIN - Error perfil:', perfilError);  
 
       if (perfilError || !perfil) {
         res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -109,7 +130,6 @@ export class CoveragesController {
         return;
       }
 
-      // Verificamos si el nombre del perfil es Administrador
       const nombrePerfil = (perfil.nombre || '').trim();
       if (nombrePerfil !== 'Administrador') {
         res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -117,9 +137,7 @@ export class CoveragesController {
         return;
       }
 
-      // 2. Extraer parámetros de consulta (Query Params)
       const queryParams = req.query || {};
-      
       const filtros = {
         accion_por: queryParams.accion_por,
         id_pais: queryParams.id_pais,
@@ -131,10 +149,7 @@ export class CoveragesController {
         offset: queryParams.offset ? parseInt(queryParams.offset, 10) : 0,
       };
 
-      // 3. Ejecutar la consulta en el repositorio
-      // USAMOS this.repository AQUÍ TAMBIÉN
       const resultado = await this.repository.listarHistorialAuditoria(filtros);
-
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(resultado));
     } catch (error: any) {
@@ -143,6 +158,4 @@ export class CoveragesController {
       res.end(JSON.stringify({ error: error?.message || 'Error al consultar el historial de auditoría' }));
     }
   }
-
-
 }
