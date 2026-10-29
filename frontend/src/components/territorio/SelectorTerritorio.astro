@@ -1,0 +1,225 @@
+<div
+  id="selector-territorio"
+  class="mx-1 my-3 rounded-xl border border-white/15 bg-white/5 p-3"
+  hidden
+>
+  <p class="text-xs font-semibold uppercase tracking-wide text-[#D2CFF0]">
+    Territorio de trabajo
+  </p>
+
+  <label for="selector-territorio-select" class="sr-only">
+    Seleccionar territorio autorizado
+  </label>
+
+  <select
+    id="selector-territorio-select"
+    class="mt-2 min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-[#39336E] px-3 py-2 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-white"
+    disabled
+  >
+    <option value="">Cargando territorio...</option>
+  </select>
+
+  <p
+    id="selector-territorio-ayuda"
+    class="mt-2 text-xs leading-5 text-[#E5E2F8]"
+    role="status"
+    aria-live="polite"
+  >
+    Consultando los territorios disponibles para tu sesión.
+  </p>
+</div>
+
+<script>
+  import { getUserRoles } from '../../lib/supabase';
+  import {
+    listarMisCoberturasVigentes,
+    listarPaisesOrganizaciones,
+  } from '../../lib/organizaciones/cliente';
+
+  type Territorio = {
+    id_pais: string;
+    nombre: string;
+    tipo: 'principal' | 'cobertura';
+    inicio_at?: string;
+    fin_at?: string;
+  };
+
+  const contenedor = document.querySelector<HTMLElement>(
+    '#selector-territorio',
+  );
+  const selector = document.querySelector<HTMLSelectElement>(
+    '#selector-territorio-select',
+  );
+  const ayuda = document.querySelector<HTMLElement>(
+    '#selector-territorio-ayuda',
+  );
+
+  const CLAVE_TERRITORIO = 'fge.territorio.activo';
+
+  let principal: Territorio | undefined;
+  let coberturasRecibidas: Territorio[] = [];
+
+  /**
+   * El backend ya devuelve únicamente coberturas vigentes y no revocadas.
+   * El frontend usa esa respuesta para poblar la interfaz, pero no concede
+   * permisos ni sustituye las validaciones de autorización del servidor.
+   */
+  function obtenerTerritorios(): Territorio[] {
+    if (!principal) return [];
+
+    const adicionales = new Map<string, Territorio>();
+    for (const territorio of coberturasRecibidas) {
+      if (
+        territorio.tipo === 'cobertura' &&
+        territorio.id_pais &&
+        territorio.nombre &&
+        territorio.id_pais !== principal.id_pais
+      ) {
+        adicionales.set(territorio.id_pais, territorio);
+      }
+    }
+
+    return [principal, ...adicionales.values()];
+  }
+
+  function notificarTerritorioActivo(idPais: string) {
+    window.dispatchEvent(
+      new CustomEvent('fge:territorio-cambiado', {
+        detail: { id_pais: idPais },
+      }),
+    );
+  }
+
+  function renderizarSelector(notificarInicializacion = false) {
+    if (!contenedor || !selector || !ayuda || !principal) return;
+
+    const territorios = obtenerTerritorios();
+    const almacenado = sessionStorage.getItem(CLAVE_TERRITORIO);
+    const territorioAlmacenadoSigueAutorizado = territorios.some(
+      (territorio) => territorio.id_pais === almacenado,
+    );
+    const activo = territorioAlmacenadoSigueAutorizado && almacenado
+      ? almacenado
+      : principal.id_pais;
+
+    selector.replaceChildren();
+
+    for (const territorio of territorios) {
+      selector.add(
+        new Option(
+          territorio.tipo === 'principal'
+            ? `${territorio.nombre} · País principal`
+            : `${territorio.nombre} · Cobertura temporal`,
+          territorio.id_pais,
+        ),
+      );
+    }
+
+    selector.value = activo;
+    selector.disabled = territorios.length < 2;
+    contenedor.hidden = false;
+    sessionStorage.setItem(CLAVE_TERRITORIO, activo);
+
+    ayuda.textContent = territorios.length > 1
+      ? 'Cambia entre tu país principal y los países con cobertura vigente autorizada.'
+      : 'Actualmente solo está disponible tu país principal. No hay coberturas territoriales vigentes adicionales.';
+
+    // Se notifica al inicializar para que las vistas operativas puedan leer
+    // el territorio activo; también se notifica si una selección anterior ya
+    // no está autorizada y debió volver al país principal.
+    if (notificarInicializacion || activo !== almacenado) {
+      notificarTerritorioActivo(activo);
+    }
+  }
+
+  selector?.addEventListener('change', () => {
+    if (!selector.value) return;
+
+    // La comprobación de la interfaz evita selecciones accidentales; el
+    // backend sigue siendo la autoridad efectiva de los permisos.
+    const autorizado = obtenerTerritorios().some(
+      (territorio) => territorio.id_pais === selector.value,
+    );
+
+    if (!autorizado) {
+      renderizarSelector();
+      return;
+    }
+
+    sessionStorage.setItem(CLAVE_TERRITORIO, selector.value);
+    notificarTerritorioActivo(selector.value);
+  });
+
+  async function iniciar() {
+    if (!contenedor || !selector || !ayuda) return;
+
+    try {
+      const roles = await getUserRoles();
+      const rolCoordinador = roles.find(
+        (rol) =>
+          rol.codigo.toLocaleUpperCase('es-CL').includes('COORD') &&
+          Boolean(rol.id_pais),
+      );
+
+      // El selector solo corresponde a coordinadores con país principal.
+      if (!rolCoordinador?.id_pais) {
+        contenedor.hidden = true;
+        return;
+      }
+
+      const [paises, coberturas] = await Promise.all([
+        listarPaisesOrganizaciones(),
+        listarMisCoberturasVigentes(),
+      ]);
+
+      const paisPrincipal = paises.find(
+        (pais) => pais.id_pais === rolCoordinador.id_pais,
+      );
+
+      if (!paisPrincipal) {
+        throw new Error('No fue posible identificar tu país principal.');
+      }
+
+      principal = {
+        id_pais: paisPrincipal.id_pais,
+        nombre: paisPrincipal.nombre,
+        tipo: 'principal',
+      };
+
+      const paisesPorId = new Map(
+        paises.map((pais) => [pais.id_pais, pais]),
+      );
+
+      coberturasRecibidas = coberturas.flatMap((cobertura) => {
+        if (!cobertura.id_pais || cobertura.id_pais === principal?.id_pais) {
+          return [];
+        }
+
+        const pais = paisesPorId.get(cobertura.id_pais);
+        // Si el país no existe en el catálogo, no se muestra como opción.
+        if (!pais) return [];
+
+        return [{
+          id_pais: cobertura.id_pais,
+          nombre: pais.nombre,
+          tipo: 'cobertura' as const,
+          inicio_at: cobertura.inicio_at,
+          fin_at: cobertura.fin_at,
+        }];
+      });
+
+      renderizarSelector(true);
+    } catch (error) {
+      // Fallo cerrado: no mostrar opciones territoriales cuya autorización
+      // no se pudo verificar. El servidor valida igualmente cada operación.
+      contenedor.hidden = true;
+      selector.disabled = true;
+      console.error(
+        'No fue posible preparar el selector territorial:',
+        error,
+      );
+    }
+  }
+
+  void iniciar();
+</script>

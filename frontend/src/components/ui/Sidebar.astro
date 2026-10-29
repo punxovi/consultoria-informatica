@@ -1,7 +1,16 @@
----
-interface NavItem {label: string; href: string; roles?: string[];}
 
-interface Props {items: NavItem[]; }
+---
+import SelectorTerritorio from '../territorio/SelectorTerritorio.astro';
+
+interface NavItem {
+  label: string;
+  href: string;
+  roles?: string[];
+}
+
+interface Props {
+  items: NavItem[];
+}
 
 const { items } = Astro.props;
 const currentPath = Astro.url.pathname;
@@ -11,13 +20,15 @@ const currentPath = Astro.url.pathname;
   id="app-sidebar"
   data-open="false"
   class="fixed inset-y-0 left-0 z-50 flex w-64
-    -translate-x-full flex-col border-r border-[#39336E]
+    -translate-x-full flex-col overflow-hidden border-r border-[#39336E]
     bg-[#4C4688] p-4 text-white transition-transform duration-200
     data-[open=true]:translate-x-0 md:translate-x-0"
 >
   <!-- Logo de la fundación -->
-  <div class="flex min-h-[76px] items-center justify-between
-    border-b border-white/15 px-1 pb-4 pt-1">
+  <div
+    class="flex min-h-[76px] shrink-0 items-center justify-between
+      border-b border-white/15 px-1 pb-4 pt-1"
+  >
     <a
       href="/dashboard"
       class="flex min-w-0 flex-1 items-center"
@@ -59,7 +70,14 @@ const currentPath = Astro.url.pathname;
     </button>
   </div>
 
-  <nav aria-label="Navegación principal" class="flex flex-col gap-1.5">
+  <!-- Selector territorial del Coordinador -->
+  <SelectorTerritorio />
+
+  <!-- Navegación principal -->
+  <nav
+    aria-label="Navegación principal"
+    class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-1"
+  >
     {items.map((item) => {
       const isActive =
         currentPath === item.href ||
@@ -73,7 +91,7 @@ const currentPath = Astro.url.pathname;
           data-nav-roles={item.roles ? JSON.stringify(item.roles) : undefined}
           aria-current={isActive ? 'page' : undefined}
           class:list={[
-            'group flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5',
+            'group flex min-h-[48px] shrink-0 items-center gap-3 rounded-xl px-3 py-2.5',
             'text-sm transition-colors duration-150',
             isActive
               ? 'bg-[#7770B5] font-semibold text-white shadow-sm'
@@ -195,7 +213,8 @@ const currentPath = Astro.url.pathname;
     })}
   </nav>
 
-  <div class="mt-auto border-t border-white/20 px-1 pb-5 pt-4">
+  <!-- Cierre de sesión -->
+  <div class="mt-auto shrink-0 border-t border-white/20 px-1 pb-2 pt-4">
     <button
       id="logout-btn"
       type="button"
