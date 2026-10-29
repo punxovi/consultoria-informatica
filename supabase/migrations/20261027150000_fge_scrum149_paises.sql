@@ -1,4 +1,3 @@
--- SCRUM-149: país raíz, datos de configuración y operaciones exclusivamente ADMIN.
 BEGIN;
 ALTER TABLE public.paises
  ADD COLUMN IF NOT EXISTS codigo_area_telefonica text,

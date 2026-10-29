@@ -1,16 +1,16 @@
 
-import { ApiError, createApiTransport } from '../api/transporte';
-import { getSupabaseClient } from '../supabase';
+import { ApiError, createApiTransport } from '../api/transporte.ts';
 import type {
   Pais,
   DatosCrearPais,
   DatosActualizarPais,
-} from './modelo';
+} from './modelo.ts';
 
 const API_BASE_URL =
   import.meta.env?.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
 
 async function obtenerToken(): Promise<string> {
+  const { getSupabaseClient } = await import('../supabase.ts');
   const { data, error } = await getSupabaseClient().auth.getSession();
 
   if (error || !data.session) {
@@ -149,6 +149,38 @@ export function crearClientePaises(
 }
 
 export type ClientePaises = ReturnType<typeof crearClientePaises>;
+
+export function mensajeErrorPaises(error: unknown, accion: string): string {
+  if (error instanceof ApiError) {
+    if (error.code === 'RUTA_NO_ENCONTRADA') {
+      return 'El servicio de países todavía no está disponible.';
+    }
+    if (error.code === 'MIGRACION_PAISES_PENDIENTE') {
+      return 'La administración de países requiere una migración pendiente en Supabase.';
+    }
+    if (error.code === 'CONFIGURACION_SUPABASE') {
+      return 'El servicio de países no tiene configurada su conexión a Supabase.';
+    }
+    if (error.status === 401) {
+      return 'Tu sesión expiró. Vuelve a iniciar sesión.';
+    }
+    if (error.status === 403) {
+      return 'Solo un Administrador puede administrar los países.';
+    }
+    if (error.status === 404) {
+      return 'El país solicitado no existe o ya no está disponible.';
+    }
+    if (error.status === 409) {
+      return 'El país cambió en otra sesión. Recarga la información antes de volver a intentarlo.';
+    }
+    if (error.status === 0 || error.status >= 500) {
+      return `No fue posible ${accion}. Revisa tu conexión e inténtalo nuevamente.`;
+    }
+    return error.message || `No fue posible ${accion}.`;
+  }
+
+  return `No fue posible ${accion}. Inténtalo nuevamente.`;
+}
 
 export function clientePaisesNavegador(): ClientePaises {
   return crearClientePaises(

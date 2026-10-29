@@ -204,7 +204,10 @@ const backHref = '/administracion/paises';
 </AppLayout>
 
 <script>
-  import { clientePaisesNavegador } from '../../lib/paises/cliente';
+  import {
+    clientePaisesNavegador,
+    mensajeErrorPaises,
+  } from '../../lib/paises/cliente';
   import { ApiError } from '../../lib/api/transporte';
 
   const form = document.querySelector<HTMLFormElement>('#pais-form');
@@ -218,6 +221,7 @@ const backHref = '/administracion/paises';
     );
 
     const cliente = clientePaisesNavegador();
+    let datosIniciales: ReturnType<typeof obtenerDatos> | null = null;
 
     const campos = [
       'nombre',
@@ -324,6 +328,16 @@ const backHref = '/administracion/paises';
       };
     }
 
+    function obtenerCambios(datos: ReturnType<typeof obtenerDatos>) {
+      if (!datosIniciales) return datos;
+
+      return Object.fromEntries(
+        Object.entries(datos).filter(([campo, valor]) =>
+          valor !== datosIniciales?.[campo as keyof typeof datosIniciales],
+        ),
+      );
+    }
+
     function establecerOcupado(ocupado: boolean) {
       camposFormulario.forEach((campo) => {
         campo.disabled = ocupado;
@@ -365,16 +379,10 @@ const backHref = '/administracion/paises';
         obtenerCampo('zona_horaria').value = pais.zona_horaria ?? '';
 
         form.dataset.paisVersion = String(pais.version);
+        datosIniciales = obtenerDatos();
         feedback?.classList.add('hidden');
       } catch (error) {
-        const mensaje =
-          error instanceof ApiError && error.status === 401
-            ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
-            : error instanceof Error
-              ? error.message
-              : 'No fue posible cargar el país.';
-
-        mostrarMensaje(mensaje, 'error');
+        mostrarMensaje(mensajeErrorPaises(error, 'cargar el país'), 'error');
         establecerOcupado(true);
         return;
       }
@@ -410,7 +418,14 @@ const backHref = '/administracion/paises';
             );
           }
 
-          await cliente.actualizar(id, version, datos);
+          const cambios = obtenerCambios(datos);
+          if (Object.keys(cambios).length === 0) {
+            mostrarMensaje('No hay cambios para guardar.', 'info');
+            establecerOcupado(false);
+            return;
+          }
+
+          await cliente.actualizar(id, version, cambios);
         } else {
           await cliente.crear(datos);
         }
@@ -423,7 +438,9 @@ const backHref = '/administracion/paises';
         );
 
         window.setTimeout(() => {
-          window.location.assign('/administracion/paises');
+          window.location.assign(
+            `/administracion/paises?resultado=${form.dataset.mode === 'edit' ? 'actualizado' : 'creado'}`,
+          );
         }, 800);
       } catch (error) {
         if (error instanceof ApiError && error.fields) {
@@ -433,14 +450,13 @@ const backHref = '/administracion/paises';
           }
         }
 
-        const mensaje =
-          error instanceof ApiError && error.status === 401
-            ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
-            : error instanceof Error
-              ? error.message
-              : 'No fue posible guardar el país. Inténtalo nuevamente.';
-
-        mostrarMensaje(mensaje, 'error');
+        mostrarMensaje(
+          mensajeErrorPaises(
+            error,
+            form.dataset.mode === 'edit' ? 'guardar los cambios' : 'crear el país',
+          ),
+          'error',
+        );
         establecerOcupado(false);
       }
     });
