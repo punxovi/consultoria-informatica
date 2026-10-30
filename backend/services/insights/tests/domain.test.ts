@@ -33,11 +33,13 @@ const raw: RawInsights = {
 describe('calculo de Dashboard y privacidad de Reportes', () => {
   test('calcula metricas globales, progreso y serie mensual', () => {
     const result = buildSnapshot(raw, {}, new Date('2026-10-01T12:00:00.000Z'));
-    assert.deepEqual(result.metrics, { organizations: 2, activePlans: 1, beneficiaries: 30, activeAlerts: 2 });
+    assert.deepEqual(result.metrics, { organizations: 2, activePlans: 1, beneficiaries: 30, activeAlerts: 1 });
     assert.deepEqual(result.progress, { total: 3, completed: 1, overdue: 1, percentage: 33 });
+    assert.equal(result.metrics.activeAlerts, result.pendingActions.length);
     assert.equal(result.monthlyActions.length, 9);
     assert.deepEqual(result.monthlyActions.at(-1), { key: '2026-10', label: 'Oct', completed: 0, pending: 1 });
   });
+
   test('filtra todas las relaciones por pais', () => {
     const result = buildSnapshot(raw, { countryId: countryA }, new Date('2026-10-01T12:00:00.000Z'));
     assert.equal(result.metrics.organizations, 1);
@@ -45,11 +47,13 @@ describe('calculo de Dashboard y privacidad de Reportes', () => {
     assert.equal(result.progress.total, 2);
     assert.equal(result.metrics.activeAlerts, 1);
   });
-  test('filtra por año de gestión en el Backend y devuelve los doce meses del período', () => {
+
+  test('el filtro de año afecta planes y acciones, pero no el total de organizaciones ni beneficiarios del país', () => {
     const result = buildSnapshot(raw, { year: 2026 }, new Date('2026-10-01T12:00:00.000Z'));
-    assert.equal(result.metrics.organizations, 1);
+    // Las dos organizaciones se conservan aunque una no tenga un plan durante 2026.
+    assert.equal(result.metrics.organizations, 2);
     assert.equal(result.metrics.activePlans, 1);
-    assert.equal(result.metrics.beneficiaries, 10);
+    assert.equal(result.metrics.beneficiaries, 30);
     assert.equal(result.progress.total, 2);
     assert.equal(result.progress.percentage, 50);
     assert.equal(result.monthlyActions.length, 12);
@@ -57,6 +61,7 @@ describe('calculo de Dashboard y privacidad de Reportes', () => {
     assert.equal(result.monthlyActions.at(-1)?.key, '2026-12');
     assert.deepEqual(result.pendingActions.map((action) => action.id_accion), ['a2']);
   });
+
   test('valida filtros de pais y propiedades adicionales', () => {
     assert.equal(parseInsightFilters(new URL(`http://local/v1/dashboard?id_pais=${countryA}`)).countryId, countryA);
     assert.deepEqual(parseInsightFilters(new URL(`http://local/v1/dashboard?id_pais=${countryA}&anio=2026`)), { countryId: countryA, year: 2026 });
@@ -65,6 +70,7 @@ describe('calculo de Dashboard y privacidad de Reportes', () => {
     assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?anio=20x6')), /año/);
     assert.throws(() => parseInsightFilters(new URL('http://local/v1/dashboard?otro=1')), /no/);
   });
+
   test('prepara una salida externa agregada sin identificadores ni datos restringidos', () => {
     const snapshot = buildSnapshot(raw, { countryId: countryA }, new Date('2026-10-01T12:00:00.000Z'));
     const report = prepareReport(snapshot, { destination: 'externo', filters: { countryId: countryA } });
@@ -77,6 +83,7 @@ describe('calculo de Dashboard y privacidad de Reportes', () => {
     assert.equal('id_organizacion' in report, false);
     assert.deepEqual(report.metrics, { organizations: 1, activePlans: 1, beneficiaries: 10, activeAlerts: 1 });
   });
+
   test('valida el destino del reporte antes de preparar la exportacion', () => {
     assert.deepEqual(
       parseReportRequest(new URL(`http://local/v1/reports/overview?destino=donante&id_pais=${countryA}`)),

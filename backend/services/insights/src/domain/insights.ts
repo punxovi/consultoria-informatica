@@ -75,7 +75,7 @@ export function parseInsightFilters(url: URL): InsightFilters {
   let year: number | undefined;
   if (rawYear !== null) {
     if (!/^\d{4}$/.test(rawYear) || Number(rawYear) < 1900 || Number(rawYear) > 9999) {
-      throw new ServiceError('DATOS_INVALIDOS', 'El año debe ser un número de cuatro dígitos entre 1900 y 9999.', 400);
+      throw new ServiceError('DATOS_INVALIDOS', 'El año debe ser un número de cuatro dÃgitos entre 1900 y 9999.', 400);
     }
     year = Number(rawYear);
   }
@@ -109,17 +109,28 @@ function monthWindow(now: Date, year?: number): Array<{ key: string; label: stri
 }
 
 export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = new Date()): DashboardSnapshot {
-  let organizations = filters.countryId
+  // Las organizaciones se filtran por país, pero no por año.
+  // El contador y los beneficiarios representan todas las organizaciones
+  // no archivadas del territorio, tengan o no planes en el período seleccionado.
+  const organizations = filters.countryId
     ? raw.organizations.filter((item) => item.id_pais === filters.countryId)
     : raw.organizations;
-  let organizationIds = new Set(organizations.map((item) => item.id_organizacion));
-  let plans = raw.plans.filter((item) => organizationIds.has(item.id_organizacion));
+
+  const organizationIds = new Set(
+    organizations.map((item) => item.id_organizacion),
+  );
+
+  // El filtro de año se aplica únicamente a los planes y sus acciones.
+  let plans = raw.plans.filter((item) =>
+    organizationIds.has(item.id_organizacion),
+  );
+
   if (filters.year) {
     const yearStart = `${filters.year}-01-01`;
     const yearEnd = `${filters.year}-12-31`;
-    plans = plans.filter((item) => item.fecha_inicio <= yearEnd && item.fecha_termino >= yearStart);
-    organizationIds = new Set(plans.map((item) => item.id_organizacion));
-    organizations = organizations.filter((item) => organizationIds.has(item.id_organizacion));
+    plans = plans.filter(
+      (item) => item.fecha_inicio <= yearEnd && item.fecha_termino >= yearStart,
+    );
   }
   const planIds = new Set(plans.map((item) => item.id_plan));
   const actions = raw.actions.filter((item) =>
@@ -144,7 +155,6 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
         !['cumplida', 'cancelada'].includes(item.estado)
       ),
   ).length;
-  const activeAlerts = actions.filter((item) => item.estado === 'atrasada' || item.estado === 'cancelada').length;
   const months = monthWindow(now, filters.year);
   const plansInScope = filters.year ? plans.length : plans.filter((item) => item.fecha_inicio <= today && item.fecha_termino >= today).length;
 
@@ -154,7 +164,7 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
   const percentage = actions.length ? Math.round((completed / actions.length) * 100) : 0;
 
   // Identificar acciones próximas a vencer o vencidas (atrasadas, en desarrollo, no iniciadas)
-  // Excluyendo explícitamente cumplidas y canceladas.
+  // Excluyendo explÃcitamente cumplidas y canceladas.
   const pendingActions: DashboardPendingAction[] = actions
     .filter(a => ['no_iniciada', 'en_desarrollo', 'atrasada'].includes(a.estado))
     .map(action => {
@@ -171,6 +181,10 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
       };
     })
     .sort((a, b) => a.fecha_termino.localeCompare(b.fecha_termino)); // Las más urgentes primero
+
+  // El indicador superior de Alertas utiliza exactamente el mismo conjunto
+  // de acciones que se presenta en Acciones prioritarias.
+  const activeAlerts = pendingActions.length;
 
   return {
     generatedAt: now.toISOString(),

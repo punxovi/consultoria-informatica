@@ -220,12 +220,29 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
         const rol = roles.map(etiquetaRol).filter(Boolean).join(' · ') || 'Rol no disponible';
 
         actualizarDatosPerfil(nombre, correo, rol);
+
+        // Compartir los datos ya consultados con el dashboard para personalizar el saludo.
+        // No se realiza una segunda consulta a Supabase desde dashboard.astro.
+        const codigosRol = roles
+          .map((item) => String(item.codigo ?? '').trim())
+          .filter(Boolean);
+
+        if (configEl) {
+          configEl.dataset.sessionName = nombre;
+          configEl.dataset.sessionRoleCodes = JSON.stringify(codigosRol);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('fge:perfil-actualizado', {
+            detail: { nombre, roles: codigosRol },
+          }),
+        );
       }
     } catch (error) {
       console.error('Error obteniendo los datos de perfil:', error);
     }
 
-    // Ítems del menú restringidos por rol: se muestran solo si la sesión tiene alguno.
+    // Mantener la visibilidad original del menú según los roles asignados.
     document.querySelectorAll<HTMLElement>('[data-nav-roles]').forEach((enlace) => {
       let rolesItem: string[] = [];
       try {

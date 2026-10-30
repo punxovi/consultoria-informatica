@@ -6,13 +6,7 @@ import Button from '../components/ui/Button.astro';
 import { mainNavItems } from '../config/nav';
 ---
 
-<AppLayout title="Inicio del Coordinador" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
-  <Fragment slot="breadcrumb">
-    <span class="text-neutral-500">Inicio</span>
-    <span aria-hidden="true" class="text-neutral-300">›</span>
-    <span class="font-semibold text-neutral-900">Resumen territorial</span>
-  </Fragment>
-
+<AppLayout title="Inicio" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
   <section class="space-y-6">
     <!-- Encabezado principal con mayor presencia visual -->
     <header class="relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-[#383164] via-[#4C4688] to-[#6962A6] p-6 text-white shadow-sm md:p-8">
@@ -24,7 +18,7 @@ import { mainNavItems } from '../config/nav';
             <span class="h-2 w-2 rounded-full bg-[#8CE0B9]"></span>
             PANEL DE GESTIÓN TERRITORIAL
           </span>
-          <h1 class="mt-4 text-2xl font-bold tracking-tight md:text-3xl">Inicio del Coordinador</h1>
+          <h1 id="dashboard-saludo" class="mt-4 text-2xl font-bold tracking-tight md:text-3xl">Bienvenido</h1>
           <p class="mt-2 max-w-xl text-sm leading-6 text-white/80 md:text-base">
             Supervisa el alcance de las organizaciones, el avance de los planes y el estado de las acciones de intervención.
           </p>
@@ -154,12 +148,7 @@ import { mainNavItems } from '../config/nav';
           </div>
         </div>
 
-        <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-          <div class="rounded-xl border border-[#F5C7D8] bg-[#FFF7FA] p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-[#AD174F]">Alertas registradas</p>
-            <strong id="dashboard-alertas-destacadas" class="mt-1 block text-2xl font-bold tabular-nums text-[#872346]">—</strong>
-            <p class="mt-1 text-xs leading-5 text-[#7C3D54]">Total informado por el servicio.</p>
-          </div>
+        <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
           <div class="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-4">
             <span class="rounded-lg bg-[#FCE8F0] p-2.5 text-[#AD174F]" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
@@ -250,6 +239,69 @@ import { mainNavItems } from '../config/nav';
 <script>
   import { obtenerDashboard, type DashboardSnapshot } from '../lib/dashboard/cliente';
 
+  interface PerfilDashboard {
+    nombre: string;
+    roles: string[];
+  }
+
+  const saludo = document.querySelector<HTMLElement>('#dashboard-saludo');
+
+  function normalizarCodigoRol(codigo: string): string {
+    return codigo.trim().toLocaleUpperCase('es-CL').replace(/[\s-]+/g, '_');
+  }
+
+  function actualizarSaludo(perfil: PerfilDashboard): void {
+    if (!saludo) return;
+
+    const codigos = perfil.roles.map(normalizarCodigoRol);
+    const esAdministrador = codigos.some((codigo) =>
+      ['ADMIN', 'ADMINISTRADOR', 'ADMINISTRACION'].includes(codigo) || codigo.includes('ADMINISTR'),
+    );
+    const esCoordinador = codigos.some((codigo) => codigo.includes('COORD'));
+
+    if (esAdministrador) {
+      saludo.textContent = 'Bienvenido, Administrador';
+      return;
+    }
+
+    if (esCoordinador) {
+      const nombre = perfil.nombre.trim();
+      saludo.textContent = nombre ? `Hola, ${nombre}` : 'Bienvenido, Coordinador';
+      return;
+    }
+
+    saludo.textContent = 'Bienvenido';
+  }
+
+  function leerPerfilGuardado(): void {
+    const configuracion = document.getElementById('auth-config');
+    const nombre = configuracion?.dataset.sessionName;
+    const rolesJson = configuracion?.dataset.sessionRoleCodes;
+    if (!nombre || !rolesJson) return;
+
+    try {
+      const roles = JSON.parse(rolesJson) as unknown;
+      if (Array.isArray(roles)) {
+        actualizarSaludo({
+          nombre,
+          roles: roles.filter((rol): rol is string => typeof rol === 'string'),
+        });
+      }
+    } catch (error) {
+      console.error('No fue posible leer el perfil para el saludo del dashboard:', error);
+    }
+  }
+
+  window.addEventListener('fge:perfil-actualizado', (evento: Event) => {
+    const detalle = (evento as CustomEvent<PerfilDashboard>).detail;
+    if (detalle && typeof detalle.nombre === 'string' && Array.isArray(detalle.roles)) {
+      actualizarSaludo(detalle);
+    }
+  });
+
+  // Lee también los datos guardados por AppLayout por si el evento ya se emitió.
+  leerPerfilGuardado();
+
   const contenedorPaises = document.querySelector<HTMLElement>('#dashboard-paises')!;
   const estado = document.querySelector<HTMLElement>('#dashboard-estado')!;
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-dashboard')!;
@@ -279,9 +331,20 @@ import { mainNavItems } from '../config/nav';
   }
 
   function renderizar(snapshot: DashboardSnapshot) {
+    // Una sola fuente de verdad para el total de acciones prioritarias.
+    // El indicador superior "Alertas" y la tarjeta inferior muestran
+    // exactamente el mismo conteo.
+    const totalAccionesPrioritarias = snapshot.pendingActions.length;
+
     for (const [nombre, valor] of Object.entries(snapshot.metrics)) {
+      // No usar snapshot.metrics.activeAlerts: puede venir desactualizado
+      // o calculado con una lógica distinta en el servicio.
+      const valorMostrado = nombre === 'activeAlerts'
+        ? totalAccionesPrioritarias
+        : valor;
+
       document.querySelectorAll<HTMLElement>(`[data-metrica="${nombre}"]`).forEach((el) => {
-        el.textContent = numero(valor);
+        el.textContent = numero(valorMostrado);
       });
     }
 
@@ -290,14 +353,13 @@ import { mainNavItems } from '../config/nav';
     document.querySelector<HTMLElement>('#dashboard-avance-texto')!.textContent = `${numero(progress.completed)} de ${numero(progress.total)} acciones completadas`;
     document.querySelector<HTMLElement>('#dashboard-cumplidas')!.textContent = numero(progress.completed);
     document.querySelector<HTMLElement>('#dashboard-vencidas')!.textContent = numero(progress.overdue);
-    document.querySelector<HTMLElement>('#dashboard-alertas-destacadas')!.textContent = numero(snapshot.metrics.activeAlerts);
     document.querySelector<HTMLElement>('#dashboard-acciones-vencidas')!.textContent = numero(snapshot.progress.overdue);
-    document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = numero(snapshot.pendingActions.length);
+    document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = numero(totalAccionesPrioritarias);
     listaAtencion.replaceChildren();
-    if (snapshot.pendingActions.length === 0) {
+    if (totalAccionesPrioritarias === 0) {
       estadoAtencion.textContent = 'No hay acciones que requieran atención para los filtros seleccionados.';
     } else {
-      estadoAtencion.textContent = `${numero(snapshot.pendingActions.length)} acciones requieren seguimiento.`;
+      estadoAtencion.textContent = `${numero(totalAccionesPrioritarias)} acciones requieren seguimiento.`;
       const partesFecha = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Santiago',
         year: 'numeric',
@@ -448,7 +510,6 @@ import { mainNavItems } from '../config/nav';
     document.querySelector<HTMLElement>('#dashboard-avance-texto')!.textContent = 'Cargando datos de acciones…';
     document.querySelector<HTMLElement>('#dashboard-cumplidas')!.textContent = '—';
     document.querySelector<HTMLElement>('#dashboard-vencidas')!.textContent = '—';
-    document.querySelector<HTMLElement>('#dashboard-alertas-destacadas')!.textContent = '—';
     document.querySelector<HTMLElement>('#dashboard-acciones-vencidas')!.textContent = '—';
     document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = '—';
     document.querySelector<HTMLElement>('#dashboard-avance-estado')!.textContent = 'Cargando';
@@ -476,7 +537,6 @@ import { mainNavItems } from '../config/nav';
       document.querySelector<HTMLElement>('#dashboard-avance-texto')!.textContent = 'No hay datos disponibles para mostrar.';
       document.querySelector<HTMLElement>('#dashboard-cumplidas')!.textContent = '—';
       document.querySelector<HTMLElement>('#dashboard-vencidas')!.textContent = '—';
-      document.querySelector<HTMLElement>('#dashboard-alertas-destacadas')!.textContent = '—';
       document.querySelector<HTMLElement>('#dashboard-acciones-vencidas')!.textContent = '—';
       document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = '—';
       listaAtencion.replaceChildren();
