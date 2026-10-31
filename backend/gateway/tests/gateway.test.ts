@@ -33,7 +33,7 @@ before(async () => {
   const authUrl = await listen(authServer);
   organizationsServer = createServer((request, response) => {
     response.setHeader('content-type', 'application/json');
-    response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization }));
+    response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization, territoryId: request.headers['x-territory-id'] }));
   });
   const organizationsUrl = await listen(organizationsServer);
   programsServer = createServer((request, response) => {
@@ -205,6 +205,19 @@ describe('API Gateway', () => {
       assert.equal(body.path, path.replace('/api', ''));
       assert.equal(body.authorization, 'Bearer sesion-insights');
     }
+  });
+
+  test('reenvía el contexto territorial sin convertirlo en una credencial', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations/temporary-coverages/mine`, {
+      headers: {
+        authorization: 'Bearer sesion-coordinador',
+        'x-territory-id': '11111111-1111-4111-8111-111111111111',
+      },
+    });
+    const body = await response.json();
+    assert.equal(body.path, '/v1/organizations/temporary-coverages/mine');
+    assert.equal(body.authorization, 'Bearer sesion-coordinador');
+    assert.equal(body.territoryId, '11111111-1111-4111-8111-111111111111');
   });
 
   test('conserva el archivo privado y sus cabeceras al descargar una evidencia', async () => {

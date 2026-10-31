@@ -45,7 +45,14 @@ export function createSupabaseCoordinatorRepository(options: Options): Coordinat
       if (!options.adminKey) throw new CoordinatorError('CONFIGURACION_CUENTAS', 'El alta requiere configurar la credencial privada de Auth en el Backend.', 503);
     },
     async execute(token, operation, input) {
-      const result = await request('/rest/v1/rpc/administrar_coordinadores', options.anonKey, token, { p_operacion: operation, p_datos: input });
+      const completar = operation === 'complete';
+      const result = await request(
+        completar ? '/rest/v1/rpc/completar_alta_coordinador' : '/rest/v1/rpc/administrar_coordinadores',
+        options.anonKey,
+        token,
+        completar ? { p_id_solicitud: input.id_solicitud } : { p_operacion: operation, p_datos: input },
+      );
+      if (completar && result === null) return null;
       if (!result || typeof result !== 'object') throw new CoordinatorError('RESPUESTA_CUENTAS_INVALIDA', 'La respuesta de cuentas no es válida.', 502);
       if (result.denied) throw new CoordinatorError('SIN_PERMISO', 'Solo un Administrador activo puede administrar Coordinadores.', 403);
       return result;

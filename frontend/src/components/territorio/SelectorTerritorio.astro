@@ -163,6 +163,8 @@
 
       // El selector solo corresponde a coordinadores con país principal.
       if (!rolCoordinador?.id_pais) {
+        sessionStorage.removeItem(CLAVE_TERRITORIO);
+        notificarTerritorioActivo('');
         contenedor.hidden = true;
         return;
       }
@@ -212,6 +214,8 @@
     } catch (error) {
       // Fallo cerrado: no mostrar opciones territoriales cuya autorización
       // no se pudo verificar. El servidor valida igualmente cada operación.
+      sessionStorage.removeItem(CLAVE_TERRITORIO);
+      notificarTerritorioActivo('');
       contenedor.hidden = true;
       selector.disabled = true;
       console.error(
@@ -222,4 +226,16 @@
   }
 
   void iniciar();
+
+  // Una cobertura puede vencer o ser revocada desde otra sesión. Al volver a
+  // enfocar la aplicación y, como respaldo, cada minuto visible, se vuelve a
+  // consultar el Backend. Si ya no está autorizada se borra el contexto local.
+  window.addEventListener('focus', () => void iniciar());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void iniciar();
+  });
+  window.addEventListener('fge:territorio-refrescar', () => void iniciar());
+  window.setInterval(() => {
+    if (document.visibilityState === 'visible') void iniciar();
+  }, 60_000);
 </script>

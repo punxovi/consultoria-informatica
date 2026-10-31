@@ -75,6 +75,8 @@ test('conserva los errores por campo del Backend', async () => {
 test('mensajeErrorCoordinadores: mensajes comprensibles por tipo de error', () => {
   const msg = (code, status) => mensajeErrorCoordinadores(new ApiError(code, 'x', status), 'cargar las cuentas');
   assert.match(msg('RUTA_NO_ENCONTRADA', 404), /todavía no está disponible/);
+  assert.match(msg('CONFIGURACION_CUENTAS', 503), /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(msg('MIGRACION_COORDINADORES_PENDIENTE', 503), /migración de cuentas/);
   assert.match(msg('SESION', 401), /sesión expiró/);
   assert.match(msg('PROHIBIDO', 403), /Solo el Administrador/);
   assert.match(msg('NO_EXISTE', 404), /no existe/);
