@@ -16,6 +16,7 @@ export function crearClienteAuditoria(baseUrl: string, token: () => Promise<stri
 export function mensajeError(error: unknown) {
   if (error instanceof ApiError) {
     if (error.code === 'RUTA_NO_ENCONTRADA') return 'El servicio de consulta de auditoría todavía no está disponible.';
+    if (error.code === 'MIGRACION_AUDITORIA_PENDIENTE') return 'Falta aplicar la migración de consulta de auditoría en Supabase.';
     if (error.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.';
     if (error.status === 403) return 'Solo el Administrador puede consultar la auditoría.';
   }

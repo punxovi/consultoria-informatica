@@ -47,11 +47,14 @@ export async function routeRequest(
   const organizationsPrefix = `${API_PREFIX}/organizations`;
   const donationsPrefix = `${API_PREFIX}/donations`;
   const countriesPrefix = `${API_PREFIX}/countries`;
+  const auditPrefix = `${API_PREFIX}/audit`;
   if (
     incomingUrl.pathname === organizationsPrefix ||
     incomingUrl.pathname.startsWith(`${organizationsPrefix}/`) ||
     incomingUrl.pathname === countriesPrefix ||
     incomingUrl.pathname.startsWith(`${countriesPrefix}/`) ||
+    incomingUrl.pathname === auditPrefix ||
+    incomingUrl.pathname.startsWith(`${auditPrefix}/`) ||
     incomingUrl.pathname === donationsPrefix ||
     incomingUrl.pathname.startsWith(`${donationsPrefix}/`)
   ) {

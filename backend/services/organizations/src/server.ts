@@ -12,6 +12,9 @@ import { routeCountries } from './http/countries-routes.ts';
 import { createCoveragesApplication, type CoveragesApplication } from './application/coverages-service.ts';
 import { createSupabaseCoveragesRepositoryFromEnv } from './infrastructure/supabase-coverages.repository.ts';
 import { routeCoverages } from './http/coverages-routes.ts';
+import { createAuditApplication, type AuditApplication } from './application/audit-service.ts';
+import { createSupabaseAuditRepositoryFromEnv } from './infrastructure/supabase-audit.repository.ts';
+import { routeAudit } from './http/audit-routes.ts';
 
 // Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
@@ -41,10 +44,12 @@ export function createOrganizationsServer(
   application?: OrganizationsApplication,
   countries?: CountriesApplication,
   coverages?: CoveragesApplication,
+  audit?: AuditApplication,
 ): Server {
   const resolved = application ?? createOrganizationsApplication(createSupabaseOrganizationsRepositoryFromEnv());
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
+  const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
 
   // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
@@ -108,6 +113,11 @@ export function createOrganizationsServer(
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;
+
+    if (path === '/v1/audit/events') {
+      await routeAudit(request, response, requestId, resolvedAudit);
+      return;
+    }
 
     if (path === '/v1/organizations/temporary-coverages' || path.startsWith('/v1/organizations/temporary-coverages/')) {
       await routeCoverages(request, response, requestId, resolvedCoverages);

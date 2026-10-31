@@ -134,6 +134,16 @@ describe('API Gateway', () => {
     assert.equal(body.authorization, 'Bearer sesion-organizaciones');
   });
 
+  test('enruta la consulta de auditoría al servicio de Organizaciones sin perder filtros ni sesión', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/audit/events?usuario=Ana&limit=50`, {
+      headers: { authorization: 'Bearer sesion-auditoria' },
+    });
+    const body = await response.json();
+    assert.equal(body.path, '/v1/audit/events?usuario=Ana&limit=50');
+    assert.equal(body.method, 'GET');
+    assert.equal(body.authorization, 'Bearer sesion-auditoria');
+  });
+
   test('enruta Expediente Legal al servicio de Organizaciones conservando método y sesión', async () => {
     const orgId = '22222222-2222-4222-8222-222222222222';
     for (const method of ['GET', 'POST', 'PATCH']) {
