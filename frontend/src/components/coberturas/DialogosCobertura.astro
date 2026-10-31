@@ -91,6 +91,22 @@
       Esta acción debe ser confirmada por el servicio antes de considerar revocada la cobertura.
     </p>
 
+    <div class="space-y-1.5">
+      <label for="cobertura-revocar-motivo" class="block text-sm font-medium">
+        Motivo de la revocación *
+      </label>
+      <textarea
+        id="cobertura-revocar-motivo"
+        rows="3"
+        minlength="5"
+        maxlength="1000"
+        required
+        class="w-full rounded-xl border border-[#DCD8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        aria-describedby="cobertura-revocar-error"
+      ></textarea>
+      <p id="cobertura-revocar-error" hidden role="alert" class="text-sm text-[#AD174F]"></p>
+    </div>
+
     <p id="cobertura-revocar-feedback" hidden role="status" aria-live="polite" class="rounded-xl border border-[#DCD8E8] bg-[#F0EEF8] p-3 text-sm text-[#383165]"></p>
 
     <footer class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-4 sm:flex-row sm:justify-end">
@@ -106,6 +122,8 @@
 </dialog>
 
 <script>
+  const coberturaClienteIntegrado = document.querySelector<HTMLElement>('#coberturas-lista')?.dataset.clienteCoberturas;
+  if (!coberturaClienteIntegrado) {
   const lista = document.querySelector<HTMLElement>('#coberturas-lista');
 
   const dialogExtender = document.querySelector<HTMLDialogElement>(
@@ -244,7 +262,7 @@
     }
 
     feedbackExtension.textContent =
-      'La fecha es válida, pero no se ha extendido la cobertura. La operación estará disponible cuando se integre el servicio de administración.';
+      'No se pudo preparar la extensión desde este cliente.';
     feedbackExtension.hidden = false;
   });
 
@@ -252,7 +270,13 @@
     if (!coberturaSeleccionada || !feedbackRevocar) return;
 
     feedbackRevocar.textContent =
-      'No se ha revocado la cobertura. Falta integrar el servicio para confirmar y registrar la operación.';
+      'No se pudo preparar la revocación desde este cliente.';
     feedbackRevocar.hidden = false;
   });
+  }
+</script>
+
+<script>
+  import { iniciarDialogosCobertura } from '../../lib/coberturas/interfaz-dialogos';
+  iniciarDialogosCobertura();
 </script>

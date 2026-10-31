@@ -163,8 +163,7 @@ import { mainNavItems } from '../../config/nav';
         </h2>
 
         <p class="mt-1 text-sm text-neutral-500">
-          Busca por Coordinador o país y filtra por la condición de vigencia
-          cuando esté disponible el servicio.
+          Busca por Coordinador o país y filtra por la condición de vigencia.
         </p>
       </div>
 
@@ -216,7 +215,7 @@ import { mainNavItems } from '../../config/nav';
           aria-live="polite"
           class="text-sm text-neutral-500"
         >
-          La consulta estará disponible al integrar el servicio de coberturas.
+          Preparando consulta de coberturas…
         </p>
       </div>
     </Card>
@@ -263,11 +262,10 @@ import { mainNavItems } from '../../config/nav';
         Listado de coberturas
       </h2>
 
-      <!-- Se mantiene visible mientras el servicio no esté integrado -->
       <EmptyState
         id="coberturas-vacio"
-        title="Listado pendiente de conexión"
-        description="Esta pantalla todavía no consulta coberturas reales. Cuando esté disponible el servicio, aquí aparecerán los Coordinadores autorizados, los países, las fechas, los motivos y la condición de vigencia. No se muestran registros de ejemplo."
+        title="Listado de coberturas"
+        description="Cuando el servicio esté disponible, aquí aparecerán las coberturas reales de los Coordinadores autorizados."
       >
         <Button href="/administracion/coberturas/nueva" size="lg">
           Registrar cobertura
@@ -314,6 +312,7 @@ import { mainNavItems } from '../../config/nav';
       <!-- Tarjetas generadas a partir de datos recibidos del servicio -->
       <ul
         id="coberturas-lista"
+        data-cliente-coberturas="integrado"
         hidden
         class="grid grid-cols-1 gap-4 lg:grid-cols-2"
         aria-busy="false"
@@ -324,3 +323,8 @@ import { mainNavItems } from '../../config/nav';
   <!-- Los diálogos se renderizan dentro del AppLayout -->
   <DialogosCobertura />
 </AppLayout>
+
+<script>
+  import { iniciarListadoCoberturas } from '../../lib/coberturas/interfaz-listado';
+  iniciarListadoCoberturas();
+</script>

@@ -9,7 +9,9 @@ import { createSupabaseOrganizationsRepositoryFromEnv } from './infrastructure/s
 import { createCountriesApplication, type CountriesApplication } from './application/countries-service.ts';
 import { createSupabaseCountriesRepositoryFromEnv } from './infrastructure/supabase-countries.repository.ts';
 import { routeCountries } from './http/countries-routes.ts';
-import { createCoveragesRouter } from './http/routes/coverages.routes.ts';
+import { createCoveragesApplication, type CoveragesApplication } from './application/coverages-service.ts';
+import { createSupabaseCoveragesRepositoryFromEnv } from './infrastructure/supabase-coverages.repository.ts';
+import { routeCoverages } from './http/coverages-routes.ts';
 
 // Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
@@ -35,9 +37,14 @@ function loadEnvManually() {
 
 loadEnvManually();
 
-export function createOrganizationsServer(application?: OrganizationsApplication, countries?: CountriesApplication): Server {
+export function createOrganizationsServer(
+  application?: OrganizationsApplication,
+  countries?: CountriesApplication,
+  coverages?: CoveragesApplication,
+): Server {
   const resolved = application ?? createOrganizationsApplication(createSupabaseOrganizationsRepositoryFromEnv());
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
+  const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
 
   // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
@@ -97,19 +104,13 @@ export function createOrganizationsServer(application?: OrganizationsApplication
     },
   };
 
-  const coveragesRouter = createCoveragesRouter(supabaseClient);
-
   return createServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;
 
-    // Interceptar las rutas de coberturas temporales y pasarlas al router Express existente
     if (path === '/v1/organizations/temporary-coverages' || path.startsWith('/v1/organizations/temporary-coverages/')) {
-      if (request.url) {
-        request.url = request.url.replace('/v1/organizations', '');
-      }
-      coveragesRouter(request as any, response as any, () => {});
+      await routeCoverages(request, response, requestId, resolvedCoverages);
       return;
     }
 

@@ -3,7 +3,9 @@ import { failure } from '../../../shared/contracts/src/index.ts';
 import { ServiceError } from '../../../shared/errors/src/index.ts';
 import { logEvent } from '../../../shared/observability/src/index.ts';
 
-const HEADERS_REENVIADOS = ['accept', 'authorization', 'content-type'] as const;
+// El territorio activo describe el contexto elegido en la interfaz. Nunca es
+// una credencial: los servicios deben autorizar siempre con el JWT y sus RLS.
+const HEADERS_REENVIADOS = ['accept', 'authorization', 'content-type', 'x-territory-id'] as const;
 const MAX_PROXY_BODY_BYTES = 52_428_800;
 
 async function leerCuerpo(request: IncomingMessage): Promise<Buffer | undefined> {

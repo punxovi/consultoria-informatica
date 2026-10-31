@@ -30,8 +30,19 @@ export class ApiError extends Error {
 export interface ApiTransport {
   request<T>(
     path: string,
-    options?: { method?: string; body?: unknown; accessToken?: string },
+    options?: { method?: string; body?: unknown; accessToken?: string; headers?: Record<string, string> },
   ): Promise<ApiSuccess<T>>;
+}
+
+function territorioActivo(): string | null {
+  try {
+    const valor = typeof sessionStorage === 'undefined'
+      ? null
+      : sessionStorage.getItem('fge.territorio.activo');
+    return valor?.trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 export function createApiTransport(apiBaseUrl: string, fetchImpl: typeof fetch = fetch): ApiTransport {
@@ -39,10 +50,11 @@ export function createApiTransport(apiBaseUrl: string, fetchImpl: typeof fetch =
   return {
     async request<T>(
       path: string,
-      options: { method?: string; body?: unknown; accessToken?: string } = {},
+      options: { method?: string; body?: unknown; accessToken?: string; headers?: Record<string, string> } = {},
     ): Promise<ApiSuccess<T>> {
       let response: Response;
       const multipart = typeof FormData !== 'undefined' && options.body instanceof FormData;
+      const territorio = territorioActivo();
       try {
         response = await fetchImpl(`${baseUrl}${path}`, {
           method: options.method ?? 'GET',
@@ -50,6 +62,8 @@ export function createApiTransport(apiBaseUrl: string, fetchImpl: typeof fetch =
             accept: 'application/json',
             ...(options.body !== undefined && !multipart ? { 'content-type': 'application/json' } : {}),
             ...(options.accessToken ? { authorization: `Bearer ${options.accessToken}` } : {}),
+            ...(territorio ? { 'x-territory-id': territorio } : {}),
+            ...options.headers,
           },
           ...(options.body !== undefined ? { body: multipart ? options.body as FormData : JSON.stringify(options.body) } : {}),
         });

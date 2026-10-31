@@ -73,6 +73,8 @@ export type ClienteCoordinadores = ReturnType<typeof crearClienteCoordinadores>;
 export function mensajeErrorCoordinadores(error: unknown, accion: string): string {
   if (error instanceof ApiError) {
     if (error.code === 'RUTA_NO_ENCONTRADA') return 'El servicio de cuentas de Coordinadores todavía no está disponible.';
+    if (error.code === 'CONFIGURACION_CUENTAS') return 'El Backend no tiene configurada la clave privada de Supabase para crear cuentas. Solicita configurar SUPABASE_SERVICE_ROLE_KEY y reiniciar los servicios.';
+    if (error.code === 'MIGRACION_COORDINADORES_PENDIENTE') return 'Falta aplicar la migración de cuentas de Coordinadores en Supabase.';
     if (error.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.';
     if (error.status === 403) return 'Solo el Administrador puede gestionar cuentas de Coordinadores.';
     if (error.status === 404) return 'La cuenta solicitada no existe o ya no está disponible.';

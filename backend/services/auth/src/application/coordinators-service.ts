@@ -1,4 +1,5 @@
 import type { CoordinatorRepository, Coordinator, CreateCoordinator, EditCoordinator } from '../domain/coordinators.ts';
+import { CoordinatorError } from '../domain/coordinators.ts';
 
 export function createCoordinatorApplication(repository: CoordinatorRepository) {
   return {
@@ -10,9 +11,14 @@ export function createCoordinatorApplication(repository: CoordinatorRepository) 
     async create(token: string, input: CreateCoordinator) {
       repository.assertProvisioningConfigured();
       const reservation = await repository.execute(token, 'prepare', input);
-      // Retry a previously committed Auth creation without creating another identity.
-      const id = reservation.id_usuario ?? await repository.provision(input, reservation.id_solicitud);
-      const coordinator = await repository.execute(token, 'get', { id_usuario: id });
+      // Auth puede haber creado la identidad antes de que el alta territorial se
+      // complete. Se intenta reparar esa reserva antes de solicitar otra identidad.
+      let coordinator = await repository.execute(token, 'complete', { id_solicitud: reservation.id_solicitud });
+      if (!coordinator) {
+        const id = reservation.id_usuario ?? await repository.provision(input, reservation.id_solicitud);
+        coordinator = await repository.execute(token, 'complete', { id_solicitud: reservation.id_solicitud, id_usuario: id });
+      }
+      if (!coordinator) throw new CoordinatorError('ALTA_COORDINADOR_PENDIENTE', 'La identidad fue creada, pero su cuenta aún no pudo completarse. Reintenta la operación.', 503);
       const accessSent = await repository.sendAccess(input.correo);
       return { coordinator, acceso: accessSent ? 'enlace_enviado' : 'recuperacion_pendiente' };
     },

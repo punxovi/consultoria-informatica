@@ -23,7 +23,11 @@ test('coordinadores: creación recuperable, sin duplicar identidad y con fallo d
   let provisioned = 0;
   const repo: CoordinatorRepository = {
     assertProvisioningConfigured() {},
-    async execute(_t, op) { return op === 'prepare' ? { id_solicitud: id, id_usuario: provisioned ? id : null } : { id_usuario: id }; },
+    async execute(_t, op) {
+      if (op === 'prepare') return { id_solicitud: id, id_usuario: provisioned ? id : null };
+      if (op === 'complete') return provisioned ? { id_usuario: id } : null;
+      return { id_usuario: id };
+    },
     async provision() { provisioned++; return id; },
     async sendAccess() { return false; },
   };
@@ -37,18 +41,21 @@ test('coordinadores: RPC usa JWT del actor y Auth Admin solo usa credencial del 
   const calls: Array<{ url: string; headers: Headers; body: any }> = [];
   const repo = createSupabaseCoordinatorRepository({ url: 'https://project.example', anonKey: 'public-test-key', adminKey: 'private-test-key', redirectUrl: 'http://localhost/password', fetchImpl: async (url, init) => {
     calls.push({ url: String(url), headers: new Headers(init?.headers), body: JSON.parse(String(init?.body)) });
-    return new Response(JSON.stringify(String(url).includes('/admin/users') ? { id } : { authorized: true }), { status: 200 });
+    return new Response(JSON.stringify(String(url).includes('/admin/users') ? { id } : String(url).includes('completar_alta_coordinador') ? { id_usuario: id } : { authorized: true }), { status: 200 });
   } });
   await repo.execute('actor-token', 'authorize', {});
   await repo.provision(parseCoordinatorCreate(input), id);
+  await repo.execute('actor-token', 'complete', { id_solicitud: id });
   await repo.sendAccess('qa@example.invalid');
   assert.equal(calls[0].headers.get('authorization'), 'Bearer actor-token');
   assert.equal(calls[0].headers.get('apikey'), 'public-test-key');
   assert.equal(calls[1].headers.get('authorization'), 'Bearer private-test-key');
   assert.equal(calls[1].body.app_metadata.fge_coordinator_request, id);
   assert.ok(calls[1].body.password.length >= 48);
-  assert.equal(calls[2].headers.get('apikey'), 'public-test-key');
-  assert.ok(calls[2].url.includes('/recover?redirect_to='));
+  assert.equal(calls[2].body.p_id_solicitud, id);
+  assert.ok(calls[2].url.includes('/completar_alta_coordinador'));
+  assert.equal(calls[3].headers.get('apikey'), 'public-test-key');
+  assert.ok(calls[3].url.includes('/recover?redirect_to='));
 });
 
 test('coordinadores: errores remotos consistentes, sin revelar detalles sensibles', async () => {
@@ -69,14 +76,16 @@ const listen = async (server: Server) => {
 test('coordinadores HTTP por Gateway: seis operaciones, errores y autorización antes de modificar', async () => {
   let c = { id_usuario: id, nombre: 'Persona', correo: 'qa@example.invalid', id_pais: country, activo: true, version: 1 };
   let mutations = 0;
+  let provisioned = false;
   const repo: CoordinatorRepository = {
     assertProvisioningConfigured() {},
-    async provision() { return id; },
+    async provision() { provisioned = true; return id; },
     async sendAccess() { return true; },
     async execute(token, op, data) {
       if (token !== 'admin') throw new CoordinatorError('SIN_PERMISO', 'Sin permiso.', 403);
       if (op === 'authorize') return { authorized: true };
       if (op === 'prepare') return { id_solicitud: id };
+      if (op === 'complete') return provisioned ? c : null;
       if (op === 'list') return [c];
       if (data.id_usuario !== id) throw new CoordinatorError('COORDINADOR_NO_ENCONTRADO', 'No existe.', 404);
       if (op === 'get') return c;
