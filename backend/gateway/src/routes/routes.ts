@@ -72,7 +72,15 @@ export async function routeRequest(
     return;
   }
 
-  for (const prefix of [`${API_PREFIX}/plans`, `${API_PREFIX}/actions`, `${API_PREFIX}/meeting-minutes`, `${API_PREFIX}/evidences`, `${API_PREFIX}/indicators`, `${API_PREFIX}/results`]) {
+  for (const prefix of [
+    `${API_PREFIX}/plans`,
+    `${API_PREFIX}/actions`,
+    `${API_PREFIX}/meeting-minutes`,
+    `${API_PREFIX}/meeting-minute-attachments`,
+    `${API_PREFIX}/evidences`,
+    `${API_PREFIX}/indicators`,
+    `${API_PREFIX}/results`,
+  ]) {
     if (incomingUrl.pathname === prefix || incomingUrl.pathname.startsWith(`${prefix}/`)) {
       const internalPath = incomingUrl.pathname.slice('/api'.length);
       const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.interventions);

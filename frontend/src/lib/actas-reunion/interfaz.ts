@@ -1,6 +1,6 @@
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 import { getSupabaseClient } from '../supabase.ts';
-import { camposActaSchema, type ActaReunion, type CatalogoActas } from './modelo.ts';
+import { camposActaSchema, type AdjuntoActa, type ActaReunion, type CatalogoActas } from './modelo.ts';
 import { crearClienteActas } from './cliente.ts';
 import { iniciarCompromisosEnActas } from '../compromisos/en-actas.ts';
 
@@ -24,6 +24,10 @@ export async function iniciarActasReunion() {
   const guardar = buscar<HTMLButtonElement>('#actas-guardar');
   const nueva = buscar<HTMLButtonElement>('#actas-nueva');
   const editar = buscar<HTMLButtonElement>('#actas-editar');
+  const archivosAdjuntos = buscar<HTMLInputElement>('#actas-adjuntos-archivos');
+  const subirAdjuntos = buscar<HTMLButtonElement>('#actas-adjuntos-subir');
+  const archivosSeleccionados = buscar<HTMLElement>('#actas-adjuntos-seleccionados');
+  let cargandoAdjuntos = false;
   let catalogo: CatalogoActas | null = null;
   let registros: ActaReunion[] = [];
   let actual: ActaReunion | null = null;
@@ -150,6 +154,229 @@ export async function iniciarActasReunion() {
       lista.append(tarjeta);
     }
   }
+  function iconoArchivo(nombreArchivo: string): string {
+    const extension = nombreArchivo.split('.').pop()?.toLowerCase();
+    if (extension === 'pdf') {
+      return '<svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.8h8l4.2 4.2v14.2H6z"/><path d="M14 2.8V7h4.2M8.5 16h2l1-4 1.5 4 1-3h1.5"/></svg>';
+    }
+    if (['jpg','jpeg','png','webp','gif'].includes(extension ?? '')) {
+      return '<svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h4M8 17l3-3 2 2 2-2 2 3"/><circle cx="9" cy="9" r="1.3"/></svg>';
+    }
+    return '<svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.8h8l4.2 4.2v14.2H6z"/><path d="M14 2.8V7h4.2M8.5 12h7M8.5 16h7"/></svg>';
+  }
+
+  function crearBotonEliminar(nombreArchivo: string, accion: () => void, etiqueta = 'Eliminar'): HTMLButtonElement {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'actas-adjunto-eliminar';
+    boton.setAttribute('aria-label', `Eliminar ${nombreArchivo}`);
+    boton.title = 'Eliminar archivo';
+    boton.innerHTML = `<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5.5 7l.8 13h11.4l.8-13M9 7V4h6v3"/></svg><span>${etiqueta}</span>`;
+    boton.addEventListener('click', accion);
+    return boton;
+  }
+
+  function mostrarArchivosSeleccionados() {
+    const archivos = [...(archivosAdjuntos.files ?? [])];
+    archivosSeleccionados.replaceChildren();
+    archivosSeleccionados.hidden = archivos.length === 0;
+    if (!archivos.length) return;
+
+    for (const [indice, archivo] of archivos.entries()) {
+      const fila = document.createElement('div');
+      fila.className = 'actas-adjunto-seleccionado';
+      const icono = document.createElement('span');
+      icono.className = 'actas-adjunto-tipo';
+      icono.innerHTML = iconoArchivo(archivo.name);
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0 flex-1';
+      const nombre = document.createElement('p');
+      nombre.className = 'break-all text-sm font-medium text-slate-900';
+      nombre.textContent = archivo.name;
+      const meta = document.createElement('p');
+      meta.className = 'text-sm text-slate-500';
+      meta.textContent = `${(archivo.size / 1024 / 1024).toFixed(2)} MB`;
+      info.append(nombre, meta);
+
+      const quitar = crearBotonEliminar(archivo.name, () => {
+        const transferencia = new DataTransfer();
+        [...(archivosAdjuntos.files ?? [])].forEach((actual, posicion) => {
+          if (posicion !== indice) transferencia.items.add(actual);
+        });
+        archivosAdjuntos.files = transferencia.files;
+        mostrarArchivosSeleccionados();
+      }, 'Eliminar');
+      fila.append(icono, info, quitar);
+      archivosSeleccionados.append(fila);
+    }
+  }
+
+  function mostrarAdjuntos(adjuntos: AdjuntoActa[]) {
+    const lista = buscar('#actas-adjuntos-lista');
+    lista.replaceChildren();
+    if (!adjuntos.length) {
+      const vacio = document.createElement('p');
+      vacio.className = 'rounded-xl border border-dashed border-[#DCEBE2] bg-[#FBFEFC] p-4 text-sm text-slate-500';
+      vacio.textContent = 'Esta acta todavía no tiene archivos adjuntos.';
+      lista.append(vacio);
+      return;
+    }
+
+    for (const adjunto of adjuntos) {
+      const fila = document.createElement('div');
+      fila.className = 'actas-adjunto-guardado';
+      const icono = document.createElement('span');
+      icono.className = 'actas-adjunto-tipo';
+      icono.innerHTML = iconoArchivo(adjunto.nombre_original);
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0 flex-1';
+      const nombre = document.createElement('p');
+      nombre.className = 'break-all text-sm font-medium text-slate-900';
+      nombre.textContent = adjunto.nombre_original;
+      const meta = document.createElement('p');
+      meta.className = 'text-sm text-slate-500';
+      meta.textContent = adjunto.estado_carga === 'disponible'
+        ? `${(adjunto.tamano_bytes / 1024 / 1024).toFixed(2)} MB`
+        : 'Pendiente de carga. Selecciona nuevamente el archivo para reintentar.';
+      info.append(nombre, meta);
+
+      const accionesAdjunto = document.createElement('div');
+      accionesAdjunto.className = 'flex shrink-0 items-center gap-2';
+      if (adjunto.estado_carga === 'disponible') {
+        const botonDescargar = document.createElement('button');
+        botonDescargar.type = 'button';
+        botonDescargar.className = 'actas-adjunto-descargar';
+        botonDescargar.innerHTML = '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg><span>Descargar</span>';
+        botonDescargar.addEventListener('click', () => void descargarAdjunto(adjunto, botonDescargar));
+        accionesAdjunto.append(botonDescargar);
+      }
+
+      if (catalogo?.puede_gestionar) {
+        const botonEliminar = crearBotonEliminar(adjunto.nombre_original, () => void eliminarAdjunto(adjunto, botonEliminar));
+        accionesAdjunto.append(botonEliminar);
+      }
+
+      fila.append(icono, info, accionesAdjunto);
+      lista.append(fila);
+    }
+  }
+
+  async function cargarAdjuntos(actaId: string) {
+    const estado = buscar<HTMLElement>('#actas-adjuntos-mensaje');
+    try {
+      estado.hidden = true;
+      const adjuntos = await servicio.listarAdjuntos(org, actaId);
+      if (actual?.id_acta === actaId) mostrarAdjuntos(adjuntos);
+    } catch (fallo) {
+      estado.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar los adjuntos.';
+      estado.hidden = false;
+    }
+  }
+
+  async function descargarAdjunto(adjunto: AdjuntoActa, boton: HTMLButtonElement) {
+    boton.disabled = true;
+    try {
+      const blob = await servicio.descargarAdjunto(adjunto);
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = adjunto.nombre_original;
+      document.body.append(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(url);
+    } catch (fallo) {
+      error(fallo);
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  async function eliminarAdjunto(adjunto: AdjuntoActa, boton: HTMLButtonElement) {
+    if (!actual || !catalogo?.puede_gestionar || cargandoAdjuntos) return;
+
+    const confirmar = window.confirm(
+      `¿Eliminar definitivamente el archivo "${adjunto.nombre_original}"? Esta acción no se puede deshacer.`,
+    );
+
+    if (!confirmar) return;
+
+    cargandoAdjuntos = true;
+    boton.disabled = true;
+
+    const estado = buscar<HTMLElement>('#actas-adjuntos-mensaje');
+    estado.hidden = false;
+    estado.textContent = 'Eliminando archivo…';
+
+    try {
+      await servicio.eliminarAdjunto(adjunto);
+      await cargarAdjuntos(actual.id_acta);
+
+      estado.hidden = false;
+      estado.textContent = 'El archivo se eliminó correctamente.';
+    } catch (fallo) {
+      estado.textContent = fallo instanceof Error
+        ? fallo.message
+        : 'No fue posible eliminar el archivo.';
+      estado.hidden = false;
+      boton.disabled = false;
+    } finally {
+      cargandoAdjuntos = false;
+    }
+  }
+
+  async function procesarAdjuntos() {
+    if (!actual || !catalogo?.puede_gestionar || cargandoAdjuntos) return;
+
+    const archivos = [...(archivosAdjuntos.files ?? [])];
+    if (!archivos.length) return;
+
+    cargandoAdjuntos = true;
+    subirAdjuntos.disabled = true;
+
+    const estado = buscar<HTMLElement>('#actas-adjuntos-mensaje');
+    estado.hidden = false;
+    estado.textContent = 'Cargando archivos…';
+
+    const errores: string[] = [];
+    const archivosPendientes: File[] = [];
+
+    for (const archivo of archivos) {
+      try {
+        const reservado = await servicio.reservarAdjunto(
+          org,
+          actual.id_acta,
+          archivo,
+        );
+        await servicio.subirAdjunto(reservado, archivo);
+      } catch (fallo) {
+        const mensaje = fallo instanceof Error ? fallo.message : String(fallo);
+        errores.push(`${archivo.name}: ${mensaje}`);
+        archivosPendientes.push(archivo);
+        console.error('Error al cargar adjunto:', archivo.name, fallo);
+      }
+    }
+
+    // Los archivos cargados correctamente dejan de aparecer en la lista pendiente.
+    // Solo conservamos los que fallaron para que puedan reintentarse.
+    const transferencia = new DataTransfer();
+    for (const archivo of archivosPendientes) transferencia.items.add(archivo);
+    archivosAdjuntos.files = transferencia.files;
+    mostrarArchivosSeleccionados();
+
+    await cargarAdjuntos(actual.id_acta);
+
+    estado.hidden = false;
+    estado.textContent = errores.length
+      ? `No se pudieron cargar ${errores.length} archivo(s). Puedes reintentar los archivos que siguen en la lista: ${errores.join(' | ')}`
+      : 'Todos los archivos se cargaron correctamente.';
+
+    cargandoAdjuntos = false;
+    subirAdjuntos.disabled = false;
+  }
+
   function detalle(acta: ActaReunion) {
     ocultar(); actual = acta; editando = null; buscar('#actas-detalle').hidden = false;
     buscar('#detalle-fecha').textContent = fechaVisible(acta.fecha_reunion);
@@ -164,6 +391,11 @@ export async function iniciarActasReunion() {
     for (const nombre of acta.asistentes) { const item = document.createElement('span'); item.className = 'rounded-full bg-primary/10 px-3 py-1 text-sm'; item.textContent = nombre; lista.append(item); }
     compromisos?.detalle(acta.compromisos ?? []);
     editar.hidden = !catalogo?.puede_gestionar;
+    buscar('#actas-adjuntos-subir').hidden = !catalogo?.puede_gestionar;
+    buscar('#actas-adjuntos-carga').hidden = !catalogo?.puede_gestionar;
+    archivosAdjuntos.value = '';
+    mostrarArchivosSeleccionados();
+    void cargarAdjuntos(acta.id_acta);
   }
   async function consultarDetalle(id: string) {
     if (ocupado) return;
@@ -244,6 +476,8 @@ export async function iniciarActasReunion() {
       error(fallo);
     } finally { ocupar(false); guardar.textContent = editando ? 'Guardar cambios' : 'Guardar acta'; }
   });
+  archivosAdjuntos.addEventListener('change', mostrarArchivosSeleccionados);
+  subirAdjuntos.addEventListener('click', () => void procesarAdjuntos());
   nueva.addEventListener('click', () => abrirFormulario());
   editar.addEventListener('click', () => { if (actual) abrirFormulario(actual); });
   buscar('#actas-cancelar').addEventListener('click', () => { if (!ocupado) { limpiarMensajes(); if (editando) detalle(editando); else historial(); ocupar(false); } });

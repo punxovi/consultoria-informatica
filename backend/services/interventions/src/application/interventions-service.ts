@@ -1,3 +1,4 @@
+
 import type { ActionFields, ActionFilters, ActionsRepository, UpdateActionInput } from '../domain/actions.ts';
 import type {
   CreateMeetingMinuteInput,
@@ -5,6 +6,11 @@ import type {
   MeetingMinutesRepository,
   UpdateMeetingMinuteInput,
 } from '../domain/meeting-minutes.ts';
+import type {
+  CreateMeetingMinuteAttachmentInput,
+  MeetingMinuteAttachmentFilters,
+  MeetingMinuteAttachmentsRepository,
+} from '../domain/meeting-minute-attachments.ts';
 import type { PlanFields, PlanFilters, PlansRepository, UpdatePlanInput } from '../domain/plans.ts';
 import type { CreateEvidenceInput, EvidenceFilters, EvidencesRepository, UpdateEvidenceInput } from '../domain/evidences.ts';
 
@@ -13,6 +19,7 @@ export function createInterventionsApplication(
   actions: ActionsRepository,
   meetingMinutes: MeetingMinutesRepository,
   evidences: EvidencesRepository,
+  meetingMinuteAttachments: MeetingMinuteAttachmentsRepository,
 ) {
   return {
     plans: {
@@ -43,6 +50,20 @@ export function createInterventionsApplication(
       update: (token: string, id: string, input: UpdateEvidenceInput) => evidences.update(token, id, input),
       upload: (token: string, id: string, version: number, bytes: Buffer, mimeType: string) => evidences.upload(token, id, version, bytes, mimeType),
       download: (token: string, id: string) => evidences.download(token, id),
+    },
+    meetingMinuteAttachments: {
+      list: (token: string, filters: MeetingMinuteAttachmentFilters) =>
+        meetingMinuteAttachments.list(token, filters),
+      getById: (token: string, id: string) =>
+        meetingMinuteAttachments.getById(token, id),
+      create: (token: string, input: CreateMeetingMinuteAttachmentInput) =>
+        meetingMinuteAttachments.create(token, input),
+      upload: (token: string, id: string, version: number, bytes: Buffer, mimeType: string) =>
+        meetingMinuteAttachments.upload(token, id, version, bytes, mimeType),
+      download: (token: string, id: string) =>
+        meetingMinuteAttachments.download(token, id),
+      delete: (token, id) =>
+        meetingMinuteAttachments.delete(token, id),
     },
   };
 }
