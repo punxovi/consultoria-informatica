@@ -41,6 +41,24 @@ test('Coberturas: listado y operaciones usan HTTP, Gateway, Bearer y versión es
   assert.deepEqual(JSON.parse(String(llamadas[3].init.body)), { version_esperada: 2, motivo_revocacion: 'Cambio de planificación' });
 });
 
+test('Coberturas: consulta el historial por cobertura y valida sus actores', async () => {
+  const evento = {
+    id_historial: '44444444-4444-4444-8444-444444444444',
+    id_permiso_temporal: coverage.id_permiso_temporal,
+    tipo_evento: 'EXTENDER',
+    fin_at_anterior: coverage.fin_at,
+    fin_at_nuevo: '2026-11-15T03:00:00.000Z',
+    motivo: 'Extensión de prueba',
+    accion_por: '55555555-5555-4555-8555-555555555555',
+    accion_por_nombre: 'Administrador QA',
+    accion_at: '2026-11-02T12:00:00.000Z',
+  };
+  const { cliente, llamadas } = clienteCon([ok({ history: [evento] })]);
+  const historial = await cliente.historial(coverage.id_permiso_temporal);
+  assert.equal(historial[0].accion_por_nombre, 'Administrador QA');
+  assert.match(llamadas[0].url, /temporary-coverages\/11111111-1111-4111-8111-111111111111\/history$/);
+});
+
 test('Coberturas: rechaza respuestas inválidas y muestra errores utilizables', async () => {
   const { cliente } = clienteCon([ok({ coverages: [{ ...coverage, puede_extender: 'sí' }] })]);
   await assert.rejects(cliente.listar(), (error) => error instanceof ApiError && error.code === 'RESPUESTA_INVALIDA');

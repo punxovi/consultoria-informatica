@@ -23,6 +23,18 @@ export interface CoberturaTemporalVista extends CoberturaTemporal {
   puedeRevocar: boolean;
 }
 
+export interface EventoHistorialCobertura {
+  id_historial: string;
+  id_permiso_temporal: string;
+  tipo_evento: 'OTORGAR' | 'EXTENDER' | 'REVOCAR';
+  fin_at_anterior: string | null;
+  fin_at_nuevo: string | null;
+  motivo: string;
+  accion_por: string;
+  accion_por_nombre: string;
+  accion_at: string;
+}
+
 export interface CrearCoberturaFormulario {
   id_usuario_beneficiario: string;
   id_pais: string;

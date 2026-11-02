@@ -113,6 +113,20 @@ function crearBotonAccion(
   return boton;
 }
 
+function crearBotonHistorial(cobertura: CoberturaTemporalVista): HTMLButtonElement {
+  const boton = crearElemento(
+    'button',
+    'inline-flex min-h-11 items-center justify-center rounded-xl border border-[#DCD8E8] bg-white px-4 py-2 text-sm font-semibold text-[#4C4688] hover:bg-[#F0EEF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688]',
+    'Ver historial',
+  );
+  boton.type = 'button';
+  boton.dataset.coberturaAccion = 'historial';
+  boton.dataset.coberturaId = cobertura.id_permiso_temporal;
+  boton.dataset.coordinadorNombre = cobertura.coordinador_nombre;
+  boton.dataset.paisNombre = cobertura.pais_nombre;
+  return boton;
+}
+
 function crearTarjeta(
   cobertura: CoberturaTemporalVista,
 ): HTMLLIElement {
@@ -190,6 +204,8 @@ function crearTarjeta(
     'footer',
     'mt-auto flex flex-wrap gap-2 border-t border-[#EEEAF5] pt-4',
   );
+
+  acciones.append(crearBotonHistorial(cobertura));
 
   if (cobertura.puedeExtender) {
     acciones.append(crearBotonAccion(cobertura, 'extender'));

@@ -52,6 +52,13 @@ export async function routeCoverages(
       return;
     }
 
+    const historyMatch = new RegExp(`^${base}/([^/]+)/history$`).exec(url.pathname);
+    if (historyMatch && request.method === 'GET') {
+      const history = await app.history(token, parseCoverageId(decodeURIComponent(historyMatch[1])));
+      send(200, success('HISTORIAL_COBERTURA_LISTADO', 'El historial de la cobertura fue consultado correctamente.', { history }));
+      return;
+    }
+
     const match = new RegExp(`^${base}/([^/]+)/(extend|revoke)$`).exec(url.pathname);
     if (match && request.method === 'PATCH') {
       const id = parseCoverageId(decodeURIComponent(match[1]));

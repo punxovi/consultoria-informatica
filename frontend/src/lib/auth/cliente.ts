@@ -16,7 +16,9 @@ interface VerifiedSessionData {
 
 async function localSession(): Promise<Session | null> {
   const { data, error } = await getSupabaseClient().auth.getSession();
-  if (error) return null;
+  if (error) {
+    throw new AuthApiError('AUTH_NO_DISPONIBLE', 'No fue posible consultar la sesión local.', 0);
+  }
   return data.session;
 }
 
@@ -98,8 +100,11 @@ async function refreshSession(session: Session): Promise<Session | null> {
       body: { refreshToken: session.refresh_token },
     });
     return await saveSession(result.data.session);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof AuthApiError && (error.status === 400 || error.status === 401 || error.status === 403)) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -113,7 +118,10 @@ export async function verificarSesion(): Promise<boolean> {
     });
     return result.data.authenticated === true;
   } catch (error) {
-    if (!(error instanceof AuthApiError) || error.status !== 401) return false;
+    // Una sesión local válida no debe destruirse por una caída, timeout o
+    // respuesta de autorización de un módulo. Solo un 401 confirma que el
+    // access token dejó de ser válido y justifica intentar refrescarlo.
+    if (!(error instanceof AuthApiError) || error.status !== 401) return true;
     session = await refreshSession(session);
     if (!session) return false;
     try {
@@ -121,15 +129,15 @@ export async function verificarSesion(): Promise<boolean> {
         accessToken: session.access_token,
       });
       return true;
-    } catch {
-      return false;
+    } catch (verificationError) {
+      return !(verificationError instanceof AuthApiError) || verificationError.status !== 401;
     }
   }
 }
 
 export async function cerrarSesion(): Promise<void> {
   const supabase = getSupabaseClient();
-  const session = await localSession();
+  const session = await localSession().catch(() => null);
   try {
     if (session) {
       await transport.request('/api/v1/auth/logout', {

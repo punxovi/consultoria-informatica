@@ -60,7 +60,7 @@ export function createSupabaseCoveragesRepository(options: Options): CoveragesRe
         throw new CoverageError('RESPUESTA_INVALIDA', 'El servicio devolvió una respuesta inválida.', 502);
       }
       if (!response.ok) throw databaseError(response.status, body);
-      if ((operation === 'list' || operation === 'mine') && !Array.isArray(body)) {
+      if ((operation === 'list' || operation === 'mine' || operation === 'history') && !Array.isArray(body)) {
         throw new CoverageError('RESPUESTA_INVALIDA', 'El servicio devolvió un listado de coberturas inválido.', 502);
       }
       if (!['list', 'mine'].includes(operation) && (!body || typeof body !== 'object' || Array.isArray(body))) {
