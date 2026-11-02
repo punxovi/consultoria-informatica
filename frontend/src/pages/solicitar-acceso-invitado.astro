@@ -1,0 +1,405 @@
+
+---
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+---
+
+<Layout title="Solicitar acceso - Fundación Gestionar Esperanzas">
+  <main class="auth-page">
+    <section class="brand-panel">
+      <div class="brand-circle"></div>
+      <img
+        src="/Logo-FGE-SIN-FONDO.png"
+        alt="Fundación Gestionar Esperanzas"
+        class="brand-logo"
+      />
+      <div class="brand-wave"></div>
+      <div class="brand-footer">
+        <span>Chile · Argentina · Uruguay</span>
+        <span>© Fundación Gestionar Esperanzas</span>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <Card class="auth-card">
+        <div class="auth-content">
+          <header class="auth-header">
+            <h1>Solicitar acceso</h1>
+            <p>
+              Completa el siguiente formulario para solicitar acceso como
+              invitado a la intranet de Fundación Gestionar Esperanzas.
+            </p>
+          </header>
+
+          <div id="guest-error" class="error-alert hidden" role="alert">
+            <span class="error-icon">!</span>
+            <span id="guest-error-message"></span>
+          </div>
+
+          <div id="guest-info" class="info-alert hidden" role="status">
+            El formulario está validado, pero el envío estará disponible
+            cuando se integre el servicio de solicitudes.
+          </div>
+
+          <form id="guest-request-form" class="auth-form" novalidate>
+            <div>
+              <label for="guest-name">Nombre completo</label>
+              <input
+                id="guest-name"
+                name="nombre"
+                type="text"
+                placeholder="Ingresa tu nombre completo"
+                autocomplete="name"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="guest-email">Correo electrónico</label>
+              <input
+                id="guest-email"
+                name="correo"
+                type="email"
+                placeholder="nombre@correo.cl"
+                autocomplete="email"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="guest-institution">
+                Institución u organización
+              </label>
+              <input
+                id="guest-institution"
+                name="institucion"
+                type="text"
+                placeholder="Nombre de tu institución"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="guest-reason">Motivo de la solicitud</label>
+              <textarea
+                id="guest-reason"
+                name="motivo"
+                rows="4"
+                placeholder="Cuéntanos por qué necesitas acceder a la intranet..."
+                required
+              ></textarea>
+            </div>
+
+            <Button
+              id="guest-submit"
+              type="submit"
+              variant="primary"
+              size="lg"
+              class="full"
+            >
+              Enviar solicitud
+            </Button>
+          </form>
+
+          <div class="back">
+            <Button href="/login" variant="ghost" size="sm">
+              ← Volver al inicio de sesión
+            </Button>
+          </div>
+
+          <p class="auth-footer">
+            Las solicitudes serán revisadas por un administrador.
+          </p>
+        </div>
+      </Card>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  const form = document.getElementById('guest-request-form') as HTMLFormElement;
+  const error = document.getElementById('guest-error');
+  const errorMessage = document.getElementById('guest-error-message');
+  const info = document.getElementById('guest-info');
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    error?.classList.add('hidden');
+    info?.classList.add('hidden');
+
+    const nombre = (document.getElementById('guest-name') as HTMLInputElement).value.trim();
+    const correo = (document.getElementById('guest-email') as HTMLInputElement).value.trim();
+    const institucion = (document.getElementById('guest-institution') as HTMLInputElement).value.trim();
+    const motivo = (document.getElementById('guest-reason') as HTMLTextAreaElement).value.trim();
+
+    if (!nombre || !correo || !institucion || !motivo) {
+      if (errorMessage) {
+        errorMessage.textContent = 'Completa todos los campos para continuar.';
+      }
+      error?.classList.remove('hidden');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+      if (errorMessage) {
+        errorMessage.textContent = 'Ingresa un correo electrónico válido.';
+      }
+      error?.classList.remove('hidden');
+      return;
+    }
+
+    info?.classList.remove('hidden');
+  });
+</script>
+
+<style>
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 45% 55%;
+    background: #fff;
+  }
+
+  .brand-panel {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fff 0%, #fafafa 65%, #f5f3fb 100%);
+  }
+
+  .brand-logo {
+    position: relative;
+    z-index: 2;
+    width: min(78%, 390px);
+  }
+
+  .brand-circle {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: -145px;
+    left: -90px;
+    border-radius: 50%;
+    background: rgba(76, 70, 136, .08);
+  }
+
+  .brand-wave {
+    position: absolute;
+    left: -10%;
+    right: -15%;
+    bottom: -25%;
+    height: 42%;
+    background: #4c4688;
+    border-radius: 55% 55% 0 0 / 35% 35% 0 0;
+    transform: rotate(-3deg);
+  }
+
+  .brand-footer {
+    position: absolute;
+    z-index: 3;
+    left: 2.5rem;
+    bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    color: rgba(255,255,255,.9);
+    font-size: .78rem;
+  }
+
+  .auth-panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 5rem;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 2rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .auth-content {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+  }
+
+  .auth-header {
+    margin-bottom: 2rem;
+  }
+
+  .auth-header h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .auth-header p {
+    margin: .75rem 0 0;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .auth-form label {
+    display: block;
+    margin-bottom: .5rem;
+    color: #383165;
+    font-size: .9rem;
+    font-weight: 600;
+  }
+
+  .auth-form input,
+  .auth-form textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: .8rem 1rem;
+    border: 1px solid #DCD8EA;
+    border-radius: .75rem;
+    background: #fff;
+    color: #383165;
+    font: inherit;
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .auth-form textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .auth-form input:focus,
+  .auth-form textarea:focus {
+    border-color: #4C4688;
+    box-shadow: 0 0 0 3px rgba(76, 70, 136, .12);
+  }
+
+  .full {
+    width: 100%;
+  }
+
+  .back {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .error-alert,
+  .info-alert {
+    margin-bottom: 1.5rem;
+    padding: .9rem;
+    border-radius: .75rem;
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+
+  .error-alert {
+    display: flex;
+    gap: .65rem;
+    border: 1px solid rgba(255,36,113,.25);
+    background: rgba(255,36,113,.06);
+    color: #706e78;
+  }
+
+  .error-alert.hidden,
+  .info-alert.hidden {
+    display: none;
+  }
+
+  .error-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff2471;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+
+  .info-alert {
+    border: 1px solid #D8D2F0;
+    background: #EFEDFA;
+    color: #4C4688;
+  }
+
+  .auth-footer {
+    margin: 2rem 0 0;
+    color: #a09fa2;
+    text-align: center;
+    font-size: .75rem;
+  }
+
+  @media (max-width: 900px) {
+    .auth-page {
+      grid-template-columns: 40% 60%;
+    }
+
+    .auth-panel {
+      padding: 2rem;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .auth-page {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-panel {
+      min-height: 230px;
+      height: 230px;
+    }
+
+    .brand-logo {
+      width: 220px;
+    }
+
+    .brand-wave {
+      bottom: -85px;
+      height: 150px;
+    }
+
+    .brand-footer {
+      left: 1.25rem;
+      bottom: .9rem;
+      font-size: .65rem;
+    }
+
+    .auth-panel {
+      min-height: auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    .auth-card {
+      padding: 0;
+    }
+
+    .auth-header h1 {
+      font-size: 1.8rem;
+    }
+  }
+</style>
