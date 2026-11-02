@@ -75,13 +75,21 @@ const {
         aria-label="Ver datos de sesión"
         aria-controls="profile-menu"
         aria-expanded="false"
-        class="flex h-10 w-10 items-center justify-center rounded-full
-          border-2 border-white bg-[#4C4688] text-sm font-bold text-white
+        class="relative flex h-10 w-10 shrink-0 items-center justify-center
+          overflow-hidden rounded-full p-0 border-2 border-white
+          bg-[#4C4688] text-sm font-bold text-white
           shadow-sm ring-1 ring-[#DCD8EE] transition hover:bg-[#423C76]
           focus-visible:outline-2 focus-visible:outline-offset-2
           focus-visible:outline-[#4C4688]"
       >
         <span data-session-initial aria-hidden="true">U</span>
+        <img
+          data-session-flag
+          src=""
+          alt=""
+          aria-hidden="true"
+          class="absolute inset-0 hidden h-full w-full rounded-full object-cover object-center"
+        />
       </button>
 
       <div
@@ -110,6 +118,10 @@ const {
             <p data-session-role class="mt-0.5 truncate text-xs text-[#77738A]">
               Rol no disponible
             </p>
+            <p
+              data-session-country
+              class="mt-1 hidden truncate text-xs font-medium text-[#4C4688]"
+            ></p>
           </div>
         </div>
 
@@ -122,6 +134,21 @@ const {
           <p data-session-email class="break-words text-sm text-[#454157]">
             Correo no disponible
           </p>
+          <div data-session-country-detail hidden class="mt-3 space-y-1">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-[#8A869B]">
+              País principal
+            </p>
+            <p class="text-sm font-medium text-[#454157]">
+              <img
+                data-session-country-flag
+                src=""
+                alt=""
+                aria-hidden="true"
+                class="inline-block h-4 w-6 rounded-sm object-cover"
+              />
+              <span data-session-country-name></span>
+            </p>
+          </div>
         </div>
       </div>
     </div>
