@@ -55,6 +55,16 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
           <slot />
         </div>
 
+        <div
+          id="session-error"
+          hidden
+          role="alert"
+          class="mx-auto mt-8 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          No fue posible validar la sesión con el servicio. Tu sesión local se mantiene activa; revisa la conexión y vuelve a intentar.
+          <button id="session-retry" type="button" class="ml-2 font-semibold underline">Reintentar</button>
+        </div>
+
         <!-- Mensaje de acceso denegado -->
         <div
           id="unauthorized-message"
@@ -170,7 +180,15 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
   }
 
   async function validateSession() {
-    const hasSession = await verificarSesion();
+    let hasSession = false;
+    try {
+      hasSession = await verificarSesion();
+    } catch (error) {
+      console.error('No fue posible validar la sesión:', error);
+      document.getElementById('session-error')?.removeAttribute('hidden');
+      document.getElementById('main-content')?.classList.remove('opacity-0');
+      return;
+    }
 
     if (!hasSession) {
       window.location.replace('/login');
@@ -267,6 +285,11 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
   }
 
   void validateSession();
+
+  document.getElementById('session-retry')?.addEventListener('click', () => {
+    document.getElementById('session-error')?.setAttribute('hidden', 'true');
+    void validateSession();
+  });
 
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) void validateSession();

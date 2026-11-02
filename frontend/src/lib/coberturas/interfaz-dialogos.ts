@@ -1,4 +1,5 @@
 import { clienteCoberturasNavegador, mensajeErrorCoberturas } from './cliente.ts';
+import type { EventoHistorialCobertura } from './modelo.ts';
 
 type Seleccion = {
   id: string;
@@ -9,6 +10,11 @@ type Seleccion = {
 
 export function iniciarDialogosCobertura(): void {
   const lista = document.querySelector<HTMLElement>('#coberturas-lista');
+  const dialogHistorial = document.querySelector<HTMLDialogElement>('#cobertura-historial-dialog');
+  const historialSubtitulo = document.querySelector<HTMLElement>('#cobertura-historial-subtitulo');
+  const historialCarga = document.querySelector<HTMLElement>('#cobertura-historial-carga');
+  const historialError = document.querySelector<HTMLElement>('#cobertura-historial-error');
+  const historialLista = document.querySelector<HTMLOListElement>('#cobertura-historial-lista');
   const dialogExtender = document.querySelector<HTMLDialogElement>('#cobertura-extender-dialog');
   const formExtender = document.querySelector<HTMLFormElement>('#cobertura-extender-form');
   const fechaExtension = document.querySelector<HTMLInputElement>('#cobertura-extender-fecha');
@@ -43,11 +49,71 @@ export function iniciarDialogosCobertura(): void {
     window.dispatchEvent(new CustomEvent('fge:cobertura-actualizada', { detail: { mensaje } }));
   }
 
-  lista.addEventListener('click', (event) => {
+  function fecha(valor: string | null): string {
+    if (!valor) return '—';
+    const parsed = new Date(valor);
+    return Number.isNaN(parsed.getTime())
+      ? 'No disponible'
+      : new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium', timeZone: 'America/Santiago' }).format(parsed);
+  }
+
+  function renderizarHistorial(eventos: EventoHistorialCobertura[]): void {
+    if (!historialLista) return;
+    historialLista.replaceChildren();
+    for (const evento of eventos) {
+      const item = document.createElement('li');
+      item.className = 'rounded-xl border border-[#EEEAF5] bg-[#F8F7FB] p-4 text-sm';
+      const titulo = evento.tipo_evento === 'OTORGAR'
+        ? 'Cobertura otorgada'
+        : evento.tipo_evento === 'EXTENDER' ? 'Cobertura extendida' : 'Cobertura revocada';
+      const encabezado = document.createElement('p');
+      encabezado.className = 'font-semibold text-neutral-900';
+      encabezado.textContent = titulo;
+      const actor = document.createElement('p');
+      actor.className = 'mt-1 text-neutral-600';
+      actor.textContent = `${fecha(evento.accion_at)} · ${evento.accion_por_nombre}`;
+      const motivo = document.createElement('p');
+      motivo.className = 'mt-2 text-neutral-700';
+      motivo.textContent = evento.motivo;
+      const vigencia = document.createElement('p');
+      vigencia.className = 'mt-1 text-xs text-neutral-500';
+      vigencia.textContent = `Vigencia: ${fecha(evento.fin_at_anterior)} → ${fecha(evento.fin_at_nuevo)}`;
+      item.append(encabezado, actor, motivo, vigencia);
+      historialLista.append(item);
+    }
+    if (!eventos.length) {
+      const item = document.createElement('li');
+      item.className = 'text-sm text-neutral-500';
+      item.textContent = 'No hay eventos registrados para esta cobertura.';
+      historialLista.append(item);
+    }
+  }
+
+  lista.addEventListener('click', async (event) => {
     const objetivo = event.target;
     if (!(objetivo instanceof Element)) return;
     const boton = objetivo.closest<HTMLButtonElement>('[data-cobertura-accion]');
     if (!boton) return;
+    if (boton.dataset.coberturaAccion === 'historial') {
+      const idHistorial = boton.dataset.coberturaId;
+      if (!idHistorial || !dialogHistorial) return;
+      if (historialSubtitulo) historialSubtitulo.textContent = `${boton.dataset.coordinadorNombre ?? 'Coordinador'} · ${boton.dataset.paisNombre ?? 'País'}`;
+      if (historialCarga) historialCarga.hidden = false;
+      if (historialError) historialError.hidden = true;
+      historialLista?.replaceChildren();
+      dialogHistorial.showModal();
+      try {
+        renderizarHistorial(await cliente.historial(idHistorial));
+      } catch (error) {
+        if (historialError) {
+          historialError.textContent = mensajeErrorCoberturas(error, 'consultar el historial');
+          historialError.hidden = false;
+        }
+      } finally {
+        if (historialCarga) historialCarga.hidden = true;
+      }
+      return;
+    }
     const version = Number(boton.dataset.coberturaVersion);
     const id = boton.dataset.coberturaId;
     if (!id || !Number.isSafeInteger(version) || version < 1) return;
@@ -82,7 +148,8 @@ export function iniciarDialogosCobertura(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-cobertura-cerrar]').forEach((boton) => {
     boton.addEventListener('click', () => {
       if (boton.dataset.coberturaCerrar === 'extender') dialogExtender?.close();
-      else dialogRevocar?.close();
+      else if (boton.dataset.coberturaCerrar === 'revocar') dialogRevocar?.close();
+      else dialogHistorial?.close();
     });
   });
 
