@@ -1,0 +1,585 @@
+---
+import '../../styles/organizaciones.css';
+import OrganizacionAcceso from '../../components/organizaciones/OrganizacionAcceso.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
+import OrganizacionExpedienteLegal from '../../components/organizaciones/OrganizacionExpedienteLegal.astro';
+import OrganizacionActas from '../../components/organizaciones/OrganizacionActas.astro';
+import OrganizacionCompromisos from '../../components/organizaciones/OrganizacionCompromisos.astro';
+import OrganizacionDonaciones from '../../components/organizaciones/OrganizacionDonaciones.astro';
+import { mainNavItems } from '../../config/nav';
+import OrganizacionDiagnostico from '../../components/organizaciones/OrganizacionDiagnostico.astro';
+import Card from '../../components/ui/Card.astro';
+import BackButton from '../../components/ui/BackButton.astro';
+import Button from '../../components/ui/Button.astro';
+
+const idOrganizacion = Astro.params.id ?? '';
+const filtrosRetorno = new URLSearchParams();
+for (const parametro of ['q', 'id_pais', 'id_programa']) {
+  const valor = Astro.url.searchParams.get(parametro);
+  if (valor) filtrosRetorno.set(parametro, valor);
+}
+const queryRetorno = filtrosRetorno.toString();
+const hrefVolverOrganizaciones = `/organizaciones${queryRetorno ? `?${queryRetorno}` : ''}`;
+const parametrosPlanes = new URLSearchParams({ id_organizacion: idOrganizacion });
+const programaContextual = Astro.url.searchParams.get('id_programa');
+if (programaContextual) parametrosPlanes.set('id_programa', programaContextual);
+const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
+---
+
+<AppLayout
+  title="Detalle de organización"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href={hrefVolverOrganizaciones} />
+    <a href={hrefVolverOrganizaciones} class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">Organizaciones</a>
+    <span id="breadcrumb-pais-separador" hidden aria-hidden="true" class="text-neutral-300">›</span>
+    <span id="breadcrumb-pais" hidden class="truncate text-sm text-neutral-500"></span>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span id="breadcrumb-organizacion" class="truncate text-sm font-semibold text-neutral-900">Detalle de organización</span>
+  </Fragment>
+
+  <section
+    id="estado-organizacion"
+    data-id={idOrganizacion}
+    data-return-href={hrefVolverOrganizaciones}
+    class="space-y-6"
+    aria-live="polite"
+  >
+    <Card>
+      <div class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
+        <h1 id="titulo-estado-organizacion" class="text-lg font-semibold text-neutral-900">
+          Cargando organización...
+        </h1>
+        <p id="mensaje-estado-organizacion" class="mt-2 text-sm text-neutral-500">
+          Estamos obteniendo la información de la organización.
+        </p>
+      </div>
+    </Card>
+  </section>
+
+  <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6">
+    
+    <!-- Encabezado -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="break-words text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+            <span id="titulo-organizacion">Organización</span>
+          </h1>
+
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+            <span aria-hidden="true">●</span>
+            <span id="org-estado">Activa</span>
+          </span>
+        </div>
+
+        <p class="mt-2 text-base text-neutral-600 md:text-lg">
+          <span id="tipo-organizacion">—</span>
+          <span class="mx-1">·</span>
+          <span id="pais-organizacion">—</span>
+        </p>
+      </div>
+
+      <Button
+        href={`/organizaciones/${encodeURIComponent(idOrganizacion)}/editar`}
+        variant="outline"
+        class="shrink-0 inline-flex items-center gap-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+        </svg>
+        <span>Editar organización</span>
+      </Button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
+        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#4C4688]"></span>
+        <div class="flex min-h-[76px] items-center gap-4">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Beneficiarios atendidos</p>
+            <strong id="org-total-beneficiarios" class="mt-2 block text-2xl font-bold text-neutral-900">—</strong>
+            <span class="mt-1 block text-sm text-neutral-500">Alcance registrado</span>
+          </div>
+        </div>
+      </div>
+      <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
+        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1BAAC1]"></span>
+        <div class="flex min-h-[76px] items-center gap-4">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#E7F7FA] text-[#1BAAC1]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Ubicación</p>
+            <strong id="org-ubicacion" class="mt-2 block break-words text-lg font-semibold text-neutral-900">—</strong>
+            <span id="org-region" class="mt-1 block text-sm text-neutral-500">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6 sm:col-span-2 xl:col-span-1">
+        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#199D6B]"></span>
+        <div class="flex min-h-[76px] items-center gap-4">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#E7F6EF] text-[#199D6B]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Representante</p>
+            <strong id="org-representante" class="mt-2 block break-words text-lg font-semibold text-neutral-900">—</strong>
+            <span class="mt-1 block text-sm text-neutral-500">Contacto de la organización</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Navegación principal: solo tres categorías -->
+    <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+      <nav
+        id="organizacion-tabs"
+        class="flex flex-wrap gap-2 overflow-x-auto"
+        aria-label="Secciones de organización"
+        role="tablist"
+      >
+        <button
+          id="tab-button-informacion"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="tab-informacion"
+          data-tab="informacion"
+          class="shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
+        >Información</button>
+        <button
+          id="tab-button-intervenciones"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-intervenciones"
+          data-tab="intervenciones"
+          tabindex="-1"
+          class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
+        >Intervenciones</button>
+        <button
+          id="tab-button-seguimiento"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-seguimiento"
+          data-tab="seguimiento"
+          tabindex="-1"
+          class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
+        >Seguimiento</button>
+      </nav>
+    </div>
+
+    <div id="tab-compromisos" data-main-panel="intervenciones" role="tabpanel" aria-label="Compromisos" class="contenido-tab hidden space-y-5">
+      <OrganizacionCompromisos idOrganizacion={idOrganizacion} />
+    </div>
+
+    <div id="tab-expediente-legal" data-main-panel="seguimiento" role="tabpanel" aria-label="Expediente legal" class="contenido-tab hidden space-y-5">
+      <OrganizacionExpedienteLegal idOrganizacion={idOrganizacion} />
+    </div>
+
+    <div id="tab-donaciones" data-main-panel="seguimiento" role="tabpanel" aria-label="Donaciones y recursos" class="contenido-tab hidden space-y-5">
+      <OrganizacionDonaciones idOrganizacion={idOrganizacion} />
+    </div>
+
+    <!-- Información -->
+    <div id="tab-informacion" data-main-panel="informacion" role="tabpanel" aria-labelledby="tab-button-informacion" class="contenido-tab space-y-5">
+      <!-- Información general -->
+      <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <div class="mb-5">
+          <h2 class="text-lg font-bold text-neutral-900">
+            Información general
+          </h2>
+          <p class="mt-1 text-sm text-neutral-500">
+            Datos principales de la organización.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Nombre de la organización
+            </p>
+            <p class="mt-1 text-sm font-medium text-neutral-900">
+              <span id="nombre-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              País
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="pais-informacion-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Tipo de organización
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="tipo-informacion-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Representante
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="representante-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Número de beneficiarios
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="beneficiarios-organizacion">—</span>
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Información de contacto -->
+      <Card class="border-t-4 border-t-[#1BAAC1] p-5 md:p-6">
+        <div class="mb-5">
+          <h2 class="text-lg font-bold text-neutral-900">
+            Información de contacto
+          </h2>
+          <p class="mt-1 text-sm text-neutral-500">
+            Datos de contacto y ubicación de la organización.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Correo electrónico
+            </p>
+            <p class="mt-1 break-words text-sm text-neutral-900">
+              <span id="correo-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Teléfono
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="telefono-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Región / Departamento
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="region-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Comuna / Municipio / Ciudad
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="comuna-organizacion">—</span>
+            </p>
+          </div>
+
+          <div class="md:col-span-2">
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Dirección
+            </p>
+            <p class="mt-1 text-sm text-neutral-900">
+              <span id="direccion-organizacion">—</span>
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <!-- Contexto -->
+      <Card class="border-t-4 border-t-[#199D6B] p-5 md:p-6">
+        <div class="mb-5">
+          <h2 class="text-lg font-bold text-neutral-900">
+            Contexto de la organización
+          </h2>
+          <p class="mt-1 text-sm text-neutral-500">
+            Información relacionada con su trabajo y público objetivo.
+          </p>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Público objetivo
+            </p>
+            <p class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+              <span id="publico-objetivo-organizacion">—</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Descripción
+            </p>
+            <p class="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">
+              <span id="descripcion-organizacion">—</span>
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+
+    <!-- Diagnóstico -->
+    <div id="tab-diagnostico" data-main-panel="intervenciones" role="tabpanel" aria-label="Diagnóstico" class="contenido-tab hidden space-y-5">
+      <OrganizacionDiagnostico />
+    </div>
+
+    <!-- Actas de Reunión -->
+    <div id="tab-actas" data-main-panel="intervenciones" role="tabpanel" aria-label="Actas de reunión" class="contenido-tab hidden space-y-5">
+      <OrganizacionActas idOrganizacion={idOrganizacion} />
+    </div>
+
+    <div id="tab-intervenciones" data-main-panel="intervenciones" role="tabpanel" aria-labelledby="tab-button-intervenciones" class="contenido-tab hidden space-y-5">
+      <div><h2 class="font-semibold">Intervenciones</h2><p class="mt-1 text-neutral-500">Accede a los planes, reuniones y acuerdos de trabajo.</p></div>
+      <div class="org-accesos">
+        <OrganizacionAcceso titulo="Planes de Intervención" descripcion="Consultar los planes asociados a esta organización." href={hrefPlanes} />
+        <OrganizacionAcceso titulo="Actas de Reunión" descripcion="Consultar reuniones y acuerdos de esta organización." destino="actas" tono="rosa" />
+        <OrganizacionAcceso titulo="Compromisos" descripcion="Revisar responsables, plazos y cumplimiento." destino="compromisos" tono="verde" />
+        <OrganizacionAcceso titulo="Diagnóstico" descripcion="Consultar necesidades y antecedentes de la comunidad." destino="diagnostico" tono="celeste" />
+      </div>
+    </div>
+    <div id="tab-seguimiento" data-main-panel="seguimiento" role="tabpanel" aria-labelledby="tab-button-seguimiento" class="contenido-tab hidden space-y-5">
+      <div><h2 class="font-semibold">Seguimiento</h2><p class="mt-1 text-neutral-500">Consulta los respaldos y resultados del trabajo con la organización.</p></div>
+      <div class="org-accesos">
+        <OrganizacionAcceso titulo="Evidencias e indicadores" descripcion="Se consultan dentro de cada acción. Abre el listado de planes para acceder." href={hrefPlanes} tono="celeste" />
+        <OrganizacionAcceso titulo="Donaciones y recursos" descripcion="Consultar aportes y sus documentos de respaldo." destino="donaciones" tono="verde" />
+        <OrganizacionAcceso titulo="Expediente Legal" descripcion="Revisar antecedentes y documentos de la organización." destino="expediente-legal" />
+      </div>
+    </div>
+  </section>
+</AppLayout>
+
+<script>
+  import { OrganizacionesApiError, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
+  import type { Organizacion } from '../../lib/modelos/organizaciones';
+
+  const estado = document.querySelector<HTMLElement>('#estado-organizacion')!;
+  const ficha = document.querySelector<HTMLElement>('#ficha-organizacion')!;
+  const tituloEstado = document.querySelector<HTMLElement>(
+    '#titulo-estado-organizacion',
+  )!;
+  const mensajeEstado = document.querySelector<HTMLElement>(
+    '#mensaje-estado-organizacion',
+  )!;
+
+  if (!estado || !ficha || !tituloEstado || !mensajeEstado) {
+    throw new Error('No se encontraron los elementos de la ficha de organización.');
+  }
+
+  function elemento(id: string) {
+    const resultado = document.getElementById(id);
+
+    if (!resultado) {
+      throw new Error(`No se encontró el elemento ${id}.`);
+    }
+
+    return resultado;
+  }
+
+  function asignarTexto(id: string, valor: string | number) {
+    elemento(id).textContent = String(valor);
+  }
+
+  function formatearTipoOrganizacion(organizacion: Organizacion) {
+    if (organizacion.tipo_organizacion === 'comedor_merendero') {
+      return 'Comedor / Merendero';
+    }
+
+    if (organizacion.tipo_organizacion === 'centro_comunitario') {
+      return 'Centro comunitario';
+    }
+
+    if (organizacion.tipo_organizacion === 'emprendimiento_uv') {
+      return 'Emprendimiento UV';
+    }
+
+    return organizacion.tipo_organizacion_otro ?? 'Otra organización';
+  }
+
+  function mostrarEstado(titulo: string, mensaje: string) {
+    ficha.classList.add('hidden');
+    estado.classList.remove('hidden');
+    tituloEstado.textContent = titulo;
+    mensajeEstado.textContent = mensaje;
+
+    estado.querySelector('#volver-listado')?.remove();
+
+    const volver = document.createElement('a');
+
+    volver.id = 'volver-listado';
+    volver.href = estado.dataset.returnHref || '/organizaciones';
+    volver.className =
+      'mt-5 inline-flex min-h-[48px] items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+    volver.textContent = 'Volver a organizaciones';
+
+    mensajeEstado.parentElement?.append(volver);
+  }
+
+  function mostrarFicha(organizacion: Organizacion) {
+    const donaciones = document.querySelector<HTMLElement>('#seccion-donaciones');
+    if (donaciones) {
+      donaciones.dataset.pais = organizacion.id_pais;
+      donaciones.dataset.paisNombre = organizacion.pais?.nombre ?? '';
+      donaciones.dataset.organizacionNombre = organizacion.nombre;
+      donaciones.dispatchEvent(new CustomEvent('organizacion-cargada'));
+    }
+    const tipoOrganizacion = formatearTipoOrganizacion(organizacion);
+    asignarTexto('org-total-beneficiarios', organizacion.numero_beneficiarios);
+    asignarTexto('org-ubicacion', organizacion.comuna_municipio_ciudad);
+    asignarTexto('org-region', organizacion.region_departamento);
+    asignarTexto('org-representante', organizacion.nombre_representante);
+    asignarTexto('org-estado', organizacion.archived_at ? 'Inactiva' : 'Activa');
+
+    asignarTexto('breadcrumb-pais', organizacion.pais.nombre);
+    elemento('breadcrumb-pais').hidden = false;
+    elemento('breadcrumb-pais-separador').hidden = false;
+    asignarTexto('breadcrumb-organizacion', organizacion.nombre);
+    asignarTexto('titulo-organizacion', organizacion.nombre);
+    asignarTexto('tipo-organizacion', tipoOrganizacion);
+    asignarTexto('pais-organizacion', organizacion.pais.nombre);
+    asignarTexto('nombre-organizacion', organizacion.nombre);
+    asignarTexto('pais-informacion-organizacion', organizacion.pais.nombre);
+    asignarTexto('tipo-informacion-organizacion', tipoOrganizacion);
+    asignarTexto('representante-organizacion', organizacion.nombre_representante);
+    asignarTexto('beneficiarios-organizacion', organizacion.numero_beneficiarios);
+    asignarTexto('correo-organizacion', organizacion.correo);
+    asignarTexto('telefono-organizacion', organizacion.telefono);
+    asignarTexto('region-organizacion', organizacion.region_departamento);
+    asignarTexto('comuna-organizacion', organizacion.comuna_municipio_ciudad);
+    asignarTexto('direccion-organizacion', organizacion.direccion);
+    asignarTexto('publico-objetivo-organizacion', organizacion.publico_objetivo);
+    asignarTexto('descripcion-organizacion', organizacion.descripcion_breve);
+
+    document.title = `${organizacion.nombre} | Detalle de organización`;
+    estado.classList.add('hidden');
+    ficha.classList.remove('hidden');
+  }
+
+  async function cargarOrganizacion() {
+    const idOrganizacion = estado.dataset.id;
+
+    if (!idOrganizacion) {
+      mostrarEstado(
+        'Organización no encontrada',
+        'La organización solicitada no existe.',
+      );
+      return;
+    }
+
+    try {
+      mostrarFicha(await obtenerOrganizacion(idOrganizacion));
+    } catch (error) {
+      if (error instanceof OrganizacionesApiError && error.code === 'NO_ENCONTRADA') {
+        mostrarEstado('Organización no encontrada', error.message);
+        return;
+      }
+      mostrarEstado(
+        'No fue posible cargar la organización',
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado.',
+      );
+    }
+  }
+
+  const tabs = document.querySelectorAll<HTMLButtonElement>('#organizacion-tabs [data-tab]');
+  const contenidos = document.querySelectorAll<HTMLElement>('.contenido-tab');
+
+  const categoriaPorSubseccion: Record<string, string> = {
+    diagnostico: 'intervenciones',
+    actas: 'intervenciones',
+    compromisos: 'intervenciones',
+    'expediente-legal': 'seguimiento',
+    donaciones: 'seguimiento',
+  };
+
+  function actualizarBarra(categoria: string) {
+    tabs.forEach((boton) => {
+      const activa = boton.dataset.tab === categoria;
+      boton.setAttribute('aria-selected', String(activa));
+      boton.tabIndex = activa ? 0 : -1;
+      boton.className = activa
+        ? 'shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2'
+        : 'shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2';
+    });
+  }
+
+  function mostrarVista(categoria: string, subseccion: string | null = null, actualizarUrl = false) {
+    actualizarBarra(categoria);
+
+    contenidos.forEach((contenido) => {
+      const visible = subseccion
+        ? contenido.id === `tab-${subseccion}`
+        : contenido.id === `tab-${categoria}`;
+      contenido.classList.toggle('hidden', !visible);
+    });
+
+    if (actualizarUrl) {
+      const url = new URL(window.location.href);
+      url.hash = subseccion || (categoria === 'informacion' ? '' : categoria);
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
+
+  tabs.forEach((tab, indice) => {
+    tab.addEventListener('click', () => {
+      const categoria = tab.dataset.tab;
+      if (!categoria) return;
+      mostrarVista(categoria, null, true);
+    });
+    tab.addEventListener('keydown', (evento) => {
+      if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+      evento.preventDefault();
+      const desplazamiento = evento.key === 'ArrowRight' ? 1 : -1;
+      const siguiente = (indice + desplazamiento + tabs.length) % tabs.length;
+      tabs[siguiente]?.focus();
+      tabs[siguiente]?.click();
+    });
+  });
+
+  document.querySelectorAll<HTMLElement>('[data-org-seccion]').forEach((acceso) => {
+    acceso.addEventListener('click', (evento) => {
+      const subseccion = acceso.dataset.orgSeccion;
+      if (!subseccion) return;
+      // Estos destinos son subsecciones internas; se abren sin agregar otra pestaña a la barra.
+      evento.preventDefault();
+      const categoria = categoriaPorSubseccion[subseccion];
+      if (!categoria) return;
+      mostrarVista(categoria, subseccion, true);
+    });
+  });
+
+  // Permite enlazar directamente a una sección interna mediante el fragmento de URL.
+  const fragmento = window.location.hash.replace(/^#/, '');
+  if (fragmento in categoriaPorSubseccion) {
+    mostrarVista(categoriaPorSubseccion[fragmento], fragmento);
+  } else if (['intervenciones', 'seguimiento'].includes(fragmento)) {
+    mostrarVista(fragmento);
+  } else {
+    mostrarVista('informacion');
+  }
+
+  void cargarOrganizacion();
+</script>

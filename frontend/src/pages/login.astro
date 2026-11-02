@@ -1,0 +1,365 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+import Input from '../components/ui/Input.astro';
+---
+
+<Layout title="Iniciar sesión - Fundación Gestionar Esperanzas">
+  <main class="auth-page">
+    <section class="brand-panel">
+      <div class="brand-circle"></div>
+      <img src="/Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas" class="brand-logo" />
+      <div class="brand-wave"></div>
+      <div class="brand-footer">
+        <span>Chile · Argentina · Uruguay</span>
+        <span>© Fundación Gestionar Esperanzas</span>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <Card class="auth-card">
+        <div class="auth-content">
+          <header class="auth-header">
+            <h1>Inicia sesión</h1>
+            <p>Accede a la intranet de Fundación Gestionar Esperanzas.</p>
+          </header>
+
+          <div id="error-alert" class="error-alert hidden" role="alert">
+            <span class="error-icon">!</span>
+            <span id="error-message"></span>
+          </div>
+
+          <form id="login-form" class="auth-form" novalidate>
+            <Input
+              label="Correo electrónico"
+              id="email"
+              type="email"
+              placeholder="coordinador@fge.cl"
+              autocomplete="email"
+              required
+            />
+
+            <div>
+              <Input
+                label="Contraseña"
+                id="password"
+                type="password"
+                placeholder="Ingresa tu contraseña"
+                autocomplete="current-password"
+                showPasswordToggle
+                required
+              />
+              <div class="forgot">
+                <a href="/recuperar-contrasena">¿Olvidaste tu contraseña?</a>
+              </div>
+            </div>
+
+            <Button id="submit-btn" type="submit" variant="primary" size="lg" class="full">
+              Iniciar sesión
+            </Button>
+
+            <div class="divider"><span>O CONTINÚA COMO</span></div>
+
+            <Button id="btn-guest" type="button" variant="outline" size="lg" class="full">
+              Ingresar como invitado
+            </Button>
+          </form>
+
+          <p class="auth-footer">Acceso seguro para usuarios autorizados.</p>
+        </div>
+      </Card>
+    </section>
+  </main>
+
+<script>
+    import { AuthApiError, iniciarSesion } from '../lib/auth/cliente';
+
+    const form = document.getElementById('login-form') as HTMLFormElement;
+    const email = document.getElementById('email') as HTMLInputElement;
+    const password = document.getElementById('password') as HTMLInputElement;
+    const alert = document.getElementById('error-alert') as HTMLDivElement;
+    const message = document.getElementById('error-message') as HTMLSpanElement;
+    const submit = document.getElementById('submit-btn') as HTMLButtonElement;
+
+    const LOCKOUT_TIME_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
+    const MAX_FAILED_ATTEMPTS = 3; // Al 4to intento se bloquea
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      hideError();
+
+      const emailValue = email.value.trim().toLowerCase();
+      const passwordValue = password.value;
+
+      if (!emailValue || !passwordValue) {
+        showError('Por favor, completa todos los campos.');
+        return;
+      }
+
+      if (!emailValue.includes('@') || !emailValue.includes('.')) {
+        showError('Por favor, introduce una dirección de correo electrónico válida.');
+        return;
+      }
+
+      // 1. Verificar si el correo se encuentra bajo bloqueo temporal
+      const lockoutKey = `lockout_${emailValue}`;
+      const lockoutUntil = localStorage.getItem(lockoutKey);
+
+      if (lockoutUntil) {
+        const remainingTime = parseInt(lockoutUntil, 10) - Date.now();
+        if (remainingTime > 0) {
+          const minutesLeft = Math.ceil(remainingTime / (60 * 1000));
+          showError(`Demasiados intentos fallidos. Cuenta temporalmente bloqueada por seguridad. Inténtalo en ${minutesLeft} minuto(s).`);
+          return;
+        } else {
+          localStorage.removeItem(lockoutKey);
+          localStorage.removeItem(`attempts_${emailValue}`);
+        }
+      }
+
+      try {
+        submit.textContent = 'Verificando...';
+        submit.disabled = true;
+
+        await iniciarSesion(emailValue, passwordValue);
+
+        // Éxito: limpiar registros de intentos fallidos y bloqueo
+        localStorage.removeItem(`attempts_${emailValue}`);
+        localStorage.removeItem(lockoutKey);
+
+        window.location.href = '/dashboard';
+      } catch (error) {
+        if (error instanceof AuthApiError && error.code !== 'CREDENCIALES_INVALIDAS') {
+          showError(error.message);
+        } else {
+          handleFailedAttempt(emailValue);
+        }
+        submit.textContent = 'Iniciar sesión';
+        submit.disabled = false;
+      }
+    });
+
+    function handleFailedAttempt(emailValue: string) {
+      const attemptsKey = `attempts_${emailValue}`;
+      const lockoutKey = `lockout_${emailValue}`;
+
+      let currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0', 10) + 1;
+      localStorage.setItem(attemptsKey, currentAttempts.toString());
+
+      if (currentAttempts > MAX_FAILED_ATTEMPTS) {
+        const unblockTime = Date.now() + LOCKOUT_TIME_MS;
+        localStorage.setItem(lockoutKey, unblockTime.toString());
+        showError('Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos por seguridad.');
+      } else {
+        showError('Credenciales incorrectas o acceso no autorizado.');
+      }
+    }
+
+    function showError(text: string) {
+      message.textContent = text;
+      alert.classList.remove('hidden');
+    }
+
+    function hideError() {
+      alert.classList.add('hidden');
+    }
+  </script>
+</Layout>
+
+<style>
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 45% 55%;
+    background: #fff;
+  }
+
+  .brand-panel {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fff 0%, #fafafa 65%, #f5f3fb 100%);
+  }
+
+  .brand-logo {
+    position: relative;
+    z-index: 2;
+    width: min(78%, 390px);
+  }
+
+  .brand-circle {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: -145px;
+    left: -90px;
+    border-radius: 50%;
+    background: rgba(76, 70, 136, .08);
+  }
+
+  .brand-wave {
+    position: absolute;
+    left: -10%;
+    right: -15%;
+    bottom: -25%;
+    height: 42%;
+    background: #4c4688;
+    border-radius: 55% 55% 0 0 / 35% 35% 0 0;
+    transform: rotate(-3deg);
+  }
+
+  .brand-footer {
+    position: absolute;
+    z-index: 3;
+    left: 2.5rem;
+    bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    color: rgba(255,255,255,.9);
+    font-size: .78rem;
+  }
+
+  .auth-panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 5rem;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 2rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .auth-content {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+  }
+
+  .auth-header {
+    margin-bottom: 2.5rem;
+  }
+
+  .auth-header h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .auth-header p {
+    margin: .75rem 0 0;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+
+  .forgot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .55rem;
+  }
+
+  .forgot a {
+    color: #4c4688;
+    font-size: .85rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .forgot a:hover { text-decoration: underline; }
+
+  .full { width: 100%; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e5e5;
+  }
+
+  .divider span {
+    color: #a09fa2;
+    font-size: .7rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .error-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    margin-bottom: 1.5rem;
+    padding: .8rem .9rem;
+    border: 1px solid rgba(255,36,113,.25);
+    border-radius: .65rem;
+    background: rgba(255,36,113,.06);
+    color: #706e78;
+    font-size: .82rem;
+  }
+
+  .error-alert.hidden { display: none; }
+
+  .error-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff2471;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+
+  .auth-footer {
+    margin: 2rem 0 0;
+    color: #a09fa2;
+    text-align: center;
+    font-size: .75rem;
+  }
+
+  @media (max-width: 900px) {
+    .auth-page { grid-template-columns: 40% 60%; }
+    .auth-panel { padding: 2rem; }
+  }
+
+  @media (max-width: 700px) {
+    .auth-page { display: flex; flex-direction: column; }
+    .brand-panel { min-height: 230px; height: 230px; }
+    .brand-logo { width: 220px; }
+    .brand-wave { bottom: -85px; height: 150px; }
+    .brand-footer { left: 1.25rem; bottom: .9rem; font-size: .65rem; }
+    .auth-panel { min-height: auto; padding: 2rem 1.25rem 3rem; }
+    .auth-card { padding: 0; }
+    .auth-header h1 { font-size: 1.8rem; }
+  }
+</style>

@@ -1,0 +1,22 @@
+---
+import '../../styles/organizaciones.css';
+import AppLayout from '../../layouts/AppLayout.astro';
+import { mainNavItems } from '../../config/nav';
+import BackButton from '../../components/ui/BackButton.astro';
+import OrganizacionForm from '../../components/organizaciones/OrganizacionForm.astro';
+---
+
+<AppLayout
+  title="Nueva Organización"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/organizaciones" />
+    <a href="/organizaciones" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">Organizaciones</a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">Nueva Organización</span>
+  </Fragment>
+
+  <OrganizacionForm />
+</AppLayout>

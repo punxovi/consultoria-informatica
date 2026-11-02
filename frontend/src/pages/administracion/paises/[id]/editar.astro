@@ -1,0 +1,7 @@
+---
+import PaisForm from '../../../../components/paises/PaisForm.astro';
+
+const idPais = Astro.params.id ?? '';
+---
+
+<PaisForm mode="edit" idPais={idPais} />

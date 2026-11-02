@@ -1,0 +1,411 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Select from '../ui/Select.astro';
+import ResumenAccionesPlan from './ResumenAccionesPlan.astro';
+
+interface Props {
+  idPlan: string;
+}
+
+const { idPlan } = Astro.props;
+
+const opcionesEstado = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'no_iniciada', label: 'No iniciada' },
+  { value: 'en_desarrollo', label: 'En desarrollo' },
+  { value: 'cancelada', label: 'Cancelada' },
+  { value: 'cumplida', label: 'Cumplida' },
+];
+
+const opcionesUrgencia = [
+  { value: '', label: 'Todos los niveles' },
+  { value: 'baja', label: 'Baja' },
+  { value: 'media', label: 'Media' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'vencida', label: 'Vencida' },
+  { value: 'sin_urgencia', label: 'Sin urgencia activa' },
+];
+---
+
+<section
+  id="acciones-plan"
+  data-plan={idPlan}
+  aria-labelledby="acciones-titulo"
+  class="min-w-0 space-y-5"
+>
+  <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+    <div>
+      <h2 id="acciones-titulo" class="text-xl font-bold text-neutral-900">
+        Seguimiento del plan
+      </h2>
+      <p class="mt-1 text-sm text-neutral-500">
+        Consulta el avance y gestiona las acciones asociadas a este plan.
+      </p>
+    </div>
+
+    <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/nueva`}>
+      <span aria-hidden="true">+</span>
+      Crear acción
+    </Button>
+  </div>
+
+  <p
+    id="accion-confirmacion"
+    hidden
+    role="status"
+    class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success"
+  >
+    Acción guardada correctamente.
+  </p>
+
+  <!-- Resumen de indicadores separado en su propio componente -->
+  <ResumenAccionesPlan />
+
+  <!-- Filtros reutilizando Select y Button -->
+  <Card class="p-4 md:p-5">
+    <div class="mb-4">
+      <h3 class="font-semibold text-neutral-900">Filtrar acciones</h3>
+      <p class="mt-1 text-sm text-neutral-500">
+        Encuentra las acciones según su estado operativo y nivel de urgencia.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 items-end gap-4 lg:grid-cols-[1fr_1fr_auto]">
+      <Select
+        id="filtro-estado-plan"
+        label="Estado operativo"
+        options={opcionesEstado}
+      />
+
+      <Select
+        id="filtro-urgencia-plan"
+        label="Nivel de urgencia"
+        options={opcionesUrgencia}
+      />
+
+      <Button id="recargar-acciones" variant="outline">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m-4.5-3A8 8 0 0 1 18 6l2 6M4 12l2 6a8 8 0 0 0 12.5-1" />
+        </svg>
+        Actualizar
+      </Button>
+    </div>
+  </Card>
+
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h3 class="font-semibold text-neutral-900">Acciones del plan</h3>
+    <p id="acciones-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">
+      Cargando acciones…
+    </p>
+  </div>
+
+  <div
+    id="acciones-error"
+    hidden
+    role="alert"
+    class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"
+  ></div>
+
+  <div
+    id="acciones-listado"
+    aria-busy="true"
+    class="grid min-w-0 grid-cols-1 items-start gap-4 2xl:grid-cols-2"
+  ></div>
+</section>
+
+<template id="plantilla-accion-plan">
+  <article class="min-w-0 rounded-xl border border-neutral-200 border-l-4 border-l-primary bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h4 data-nombre class="break-words text-base font-bold text-neutral-900"></h4>
+        <p data-descripcion class="mt-1 break-words text-sm leading-5 text-neutral-600"></p>
+      </div>
+
+      <div class="flex shrink-0 flex-col items-end gap-2">
+        <span data-estado-badge class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+          <span data-simbolo aria-hidden="true">●</span>
+          <span data-estado-etiqueta></span>
+        </span>
+
+        <span data-urgencia-badge class="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
+          <span data-urgencia-simbolo aria-hidden="true">○</span>
+          <span data-urgencia-etiqueta></span>
+        </span>
+      </div>
+    </div>
+
+    <dl class="mt-4 grid grid-cols-1 gap-3 border-t border-neutral-100 pt-4 sm:grid-cols-3">
+      <div class="min-w-0">
+        <dt class="text-xs font-medium text-neutral-500">Responsable</dt>
+        <dd data-responsable class="mt-1 break-words text-sm font-semibold text-neutral-800"></dd>
+      </div>
+
+      <div>
+        <dt class="text-xs font-medium text-neutral-500">Fecha de inicio</dt>
+        <dd data-inicio class="mt-1 text-sm font-semibold text-neutral-800"></dd>
+      </div>
+
+      <div>
+        <dt class="text-xs font-medium text-neutral-500">Fecha de término</dt>
+        <dd data-termino class="mt-1 text-sm font-semibold text-neutral-800"></dd>
+      </div>
+    </dl>
+
+    <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-neutral-100 pt-3">
+      <a data-detalle class="inline-flex min-h-[42px] items-center rounded-lg border border-primary px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5">
+        Ver detalle
+      </a>
+      <a data-editar class="inline-flex min-h-[42px] items-center rounded-lg px-3 py-2 text-sm font-medium text-primary underline underline-offset-2 hover:bg-primary/5">
+        Editar acción
+      </a>
+    </div>
+  </article>
+</template>
+
+<script>
+  import { listarAcciones } from '../../lib/acciones/cliente';
+  import {
+    calcularNivelUrgencia,
+    etiquetaEstado,
+    estaVencida,
+    mostrarFecha,
+  } from '../../lib/acciones/presentacion';
+  import type { Accion, EstadoAccion } from '../../lib/modelos/acciones';
+  import type { NivelUrgencia } from '../../lib/acciones/presentacion';
+
+  const seccion = document.querySelector<HTMLElement>('#acciones-plan')!;
+  const idPlan = seccion.dataset.plan!;
+  const listado = document.querySelector<HTMLElement>('#acciones-listado')!;
+  const estado = document.querySelector<HTMLElement>('#acciones-estado')!;
+  const error = document.querySelector<HTMLElement>('#acciones-error')!;
+  const recargar = document.querySelector<HTMLButtonElement>('#recargar-acciones')!;
+  const filtroEstado = document.querySelector<HTMLSelectElement>('#filtro-estado-plan')!;
+  const filtroUrgencia = document.querySelector<HTMLSelectElement>('#filtro-urgencia-plan')!;
+  const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-accion-plan')!;
+
+  let acciones: Accion[] = [];
+  let cargando = false;
+
+  const estilosEstado: Record<EstadoAccion, { clase: string; simbolo: string }> = {
+    no_iniciada: {
+      clase: 'bg-neutral-100 text-neutral-700',
+      simbolo: '○',
+    },
+    en_desarrollo: {
+      clase: 'bg-[#E8F2FF] text-[#2457A6]',
+      simbolo: '●',
+    },
+    cancelada: {
+      clase: 'bg-neutral-200 text-neutral-700',
+      simbolo: '■',
+    },
+    cumplida: {
+      clase: 'bg-brand-green/10 text-[#16794F]',
+      simbolo: '✓',
+    },
+  };
+
+  const estilosUrgencia: Record<NivelUrgencia, { etiqueta: string; clase: string; simbolo: string }> = {
+    baja: {
+      etiqueta: 'Baja',
+      clase: 'border border-brand-green/20 bg-brand-green/10 text-[#16794F]',
+      simbolo: '●',
+    },
+    media: {
+      etiqueta: 'Media',
+      clase: 'border border-brand-yellow/50 bg-brand-yellow/15 text-[#805600]',
+      simbolo: '▲',
+    },
+    alta: {
+      etiqueta: 'Alta',
+      clase: 'border border-brand-pink/30 bg-brand-pink/10 text-[#AD174F]',
+      simbolo: '■',
+    },
+    vencida: {
+      etiqueta: 'Vencida',
+      clase: 'border border-brand-pink/40 bg-brand-pink/15 text-[#AD174F]',
+      simbolo: '!',
+    },
+    sin_urgencia: {
+      etiqueta: 'Sin urgencia activa',
+      clase: 'border border-neutral-200 bg-neutral-50 text-neutral-600',
+      simbolo: '○',
+    },
+  };
+
+  const estilosBorde: Record<NivelUrgencia, string> = {
+    baja: 'border-l-brand-green',
+    media: 'border-l-brand-yellow',
+    alta: 'border-l-brand-pink',
+    vencida: 'border-l-brand-pink',
+    sin_urgencia: 'border-l-primary',
+  };
+
+  const formatoNumero = (numero: number) =>
+    new Intl.NumberFormat('es-CL').format(numero);
+
+  function actualizarResumen() {
+    const conteos = {
+      total: acciones.length,
+      cumplidas: acciones.filter((accion) => accion.estado === 'cumplida').length,
+      vencidas: acciones.filter((accion) => estaVencida(accion)).length,
+      desarrollo: acciones.filter((accion) => accion.estado === 'en_desarrollo').length,
+    };
+
+    for (const [nombre, cantidad] of Object.entries(conteos)) {
+      const elemento = seccion.querySelector<HTMLElement>(`[data-resumen="${nombre}"]`);
+      if (elemento) elemento.textContent = formatoNumero(cantidad);
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('plan:acciones-cargadas', {
+        detail: { total: acciones.length },
+      }),
+    );
+  }
+
+  function actualizarBadge(
+    tarjeta: DocumentFragment,
+    selector: string,
+    selectorEtiqueta: string,
+    selectorSimbolo: string,
+    texto: string,
+    clase: string,
+    simbolo: string,
+  ) {
+    const badge = tarjeta.querySelector<HTMLElement>(selector);
+    const etiqueta = tarjeta.querySelector<HTMLElement>(selectorEtiqueta);
+    const icono = tarjeta.querySelector<HTMLElement>(selectorSimbolo);
+
+    if (!badge || !etiqueta || !icono) {
+      throw new Error('La plantilla de acciones tiene un elemento incompleto.');
+    }
+
+    badge.className = `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${clase}`;
+    etiqueta.textContent = texto;
+    icono.textContent = simbolo;
+  }
+
+  function renderizar() {
+    listado.replaceChildren();
+
+    const filtradas = acciones.filter((accion) => {
+      const nivel = calcularNivelUrgencia(accion);
+
+      return (
+        (!filtroEstado.value || accion.estado === filtroEstado.value) &&
+        (!filtroUrgencia.value || nivel === filtroUrgencia.value)
+      );
+    });
+
+    for (const accion of filtradas) {
+      const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
+      const nivel = calcularNivelUrgencia(accion);
+      const urgencia = estilosUrgencia[nivel];
+      const article = tarjeta.querySelector<HTMLElement>('article')!;
+
+      article.className =
+        `min-w-0 rounded-xl border border-neutral-200 border-l-4 ${estilosBorde[nivel]} bg-white p-4 shadow-sm transition-shadow hover:shadow-md`;
+
+      tarjeta.querySelector<HTMLElement>('[data-nombre]')!.textContent = accion.nombre;
+      tarjeta.querySelector<HTMLElement>('[data-descripcion]')!.textContent =
+        accion.descripcion || 'Sin descripción registrada.';
+      tarjeta.querySelector<HTMLElement>('[data-responsable]')!.textContent =
+        accion.responsable_nombre;
+      tarjeta.querySelector<HTMLElement>('[data-inicio]')!.textContent =
+        mostrarFecha(accion.fecha_inicio);
+      tarjeta.querySelector<HTMLElement>('[data-termino]')!.textContent =
+        mostrarFecha(accion.fecha_termino);
+
+      const estadoVisual = estilosEstado[accion.estado];
+
+      actualizarBadge(
+        tarjeta,
+        '[data-estado-badge]',
+        '[data-estado-etiqueta]',
+        '[data-simbolo]',
+        etiquetaEstado(accion.estado),
+        estadoVisual.clase,
+        estadoVisual.simbolo,
+      );
+
+      actualizarBadge(
+        tarjeta,
+        '[data-urgencia-badge]',
+        '[data-urgencia-etiqueta]',
+        '[data-urgencia-simbolo]',
+        urgencia.etiqueta,
+        urgencia.clase,
+        urgencia.simbolo,
+      );
+
+      const ruta =
+        `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(accion.id_accion)}`;
+
+      tarjeta.querySelector<HTMLAnchorElement>('[data-detalle]')!.href = ruta;
+      tarjeta.querySelector<HTMLAnchorElement>('[data-editar]')!.href = `${ruta}/editar`;
+
+      listado.append(tarjeta);
+    }
+
+    estado.textContent = filtradas.length
+      ? `${filtradas.length} ${filtradas.length === 1 ? 'acción encontrada' : 'acciones encontradas'}.`
+      : acciones.length
+        ? 'No hay acciones que coincidan con los filtros seleccionados.'
+        : 'Este plan todavía no tiene acciones. Puedes crear la primera cuando lo necesites.';
+
+    listado.setAttribute('aria-busy', 'false');
+  }
+
+  async function cargar() {
+    if (cargando) return;
+
+    cargando = true;
+    recargar.disabled = true;
+    listado.setAttribute('aria-busy', 'true');
+    estado.textContent = 'Cargando acciones…';
+    error.hidden = true;
+
+    try {
+      acciones = await listarAcciones(idPlan);
+      actualizarResumen();
+      renderizar();
+    } catch (fallo) {
+      listado.replaceChildren();
+      estado.textContent = '';
+      error.textContent = fallo instanceof Error
+        ? fallo.message
+        : 'No fue posible cargar las acciones.';
+      error.hidden = false;
+      listado.setAttribute('aria-busy', 'false');
+    } finally {
+      cargando = false;
+      recargar.disabled = false;
+    }
+  }
+
+  const resultado = new URLSearchParams(location.search).get('resultado');
+
+  if (resultado === 'accion-guardada' || resultado === 'accion-modificada' || resultado === 'accion-eliminada') {
+    const confirmacion = seccion.querySelector<HTMLElement>('#accion-confirmacion')!;
+
+    confirmacion.textContent = resultado === 'accion-eliminada'
+      ? 'Acción eliminada correctamente.'
+      : resultado === 'accion-modificada'
+        ? 'Acción modificada correctamente.'
+        : 'Acción guardada correctamente.';
+
+    confirmacion.hidden = false;
+    history.replaceState(null, '', `${location.pathname}#acciones-plan`);
+  }
+
+  filtroEstado.addEventListener('change', renderizar);
+  filtroUrgencia.addEventListener('change', renderizar);
+  recargar.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', (evento) => {
+    if (evento.persisted) void cargar();
+  });
+
+  void cargar();
+</script>

@@ -1,0 +1,56 @@
+---
+/*
+ * RNF13: los estados deben identificarse mediante símbolos o texto,
+ * y no depender únicamente del color.
+ */
+
+interface Props {
+  id?: string;
+  variant?: 'success' | 'warning' | 'danger' | 'neutral' | 'info';
+  class?: string;
+}
+
+const {
+  id,
+  variant = 'neutral',
+  class: className = '',
+} = Astro.props;
+
+const variants = {
+  success:
+    'border-[#BDE8D6] bg-[#E5F6EE] text-[#16794F]',
+
+  warning:
+    'border-[#F5D989] bg-[#FFF5D9] text-[#805600]',
+
+  danger:
+    'border-[#F5C4D6] bg-[#FCE8F0] text-[#AD174F]',
+
+  neutral:
+    'border-[#E5E1EE] bg-[#F5F3F9] text-[#625E70]',
+
+  info:
+    'border-[#D8D2F0] bg-[#EFEDFA] text-[#4C4688]',
+};
+
+const shapes = {
+  success: '✓',
+  warning: '▲',
+  danger: '!',
+  neutral: '○',
+  info: 'i',
+};
+---
+
+<span
+  id={id}
+  class:list={[
+    'inline-flex min-h-6 items-center gap-1.5 rounded-full border',
+    'px-3 py-1 text-xs font-semibold leading-none',
+    variants[variant],
+    className,
+  ]}
+>
+  <span aria-hidden="true" class="text-[11px]">{shapes[variant]}</span>
+  <slot />
+</span>

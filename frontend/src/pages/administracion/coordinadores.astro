@@ -1,0 +1,142 @@
+---
+import Button from '../../components/ui/Button.astro';
+import Card from '../../components/ui/Card.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import { mainNavItems } from '../../config/nav';
+import AppLayout from '../../layouts/AppLayout.astro';
+
+const claseControl =
+  'min-h-12 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-neutral-50';
+---
+
+<AppLayout title="Coordinadores" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <Fragment slot="headerBreadcrumb">
+    <span class="text-sm font-semibold text-neutral-900">Cuentas de Coordinadores</span>
+  </Fragment>
+
+  <section id="coordinadores" class="space-y-6">
+    <p id="coord-confirmacion" hidden role="status" tabindex="-1" class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success focus:outline-none"></p>
+
+    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-primary">Administración</p>
+        <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Cuentas de Coordinadores</h1>
+        <p class="mt-2 max-w-2xl text-sm text-neutral-500">
+          Crea, edita, activa o desactiva las cuentas de los Coordinadores y revisa su país principal.
+        </p>
+      </div>
+      <Button href="/administracion/coordinadores/nuevo" size="lg" class="shrink-0" id="coord-nuevo">
+        <span aria-hidden="true">+</span> Nuevo coordinador
+      </Button>
+    </header>
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {[
+        { id: 'coord-total', titulo: 'Cuentas registradas', acento: 'border-l-primary', icono: 'bg-primary/10 text-primary' },
+        { id: 'coord-activas', titulo: 'Activas', acento: 'border-l-brand-green', icono: 'bg-brand-green/10 text-brand-green' },
+        { id: 'coord-inactivas', titulo: 'Inactivas', acento: 'border-l-brand-yellow', icono: 'bg-brand-yellow/20 text-[#946200]' },
+      ].map((metrica) => (
+        <Card class={`border-l-4 ${metrica.acento} p-4`}>
+          <div class="flex items-center gap-3">
+            <span class={`rounded-xl p-3 ${metrica.icono}`} aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5" /><path stroke-linecap="round" d="M5 20a7 7 0 0 1 14 0" /></svg>
+            </span>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">{metrica.titulo}</p>
+              <p id={metrica.id} class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+
+    <Card class="p-4 md:p-5">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Filtrar cuentas</h2>
+        <p class="mt-1 text-sm text-neutral-500">Busca por nombre o correo y combina el estado y el país principal.</p>
+      </div>
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+        <div class="space-y-1.5">
+          <label for="coord-buscar" class="block text-sm font-medium text-neutral-800">Nombre o correo</label>
+          <input id="coord-buscar" type="search" autocomplete="off" placeholder="Ej. María o maria@fundacion.org" class={claseControl} />
+        </div>
+        <div class="space-y-1.5">
+          <label for="coord-filtro-estado" class="block text-sm font-medium text-neutral-800">Estado</label>
+          <select id="coord-filtro-estado" class={claseControl}>
+            <option value="todas">Todas las cuentas</option>
+            <option value="activas">Activas</option>
+            <option value="inactivas">Inactivas</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label for="coord-filtro-pais" class="block text-sm font-medium text-neutral-800">País principal</label>
+          <select id="coord-filtro-pais" class={claseControl}>
+            <option value="">Todos los países</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+        <p id="coord-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando cuentas…</p>
+        <div class="flex flex-wrap gap-2">
+          <Button id="coord-limpiar" variant="outline" size="lg" disabled>Limpiar filtros</Button>
+          <Button id="coord-recargar" variant="outline" size="lg">Recargar</Button>
+        </div>
+      </div>
+    </Card>
+
+    <div id="coord-error" hidden role="alert" class="flex flex-col gap-3 rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger sm:flex-row sm:items-center sm:justify-between">
+      <p id="coord-error-texto"></p>
+      <Button id="coord-reintentar" variant="outline" size="lg" class="shrink-0">Reintentar</Button>
+    </div>
+
+    <section aria-labelledby="coord-listado-titulo" class="space-y-4">
+      <h2 id="coord-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de Coordinadores</h2>
+      <div id="coord-carga" role="status" class="flex items-center justify-center gap-3 rounded-2xl border border-[#E4E0F2] bg-white p-6 text-sm text-neutral-500">
+        <span class="h-4 w-4 animate-spin rounded-full border-2 border-[#D8D3E8] border-t-primary" aria-hidden="true"></span>
+        Cargando cuentas de Coordinadores…
+      </div>
+      <EmptyState id="coord-vacio" hidden title="Todavía no hay cuentas de Coordinadores" description="Cuando registres un Coordinador aparecerá aquí con su correo, país principal y estado.">
+        <Button href="/administracion/coordinadores/nuevo" size="lg">Crear el primer coordinador</Button>
+      </EmptyState>
+      <div id="coord-sin-resultados" hidden class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-6 text-center text-sm text-neutral-500">
+        <p class="font-semibold text-neutral-800">Ninguna cuenta coincide con los filtros.</p>
+        <p class="mt-1">Ajusta la búsqueda o limpia los filtros para ver todas las cuentas.</p>
+      </div>
+      <ul id="coord-lista" class="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-busy="true"></ul>
+    </section>
+  </section>
+
+  <dialog
+    id="coord-dialogo"
+    aria-labelledby="coord-dialogo-titulo"
+    aria-describedby="coord-dialogo-descripcion"
+    class="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-[#E8E5EF] bg-white p-0 text-[#1A1A1A] shadow-[0_20px_60px_rgba(26,26,26,0.2)] backdrop:bg-[#1A1A1A]/50"
+  >
+    <div class="border-b border-[#EEEAF5] px-6 py-5">
+      <div class="flex items-start gap-4">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FFF3DC] text-[#925500]" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+        </div>
+        <div class="min-w-0">
+          <h2 id="coord-dialogo-titulo" class="text-lg font-semibold text-neutral-900">¿Desactivar esta cuenta?</h2>
+          <p id="coord-dialogo-descripcion" class="mt-1 text-sm text-neutral-500"></p>
+        </div>
+      </div>
+    </div>
+    <ul class="list-disc space-y-1 px-10 py-4 text-sm text-neutral-600">
+      <li>No podrá iniciar sesión mientras la cuenta esté inactiva.</li>
+      <li>Sus registros se conservan visibles con su autoría original.</li>
+      <li>Podrás volver a activarla cuando lo necesites.</li>
+    </ul>
+    <p id="coord-dialogo-error" hidden role="alert" class="mx-6 mb-2 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger"></p>
+    <div class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] px-6 py-4 sm:flex-row sm:justify-end">
+      <Button id="coord-dialogo-cancelar" variant="outline" size="lg">Cancelar</Button>
+      <Button id="coord-dialogo-confirmar" variant="danger" size="lg">Desactivar cuenta</Button>
+    </div>
+  </dialog>
+</AppLayout>
+
+<script>
+  import { iniciarListadoCoordinadores } from '../../lib/coordinadores/interfaz-listado';
+  iniciarListadoCoordinadores();
+</script>

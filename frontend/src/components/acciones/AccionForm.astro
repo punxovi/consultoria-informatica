@@ -1,0 +1,253 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+import { estadosSeleccionables } from '../../lib/acciones/presentacion';
+
+interface Props {
+  idPlan: string;
+  idAccion?: string;
+}
+
+const { idPlan, idAccion = '' } = Astro.props;
+const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
+---
+
+<section class="w-full space-y-6">
+  <header class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+        {idAccion ? 'Editar acción' : 'Crear acción'}
+      </h1>
+      <p id="accion-contexto" class="mt-2 max-w-3xl break-words text-sm leading-6 text-neutral-600 md:text-base"></p>
+    </div>
+  </header>
+
+  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
+    Los campos marcados con <span class="font-semibold text-danger">*</span> son obligatorios. Las evidencias son opcionales y puedes adjuntarlas desde el detalle después de guardar la acción.
+  </p>
+
+  <p id="accion-estado" role="status" aria-live="polite" class="sr-only">Cargando formulario…</p>
+  <div id="accion-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-300 bg-red-50 p-4 text-red-800"></div>
+  <div id="accion-reintentar" hidden>
+    <Button id="recargar-accion" variant="outline">Recargar datos</Button>
+  </div>
+
+  <form id="accion-form" data-id-plan={idPlan} data-id-accion={idAccion} novalidate aria-busy="true" class="space-y-5">
+    <fieldset id="accion-campos" disabled class="min-w-0 space-y-5">
+      <Card class="w-full border-t-4 border-t-primary p-5 md:p-6">
+        <section class="space-y-5" aria-labelledby="accion-info-titulo">
+          <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 3h7l5 5v13H5V3h2Zm7 0v5h5M8 13h8m-8 4h8" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="accion-info-titulo" class="text-lg font-bold text-neutral-900">Información de la acción</h2>
+              <p class="mt-1 text-sm text-neutral-500">Define qué se realizará, quién será responsable y cuándo se ejecutará.</p>
+            </div>
+          </header>
+
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div class="md:col-span-2">
+              <Input id="nombre" label="Nombre de la acción" required maxlength={150} />
+            </div>
+
+            <div class="space-y-1.5 md:col-span-2">
+              <label for="descripcion" class="block text-sm font-medium text-neutral-800">Descripción <span class="font-normal text-neutral-500">(opcional)</span></label>
+              <textarea id="descripcion" name="descripcion" rows="3" maxlength="5000" class="w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+            </div>
+
+            <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
+
+            <div class="space-y-1.5">
+              <label for="estado" class="block text-sm font-medium text-neutral-800">Estado <span class="text-danger">*</span></label>
+              <select id="estado" name="estado" required class="min-h-[48px] w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+                {estadosSeleccionables.map(({ valor, etiqueta }) => <option value={valor}>{etiqueta}</option>)}
+              </select>
+              <p class="text-xs leading-5 text-neutral-500">La etiqueta «Vencida» se calcula según la fecha de término; no se selecciona manualmente.</p>
+            </div>
+
+            <Input id="fecha_inicio" type="date" label="Fecha de inicio" required />
+            <Input id="fecha_termino" type="date" label="Fecha de término" required />
+          </div>
+        </section>
+      </Card>
+
+      <Card class="w-full border-t-4 border-t-brand-green p-5 md:p-6">
+        <section class="space-y-5" aria-labelledby="accion-resultados-titulo">
+          <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="accion-resultados-titulo" class="text-lg font-bold text-neutral-900">Observaciones y resultado esperado</h2>
+              <p class="mt-1 text-sm text-neutral-500">Añade contexto adicional o describe el resultado que se espera alcanzar.</p>
+            </div>
+          </header>
+
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div class="space-y-1.5">
+              <label id="motivo-label" for="observacion_motivo" class="block text-sm font-medium text-neutral-800">Observaciones <span class="font-normal text-neutral-500">(opcional)</span></label>
+              <textarea id="observacion_motivo" name="observacion_motivo" rows="4" maxlength="3000" class="w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="resultado_esperado" class="block text-sm font-medium text-neutral-800">Resultado esperado <span class="font-normal text-neutral-500">(opcional)</span></label>
+              <textarea id="resultado_esperado" name="resultado_esperado" rows="4" maxlength="5000" class="w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <footer class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
+          <Button href={volver} variant="outline">Cancelar</Button>
+          <Button id="guardar-accion" type="submit">{idAccion ? 'Guardar cambios' : 'Crear acción'}</Button>
+        </footer>
+      </Card>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  import { crearAccionSchema } from '../../lib/validaciones/acciones';
+  import { actualizarAccion, crearAccion, obtenerAccion } from '../../lib/acciones/cliente';
+  import { obtenerPlan } from '../../lib/planes/cliente';
+  import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
+  import { estadosSeleccionables } from '../../lib/acciones/presentacion';
+
+  const form = document.querySelector<HTMLFormElement>('#accion-form')!;
+  const campos = document.querySelector<HTMLFieldSetElement>('#accion-campos')!;
+  const estadoCarga = document.querySelector<HTMLElement>('#accion-estado')!;
+  const error = document.querySelector<HTMLElement>('#accion-error')!;
+  const reintentar = document.querySelector<HTMLElement>('#accion-reintentar')!;
+  const guardar = document.querySelector<HTMLButtonElement>('#guardar-accion')!;
+  const selectEstado = document.querySelector<HTMLSelectElement>('#estado')!;
+  const motivo = document.querySelector<HTMLTextAreaElement>('#observacion_motivo')!;
+  const idPlan = form.dataset.idPlan!;
+  const idAccion = form.dataset.idAccion ?? '';
+  let version: number | undefined;
+  let enviando = false;
+
+  const schema = crearAccionSchema.refine(
+    datos => estadosSeleccionables.some(item => item.valor === datos.estado),
+    { path: ['estado'], message: 'Selecciona uno de los cuatro estados disponibles.' },
+  );
+
+  function actualizarMotivo() {
+    motivo.required = selectEstado.value === 'cancelada';
+    document.querySelector('#motivo-label')!.textContent = motivo.required
+      ? 'Motivo de cancelación *'
+      : 'Observaciones (opcional)';
+  }
+
+  function limpiarErrores() {
+    error.hidden = true;
+    form.querySelectorAll('[data-error-campo]').forEach(elemento => elemento.remove());
+    form.querySelectorAll('[aria-invalid="true"]').forEach(elemento => {
+      elemento.setAttribute('aria-invalid', 'false');
+      elemento.removeAttribute('aria-describedby');
+    });
+  }
+
+  function mostrarError(mensaje: string, detalles: { campo: string; mensaje: string }[] = []) {
+    error.textContent = mensaje;
+    for (const detalle of detalles) {
+      const control = form.elements.namedItem(detalle.campo.replace(/^cambios\./, ''));
+      if (!(control instanceof HTMLElement) || control.getAttribute('aria-invalid') === 'true') continue;
+      const aviso = document.createElement('p');
+      aviso.id = `${control.id}-validacion`;
+      aviso.dataset.errorCampo = '';
+      aviso.className = 'mt-1 text-sm text-red-800';
+      aviso.textContent = detalle.mensaje;
+      control.setAttribute('aria-invalid', 'true');
+      control.setAttribute('aria-describedby', aviso.id);
+      control.after(aviso);
+    }
+    error.hidden = false;
+    error.focus();
+  }
+
+  async function cargar() {
+    limpiarErrores();
+    reintentar.hidden = true;
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estadoCarga.textContent = 'Cargando formulario…';
+    try {
+      const [plan, accion] = await Promise.all([
+        obtenerPlan(idPlan),
+        idAccion ? obtenerAccion(idAccion) : Promise.resolve(null),
+      ]);
+      if (accion && accion.id_plan !== idPlan) throw new Error('La acción solicitada no pertenece a este plan.');
+      document.querySelector('#accion-contexto')!.textContent = `${plan.nombre} · ${plan.organizacion.nombre} · ${plan.programa.nombre}`;
+      if (accion) {
+        version = accion.version;
+        for (const [campo, valor] of Object.entries(accion)) {
+          const control = form.elements.namedItem(campo);
+          if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement) control.value = String(valor ?? '');
+        }
+      }
+      actualizarMotivo();
+      campos.disabled = false;
+      guardar.disabled = false;
+      estadoCarga.textContent = '';
+    } catch (fallo) {
+      estadoCarga.textContent = '';
+      mostrarError(fallo instanceof Error ? fallo.message : 'No fue posible cargar el formulario.');
+      reintentar.hidden = false;
+    } finally {
+      form.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  form.addEventListener('submit', async evento => {
+    evento.preventDefault();
+    if (enviando || campos.disabled || guardar.disabled) return;
+    limpiarErrores();
+    const validacion = schema.safeParse({ ...Object.fromEntries(new FormData(form)), id_plan: idPlan });
+    if (!validacion.success) {
+      mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => ({
+        campo: issue.path.join('.'),
+        mensaje: issue.path[0] === 'observacion_motivo' && !motivo.value.trim() && motivo.required
+          ? 'Debe ingresar un motivo para cancelar la acción.'
+          : issue.message,
+      })));
+      return;
+    }
+
+    enviando = true;
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estadoCarga.textContent = 'Guardando acción…';
+    try {
+      if (idAccion) {
+        if (version === undefined) throw new Error('Recarga la acción antes de editarla.');
+        await actualizarAccion({ id_accion: idAccion, version_esperada: version, cambios: validacion.data });
+      } else {
+        await crearAccion(validacion.data);
+      }
+      const resultado = idAccion ? 'accion-modificada' : 'accion-guardada';
+      location.assign(
+        `/planes/${encodeURIComponent(idPlan)}?resultado=${resultado}#acciones-plan`,
+      );
+    } catch (fallo) {
+      mostrarError(fallo instanceof Error ? fallo.message : 'No fue posible guardar la acción.', fallo instanceof ErrorSolicitudPlan ? fallo.campos : []);
+      campos.disabled = false;
+      enviando = false;
+      form.setAttribute('aria-busy', 'false');
+      estadoCarga.textContent = '';
+      if (fallo instanceof ErrorSolicitudPlan && fallo.codigo === 'CONFLICTO_CONCURRENCIA') {
+        guardar.disabled = true;
+        reintentar.hidden = false;
+        estadoCarga.textContent = 'Tus cambios siguen en el formulario. Al recargar se reemplazarán por la versión guardada.';
+      }
+    }
+  });
+
+  selectEstado.addEventListener('change', actualizarMotivo);
+  document.querySelector('#recargar-accion')!.addEventListener('click', () => void cargar());
+  void cargar();
+</script>

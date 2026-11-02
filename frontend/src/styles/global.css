@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colores institucionales FGE */
+  --color-primary: #4c4688;
+  --color-secondary: #423c76;
+
+  --color-brand-green: #199d6b;
+  --color-brand-green-light: #5da430;
+  --color-brand-cyan: #1baac1;
+  --color-brand-pink: #ff2471;
+  --color-brand-yellow: #ffc04c;
+
+  /* Estados */
+  --color-success: #199d6b;
+  --color-warning: #ffc04c;
+  --color-danger: #ff2471;
+
+  /* Neutros */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-500: #a09fa2;
+  --color-neutral-600: #706e78;
+  --color-neutral-700: #4a4850;
+  --color-neutral-800: #1a1a1a;
+  --color-neutral-900: #1a1a1a;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background-color: #f7f6fa;
+  color: #1a1a1a;
+  font-family: ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #4c4688;
+  outline-offset: 2px;
+}
+
+#page-content h1 {
+  font-size: clamp(1.875rem, 2.4vw, 2.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+#page-content dl dd {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+#page-content dl dt {
+  color: var(--color-neutral-700);
+}
+
+/* Barra de desplazamiento discreta */
+#main-content {
+  scrollbar-color: #d5d1e3 transparent;
+  scrollbar-width: thin;
+}

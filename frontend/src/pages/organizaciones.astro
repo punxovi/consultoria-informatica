@@ -1,0 +1,551 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import { mainNavItems } from '../config/nav';
+import Card from '../components/ui/Card.astro';
+import Button from '../components/ui/Button.astro';
+---
+
+<AppLayout title="Organizaciones" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <Fragment slot="headerBreadcrumb">
+    <span class="text-sm font-semibold text-neutral-900">Organizaciones</span>
+  </Fragment>
+
+  <section class="space-y-6">
+    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-primary">Gestión institucional</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+          Organizaciones
+        </h1>
+        <p class="mt-2 max-w-2xl text-sm text-neutral-500">
+          Consulta y administra las organizaciones asociadas a la fundación.
+        </p>
+      </div>
+      <Button href="/organizaciones/nueva" class="shrink-0">
+        <span aria-hidden="true">+</span> Nueva organización
+      </Button>
+    </header>
+
+    <section aria-label="Resumen de organizaciones" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <Card class="border-l-4 border-l-primary p-4 md:p-5">
+        <div class="flex items-center gap-3">
+          <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5h14v16M9 9h1m4 0h1m-6 4h1m4 0h1" />
+            </svg>
+          </span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Organizaciones registradas</p>
+            <p id="total-organizaciones" class="mt-1 text-2xl font-bold tabular-nums text-neutral-900">—</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card class="border-l-4 border-l-brand-green p-4 md:p-5">
+        <div class="flex items-center gap-3">
+          <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" />
+            </svg>
+          </span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Activas</p>
+            <p id="organizaciones-activas" class="mt-1 text-2xl font-bold tabular-nums text-neutral-900">—</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card class="border-l-4 border-l-brand-yellow p-4 md:p-5">
+        <div class="flex items-center gap-3">
+          <span class="rounded-xl bg-brand-yellow/20 p-3 text-[#946200]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
+            </svg>
+          </span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Archivadas</p>
+            <p id="organizaciones-inactivas" class="mt-1 text-2xl font-bold tabular-nums text-neutral-900">—</p>
+          </div>
+        </div>
+      </Card>
+    </section>
+
+    <Card class="p-4 md:p-5">
+      <div class="mb-4 flex items-start gap-3">
+        <span class="rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" />
+          </svg>
+        </span>
+        <div>
+          <h2 class="text-lg font-semibold text-neutral-900">Filtrar organizaciones</h2>
+          <p class="mt-1 text-sm text-neutral-500">
+            Combina nombre, país y programa institucional para encontrar las organizaciones que necesitas.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+        <div class="min-w-0 space-y-1.5">
+          <label for="buscar-organizacion" class="block text-sm font-medium text-neutral-800">Nombre de la organización</label>
+          <input
+            id="buscar-organizacion"
+            type="search"
+            placeholder="Ej.: Comedor Los Aromos"
+            autocomplete="off"
+            class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div class="min-w-0 space-y-1.5">
+          <label for="filtro-pais" class="block text-sm font-medium text-neutral-800">País</label>
+          <select id="filtro-pais" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Todos los países</option>
+          </select>
+        </div>
+        <div class="min-w-0 space-y-1.5">
+          <label for="filtro-programa" class="block text-sm font-medium text-neutral-800">Programa institucional</label>
+          <select id="filtro-programa" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Todos los programas</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="filtro-programa-hint" role="status" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        Los filtros se consultan en el Backend y los resultados respetan los permisos territoriales de tu sesión.
+      </p>
+
+      <div class="mt-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Filtros activos</p>
+        <div id="filtros-organizaciones-activos" class="mt-2 flex flex-wrap gap-2" aria-live="polite">
+          <span class="text-sm text-neutral-400">Ningún filtro seleccionado.</span>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+        <p id="contador-resultados" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando organizaciones…</p>
+        <Button id="limpiar-organizaciones" variant="outline" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 9A7 7 0 0 1 18 6l2 4M19 15a7 7 0 0 1-12.5 3L4 14" />
+          </svg>
+          Limpiar filtros
+        </Button>
+      </div>
+    </Card>
+
+    <section aria-labelledby="org-listado-titulo" class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="org-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de organizaciones</h2>
+          <p class="mt-1 text-sm text-neutral-500">Selecciona una organización para consultar su información.</p>
+        </div>
+        <Button id="actualizar-organizaciones" variant="outline" class="shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m-4.5-3A8 8 0 0 1 18 6l2 6M4 12l2 6a8 8 0 0 0 12.5-1" />
+          </svg>
+          Actualizar listado
+        </Button>
+      </div>
+
+      <p id="organizaciones-error" role="alert" hidden class="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger"></p>
+      <div id="organizaciones-lista" aria-live="polite" aria-busy="true" class="grid grid-cols-1 gap-3">
+        <p class="text-sm text-neutral-500">Cargando organizaciones…</p>
+      </div>
+    </section>
+  </section>
+</AppLayout>
+
+<script>
+  import { listarOrganizaciones, listarPaisesOrganizaciones } from '../lib/organizaciones/cliente';
+  import { listarProgramas } from '../lib/programas/cliente';
+  import type { Organizacion, PaisResumen } from '../lib/modelos/organizaciones';
+
+  type FiltrosListado = {
+    q: string;
+    id_pais: string;
+    id_programa: string;
+  };
+
+  const lista = document.querySelector<HTMLDivElement>('#organizaciones-lista')!;
+  const totalElement = document.querySelector<HTMLElement>('#total-organizaciones')!;
+  const activasElement = document.querySelector<HTMLElement>('#organizaciones-activas')!;
+  const inactivasElement = document.querySelector<HTMLElement>('#organizaciones-inactivas')!;
+  const contadorElement = document.querySelector<HTMLParagraphElement>('#contador-resultados')!;
+  const inputBusqueda = document.querySelector<HTMLInputElement>('#buscar-organizacion')!;
+  const selectPais = document.querySelector<HTMLSelectElement>('#filtro-pais')!;
+  const selectPrograma = document.querySelector<HTMLSelectElement>('#filtro-programa')!;
+  const filtrosActivos = document.querySelector<HTMLDivElement>('#filtros-organizaciones-activos')!;
+  const hintPrograma = document.querySelector<HTMLParagraphElement>('#filtro-programa-hint')!;
+  const errorElement = document.querySelector<HTMLParagraphElement>('#organizaciones-error')!;
+  const limpiarBoton = document.querySelector<HTMLButtonElement>('#limpiar-organizaciones')!;
+  const actualizarBoton = document.querySelector<HTMLButtonElement>('#actualizar-organizaciones')!;
+
+  selectPais.disabled = true;
+  selectPrograma.disabled = true;
+
+  const parametrosIniciales = new URLSearchParams(window.location.search);
+  inputBusqueda.value = parametrosIniciales.get('q') ?? '';
+
+  let nombresProgramas = new Map<string, string>();
+  let catalogoProgramasDisponible = true;
+  let catalogosListos = false;
+  let solicitudActual = 0;
+  let temporizadorBusqueda: number | undefined;
+
+  function obtenerFiltrosSeleccionados(): FiltrosListado {
+    return {
+      q: inputBusqueda.value.trim(),
+      id_pais: selectPais.value,
+      id_programa: selectPrograma.value,
+    };
+  }
+
+  function sincronizarFiltrosEnUrl(filtros = obtenerFiltrosSeleccionados()) {
+    const url = new URL(window.location.href);
+    const parametros: [keyof FiltrosListado, string][] = [
+      ['q', filtros.q],
+      ['id_pais', filtros.id_pais],
+      ['id_programa', filtros.id_programa],
+    ];
+
+    for (const [clave, valor] of parametros) {
+      if (valor) url.searchParams.set(clave, valor);
+      else url.searchParams.delete(clave);
+    }
+
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  function poblarFiltroPaises(paises: PaisResumen[]) {
+    const valorAnterior = parametrosIniciales.get('id_pais') ?? selectPais.value;
+    selectPais.replaceChildren(new Option('Todos los países', ''));
+
+    [...paises]
+      .sort((paisA, paisB) => paisA.nombre.localeCompare(paisB.nombre, 'es'))
+      .forEach((pais) => selectPais.add(new Option(pais.nombre, pais.id_pais)));
+
+    selectPais.value = valorAnterior;
+    if (selectPais.value !== valorAnterior) selectPais.value = '';
+  }
+
+  async function cargarProgramasDisponibles() {
+    try {
+      const programas = await listarProgramas();
+      nombresProgramas = new Map(programas.map((programa): [string, string] => [String(programa.id_programa), programa.nombre]));
+      const valorAnterior = parametrosIniciales.get('id_programa') ?? selectPrograma.value;
+
+      selectPrograma.replaceChildren(new Option('Todos los programas', ''));
+      for (const programa of programas) {
+        selectPrograma.add(new Option(programa.nombre, String(programa.id_programa)));
+      }
+
+      selectPrograma.value = valorAnterior;
+      if (selectPrograma.value !== valorAnterior) selectPrograma.value = '';
+      catalogoProgramasDisponible = true;
+      hintPrograma.textContent = 'Los filtros se consultan en el Backend y los resultados respetan los permisos territoriales de tu sesión.';
+      hintPrograma.className = 'mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600';
+    } catch {
+      catalogoProgramasDisponible = false;
+      selectPrograma.replaceChildren(new Option('Programas no disponibles', ''));
+      selectPrograma.disabled = true;
+      selectPrograma.value = '';
+      hintPrograma.textContent = 'No se pudo cargar el catálogo de programas. Puedes seguir usando la búsqueda por nombre y el filtro por país; revisa la conexión para volver a cargar el catálogo.';
+      hintPrograma.className = 'mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger';
+    }
+  }
+
+  function renderizarFiltrosActivos(filtros = obtenerFiltrosSeleccionados()) {
+    filtrosActivos.replaceChildren();
+    const activos: string[] = [];
+
+    if (filtros.q) activos.push(`Nombre: ${filtros.q}`);
+    if (filtros.id_pais) {
+      const pais = selectPais.selectedOptions[0]?.textContent?.trim();
+      if (pais) activos.push(`País: ${pais}`);
+    }
+    if (filtros.id_programa) {
+      const programa = nombresProgramas.get(filtros.id_programa) ?? selectPrograma.selectedOptions[0]?.textContent?.trim();
+      if (programa) activos.push(`Programa: ${programa}`);
+    }
+
+    limpiarBoton.disabled = !catalogosListos || activos.length === 0;
+
+    if (activos.length === 0) {
+      const vacio = document.createElement('span');
+      vacio.className = 'text-sm text-neutral-400';
+      vacio.textContent = 'Ningún filtro seleccionado.';
+      filtrosActivos.append(vacio);
+      return;
+    }
+
+    for (const etiqueta of activos) {
+      const chip = document.createElement('span');
+      chip.className = 'inline-flex max-w-full items-center rounded-full border border-[#DAD6F0] bg-[#F7F6FA] px-3 py-1.5 text-xs font-medium text-[#514A82]';
+      chip.textContent = etiqueta;
+      filtrosActivos.append(chip);
+    }
+  }
+
+  function limpiarLista() {
+    lista.replaceChildren();
+  }
+
+  function mostrarMensajeVacio(titulo: string, mensaje: string) {
+    limpiarLista();
+    const contenedor = document.createElement('div');
+    contenedor.className = 'rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-10 text-center';
+
+    const icono = document.createElement('span');
+    icono.className = 'mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary';
+    icono.setAttribute('aria-hidden', 'true');
+    icono.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5" /><path stroke-linecap="round" stroke-linejoin="round" d="m16 16 4.5 4.5" /></svg>';
+
+    const encabezado = document.createElement('h3');
+    encabezado.className = 'mt-3 font-semibold text-neutral-900';
+    encabezado.textContent = titulo;
+
+    const descripcion = document.createElement('p');
+    descripcion.className = 'mt-1 text-sm text-neutral-500';
+    descripcion.textContent = mensaje;
+
+    contenedor.append(icono, encabezado, descripcion);
+    lista.append(contenedor);
+  }
+
+  function actualizarResumen(datos: Organizacion[]) {
+    const activas = datos.filter((organizacion) => organizacion.archived_at === null).length;
+    totalElement.textContent = new Intl.NumberFormat('es-CL').format(datos.length);
+    activasElement.textContent = new Intl.NumberFormat('es-CL').format(activas);
+    inactivasElement.textContent = new Intl.NumberFormat('es-CL').format(datos.length - activas);
+  }
+
+  function limpiarResumen() {
+    totalElement.textContent = '—';
+    activasElement.textContent = '—';
+    inactivasElement.textContent = '—';
+  }
+
+  function formatearTipoOrganizacion(organizacion: Organizacion): string {
+    if (organizacion.tipo_organizacion === 'comedor_merendero') return 'Comedor / Merendero';
+    if (organizacion.tipo_organizacion === 'centro_comunitario') return 'Centro comunitario';
+    if (organizacion.tipo_organizacion === 'emprendimiento_uv') return 'Emprendimiento UV';
+    return organizacion.tipo_organizacion_otro?.trim() || 'Otra organización';
+  }
+
+  function crearOrganizacion(organizacion: Organizacion): HTMLElement {
+    const tarjeta = document.createElement('article');
+    tarjeta.className = 'group rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-[#D8D3F2] hover:shadow-md sm:p-5';
+
+    const fila = document.createElement('div');
+    fila.className = 'flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between';
+
+    const contenido = document.createElement('div');
+    contenido.className = 'min-w-0 flex-1';
+
+    const encabezado = document.createElement('div');
+    encabezado.className = 'flex flex-wrap items-center gap-3';
+
+    const icono = document.createElement('span');
+    icono.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary';
+    icono.setAttribute('aria-hidden', 'true');
+    icono.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5h14v16M9 9h1m4 0h1m-6 4h1m4 0h1" /></svg>';
+
+    const nombre = document.createElement('h3');
+    nombre.className = 'min-w-0 break-words text-lg font-bold text-neutral-900';
+    nombre.textContent = organizacion.nombre;
+
+    const tipo = document.createElement('span');
+    tipo.className = 'inline-flex shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary';
+    tipo.textContent = formatearTipoOrganizacion(organizacion);
+    encabezado.append(icono, nombre, tipo);
+
+    const descripcion = document.createElement('p');
+    descripcion.className = 'mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600';
+    descripcion.textContent = organizacion.descripcion_breve?.trim() || 'Sin descripción registrada.';
+
+    const datos = document.createElement('dl');
+    datos.className = 'mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3';
+
+    const ubicacion = [organizacion.comuna_municipio_ciudad, organizacion.region_departamento, organizacion.pais?.nombre]
+      .filter((valor): valor is string => Boolean(valor?.trim()))
+      .join(' · ');
+    const metadatos: [string, string][] = [
+      ['Ubicación', ubicacion || 'Sin ubicación registrada'],
+      ['Beneficiarios', `${new Intl.NumberFormat('es-CL').format(organizacion.numero_beneficiarios)} personas`],
+      ['País', organizacion.pais?.nombre || 'Sin país registrado'],
+    ];
+
+    for (const [etiqueta, valor] of metadatos) {
+      const bloque = document.createElement('div');
+      bloque.className = 'min-w-0';
+      const dt = document.createElement('dt');
+      dt.className = 'text-xs font-semibold uppercase tracking-wide text-neutral-500';
+      dt.textContent = etiqueta;
+      const dd = document.createElement('dd');
+      dd.className = 'mt-1 break-words text-sm font-medium text-neutral-800';
+      dd.textContent = valor;
+      bloque.append(dt, dd);
+      datos.append(bloque);
+    }
+
+    contenido.append(encabezado, descripcion, datos);
+
+    const acciones = document.createElement('div');
+    acciones.className = 'flex shrink-0 justify-end border-t border-neutral-100 pt-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0';
+
+    const detalle = document.createElement('a');
+    const parametrosRetorno = new URLSearchParams(window.location.search);
+    const queryRetorno = parametrosRetorno.toString();
+    detalle.href = `/organizaciones/${encodeURIComponent(organizacion.id_organizacion)}${queryRetorno ? `?${queryRetorno}` : ''}`;
+    detalle.className = 'inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+    detalle.textContent = 'Ver detalle →';
+    acciones.append(detalle);
+
+    fila.append(contenido, acciones);
+    tarjeta.append(fila);
+    return tarjeta;
+  }
+
+  function mostrarOrganizaciones(datos: Organizacion[], hayFiltros: boolean) {
+    limpiarLista();
+
+    if (datos.length === 0) {
+      mostrarMensajeVacio(
+        hayFiltros ? 'No se encontraron organizaciones' : 'No hay organizaciones para mostrar',
+        hayFiltros
+          ? 'Prueba con otro nombre o selecciona un país o programa diferente.'
+          : 'Cuando existan organizaciones registradas, aparecerán en este listado.',
+      );
+      contadorElement.textContent = hayFiltros ? '0 resultados' : '0 organizaciones registradas';
+      return;
+    }
+
+    lista.append(...datos.map(crearOrganizacion));
+    contadorElement.textContent = datos.length === 1 ? '1 organización encontrada' : `${new Intl.NumberFormat('es-CL').format(datos.length)} organizaciones encontradas`;
+  }
+
+  function mostrarCargando() {
+    lista.setAttribute('aria-busy', 'true');
+    errorElement.hidden = true;
+    contadorElement.textContent = 'Cargando organizaciones…';
+    limpiarResumen();
+    limpiarLista();
+    const cargando = document.createElement('p');
+    cargando.className = 'text-sm text-neutral-500';
+    cargando.textContent = 'Cargando organizaciones…';
+    lista.append(cargando);
+    actualizarBoton.disabled = true;
+  }
+
+  function mostrarErrorListado(fallo: unknown, solicitud: number) {
+    if (solicitud !== solicitudActual) return;
+    limpiarLista();
+    limpiarResumen();
+    errorElement.textContent = fallo instanceof Error
+      ? fallo.message
+      : 'Ocurrió un error inesperado al cargar las organizaciones.';
+    errorElement.hidden = false;
+    contadorElement.textContent = 'No se pudieron cargar las organizaciones.';
+
+    const reintentar = document.createElement('button');
+    reintentar.type = 'button';
+    reintentar.className = 'mt-3 inline-flex min-h-[44px] items-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+    reintentar.textContent = 'Reintentar';
+    reintentar.addEventListener('click', () => aplicarFiltros(false));
+    lista.append(reintentar);
+  }
+
+  async function consultarOrganizaciones(filtros: FiltrosListado, solicitud: number) {
+    try {
+      const datos = await listarOrganizaciones({
+        q: filtros.q,
+        idPais: filtros.id_pais || undefined,
+        idPrograma: filtros.id_programa || undefined,
+      });
+      if (solicitud !== solicitudActual) return;
+
+      actualizarResumen(datos);
+      mostrarOrganizaciones(datos, Boolean(filtros.q || filtros.id_pais || filtros.id_programa));
+    } catch (fallo) {
+      mostrarErrorListado(fallo, solicitud);
+    } finally {
+      if (solicitud === solicitudActual) {
+        lista.setAttribute('aria-busy', 'false');
+        actualizarBoton.disabled = false;
+      }
+    }
+  }
+
+  function aplicarFiltros(debounce = true) {
+    const filtros = obtenerFiltrosSeleccionados();
+    sincronizarFiltrosEnUrl(filtros);
+    renderizarFiltrosActivos(filtros);
+    if (!catalogosListos) return;
+
+    if (temporizadorBusqueda !== undefined) window.clearTimeout(temporizadorBusqueda);
+    const solicitud = ++solicitudActual;
+    mostrarCargando();
+    const consultar = () => void consultarOrganizaciones(filtros, solicitud);
+    if (debounce) temporizadorBusqueda = window.setTimeout(consultar, 300);
+    else consultar();
+  }
+
+  async function cargarCatalogos() {
+    catalogosListos = false;
+    mostrarCargando();
+    actualizarBoton.disabled = true;
+
+    try {
+      const [paises] = await Promise.all([
+        listarPaisesOrganizaciones(),
+        cargarProgramasDisponibles(),
+      ]);
+      poblarFiltroPaises(paises);
+      selectPais.disabled = false;
+      selectPais.value = parametrosIniciales.get('id_pais') ?? '';
+      if (selectPais.value !== (parametrosIniciales.get('id_pais') ?? '')) selectPais.value = '';
+      if (catalogoProgramasDisponible) {
+        selectPrograma.disabled = false;
+        selectPrograma.value = parametrosIniciales.get('id_programa') ?? '';
+        if (selectPrograma.value !== (parametrosIniciales.get('id_programa') ?? '')) selectPrograma.value = '';
+      }
+      catalogosListos = true;
+      aplicarFiltros(false);
+    } catch (fallo) {
+      solicitudActual += 1;
+      limpiarLista();
+      limpiarResumen();
+      errorElement.textContent = fallo instanceof Error ? fallo.message : 'Ocurrió un error inesperado al cargar los filtros.';
+      errorElement.hidden = false;
+      contadorElement.textContent = 'No se pudieron cargar los filtros.';
+
+      const reintentar = document.createElement('button');
+      reintentar.type = 'button';
+      reintentar.className = 'mt-3 inline-flex min-h-[44px] items-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+      reintentar.textContent = 'Reintentar';
+      reintentar.addEventListener('click', () => void cargarCatalogos());
+      lista.append(reintentar);
+    } finally {
+      if (!catalogosListos) {
+        lista.setAttribute('aria-busy', 'false');
+        actualizarBoton.disabled = false;
+      }
+    }
+  }
+
+  inputBusqueda.addEventListener('input', () => aplicarFiltros(true));
+  selectPais.addEventListener('change', () => aplicarFiltros(false));
+  selectPrograma.addEventListener('change', () => aplicarFiltros(false));
+
+  limpiarBoton.addEventListener('click', () => {
+    inputBusqueda.value = '';
+    selectPais.value = '';
+    selectPrograma.value = '';
+    aplicarFiltros(false);
+    inputBusqueda.focus();
+  });
+
+  actualizarBoton.addEventListener('click', () => aplicarFiltros(false));
+  renderizarFiltrosActivos();
+  void cargarCatalogos();
+</script>

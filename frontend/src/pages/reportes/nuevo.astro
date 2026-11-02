@@ -1,0 +1,18 @@
+---
+import BackButton from '../../components/ui/BackButton.astro';
+import ReporteConfiguracion from '../../components/reportes/ReporteConfiguracion.astro';
+import { mainNavItems } from '../../config/nav';
+import AppLayout from '../../layouts/AppLayout.astro';
+---
+
+<AppLayout title="Configurar reporte" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href="/reportes" />
+    <a href="/reportes" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">
+      Reportes
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">Configurar reporte</span>
+  </Fragment>
+  <ReporteConfiguracion />
+</AppLayout>

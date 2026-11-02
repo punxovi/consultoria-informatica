@@ -1,0 +1,49 @@
+{
+  "name": "frontend",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "test": "node --experimental-strip-types --test tests/validaciones/*.test.mjs tests/clientes/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:expediente": "playwright test --config playwright.expediente.config.mjs",
+    "test:e2e:compromisos": "playwright test --config playwright.compromisos.config.mjs",
+    "test:e2e:evidencias": "playwright test --config playwright.evidencias.config.mjs",
+    "test:e2e:evidencias:integracion": "playwright test --config playwright.evidencias-integracion.config.mjs",
+    "test:e2e:diagnostico": "playwright test --config playwright.diagnostico.config.mjs",
+    "test:e2e:actas": "playwright test --config playwright.actas.config.mjs",
+    "test:e2e:programas": "playwright test programas.spec.mjs",
+    "test:e2e:imagenes": "playwright test --config scripts/qa-imagenes.config.mjs",
+    "astro": "astro",
+    "test:e2e:indicadores": "playwright test --config playwright.indicadores.config.mjs",
+    "test:e2e:indicadores:integracion": "playwright test --config playwright.indicadores-integracion.config.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.5",
+    "@astrojs/react": "^6.0.5",
+    "@supabase/supabase-js": "^2.116.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.5.4"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "typescript": "^6.0.3"
+  }
+}

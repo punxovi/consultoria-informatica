@@ -1,0 +1,109 @@
+// PostgreSQL real embebido (PGlite). Instalar @electric-sql/pglite en una carpeta
+// temporal y pasar su directorio node_modules como primer argumento. No usa red.
+import { createRequire } from 'node:module';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
+const require = createRequire(resolve(process.argv[2], 'qa.cjs'));
+const { PGlite } = require('@electric-sql/pglite');
+const db = new PGlite();
+const admin = '14500000-0000-4000-8000-000000000001';
+const coord = '14500000-0000-4000-8000-000000000002';
+const chile = '14500000-0000-4000-8000-000000000003';
+const peru = '14500000-0000-4000-8000-000000000004';
+let checks = 0;
+const check = (actual, expected) => { assert.deepEqual(actual, expected); checks++; };
+const scalar = async (sql, params = []) => Object.values((await db.query(sql, params)).rows[0])[0];
+async function rpc(op, input = {}) {
+  return scalar('SELECT public.administrar_coordinadores($1,$2::jsonb)', [op, JSON.stringify(input)]);
+}
+async function rejected(op, input, code) {
+  await assert.rejects(rpc(op, input), error => error.code === code); checks++;
+}
+try {
+  await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth;
+    CREATE TABLE auth.users(id uuid PRIMARY KEY, email text UNIQUE, raw_user_meta_data jsonb DEFAULT '{}', raw_app_meta_data jsonb DEFAULT '{}', banned_until timestamptz);
+    CREATE TABLE auth.sessions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid REFERENCES auth.users, updated_at timestamptz DEFAULT now());
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;`);
+  for (const file of ['20260908002323_fge_estructura.sql', '20260908002327_fge_auditoria_indices.sql', '20260909192500_fge_trigger_perfiles.sql']) {
+    await db.exec(await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), 'utf8'));
+  }
+  await db.query('INSERT INTO auth.users(id,email) VALUES($1,$2)', [admin, 'admin@example.invalid']);
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [admin]);
+  await db.exec("INSERT INTO public.roles(codigo,nombre) VALUES('ADMIN','Administrador'),('COORD','Coordinador');");
+  await db.query("INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,otorgado_por) SELECT $1,id_rol,'global',$1 FROM public.roles WHERE codigo='ADMIN'", [admin]);
+  await db.query("INSERT INTO public.paises(id_pais,nombre,codigo_iso) VALUES($1,'Chile','CL'),($2,'Perú','PE')", [chile, peru]);
+  await db.exec(await readFile(new URL('../supabase/migrations/20261027120000_fge_scrum145_coordinadores.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/20261027160000_fge_scrum146_restricciones_cuentas.sql', import.meta.url), 'utf8'));
+  check(await rpc('list'), []);
+  await rejected('prepare', { nombre: 'Persona', correo: 'qa@example.invalid' }, 'P0145');
+  await rejected('prepare', { nombre: 'Persona', correo: 'invalido', id_pais: chile }, '22023');
+  const input = { nombre: 'Persona QA', correo: 'qa@example.invalid', id_pais: chile };
+  const reservation = await rpc('prepare', input);
+  check((await rpc('prepare', input)).id_solicitud, reservation.id_solicitud);
+  // Auth Admin inserta la identidad. Su trigger completa TODO en la misma transacción.
+  await db.query("SELECT set_config('request.jwt.claim.sub','',false)");
+  await db.query('INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES($1,$2,$3)', [coord, input.correo, JSON.stringify({ fge_coordinator_request: reservation.id_solicitud })]);
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [admin]);
+  let c = await rpc('get', { id_usuario: coord });
+  check(c.id_pais, chile); check(c.nombre, 'Persona QA'); check(c.activo, true);
+  check((await rpc('list')).length, 1);
+  check((await rpc('prepare', input)).id_usuario, coord);
+  await rejected('prepare', { ...input, nombre: 'Otro' }, 'P0148');
+  const original = await scalar('SELECT created_at FROM public.perfiles WHERE id_usuario=$1', [coord]);
+  await db.query('INSERT INTO auth.sessions(user_id) VALUES($1)', [coord]);
+  await db.query('CREATE TABLE public.negocio_qa(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), created_by uuid REFERENCES public.perfiles ON DELETE RESTRICT)');
+  await db.query('INSERT INTO public.negocio_qa(created_by) VALUES($1)', [coord]);
+  await rejected('edit', { id_usuario: coord, version_esperada: c.version - 1, cambios: { nombre: 'Nuevo' } }, 'P0147');
+  await rejected('get', { id_usuario: '14500000-0000-4000-8000-000000000099' }, 'P0146');
+  await rejected('edit', { id_usuario: coord, version_esperada: c.version, cambios: { correo: 'otro@example.invalid' } }, '22023');
+  c = await rpc('edit', { id_usuario: coord, version_esperada: c.version, cambios: { id_pais: peru, nombre: ' Nombre nuevo ' } });
+  check(c.nombre, 'Nombre nuevo'); check(c.id_pais, peru); check(c.cambio_pais_pendiente, true);
+  const appliedCountry = () => scalar("SELECT a.id_pais FROM public.asignaciones_roles a JOIN public.roles r USING(id_rol) WHERE a.id_usuario=$1 AND r.codigo='COORD' AND a.revocado_at IS NULL", [coord]);
+  check(await appliedCountry(), chile);
+  await db.query('UPDATE auth.sessions SET updated_at=clock_timestamp() WHERE user_id=$1', [coord]);
+  check(await appliedCountry(), chile); // renovar no aplica el cambio pendiente
+  await db.query('INSERT INTO auth.sessions(user_id) VALUES($1)', [coord]);
+  check(await appliedCountry(), peru);
+  check((await rpc('get', { id_usuario: coord })).cambio_pais_pendiente, false);
+  check(await scalar('SELECT count(*)::int FROM public.asignaciones_roles WHERE id_usuario=$1 AND revocado_at IS NOT NULL', [coord]), 1);
+  await assert.rejects(db.query("UPDATE public.asignaciones_roles SET revocado_at=now(),revocado_por=$2 WHERE id_usuario=$1 AND revocado_at IS NULL", [admin, admin]), error => error.code === 'P0152'); checks++;
+  c = await rpc('deactivate', { id_usuario: coord, version_esperada: c.version });
+  check(c.activo, false);
+  check(await scalar('SELECT count(*)::int FROM auth.sessions WHERE user_id=$1', [coord]), 0);
+  check(await scalar('SELECT banned_until IS NOT NULL FROM auth.users WHERE id=$1', [coord]), true);
+  await assert.rejects(db.query('INSERT INTO auth.sessions(user_id) VALUES($1)', [coord]), e => e.code === '42501'); checks++;
+  check(await scalar('SELECT created_by FROM public.negocio_qa'), coord);
+  check(await scalar('SELECT created_at FROM public.perfiles WHERE id_usuario=$1', [coord]), original);
+  c = await rpc('activate', { id_usuario: coord, version_esperada: c.version });
+  check(c.activo, true); check(await appliedCountry(), peru);
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [coord]);
+  await assert.rejects(db.query("UPDATE public.asignaciones_roles SET alcance='global',id_pais=NULL WHERE id_usuario=$1 AND revocado_at IS NULL", [coord]), error => error.code === '42501'); checks++;
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [admin]);
+  check(await scalar('SELECT banned_until IS NULL FROM auth.users WHERE id=$1', [coord]), true);
+  await rejected('edit', { id_usuario: coord, version_esperada: c.version, cambios: { id_pais: '14500000-0000-4000-8000-000000000099' } }, 'P0145');
+  check((await rpc('get', { id_usuario: coord })).version, c.version);
+  // Un alta cuyo país fue archivado no deja ni identidad ni perfil parcial.
+  const badReservation = await rpc('prepare', { nombre: 'Fallida', correo: 'fallida@example.invalid', id_pais: chile });
+  await db.query('UPDATE public.paises SET archived_at=now() WHERE id_pais=$1', [chile]);
+  const failedId = '14500000-0000-4000-8000-000000000098';
+  await assert.rejects(db.query('INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES($1,$2,$3)', [failedId, 'fallida@example.invalid', JSON.stringify({ fge_coordinator_request: badReservation.id_solicitud })]), e => e.code === 'P0145'); checks++;
+  check(await scalar('SELECT count(*)::int FROM auth.users WHERE id=$1', [failedId]), 0);
+  check(await scalar('SELECT count(*)::int FROM public.perfiles WHERE id_usuario=$1', [failedId]), 0);
+  check(await scalar("SELECT count(*)::int > 0 FROM fge_private.historial_cambios WHERE tabla_afectada='asignaciones_roles' AND tipo_accion='UPDATE'"), true);
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [coord]);
+  check(await rpc('list'), { denied: true });
+  check(await scalar('SELECT count(*)::int FROM fge_private.intentos_administracion_coordinadores'), 2);
+  await db.exec('SET ROLE authenticated');
+  await assert.rejects(db.query('SELECT * FROM fge_private.cuentas_coordinadores'), e => e.code === '42501'); checks++;
+  await db.exec('RESET ROLE; SET ROLE anon');
+  await assert.rejects(rpc('list'), e => e.code === '42501'); checks++;
+  await db.exec('RESET ROLE');
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [admin]);
+  await assert.rejects(db.query('UPDATE public.perfiles SET activo=false WHERE id_usuario=$1', [admin]), error => error.code === 'P0152'); checks++;
+  check(await rpc('list'), { denied: true });
+  // El trigger no afecta altas normales sin la marca privada de provisionamiento.
+  await db.query('INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES($1,$2,NULL)', ['14500000-0000-4000-8000-000000000097', 'normal@example.invalid']);
+  check(await scalar('SELECT count(*)::int FROM fge_private.cuentas_coordinadores'), 1);
+  console.log(JSON.stringify({ ok: true, checks, engine: 'PostgreSQL/PGlite', remoteSupabaseModified: false }));
+} finally { await db.close(); }

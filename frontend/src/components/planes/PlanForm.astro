@@ -1,0 +1,271 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import Input from '../ui/Input.astro';
+
+interface Props { idPlan?: string }
+const { idPlan = '' } = Astro.props;
+
+const textos = [
+  { id: 'situacion_necesidad', label: 'Situación o necesidad', max: 5000 },
+  { id: 'objetivo_general', label: 'Objetivo general', max: 3000 },
+  { id: 'objetivos_especificos', label: 'Objetivos específicos', max: 5000 },
+  { id: 'resultado_esperado', label: 'Resultado esperado', max: 5000 },
+];
+---
+
+<section class="w-full space-y-6">
+  <header class="min-w-0">
+      <h1 class="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+        {idPlan ? 'Editar plan' : 'Crear plan'}
+      </h1>
+      <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-600 md:text-base">
+        Registra la organización, el programa, el período de ejecución y la definición de la intervención.
+      </p>
+  </header>
+
+  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
+    Los campos marcados con <span class="font-semibold text-danger">*</span> son obligatorios. Completa los datos generales y la definición de la intervención antes de guardar el plan.
+  </p>
+
+  <p id="plan-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">
+    Cargando organizaciones y programas…
+  </p>
+  <div id="plan-errores" role="alert" tabindex="-1" hidden class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></div>
+  <div id="plan-reintentar" hidden>
+    <Button id="recargar-plan" variant="outline">Reintentar carga</Button>
+  </div>
+
+  <form id="plan-form" data-id-plan={idPlan} novalidate aria-busy="true" class="space-y-5">
+    <fieldset id="plan-campos" disabled class="min-w-0 space-y-5">
+      <Card class="w-full border-t-4 border-t-primary p-5 md:p-6">
+        <section class="space-y-5" aria-labelledby="plan-datos-titulo">
+          <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13H5V3h2Zm7 0v5h5M8 13h8m-8 4h8" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="plan-datos-titulo" class="text-lg font-bold text-neutral-900">Datos generales del plan</h2>
+              <p class="mt-1 text-sm text-neutral-500">Todos los campos son obligatorios.</p>
+            </div>
+          </div>
+
+          <div class="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+            <div class="min-w-0 space-y-1.5">
+              <label for="id_organizacion" class="block text-sm font-medium text-neutral-800">Organización <span class="text-danger">*</span></label>
+              <select id="id_organizacion" name="id_organizacion" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="">Selecciona una organización</option>
+              </select>
+            </div>
+            <div class="min-w-0 space-y-1.5">
+              <label for="id_programa" class="block text-sm font-medium text-neutral-800">Programa institucional <span class="text-danger">*</span></label>
+              <select id="id_programa" name="id_programa" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="">Selecciona un programa</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <Input id="nombre" label="Nombre del plan" required maxlength={150} />
+            </div>
+            <Input id="periodo_anual" label="Período anual (año)" type="number" required hint="Año al que corresponde el plan." />
+            <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
+            <Input id="fecha_inicio" label="Fecha de inicio" type="date" required />
+            <Input id="fecha_termino" label="Fecha de término" type="date" required />
+          </div>
+        </section>
+      </Card>
+
+      <Card class="w-full border-t-4 border-t-brand-green p-5 md:p-6">
+        <section class="space-y-5" aria-labelledby="plan-definicion-titulo">
+          <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="m12 12 7-7m-4 0h4v4" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="plan-definicion-titulo" class="text-lg font-bold text-neutral-900">Definición de la intervención</h2>
+              <p class="mt-1 text-sm text-neutral-500">Describe la necesidad, los objetivos y el resultado que se espera alcanzar.</p>
+            </div>
+          </div>
+
+          <div class="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
+            {textos.map(({ id, label, max }) => (
+              <div class="min-w-0 space-y-1.5">
+                <label for={id} class="block text-sm font-medium text-neutral-800">{label} <span class="text-danger">*</span></label>
+                <textarea id={id} name={id} required maxlength={max} rows="4" class="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+              </div>
+            ))}
+          </div>
+
+          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
+            <Button href="/planes" variant="outline">Cancelar</Button>
+            <Button id="guardar-plan" type="submit">{idPlan ? 'Guardar cambios' : 'Crear plan'}</Button>
+          </div>
+        </section>
+      </Card>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  import { crearPlanSchema } from '../../lib/validaciones/planes';
+  import { crearPlan, actualizarPlan, obtenerPlan, listarOrganizacionesParaPlan, listarProgramasParaPlan } from '../../lib/planes/cliente';
+  import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
+
+  const form = document.querySelector<HTMLFormElement>('#plan-form')!;
+  const campos = document.querySelector<HTMLFieldSetElement>('#plan-campos')!;
+  const estado = document.querySelector<HTMLElement>('#plan-estado')!;
+  const errores = document.querySelector<HTMLElement>('#plan-errores')!;
+  const guardar = document.querySelector<HTMLButtonElement>('#guardar-plan')!;
+  const selectOrganizacion = document.querySelector<HTMLSelectElement>('#id_organizacion')!;
+  const selectPrograma = document.querySelector<HTMLSelectElement>('#id_programa')!;
+  const idPlan = form.dataset.idPlan ?? '';
+  let version: number | undefined;
+  let enviando = false;
+  const reintentar = document.querySelector<HTMLElement>('#plan-reintentar')!;
+
+  function limpiarValidacion() {
+    errores.hidden = true;
+    form.querySelectorAll('[data-error-campo]').forEach(elemento => elemento.remove());
+    form.querySelectorAll('[aria-invalid="true"]').forEach(elemento => {
+      elemento.setAttribute('aria-invalid', 'false');
+      elemento.removeAttribute('aria-describedby');
+    });
+  }
+
+  function marcarCampos(detalles: { campo: string; mensaje: string }[]) {
+    for (const { campo, mensaje } of detalles) {
+      const control = form.elements.namedItem(campo.replace(/^cambios\./, ''));
+      if (!(control instanceof HTMLElement) || control.getAttribute('aria-invalid') === 'true') continue;
+      const aviso = document.createElement('p');
+      aviso.id = `${control.id}-validacion`;
+      aviso.dataset.errorCampo = '';
+      aviso.className = 'mt-1 text-sm text-red-800';
+      aviso.textContent = mensaje;
+      control.setAttribute('aria-invalid', 'true');
+      control.setAttribute('aria-describedby', aviso.id);
+      control.after(aviso);
+    }
+  }
+
+  function mostrarError(mensaje: string, detalles: string[] = []) {
+    errores.replaceChildren();
+    const titulo = document.createElement('p');
+    titulo.className = 'font-semibold';
+    titulo.textContent = mensaje;
+    errores.append(titulo);
+    if (detalles.length) {
+      const lista = document.createElement('ul');
+      lista.className = 'mt-2 list-disc space-y-1 pl-5';
+      for (const detalle of detalles) {
+        const item = document.createElement('li');
+        item.textContent = detalle;
+        lista.append(item);
+      }
+      errores.append(lista);
+    }
+    errores.hidden = false;
+    errores.focus();
+  }
+
+  async function cargarCatalogos() {
+    reintentar.hidden = true;
+    limpiarValidacion();
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estado.textContent = idPlan ? 'Cargando plan, organizaciones y programas…' : 'Cargando organizaciones y programas…';
+    try {
+      const [organizaciones, programas, plan] = await Promise.all([
+        listarOrganizacionesParaPlan(),
+        listarProgramasParaPlan(),
+        idPlan ? obtenerPlan(idPlan) : Promise.resolve(null),
+      ]);
+      selectOrganizacion.length = 1;
+      selectPrograma.length = 1;
+      for (const organizacion of organizaciones) {
+        selectOrganizacion.add(new Option(organizacion.nombre, organizacion.id_organizacion));
+      }
+      for (const programa of programas) {
+        selectPrograma.add(new Option(programa.nombre, programa.id_programa));
+      }
+      if (plan) {
+        version = plan.version;
+        // Conserva el vínculo histórico si el catálogo ya no incluye esta entidad.
+        if (!organizaciones.some(item => item.id_organizacion === plan.id_organizacion)) {
+          selectOrganizacion.add(new Option(`${plan.organizacion.nombre} (actual, no disponible)`, plan.id_organizacion));
+        }
+        if (!programas.some(item => item.id_programa === plan.id_programa)) {
+          selectPrograma.add(new Option(`${plan.programa.nombre} (actual, no disponible)`, plan.id_programa));
+        }
+        for (const [campo, valor] of Object.entries(plan)) {
+          const control = form.elements.namedItem(campo);
+          if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement) {
+            control.value = String(valor ?? '');
+          }
+        }
+      }
+      campos.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+      const catalogosListos = Boolean(plan || (organizaciones.length && programas.length));
+      estado.textContent = catalogosListos
+        ? ''
+        : 'Necesitas al menos una organización y un programa registrados para crear el plan.';
+      guardar.disabled = !plan && (!organizaciones.length || !programas.length);
+    } catch (error) {
+      estado.textContent = '';
+      mostrarError(error instanceof Error ? error.message : 'No fue posible preparar el formulario.');
+      reintentar.hidden = false;
+    } finally {
+      form.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  form.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    if (enviando || campos.disabled || guardar.disabled) return;
+    limpiarValidacion();
+    const datos = Object.fromEntries(new FormData(form).entries());
+    const validacion = crearPlanSchema.safeParse({ ...datos, periodo_anual: Number(datos.periodo_anual) });
+    if (!validacion.success) {
+      marcarCampos(validacion.error.issues.map(issue => ({ campo: issue.path.join('.'), mensaje: issue.message })));
+      mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => issue.message));
+      return;
+    }
+
+    enviando = true;
+    campos.disabled = true;
+    form.setAttribute('aria-busy', 'true');
+    estado.textContent = 'Guardando plan…';
+    try {
+      if (idPlan) {
+        if (version === undefined) throw new Error('Recarga el plan antes de editarlo.');
+        await actualizarPlan({ id_plan: idPlan, version_esperada: version, cambios: validacion.data });
+      } else {
+        await crearPlan(validacion.data);
+      }
+      window.location.assign('/planes?resultado=guardado');
+    } catch (error) {
+      const detalles = error instanceof ErrorSolicitudPlan
+        ? error.campos.map(campo => campo.mensaje)
+        : [];
+      if (error instanceof ErrorSolicitudPlan) marcarCampos(error.campos);
+      mostrarError(error instanceof Error ? error.message : 'No fue posible guardar el plan.', detalles);
+      campos.disabled = false;
+      form.setAttribute('aria-busy', 'false');
+      enviando = false;
+      estado.textContent = '';
+      if (error instanceof ErrorSolicitudPlan && error.codigo === 'CONFLICTO_CONCURRENCIA') {
+        reintentar.hidden = false;
+        estado.textContent = 'Tus cambios siguen en el formulario. Al recargar se reemplazarán por la versión guardada.';
+        guardar.disabled = true;
+      }
+    }
+  });
+
+  document.querySelector('#recargar-plan')!.addEventListener('click', () => void cargarCatalogos());
+  void cargarCatalogos();
+</script>

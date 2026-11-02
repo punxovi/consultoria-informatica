@@ -1,0 +1,43 @@
+
+import { createServer, type Server } from 'node:http';
+import { readPort } from '../../../shared/config/src/index.ts';
+import { getRequestId, logEvent } from '../../../shared/observability/src/index.ts';
+import { createInterventionsApplication, type InterventionsApplication } from './application/interventions-service.ts';
+import { routeInterventions } from './http/routes.ts';
+import { createSupabaseInterventionsRepositoriesFromEnv } from './infrastructure/supabase-interventions.repository.ts';
+import { createSupabaseEvidencesRepositoryFromEnv } from './infrastructure/supabase-evidences.repository.ts';
+import { createSupabaseMeetingMinuteAttachmentsRepositoryFromEnv } from './infrastructure/supabase-meeting-minute-attachments.repository.ts';
+import { createSupabasePublicEvidencesRepositoryFromEnv, type PublicEvidencesRepository } from './infrastructure/supabase-public-evidences.repository.ts';
+import { createSupabaseIndicatorsRepositoryFromEnv } from './infrastructure/supabase-indicators.repository.ts';
+import type { IndicatorsRepository } from './domain/indicators.ts';
+
+export function createInterventionsServer(
+  application?: InterventionsApplication,
+  publications: PublicEvidencesRepository = createSupabasePublicEvidencesRepositoryFromEnv(),
+  indicators: IndicatorsRepository = createSupabaseIndicatorsRepositoryFromEnv(),
+): Server {
+  const repositories = application ? undefined : createSupabaseInterventionsRepositoriesFromEnv();
+
+  const resolved = application ?? createInterventionsApplication(
+    repositories!.plans,
+    repositories!.actions,
+    repositories!.meetingMinutes,
+    createSupabaseEvidencesRepositoryFromEnv(),
+    createSupabaseMeetingMinuteAttachmentsRepositoryFromEnv(),
+  );
+
+  return createServer(async (request, response) => {
+    const requestId = getRequestId(request.headers['x-request-id']);
+    logEvent('info', 'interventions.request', {
+      requestId,
+      method: request.method,
+      path: request.url,
+    });
+
+    await routeInterventions(request, response, requestId, resolved, publications, indicators);
+  });
+}
+
+export function interventionsPort(): number {
+  return readPort('INTERVENTIONS_SERVICE_PORT', 4104);
+}

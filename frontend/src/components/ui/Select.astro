@@ -1,0 +1,88 @@
+---
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  label: string;
+  id: string;
+  name?: string;
+  options: Option[];
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  error?: string;
+  hint?: string;
+  value?: string;
+  class?: string;
+}
+
+const {
+  label,
+  id,
+  name = id,
+  options,
+  placeholder,
+  required = false,
+  disabled = false,
+  error,
+  hint,
+  value,
+  class: className = '',
+} = Astro.props;
+---
+
+<div class="flex flex-col gap-1.5">
+  <label for={id} class="text-sm font-semibold text-[#383165]">
+    {label}
+    {required && (
+      <span class="ml-0.5 text-[#C81E5B]" aria-hidden="true">*</span>
+    )}
+  </label>
+
+  <select
+    id={id}
+    name={name}
+    required={required}
+    disabled={disabled}
+    aria-invalid={error ? 'true' : 'false'}
+    aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+    class:list={[
+      'min-h-[48px] w-full rounded-xl border bg-white px-3.5 py-2.5',
+      'text-base transition-colors duration-150',
+      'focus:outline-none focus:ring-2',
+      disabled
+        ? 'cursor-not-allowed border-[#E5E1EE] bg-[#F5F3F9] text-[#A09FA2]'
+        : 'cursor-pointer text-[#1A1A1A] hover:border-[#B8B1D2]',
+      error
+        ? 'border-[#C81E5B] focus:border-[#C81E5B] focus:ring-[#FCE8F0]'
+        : 'border-[#DCD8E8] focus:border-[#4C4688] focus:ring-[#EAE8F5]',
+      className,
+    ]}
+  >
+    {placeholder && (
+      <option value="" disabled selected={!value}>
+        {placeholder}
+      </option>
+    )}
+
+    {options.map((opt) => (
+      <option value={opt.value} selected={opt.value === value}>
+        {opt.label}
+      </option>
+    ))}
+  </select>
+
+  {hint && !error && (
+    <p id={`${id}-hint`} class="text-sm leading-5 text-[#706E78]">
+      {hint}
+    </p>
+  )}
+
+  {error && (
+    <p id={`${id}-error`} class="text-sm leading-5 text-[#AD174F]" role="alert">
+      {error}
+    </p>
+  )}
+</div>

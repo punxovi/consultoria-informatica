@@ -1,0 +1,258 @@
+---
+import BackButton from '../../components/ui/BackButton.astro';
+import Button from '../../components/ui/Button.astro';
+import { mainNavItems } from '../../config/nav';
+import AppLayout from '../../layouts/AppLayout.astro';
+import AccionesPlan from '../../components/acciones/AccionesPlan.astro';
+import EliminarRegistro from '../../components/ui/EliminarRegistro.astro';
+import PlanIndicadores from '../../components/planes/PlanIndicadores.astro';
+import PlanResumen from '../../components/planes/PlanResumen.astro';
+
+const idPlan = Astro.params.id ?? '';
+const filtrosRetorno = new URLSearchParams();
+for (const parametro of ['anio', 'id_programa', 'id_organizacion']) {
+  const valor = Astro.url.searchParams.get(parametro);
+  if (valor) filtrosRetorno.set(parametro, valor);
+}
+const queryRetorno = filtrosRetorno.toString();
+const hrefVolverPlanes = `/planes${queryRetorno ? `?${queryRetorno}` : ''}`;
+const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryRetorno}` : ''}`;
+---
+
+<AppLayout
+  title="Detalle del plan"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href={hrefVolverPlanes} />
+    <a
+      id="plan-organizacion-breadcrumb"
+      href="/organizaciones"
+      hidden
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >Organización</a>
+    <span id="plan-organizacion-separador" hidden aria-hidden="true" class="text-neutral-300">›</span>
+    <a
+      href={hrefVolverPlanes}
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Planes de Intervención
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span id="plan-breadcrumb" class="truncate text-sm font-semibold text-neutral-900">
+      Detalle del plan
+    </span>
+  </Fragment>
+
+  <section data-id-plan={idPlan} class="space-y-6">
+    <p id="detalle-estado" role="status" aria-live="polite" class="py-4 text-sm text-neutral-500">
+      Cargando plan…
+    </p>
+
+    <div
+      id="detalle-error"
+      hidden
+      role="alert"
+      class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-danger"
+    ></div>
+
+    <div id="detalle-plan" hidden class="space-y-6">
+      <section class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 data-plan="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
+            <span data-plan="estado" class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"></span>
+          </div>
+          <p data-plan="resumen" class="mt-2 text-base text-neutral-600 md:text-lg"></p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
+            </svg>
+            Editar plan
+          </Button>
+          <EliminarRegistro tipo="plan" id={idPlan} regreso={hrefTrasEliminar} />
+        </div>
+      </section>
+
+      <PlanIndicadores />
+
+      <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+        <div id="plan-tabs" class="flex flex-wrap gap-2 overflow-x-auto" role="tablist" aria-label="Secciones del plan">
+          <button
+            id="tab-resumen"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-resumen"
+            data-tab="resumen"
+            class="shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
+          >
+            Resumen del plan
+          </button>
+          <button
+            id="tab-seguimiento"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-seguimiento"
+            data-tab="seguimiento"
+            tabindex="-1"
+            class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
+          >
+            Seguimiento de acciones
+          </button>
+        </div>
+      </div>
+
+      <section id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" data-panel="resumen" class="space-y-5">
+        <PlanResumen />
+      </section>
+
+      <section id="panel-seguimiento" role="tabpanel" aria-labelledby="tab-seguimiento" data-panel="seguimiento" hidden class="min-w-0 space-y-5">
+        <AccionesPlan idPlan={idPlan} />
+      </section>
+    </div>
+  </section>
+</AppLayout>
+
+<script>
+  import { obtenerPlan } from '../../lib/planes/cliente';
+
+  const seccion = document.querySelector<HTMLElement>('[data-id-plan]')!;
+  const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
+  const error = document.querySelector<HTMLElement>('#detalle-error')!;
+  const contenido = document.querySelector<HTMLElement>('#detalle-plan')!;
+
+  function estadoPlan(inicio: string, termino: string) {
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    if (termino < hoy) {
+      return { texto: 'Finalizado', clase: 'bg-neutral-100 text-neutral-600' };
+    }
+    if (inicio > hoy) {
+      return { texto: 'Pendiente', clase: 'bg-warning/15 text-[#946200]' };
+    }
+    return { texto: 'En ejecución', clase: 'bg-success/10 text-success' };
+  }
+
+  void obtenerPlan(seccion.dataset.idPlan ?? '')
+    .then((plan) => {
+      const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
+      if (raizEliminar) raizEliminar.dataset.version = String(plan.version);
+
+      document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
+
+      const enlaceOrganizacionBreadcrumb = document.querySelector<HTMLAnchorElement>('#plan-organizacion-breadcrumb')!;
+      enlaceOrganizacionBreadcrumb.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+      enlaceOrganizacionBreadcrumb.textContent = plan.organizacion.nombre;
+      enlaceOrganizacionBreadcrumb.hidden = false;
+      document.querySelector<HTMLElement>('#plan-organizacion-separador')!.hidden = false;
+
+      const valores: Record<string, string> = {
+        nombre: plan.nombre,
+        resumen: `${plan.organizacion.nombre} · ${plan.periodo_anual}`,
+        organizacion: plan.organizacion.nombre,
+        programa: plan.programa.nombre,
+        periodo_anual: String(plan.periodo_anual),
+        responsable_nombre: plan.responsable_nombre,
+        fecha_inicio: new Date(`${plan.fecha_inicio}T00:00:00`).toLocaleDateString('es-CL'),
+        fecha_termino: new Date(`${plan.fecha_termino}T00:00:00`).toLocaleDateString('es-CL'),
+        situacion_necesidad: plan.situacion_necesidad,
+        objetivo_general: plan.objetivo_general,
+        objetivos_especificos: plan.objetivos_especificos,
+        resultado_esperado: plan.resultado_esperado,
+      };
+
+      for (const [campo, valor] of Object.entries(valores)) {
+        document.querySelectorAll<HTMLElement>(`[data-plan="${campo}"]`).forEach((elemento) => {
+          elemento.textContent = valor || 'Sin información registrada.';
+        });
+      }
+
+      const enlaceOrganizacion = document.querySelector<HTMLAnchorElement>('[data-plan="organizacion"]');
+      if (enlaceOrganizacion) {
+        enlaceOrganizacion.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+        enlaceOrganizacion.setAttribute('aria-label', `Ver organización ${plan.organizacion.nombre}`);
+      }
+
+      const enlacePrograma = document.querySelector<HTMLAnchorElement>('[data-plan="programa"]');
+      if (enlacePrograma) {
+        enlacePrograma.href = `/programas/${encodeURIComponent(plan.id_programa)}`;
+        enlacePrograma.setAttribute('aria-label', `Ver programa institucional ${plan.programa.nombre}`);
+      }
+
+      const etiqueta = document.querySelector<HTMLElement>('[data-plan="estado"]')!;
+      const calculado = estadoPlan(plan.fecha_inicio, plan.fecha_termino);
+      etiqueta.textContent = calculado.texto;
+      etiqueta.className = `inline-flex rounded-full px-3 py-1 text-xs font-semibold ${calculado.clase}`;
+
+      estado.hidden = true;
+      contenido.hidden = false;
+
+      // Si llegamos desde crear/editar una acción, muestra y enfoca su pestaña.
+      if (window.location.hash === '#acciones-plan') {
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>('#acciones-plan')?.scrollIntoView({
+            behavior: 'auto',
+            block: 'start',
+          });
+        });
+      }
+    })
+    .catch((fallo) => {
+      estado.hidden = true;
+      error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar el plan.';
+      error.hidden = false;
+    });
+
+  const botonesTab = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
+  const paneles = document.querySelectorAll<HTMLElement>('[data-panel]');
+
+  function activarTab(nombre: string, actualizarUrl = false) {
+    botonesTab.forEach((boton) => {
+      const activo = boton.dataset.tab === nombre;
+      boton.setAttribute('aria-selected', String(activo));
+      boton.tabIndex = activo ? 0 : -1;
+      boton.className = activo
+        ? 'shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2'
+        : 'shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2';
+    });
+
+    paneles.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== nombre;
+    });
+
+    if (actualizarUrl) {
+      const url = new URL(window.location.href);
+      url.hash = nombre === 'seguimiento' ? 'acciones-plan' : '';
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
+
+  // Los enlaces con #acciones-plan deben abrir directamente la pestaña Seguimiento.
+  activarTab(window.location.hash === '#acciones-plan' ? 'seguimiento' : 'resumen');
+
+  botonesTab.forEach((boton, indice) => {
+    boton.addEventListener('click', () => activarTab(boton.dataset.tab ?? 'resumen', true));
+    boton.addEventListener('keydown', (evento) => {
+      if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+      evento.preventDefault();
+      const desplazamiento = evento.key === 'ArrowRight' ? 1 : -1;
+      const siguiente = (indice + desplazamiento + botonesTab.length) % botonesTab.length;
+      botonesTab[siguiente]?.focus();
+      botonesTab[siguiente]?.click();
+    });
+  });
+
+  window.addEventListener('plan:acciones-cargadas', (evento) => {
+    const detalle = (evento as CustomEvent<{ total: number }>).detail;
+    if (!detalle || typeof detalle.total !== 'number') return;
+
+    const total = document.querySelector<HTMLElement>('#plan-acciones-total');
+    if (total) total.textContent = new Intl.NumberFormat('es-CL').format(detalle.total);
+  });
+</script>

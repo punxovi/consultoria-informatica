@@ -1,0 +1,466 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Card from '../ui/Card.astro';
+import Button from '../ui/Button.astro';
+import BackButton from '../ui/BackButton.astro';
+import Input from '../ui/Input.astro';
+import { mainNavItems } from '../../config/nav';
+
+interface PaisFormulario {
+  id_pais: string;
+  nombre: string;
+  codigo_iso: string;
+  codigo_area_telefonica: string | null;
+  zona_horaria: string | null;
+  version: number;
+}
+
+interface Props {
+  mode: 'create' | 'edit';
+  pais?: PaisFormulario;
+  idPais?: string;
+}
+
+const { mode, pais, idPais = '' } = Astro.props;
+const isEdit = mode === 'edit';
+const pageTitle = isEdit ? 'Editar país' : 'Nuevo país';
+const backHref = '/administracion/paises';
+---
+
+<AppLayout title={pageTitle} navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <Fragment slot="headerBreadcrumb">
+    <div class="flex min-w-0 items-center gap-2 md:gap-3">
+      <BackButton href={backHref} />
+      <a
+        href={backHref}
+        class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+      >
+        Países
+      </a>
+      <span aria-hidden="true" class="text-neutral-300">›</span>
+      <span class="truncate text-sm font-semibold text-neutral-900">
+        {pageTitle}
+      </span>
+    </div>
+  </Fragment>
+
+  <section class="space-y-6" aria-labelledby="pais-form-title">
+    <header class="space-y-1">
+      <p class="mb-1 text-sm font-semibold text-[#4C4688]">
+        Administración territorial
+      </p>
+
+      <h1
+        id="pais-form-title"
+        class="text-2xl font-bold text-neutral-900 md:text-3xl"
+      >
+        {pageTitle}
+      </h1>
+
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 md:text-base">
+        {isEdit
+          ? 'Actualiza la configuración territorial del país.'
+          : 'Registra un país y define sus códigos y zona horaria local.'}
+      </p>
+    </header>
+
+    <form
+      id="pais-form"
+      data-mode={mode}
+      data-pais-id={idPais}
+      data-pais-version={pais?.version ?? ''}
+      class="space-y-6"
+      novalidate
+    >
+      <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <header class="mb-5 flex items-start gap-3 border-b border-[#EEEAF5] pb-4">
+          <span
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAE8F5] text-[#4C4688]"
+            aria-hidden="true"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"
+              />
+            </svg>
+          </span>
+
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">
+              Información del país
+            </h2>
+            <p class="mt-1 text-sm text-neutral-500">
+              Completa los datos solicitados para identificar el territorio.
+            </p>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div class="md:col-span-2">
+            <Input
+              label="Nombre del país"
+              id="nombre"
+              name="nombre"
+              placeholder="Ej.: Chile"
+              value={pais?.nombre ?? ''}
+              required
+              maxlength={120}
+              autocomplete="off"
+            />
+            <p
+              data-field-error="nombre"
+              class="mt-1 hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+          </div>
+
+          <div>
+            <Input
+              label="Código ISO"
+              id="codigo_iso"
+              name="codigo_iso"
+              placeholder="Ej.: CL"
+              value={pais?.codigo_iso ?? ''}
+              required
+              maxlength={2}
+              hint="Código internacional de dos letras."
+              autocomplete="off"
+            />
+            <p
+              data-field-error="codigo_iso"
+              class="mt-1 hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+          </div>
+
+          <div>
+            <Input
+              label="Código de área telefónica"
+              id="codigo_area_telefonica"
+              name="codigo_area_telefonica"
+              type="tel"
+              placeholder="Ej.: +56"
+              value={pais?.codigo_area_telefonica ?? ''}
+              required
+              maxlength={4}
+              hint="Prefijo internacional, como +56."
+              autocomplete="off"
+            />
+            <p
+              data-field-error="codigo_area_telefonica"
+              class="mt-1 hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+          </div>
+
+          <div class="md:col-span-2">
+            <Input
+              label="Zona horaria local"
+              id="zona_horaria"
+              name="zona_horaria"
+              placeholder="Ej.: America/Santiago"
+              value={pais?.zona_horaria ?? ''}
+              required
+              maxlength={100}
+              hint="Utiliza un identificador de zona horaria IANA."
+              autocomplete="off"
+            />
+            <p
+              data-field-error="zona_horaria"
+              class="mt-1 hidden text-sm text-[#AD174F]"
+              role="alert"
+            ></p>
+          </div>
+        </div>
+      </Card>
+
+      <p
+        id="pais-feedback"
+        class="hidden rounded-xl border p-4 text-sm leading-6"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button href={backHref} variant="outline" size="lg">
+          Cancelar
+        </Button>
+        <Button type="submit" variant="primary" size="lg">
+          {isEdit ? 'Guardar cambios' : 'Guardar país'}
+        </Button>
+      </div>
+    </form>
+  </section>
+</AppLayout>
+
+<script>
+  import {
+    clientePaisesNavegador,
+    mensajeErrorPaises,
+  } from '../../lib/paises/cliente';
+  import { ApiError } from '../../lib/api/transporte';
+
+  const form = document.querySelector<HTMLFormElement>('#pais-form');
+
+  if (form && !form.dataset.initialized) {
+    form.dataset.initialized = 'true';
+
+    const feedback = form.querySelector<HTMLElement>('#pais-feedback');
+    const submitButton = form.querySelector<HTMLButtonElement>(
+      'button[type="submit"]',
+    );
+
+    const cliente = clientePaisesNavegador();
+    let datosIniciales: ReturnType<typeof obtenerDatos> | null = null;
+
+    const campos = [
+      'nombre',
+      'codigo_iso',
+      'codigo_area_telefonica',
+      'zona_horaria',
+    ] as const;
+
+    type CampoPais = (typeof campos)[number];
+
+    const obtenerCampo = (nombre: CampoPais): HTMLInputElement => {
+      return form!.querySelector<HTMLInputElement>(`#${nombre}`)!;
+    };
+
+    const camposFormulario = campos.map(obtenerCampo);
+
+    function mostrarMensaje(
+      mensaje: string,
+      tipo: 'exito' | 'error' | 'info',
+    ) {
+      if (!feedback) return;
+
+      feedback.className = 'rounded-xl border p-4 text-sm leading-6';
+      feedback.textContent = mensaje;
+
+      const estilos = {
+        exito: ['border-green-200', 'bg-green-50', 'text-green-800'],
+        error: ['border-[#F3B6CC]', 'bg-[#FCE8F0]', 'text-[#AD174F]'],
+        info: ['border-[#DCD8E8]', 'bg-[#F0EEF8]', 'text-[#383165]'],
+      };
+
+      feedback.classList.add(...estilos[tipo]);
+      feedback.classList.remove('hidden');
+    }
+
+    function mostrarErrorCampo(campo: CampoPais, mensaje: string) {
+      const input = obtenerCampo(campo);
+      const error = form!.querySelector<HTMLElement>(
+        `[data-field-error="${campo}"]`,
+      );
+
+      if (error) {
+        error.textContent = mensaje;
+        error.classList.toggle('hidden', !mensaje);
+      }
+
+      input.setAttribute('aria-invalid', mensaje ? 'true' : 'false');
+
+      if (mensaje && error) {
+        input.setAttribute('aria-describedby', error.id || `${campo}-error`);
+        error.id = `${campo}-error`;
+      } else {
+        input.removeAttribute('aria-describedby');
+      }
+    }
+
+    function validarCampo(campo: CampoPais): string {
+      const valor = obtenerCampo(campo).value.trim();
+
+      if (!valor) return 'Este campo es obligatorio.';
+
+      if (campo === 'codigo_iso' && !/^[A-Za-z]{2}$/.test(valor)) {
+        return 'Ingresa un código ISO de dos letras, por ejemplo CL.';
+      }
+
+      if (
+        campo === 'codigo_area_telefonica' &&
+        !/^\+[1-9][0-9]{0,2}$/.test(valor)
+      ) {
+        return 'Ingresa un prefijo internacional válido, como +56.';
+      }
+
+      if (
+        campo === 'zona_horaria' &&
+        valor !== 'UTC' &&
+        !/^[A-Za-z_]+(?:\/[A-Za-z0-9_+.-]+)+$/.test(valor)
+      ) {
+        return 'Usa una zona horaria como America/Santiago o UTC.';
+      }
+
+      return '';
+    }
+
+    function validarFormulario(): boolean {
+      let valido = true;
+
+      for (const campo of campos) {
+        const error = validarCampo(campo);
+        mostrarErrorCampo(campo, error);
+        if (error) valido = false;
+      }
+
+      return valido;
+    }
+
+    function obtenerDatos() {
+      return {
+        nombre: obtenerCampo('nombre').value.trim(),
+        codigo_iso: obtenerCampo('codigo_iso').value.trim().toUpperCase(),
+        codigo_area_telefonica: obtenerCampo(
+          'codigo_area_telefonica',
+        ).value.trim(),
+        zona_horaria: obtenerCampo('zona_horaria').value.trim(),
+      };
+    }
+
+    function obtenerCambios(datos: ReturnType<typeof obtenerDatos>) {
+      if (!datosIniciales) return datos;
+
+      return Object.fromEntries(
+        Object.entries(datos).filter(([campo, valor]) =>
+          valor !== datosIniciales?.[campo as keyof typeof datosIniciales],
+        ),
+      );
+    }
+
+    function establecerOcupado(ocupado: boolean) {
+      camposFormulario.forEach((campo) => {
+        campo.disabled = ocupado;
+      });
+
+      if (submitButton) submitButton.disabled = ocupado;
+    }
+
+    camposFormulario.forEach((campo) => {
+      campo.addEventListener('input', () => {
+        mostrarErrorCampo(
+          campo.id as CampoPais,
+          validarCampo(campo.id as CampoPais),
+        );
+        feedback?.classList.add('hidden');
+      });
+    });
+
+    async function cargarPaisParaEditar() {
+      if (form?.dataset.mode !== 'edit') return;
+
+      const id = form.dataset.paisId;
+      if (!id) {
+        mostrarMensaje('No se recibió el identificador del país.', 'error');
+        establecerOcupado(true);
+        return;
+      }
+
+      establecerOcupado(true);
+      mostrarMensaje('Cargando información del país…', 'info');
+
+      try {
+        const pais = await cliente.obtener(id);
+
+        obtenerCampo('nombre').value = pais.nombre;
+        obtenerCampo('codigo_iso').value = pais.codigo_iso;
+        obtenerCampo('codigo_area_telefonica').value =
+          pais.codigo_area_telefonica ?? '';
+        obtenerCampo('zona_horaria').value = pais.zona_horaria ?? '';
+
+        form.dataset.paisVersion = String(pais.version);
+        datosIniciales = obtenerDatos();
+        feedback?.classList.add('hidden');
+      } catch (error) {
+        mostrarMensaje(mensajeErrorPaises(error, 'cargar el país'), 'error');
+        establecerOcupado(true);
+        return;
+      }
+
+      establecerOcupado(false);
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!validarFormulario()) {
+        mostrarMensaje(
+          'Revisa los campos indicados antes de continuar.',
+          'error',
+        );
+        camposFormulario.find((campo) => validarCampo(campo.id as CampoPais))
+          ?.focus();
+        return;
+      }
+
+      const datos = obtenerDatos();
+      establecerOcupado(true);
+      mostrarMensaje('Guardando información…', 'info');
+
+      try {
+        if (form.dataset.mode === 'edit') {
+          const id = form.dataset.paisId;
+          const version = Number(form.dataset.paisVersion);
+
+          if (!id || !Number.isSafeInteger(version) || version < 1) {
+            throw new Error(
+              'No se pudo obtener la versión actual del país. Recarga la página.',
+            );
+          }
+
+          const cambios = obtenerCambios(datos);
+          if (Object.keys(cambios).length === 0) {
+            mostrarMensaje('No hay cambios para guardar.', 'info');
+            establecerOcupado(false);
+            return;
+          }
+
+          await cliente.actualizar(id, version, cambios);
+        } else {
+          await cliente.crear(datos);
+        }
+
+        mostrarMensaje(
+          form.dataset.mode === 'edit'
+            ? 'País actualizado correctamente.'
+            : 'País creado correctamente.',
+          'exito',
+        );
+
+        window.setTimeout(() => {
+          window.location.assign(
+            `/administracion/paises?resultado=${form.dataset.mode === 'edit' ? 'actualizado' : 'creado'}`,
+          );
+        }, 800);
+      } catch (error) {
+        if (error instanceof ApiError && error.fields) {
+          for (const campo of campos) {
+            const mensaje = error.fields[campo]?.[0] ?? '';
+            mostrarErrorCampo(campo, mensaje);
+          }
+        }
+
+        mostrarMensaje(
+          mensajeErrorPaises(
+            error,
+            form.dataset.mode === 'edit' ? 'guardar los cambios' : 'crear el país',
+          ),
+          'error',
+        );
+        establecerOcupado(false);
+      }
+    });
+
+    void cargarPaisParaEditar();
+  }
+</script>

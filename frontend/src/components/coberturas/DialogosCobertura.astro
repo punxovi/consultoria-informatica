@@ -1,0 +1,282 @@
+---
+---
+
+<dialog
+  id="cobertura-extender-dialog"
+  aria-labelledby="cobertura-extender-titulo"
+  aria-describedby="cobertura-extender-descripcion"
+  class="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-[#E8E5EF] bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/50"
+>
+  <header class="border-b border-[#EEEAF5] px-6 py-5">
+    <div class="flex items-start gap-3">
+      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAE8F5] text-[#4C4688]" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="9" />
+          <path stroke-linecap="round" d="M12 7v5l3 2M16 3l3 3M19 3v3h-3" />
+        </svg>
+      </span>
+
+      <div>
+        <h2 id="cobertura-extender-titulo" class="text-lg font-bold">
+          Extender cobertura
+        </h2>
+        <p id="cobertura-extender-descripcion" class="mt-1 text-sm text-neutral-500">
+          Modifica la fecha de término de una autorización temporal.
+        </p>
+        <p id="cobertura-extender-coordinador" class="mt-2 text-sm font-semibold text-[#4C4688]"></p>
+      </div>
+    </div>
+  </header>
+
+  <form id="cobertura-extender-form" class="space-y-4 px-6 py-5" novalidate>
+    <div class="space-y-1.5">
+      <label for="cobertura-extender-fecha" class="block text-sm font-medium">
+        Nueva fecha de término *
+      </label>
+
+      <input
+        id="cobertura-extender-fecha"
+        name="fecha_termino"
+        type="date"
+        required
+        class="min-h-12 w-full rounded-xl border border-[#DCD8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        aria-describedby="cobertura-extender-error"
+      />
+
+      <p id="cobertura-extender-error" hidden role="alert" class="text-sm text-[#AD174F]"></p>
+    </div>
+
+    <p id="cobertura-extender-feedback" hidden role="status" aria-live="polite" class="rounded-xl border border-[#DCD8E8] bg-[#F0EEF8] p-3 text-sm text-[#383165]"></p>
+
+    <footer class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-4 sm:flex-row sm:justify-end">
+      <button type="button" data-cobertura-cerrar="extender" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#4C4688] px-5 py-3 text-sm font-semibold text-[#4C4688] hover:bg-[#F0EEF8]">
+        Cancelar
+      </button>
+
+      <button type="submit" class="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white hover:bg-[#423C76]">
+        Guardar extensión
+      </button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog
+  id="cobertura-revocar-dialog"
+  aria-labelledby="cobertura-revocar-titulo"
+  aria-describedby="cobertura-revocar-descripcion"
+  class="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-[#E8E5EF] bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/50"
+>
+  <header class="border-b border-[#EEEAF5] px-6 py-5">
+    <div class="flex items-start gap-3">
+      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FCE8F0] text-[#AD174F]" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+        </svg>
+      </span>
+
+      <div>
+        <h2 id="cobertura-revocar-titulo" class="text-lg font-bold">
+          ¿Revocar esta cobertura?
+        </h2>
+        <p id="cobertura-revocar-descripcion" class="mt-1 text-sm text-neutral-500">
+          La revocación anticipada retira la autorización. Confirma solo si deseas continuar.
+        </p>
+        <p id="cobertura-revocar-coordinador" class="mt-2 text-sm font-semibold text-[#AD174F]"></p>
+      </div>
+    </div>
+  </header>
+
+  <div class="space-y-4 px-6 py-5">
+    <p class="text-sm leading-6 text-neutral-600">
+      Esta acción debe ser confirmada por el servicio antes de considerar revocada la cobertura.
+    </p>
+
+    <div class="space-y-1.5">
+      <label for="cobertura-revocar-motivo" class="block text-sm font-medium">
+        Motivo de la revocación *
+      </label>
+      <textarea
+        id="cobertura-revocar-motivo"
+        rows="3"
+        minlength="5"
+        maxlength="1000"
+        required
+        class="w-full rounded-xl border border-[#DCD8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        aria-describedby="cobertura-revocar-error"
+      ></textarea>
+      <p id="cobertura-revocar-error" hidden role="alert" class="text-sm text-[#AD174F]"></p>
+    </div>
+
+    <p id="cobertura-revocar-feedback" hidden role="status" aria-live="polite" class="rounded-xl border border-[#DCD8E8] bg-[#F0EEF8] p-3 text-sm text-[#383165]"></p>
+
+    <footer class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-4 sm:flex-row sm:justify-end">
+      <button type="button" data-cobertura-cerrar="revocar" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#4C4688] px-5 py-3 text-sm font-semibold text-[#4C4688] hover:bg-[#F0EEF8]">
+        Cancelar
+      </button>
+
+      <button id="cobertura-revocar-confirmar" type="button" class="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#C81E5B] px-5 py-3 text-sm font-semibold text-white hover:bg-[#AD174F]">
+        Confirmar revocación
+      </button>
+    </footer>
+  </div>
+</dialog>
+
+<script>
+  const coberturaClienteIntegrado = document.querySelector<HTMLElement>('#coberturas-lista')?.dataset.clienteCoberturas;
+  if (!coberturaClienteIntegrado) {
+  const lista = document.querySelector<HTMLElement>('#coberturas-lista');
+
+  const dialogExtender = document.querySelector<HTMLDialogElement>(
+    '#cobertura-extender-dialog',
+  );
+  const formExtender = document.querySelector<HTMLFormElement>(
+    '#cobertura-extender-form',
+  );
+  const fechaExtension = document.querySelector<HTMLInputElement>(
+    '#cobertura-extender-fecha',
+  );
+  const errorExtension = document.querySelector<HTMLElement>(
+    '#cobertura-extender-error',
+  );
+  const feedbackExtension = document.querySelector<HTMLElement>(
+    '#cobertura-extender-feedback',
+  );
+  const nombreExtension = document.querySelector<HTMLElement>(
+    '#cobertura-extender-coordinador',
+  );
+
+  const dialogRevocar = document.querySelector<HTMLDialogElement>(
+    '#cobertura-revocar-dialog',
+  );
+  const nombreRevocar = document.querySelector<HTMLElement>(
+    '#cobertura-revocar-coordinador',
+  );
+  const feedbackRevocar = document.querySelector<HTMLElement>(
+    '#cobertura-revocar-feedback',
+  );
+  const confirmarRevocacion = document.querySelector<HTMLButtonElement>(
+    '#cobertura-revocar-confirmar',
+  );
+
+  let coberturaSeleccionada: {
+    id: string;
+    version: string;
+    fechaFin: string;
+  } | null = null;
+
+  lista?.addEventListener('click', (event) => {
+    const objetivo = event.target;
+    if (!(objetivo instanceof Element)) return;
+
+    const boton = objetivo.closest<HTMLButtonElement>(
+      '[data-cobertura-accion]',
+    );
+    if (!boton) return;
+
+    const { coberturaAccion, coberturaId, coberturaVersion, coberturaFin, coordinadorNombre } =
+      boton.dataset;
+
+    if (!coberturaId || !coberturaVersion) return;
+
+    coberturaSeleccionada = {
+      id: coberturaId,
+      version: coberturaVersion,
+      fechaFin: (coberturaFin ?? '').slice(0, 10),
+    };
+
+    if (coberturaAccion === 'extender' && dialogExtender && fechaExtension) {
+      if (nombreExtension) {
+        nombreExtension.textContent = coordinadorNombre
+          ? `Coordinador: ${coordinadorNombre}`
+          : 'Cobertura seleccionada';
+      }
+
+      formExtender?.reset();
+      if (errorExtension) {
+        errorExtension.hidden = true;
+        errorExtension.textContent = '';
+      }
+      if (feedbackExtension) feedbackExtension.hidden = true;
+
+      fechaExtension.min = coberturaSeleccionada.fechaFin
+        ? sumarDia(coberturaSeleccionada.fechaFin)
+        : '';
+
+      dialogExtender.showModal();
+      fechaExtension.focus();
+    }
+
+    if (coberturaAccion === 'revocar' && dialogRevocar) {
+      if (nombreRevocar) {
+        nombreRevocar.textContent = coordinadorNombre
+          ? `Coordinador: ${coordinadorNombre}`
+          : 'Cobertura seleccionada';
+      }
+
+      if (feedbackRevocar) feedbackRevocar.hidden = true;
+
+      dialogRevocar.showModal();
+    }
+  });
+
+  function sumarDia(fecha: string): string {
+    const dia = new Date(`${fecha}T00:00:00Z`);
+    dia.setUTCDate(dia.getUTCDate() + 1);
+    return dia.toISOString().slice(0, 10);
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-cobertura-cerrar]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      if (boton.dataset.coberturaCerrar === 'extender') {
+        dialogExtender?.close();
+      } else {
+        dialogRevocar?.close();
+      }
+    });
+  });
+
+  formExtender?.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    if (!fechaExtension || !errorExtension || !feedbackExtension) return;
+
+    errorExtension.hidden = true;
+    feedbackExtension.hidden = true;
+
+    if (!coberturaSeleccionada || !fechaExtension.value) {
+      errorExtension.textContent = 'Selecciona una nueva fecha de término.';
+      errorExtension.hidden = false;
+      fechaExtension.focus();
+      return;
+    }
+
+    if (
+      coberturaSeleccionada.fechaFin &&
+      fechaExtension.value <= coberturaSeleccionada.fechaFin
+    ) {
+      errorExtension.textContent =
+        'La nueva fecha debe ser posterior al término actual.';
+      errorExtension.hidden = false;
+      fechaExtension.focus();
+      return;
+    }
+
+    feedbackExtension.textContent =
+      'No se pudo preparar la extensión desde este cliente.';
+    feedbackExtension.hidden = false;
+  });
+
+  confirmarRevocacion?.addEventListener('click', () => {
+    if (!coberturaSeleccionada || !feedbackRevocar) return;
+
+    feedbackRevocar.textContent =
+      'No se pudo preparar la revocación desde este cliente.';
+    feedbackRevocar.hidden = false;
+  });
+  }
+</script>
+
+<script>
+  import { iniciarDialogosCobertura } from '../../lib/coberturas/interfaz-dialogos';
+  iniciarDialogosCobertura();
+</script>

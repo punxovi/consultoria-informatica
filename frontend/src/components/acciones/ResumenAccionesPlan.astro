@@ -1,0 +1,77 @@
+---
+import Card from '../ui/Card.astro';
+---
+
+<section
+  aria-label="Resumen de acciones"
+  class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+>
+  <Card class="border-t-4 border-t-primary">
+    <div class="flex items-center gap-3">
+      <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" />
+        </svg>
+      </span>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Registradas
+        </p>
+        <p data-resumen="total" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+        <p class="text-xs text-neutral-500">Acciones del plan</p>
+      </div>
+    </div>
+  </Card>
+
+  <Card class="border-t-4 border-t-brand-green">
+    <div class="flex items-center gap-3">
+      <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" />
+        </svg>
+      </span>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Cumplidas
+        </p>
+        <p data-resumen="cumplidas" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+        <p class="text-xs text-neutral-500">Acciones finalizadas</p>
+      </div>
+    </div>
+  </Card>
+
+  <Card class="border-t-4 border-t-brand-pink">
+    <div class="flex items-center gap-3">
+      <span class="rounded-xl bg-brand-pink/10 p-3 text-brand-pink" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 3.86 1.82 18.54A2 2 0 0 0 3.55 21.5h16.9a2 2 0 0 0 1.73-2.96L13.7 3.86a2 2 0 0 0-3.46 0Z" />
+        </svg>
+      </span>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Vencidas
+        </p>
+        <p data-resumen="vencidas" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+        <p class="text-xs text-neutral-500">Requieren atención</p>
+      </div>
+    </div>
+  </Card>
+
+  <Card class="border-t-4 border-t-brand-yellow">
+    <div class="flex items-center gap-3">
+      <span class="rounded-xl bg-brand-yellow/20 p-3 text-[#946200]" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="9" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
+        </svg>
+      </span>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          En desarrollo
+        </p>
+        <p data-resumen="desarrollo" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+        <p class="text-xs text-neutral-500">En ejecución</p>
+      </div>
+    </div>
+  </Card>
+</section>

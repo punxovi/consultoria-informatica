@@ -1,0 +1,77 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  type?: 'button' | 'submit' | 'reset';
+  href?: string;
+  disabled?: boolean;
+  id?: string;
+  class?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  type = 'button',
+  href,
+  disabled = false,
+  id,
+  class: className = '',
+} = Astro.props;
+
+const base =
+  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold ' +
+  'transition-colors duration-150 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+  'disabled:cursor-not-allowed disabled:opacity-50';
+
+const variants = {
+  primary:
+    'bg-[#4C4688] text-white shadow-sm hover:bg-[#423C76] ' +
+    'focus-visible:ring-[#4C4688]',
+
+  secondary:
+    'bg-[#423C76] text-white hover:bg-[#383165] ' +
+    'focus-visible:ring-[#423C76]',
+
+  outline:
+    'border border-[#4C4688] bg-white text-[#4C4688] ' +
+    'hover:bg-[#F0EEF8] focus-visible:ring-[#4C4688]',
+
+  danger:
+    'bg-[#C81E5B] text-white hover:bg-[#AD174F] ' +
+    'focus-visible:ring-[#C81E5B]',
+
+  ghost:
+    'bg-transparent text-[#4C4688] hover:bg-[#F0EEF8] ' +
+    'focus-visible:ring-[#4C4688]',
+};
+
+const sizes = {
+  sm: 'min-h-10 min-w-10 px-3 py-2 text-sm',
+  md: 'min-h-11 min-w-11 px-4 py-2.5 text-sm md:text-base',
+  lg: 'min-h-12 min-w-12 px-6 py-3 text-base',
+};
+
+const disabledLinkClasses =
+  href && disabled
+    ? 'pointer-events-none cursor-not-allowed opacity-50'
+    : '';
+
+const classes =
+  `${base} ${variants[variant]} ${sizes[size]} ${disabledLinkClasses} ${className}`;
+
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  id={id}
+  class={classes}
+  href={disabled ? undefined : href}
+  type={!href ? type : undefined}
+  disabled={!href ? disabled : undefined}
+  aria-disabled={disabled && href ? 'true' : undefined}
+  tabindex={disabled && href ? -1 : undefined}
+>
+  <slot />
+</Tag>

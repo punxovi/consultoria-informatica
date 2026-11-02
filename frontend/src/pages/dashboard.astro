@@ -1,0 +1,568 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/ui/Card.astro';
+import Badge from '../components/ui/Badge.astro';
+import Button from '../components/ui/Button.astro';
+import { mainNavItems } from '../config/nav';
+---
+
+<AppLayout title="Inicio" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+  <section class="space-y-6">
+    <!-- Encabezado principal con mayor presencia visual -->
+    <header class="relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-[#383164] via-[#4C4688] to-[#6962A6] p-6 text-white shadow-sm md:p-8">
+      <div aria-hidden="true" class="pointer-events-none absolute -right-14 -top-20 -z-10 h-64 w-64 rounded-full border-[35px] border-white/5"></div>
+      <div aria-hidden="true" class="pointer-events-none absolute -bottom-20 right-1/4 -z-10 h-44 w-44 rounded-full bg-white/5 blur-2xl"></div>
+      <div class="relative flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
+        <div class="max-w-2xl">
+          <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
+            <span class="h-2 w-2 rounded-full bg-[#8CE0B9]"></span>
+            PANEL DE GESTIÓN TERRITORIAL
+          </span>
+          <h1 id="dashboard-saludo" class="mt-4 text-2xl font-bold tracking-tight md:text-3xl">Bienvenido</h1>
+          <p class="mt-2 max-w-xl text-sm leading-6 text-white/80 md:text-base">
+            Supervisa el alcance de las organizaciones, el avance de los planes y el estado de las acciones de intervención.
+          </p>
+          <p id="dashboard-fecha" class="mt-4 text-sm font-medium text-white/70"></p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 sm:min-w-[390px]">
+          <div class="rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm sm:p-4">
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-white/70 sm:text-xs">Organizaciones</span>
+            <strong data-metrica="organizations" class="mt-2 block text-2xl font-bold tabular-nums sm:text-3xl">—</strong>
+          </div>
+          <div class="rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm sm:p-4">
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-white/70 sm:text-xs">Planes activos</span>
+            <strong data-metrica="activePlans" class="mt-2 block text-2xl font-bold tabular-nums sm:text-3xl">—</strong>
+          </div>
+          <div class="rounded-xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm sm:p-4">
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-white/70 sm:text-xs">Alertas</span>
+            <strong data-metrica="activeAlerts" class="mt-2 block text-2xl font-bold tabular-nums sm:text-3xl">—</strong>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filtros del resumen territorial -->
+    <section class="rounded-2xl border border-[#DAD6F0] bg-white p-4 shadow-sm md:p-5" aria-labelledby="dashboard-filtros-titulo">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 id="dashboard-filtros-titulo" class="text-sm font-bold text-[#383164]">Filtrar resumen</h2>
+          </div>
+          <p class="mt-1 text-xs leading-5 text-[#77718F]">Selecciona el país y el año que quieres revisar.</p>
+          <div class="mt-3">
+            <h3 id="dashboard-paises-titulo" class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">Ámbito territorial</h3>
+            <div id="dashboard-paises" class="flex flex-wrap gap-2" aria-label="Filtrar métricas por país">
+              <span class="text-xs text-[#625D86]">Cargando territorios…</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 flex-col gap-2 border-t border-[#E9E6F0] pt-4 sm:flex-row sm:items-end xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+          <div class="w-full sm:w-40">
+            <label for="dashboard-anio" class="mb-1.5 block text-xs font-semibold text-[#383164]">Año de gestión</label>
+            <div class="relative">
+              <select id="dashboard-anio" aria-describedby="dashboard-anio-ayuda" class="block min-h-[42px] w-full cursor-pointer appearance-none rounded-xl border border-[#DAD6F0] bg-[#F7F6FA] px-3 py-2 pr-9 text-sm font-semibold text-[#383164] transition focus:border-[#4C4688] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4C4688]/20">
+                <option selected>2026</option>
+                <option>2025</option>
+                <option>2024</option>
+                <option>2023</option>
+              </select>
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4C4688]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" /></svg>
+            </div>
+            <p id="dashboard-anio-ayuda" class="mt-1 text-[10px] leading-4 text-[#77719E]">El resumen se consultará para el año seleccionado.</p>
+          </div>
+          <Button id="recargar-dashboard" variant="outline" size="sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m11-1a7 7 0 0 0-12-4L4 12m16 0-2 5a7 7 0 0 1-12 0" />
+            </svg>
+            Actualizar datos
+          </Button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Métricas principales -->
+    <section aria-labelledby="dashboard-metricas-titulo" class="space-y-3">
+      <div class="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 id="dashboard-metricas-titulo" class="text-lg font-bold text-neutral-900">Indicadores clave</h2>
+          <p class="mt-1 text-sm text-neutral-500">Resumen de la actividad dentro del territorio seleccionado.</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Card class="border-t-4 border-t-[#4C4688] p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Organizaciones</p>
+              <strong data-metrica="organizations" class="mt-2 block text-3xl font-bold tabular-nums text-neutral-900">—</strong>
+            </div>
+            <span class="rounded-xl bg-[#F0EEF9] p-3 text-[#4C4688]" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1" /></svg>
+            </span>
+          </div>
+          <p class="mt-4 text-xs text-neutral-500">Registros del ámbito territorial</p>
+        </Card>
+
+        <Card class="border-t-4 border-t-[#199D6B] p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Planes activos</p>
+              <strong data-metrica="activePlans" class="mt-2 block text-3xl font-bold tabular-nums text-neutral-900">—</strong>
+            </div>
+            <span class="rounded-xl bg-[#E8F6EF] p-3 text-[#199D6B]" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h5" /></svg>
+            </span>
+          </div>
+          <p class="mt-4 text-xs text-neutral-500">Planes vigentes durante el período consultado</p>
+        </Card>
+
+        <Card class="border-t-4 border-t-[#1BAAC1] p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Beneficiarios</p>
+              <strong data-metrica="beneficiaries" class="mt-2 block text-3xl font-bold tabular-nums text-neutral-900">—</strong>
+            </div>
+            <span class="rounded-xl bg-[#E5F5F8] p-3 text-[#16899B]" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm2 4a4 4 0 0 1 4 4v1m-2-13a3 3 0 0 1 0 6" /></svg>
+            </span>
+          </div>
+          <p class="mt-4 text-xs text-neutral-500">Alcance registrado por las organizaciones</p>
+        </Card>
+
+
+      </div>
+    </section>
+
+    <!-- Alertas en franja horizontal para reducir el espacio vacío en las tarjetas inferiores -->
+    <Card class="border-t-4 border-t-[#D94F7D] p-5 md:p-6">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-center">
+        <div class="flex items-start gap-3 xl:w-56 xl:shrink-0">
+          <span class="rounded-xl bg-[#FCE8F0] p-3 text-[#AD174F]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 4h.01M10.3 4.8 2.9 17.5A1.8 1.8 0 0 0 4.5 20h15a1.8 1.8 0 0 0 1.6-2.5L13.7 4.8a2 2 0 0 0-3.4 0Z" /></svg>
+          </span>
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Alertas y atención</h2>
+            <p class="mt-1 text-sm text-neutral-500">Situaciones que requieren seguimiento.</p>
+          </div>
+        </div>
+
+        <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-4">
+            <span class="rounded-lg bg-[#FCE8F0] p-2.5 text-[#AD174F]" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-neutral-800">Acciones vencidas</p>
+              <strong id="dashboard-acciones-vencidas" class="mt-1 block text-xl font-bold tabular-nums text-[#872346]">—</strong>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-4">
+            <span class="rounded-lg bg-[#F0EEF9] p-2.5 text-[#4C4688]" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-neutral-800">Acciones prioritarias</p>
+              <strong id="dashboard-acciones-prioritarias-total" class="mt-1 block text-xl font-bold tabular-nums text-[#383164]">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <a href="/planes" class="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F0EEF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688]">
+          Ver planes <span aria-hidden="true">→</span>
+        </a>
+      </div>
+      <div class="mt-4 border-t border-neutral-100 pt-4">
+        <h3 class="text-sm font-semibold text-neutral-800">Acciones prioritarias</h3>
+        <p id="dashboard-atencion-estado" role="status" aria-live="polite" class="mt-2 text-xs leading-5 text-neutral-500">Cargando acciones del servicio…</p>
+        <div id="dashboard-acciones-prioritarias" class="mt-2 space-y-2" aria-label="Acciones que requieren atención"></div>
+      </div>
+    </Card>
+
+    <!-- Distribución inferior: avance a la izquierda y actividad mensual a la derecha -->
+    <section class="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(310px,0.82fr)_minmax(0,1.38fr)]" aria-label="Avance general y actividad mensual">
+      <Card class="flex min-h-[360px] flex-col border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Avance general</h2>
+            <p class="mt-1 text-sm text-neutral-500">Progreso de las acciones del territorio.</p>
+          </div>
+          <Badge id="dashboard-avance-estado" variant="neutral">Esperando datos</Badge>
+        </div>
+        <div class="mt-5 flex flex-1 flex-col items-center justify-center gap-5 sm:flex-row sm:justify-around xl:flex-col 2xl:flex-row">
+          <div id="dashboard-avance-grafico" class="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-full bg-[conic-gradient(#DAD6F0_0%_100%)] shadow-inner md:h-40 md:w-40">
+            <div class="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-sm">
+              <strong id="dashboard-avance-porcentaje" class="text-3xl font-bold tabular-nums text-[#383164]">—%</strong>
+              <span class="mt-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Avance</span>
+            </div>
+          </div>
+          <div class="w-full max-w-[250px] space-y-3">
+            <p id="dashboard-avance-texto" class="text-center text-sm leading-6 text-neutral-600 sm:text-left">Esperando los datos de acciones del territorio.</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl bg-[#E8F6EF] p-3 md:p-4">
+                <span class="block text-xs font-semibold text-[#287A55]">Cumplidas</span>
+                <strong id="dashboard-cumplidas" class="mt-1 block text-2xl font-bold tabular-nums text-[#196B46]">—</strong>
+              </div>
+              <div class="rounded-xl bg-[#FCE8F0] p-3 md:p-4">
+                <span class="block text-xs font-semibold text-[#AD174F]">Vencidas</span>
+                <strong id="dashboard-vencidas" class="mt-1 block text-2xl font-bold tabular-nums text-[#AD174F]">—</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card class="flex min-h-[360px] flex-col border-t-4 border-t-[#4C4688] p-5 md:p-6">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Actividad mensual</h2>
+            <p class="mt-1 text-sm text-neutral-500">Acciones completadas y pendientes por mes del año seleccionado.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-4 text-xs text-neutral-600">
+            <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#4C4688]"></span>Completadas</span>
+            <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#DAD6F0]"></span>Pendientes</span>
+          </div>
+        </div>
+        <div id="dashboard-meses" class="mt-4 grid min-h-[230px] flex-1 grid-cols-3 items-end gap-3 border-b border-neutral-100 pb-2 pt-4 sm:grid-cols-6 xl:grid-cols-12" aria-label="Gráfico de acciones por mes">
+          <p class="col-span-full self-center text-center text-sm text-neutral-400">Esperando datos del servicio…</p>
+        </div>
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p id="dashboard-estado" role="status" aria-live="polite" class="text-xs text-neutral-500">Cargando métricas desde el servicio…</p>
+          <span id="dashboard-actualizado" class="text-xs text-neutral-400"></span>
+        </div>
+      </Card>
+    </section>
+  </section>
+</AppLayout>
+
+<script>
+  import { obtenerDashboard, type DashboardSnapshot } from '../lib/dashboard/cliente';
+
+  interface PerfilDashboard {
+    nombre: string;
+    roles: string[];
+  }
+
+  const saludo = document.querySelector<HTMLElement>('#dashboard-saludo');
+
+  function normalizarCodigoRol(codigo: string): string {
+    return codigo.trim().toLocaleUpperCase('es-CL').replace(/[\s-]+/g, '_');
+  }
+
+  function actualizarSaludo(perfil: PerfilDashboard): void {
+    if (!saludo) return;
+
+    const codigos = perfil.roles.map(normalizarCodigoRol);
+    const esAdministrador = codigos.some((codigo) =>
+      ['ADMIN', 'ADMINISTRADOR', 'ADMINISTRACION'].includes(codigo) || codigo.includes('ADMINISTR'),
+    );
+    const esCoordinador = codigos.some((codigo) => codigo.includes('COORD'));
+
+    if (esAdministrador) {
+      saludo.textContent = 'Bienvenido, Administrador';
+      return;
+    }
+
+    if (esCoordinador) {
+      const nombre = perfil.nombre.trim();
+      saludo.textContent = nombre ? `Hola, ${nombre}` : 'Bienvenido, Coordinador';
+      return;
+    }
+
+    saludo.textContent = 'Bienvenido';
+  }
+
+  function leerPerfilGuardado(): void {
+    const configuracion = document.getElementById('auth-config');
+    const nombre = configuracion?.dataset.sessionName;
+    const rolesJson = configuracion?.dataset.sessionRoleCodes;
+    if (!nombre || !rolesJson) return;
+
+    try {
+      const roles = JSON.parse(rolesJson) as unknown;
+      if (Array.isArray(roles)) {
+        actualizarSaludo({
+          nombre,
+          roles: roles.filter((rol): rol is string => typeof rol === 'string'),
+        });
+      }
+    } catch (error) {
+      console.error('No fue posible leer el perfil para el saludo del dashboard:', error);
+    }
+  }
+
+  window.addEventListener('fge:perfil-actualizado', (evento: Event) => {
+    const detalle = (evento as CustomEvent<PerfilDashboard>).detail;
+    if (detalle && typeof detalle.nombre === 'string' && Array.isArray(detalle.roles)) {
+      actualizarSaludo(detalle);
+    }
+  });
+
+  // Lee también los datos guardados por AppLayout por si el evento ya se emitió.
+  leerPerfilGuardado();
+
+  const contenedorPaises = document.querySelector<HTMLElement>('#dashboard-paises')!;
+  const estado = document.querySelector<HTMLElement>('#dashboard-estado')!;
+  const recargar = document.querySelector<HTMLButtonElement>('#recargar-dashboard')!;
+  const selectorAnio = document.querySelector<HTMLSelectElement>('#dashboard-anio')!;
+  const ayudaAnio = document.querySelector<HTMLElement>('#dashboard-anio-ayuda')!;
+  const estadoAtencion = document.querySelector<HTMLElement>('#dashboard-atencion-estado')!;
+  const listaAtencion = document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias')!;
+  const numero = (valor: number) => new Intl.NumberFormat('es-CL').format(valor);
+  const anioActual = new Date().getFullYear();
+  selectorAnio.replaceChildren(...Array.from({ length: 4 }, (_, i) => {
+    const anio = String(anioActual - i);
+    return new Option(anio, anio, i === 0, i === 0);
+  }));
+  selectorAnio.addEventListener('change', () => {
+    ayudaAnio.textContent = `Consultando datos del año ${selectorAnio.value}.`;
+    void cargar();
+  });
+  let paisSeleccionado: string | undefined;
+  let solicitudActual = 0;
+
+  const fecha = document.querySelector<HTMLElement>('#dashboard-fecha');
+  if (fecha) {
+    fecha.textContent = new Intl.DateTimeFormat('es-CL', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      timeZone: 'America/Santiago',
+    }).format(new Date());
+  }
+
+  function renderizar(snapshot: DashboardSnapshot) {
+    // Una sola fuente de verdad para el total de acciones prioritarias.
+    // El indicador superior "Alertas" y la tarjeta inferior muestran
+    // exactamente el mismo conteo.
+    const totalAccionesPrioritarias = snapshot.pendingActions.length;
+
+    for (const [nombre, valor] of Object.entries(snapshot.metrics)) {
+      // No usar snapshot.metrics.activeAlerts: puede venir desactualizado
+      // o calculado con una lógica distinta en el servicio.
+      const valorMostrado = nombre === 'activeAlerts'
+        ? totalAccionesPrioritarias
+        : valor;
+
+      document.querySelectorAll<HTMLElement>(`[data-metrica="${nombre}"]`).forEach((el) => {
+        el.textContent = numero(valorMostrado);
+      });
+    }
+
+    const { progress } = snapshot;
+    document.querySelector<HTMLElement>('#dashboard-avance-porcentaje')!.textContent = `${progress.percentage}%`;
+    document.querySelector<HTMLElement>('#dashboard-avance-texto')!.textContent = `${numero(progress.completed)} de ${numero(progress.total)} acciones completadas`;
+    document.querySelector<HTMLElement>('#dashboard-cumplidas')!.textContent = numero(progress.completed);
+    document.querySelector<HTMLElement>('#dashboard-vencidas')!.textContent = numero(progress.overdue);
+    document.querySelector<HTMLElement>('#dashboard-acciones-vencidas')!.textContent = numero(snapshot.progress.overdue);
+    document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = numero(totalAccionesPrioritarias);
+    listaAtencion.replaceChildren();
+    if (totalAccionesPrioritarias === 0) {
+      estadoAtencion.textContent = 'No hay acciones que requieran atención para los filtros seleccionados.';
+    } else {
+      estadoAtencion.textContent = `${numero(totalAccionesPrioritarias)} acciones requieren seguimiento.`;
+      const partesFecha = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date());
+
+      const obtenerParte = (tipo: string) =>
+        partesFecha.find((parte) => parte.type === tipo)?.value ?? '';
+
+      const hoy = `${obtenerParte('year')}-${obtenerParte('month')}-${obtenerParte('day')}`;
+      const hoyMs = Date.parse(`${hoy}T00:00:00Z`);
+
+      for (const accion of snapshot.pendingActions) {
+        const fechaTerminoMs = Date.parse(`${accion.fecha_termino}T00:00:00Z`);
+        const diasRestantes = Math.round((fechaTerminoMs - hoyMs) / 86_400_000);
+
+        const vencida =
+          accion.estado === 'atrasada' || accion.fecha_termino < hoy;
+
+        const proximaAVencer =
+          !vencida && diasRestantes >= 0 && diasRestantes <= 7;
+
+        const fila = document.createElement('article');
+
+        fila.className = vencida
+          ? 'flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-3 sm:flex-row sm:items-center sm:justify-between'
+          : proximaAVencer
+            ? 'flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between'
+            : 'flex flex-col gap-2 rounded-xl border border-[#E9E6F0] bg-[#FCFBFE] p-3 sm:flex-row sm:items-center sm:justify-between';
+
+        const detalle = document.createElement('div');
+        detalle.className = 'min-w-0';
+
+        const nombre = document.createElement('p');
+        nombre.className = 'truncate text-sm font-semibold text-neutral-900';
+        nombre.textContent = accion.nombre;
+
+        const contexto = document.createElement('p');
+        contexto.className = 'mt-1 text-xs text-neutral-600';
+        contexto.textContent = `${accion.plan.nombre} · ${accion.organizacion.nombre}${accion.programa ? ` · ${accion.programa.nombre}` : ''}`;
+
+        detalle.append(nombre, contexto);
+
+        if (vencida || proximaAVencer) {
+          const etiqueta = document.createElement('span');
+
+          etiqueta.className = vencida
+            ? 'mt-2 inline-flex w-fit items-center rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold text-red-800 ring-1 ring-inset ring-red-200'
+            : 'mt-2 inline-flex w-fit items-center rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200';
+
+          etiqueta.textContent = vencida
+            ? '⚠ VENCIDA'
+            : '◷ PRÓXIMA A VENCER';
+
+          detalle.append(etiqueta);
+        }
+
+        const fechaTermino = document.createElement('p');
+        fechaTermino.className = 'mt-1 text-xs text-neutral-600';
+        fechaTermino.textContent = `Término: ${new Intl.DateTimeFormat('es-CL', {
+          dateStyle: 'medium',
+          timeZone: 'UTC',
+        }).format(new Date(`${accion.fecha_termino}T00:00:00Z`))} · ${accion.estado.replaceAll('_', ' ')}`;
+
+        detalle.append(fechaTermino);
+
+        const enlace = document.createElement('a');
+        enlace.className = 'inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-lg border border-[#DAD6F0] bg-white px-3 text-xs font-semibold text-[#4C4688] hover:bg-[#F0EEF9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688]';
+        enlace.href = `/planes/${encodeURIComponent(accion.plan.id_plan)}/acciones/${encodeURIComponent(accion.id_accion)}`;
+        enlace.textContent = 'Ver acción';
+
+        fila.append(detalle, enlace);
+        listaAtencion.append(fila);
+      }
+    }
+    document.querySelector<HTMLElement>('#dashboard-avance-estado')!.textContent = progress.total ? 'Datos actualizados' : 'Sin datos de acciones';
+    document.querySelector<HTMLElement>('#dashboard-avance-grafico')!.style.background =
+      `conic-gradient(#4C4688 0% ${Math.min(100, Math.max(0, progress.percentage))}%, #DAD6F0 ${Math.min(100, Math.max(0, progress.percentage))}% 100%)`;
+
+    const maximo = Math.max(1, ...snapshot.monthlyActions.map((mes) => mes.completed + mes.pending));
+    const meses = document.querySelector<HTMLElement>('#dashboard-meses')!;
+    meses.replaceChildren();
+    if (snapshot.progress.total === 0) {
+      const vacio = document.createElement('p');
+      vacio.className = 'col-span-full self-center text-center text-sm text-neutral-500';
+      vacio.textContent = 'No hay actividad mensual para mostrar.';
+      meses.append(vacio);
+    }
+    if (snapshot.progress.total > 0) for (const mes of snapshot.monthlyActions) {
+      const columna = document.createElement('div');
+      columna.className = 'flex h-full min-w-0 flex-col items-center justify-end gap-1';
+      const barras = document.createElement('div');
+      barras.className = 'flex h-[160px] w-full items-end justify-center gap-1';
+      const completadas = document.createElement('div');
+      completadas.className = 'w-2/5 max-w-5 rounded-t-md bg-[#4C4688] transition-[height]';
+      completadas.style.height = `${mes.completed ? Math.max(5, (mes.completed / maximo) * 100) : 0}%`;
+      completadas.title = `${mes.completed} completadas`;
+      completadas.setAttribute('aria-label', `${mes.completed} completadas`);
+      const pendientes = document.createElement('div');
+      pendientes.className = 'w-2/5 max-w-5 rounded-t-md bg-[#DAD6F0] transition-[height]';
+      pendientes.style.height = `${mes.pending ? Math.max(5, (mes.pending / maximo) * 100) : 0}%`;
+      pendientes.title = `${mes.pending} pendientes`;
+      pendientes.setAttribute('aria-label', `${mes.pending} pendientes`);
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'mt-2 truncate text-[10px] text-neutral-500 sm:text-xs';
+      etiqueta.textContent = mes.label;
+      barras.append(completadas, pendientes);
+      columna.append(barras, etiqueta);
+      meses.append(columna);
+    }
+
+    contenedorPaises.replaceChildren();
+    const opciones = [{ id_pais: '', codigo_iso: '', nombre: 'Todos los países' }, ...snapshot.countries];
+    for (const pais of opciones) {
+      const boton = document.createElement('button');
+      const idPais = pais.id_pais || undefined;
+      const activo = idPais === paisSeleccionado;
+      boton.type = 'button';
+      boton.setAttribute('aria-pressed', String(activo));
+      boton.className = activo
+        ? 'inline-flex min-h-[42px] items-center justify-center rounded-full border border-[#4C4688] bg-[#4C4688] px-4 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2'
+        : 'inline-flex min-h-[42px] items-center justify-center rounded-full border border-[#DAD6F0] bg-white px-4 py-2 text-sm font-medium text-[#4C4688] transition-colors hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2';
+      boton.textContent = `${pais.codigo_iso ? `${pais.codigo_iso} · ` : ''}${pais.nombre}`;
+      boton.addEventListener('click', () => {
+        if ((pais.id_pais || undefined) === paisSeleccionado) return;
+        paisSeleccionado = pais.id_pais || undefined;
+        void cargar();
+      });
+      contenedorPaises.append(boton);
+    }
+
+    const actualizado = document.querySelector<HTMLElement>('#dashboard-actualizado');
+    if (actualizado) {
+      actualizado.textContent = `Actualizado ${new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' }).format(new Date(snapshot.generatedAt))}`;
+    }
+    estado.textContent = `Métricas actualizadas: ${new Date(snapshot.generatedAt).toLocaleString('es-CL')}.`;
+  }
+
+  async function cargar() {
+    const idSolicitud = ++solicitudActual;
+    recargar.disabled = true;
+    estado.textContent = 'Actualizando métricas…';
+    estadoAtencion.textContent = 'Cargando acciones prioritarias…';
+    listaAtencion.replaceChildren();
+    document.querySelectorAll<HTMLElement>('[data-metrica]').forEach((el) => { el.textContent = '—'; });
+    document.querySelector<HTMLElement>('#dashboard-avance-porcentaje')!.textContent = '—%';
+    document.querySelector<HTMLElement>('#dashboard-avance-texto')!.textContent = 'Cargando datos de acciones…';
+    document.querySelector<HTMLElement>('#dashboard-cumplidas')!.textContent = '—';
+    document.querySelector<HTMLElement>('#dashboard-vencidas')!.textContent = '—';
+    document.querySelector<HTMLElement>('#dashboard-acciones-vencidas')!.textContent = '—';
+    document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = '—';
+    document.querySelector<HTMLElement>('#dashboard-avance-estado')!.textContent = 'Cargando';
+    document.querySelector<HTMLElement>('#dashboard-avance-grafico')!.style.background = 'conic-gradient(#DAD6F0 0% 100%)';
+    const mesesPrevios = document.querySelector<HTMLElement>('#dashboard-meses')!;
+    const cargandoMeses = document.createElement('p');
+    cargandoMeses.className = 'col-span-full self-center text-center text-sm text-neutral-400';
+    cargandoMeses.textContent = 'Cargando actividad mensual…';
+    mesesPrevios.replaceChildren(cargandoMeses);
+    const actualizadoPrevio = document.querySelector<HTMLElement>('#dashboard-actualizado');
+    if (actualizadoPrevio) actualizadoPrevio.textContent = '';
+    try {
+      const snapshot = await obtenerDashboard(paisSeleccionado, Number(selectorAnio.value));
+      if (idSolicitud !== solicitudActual) return;
+      if (paisSeleccionado === undefined && snapshot.selectedCountryId) {
+        paisSeleccionado = snapshot.selectedCountryId;
+      }
+      renderizar(snapshot);
+    } catch (fallo) {
+      if (idSolicitud !== solicitudActual) return;
+      document.querySelectorAll<HTMLElement>('[data-metrica]').forEach((el) => {
+        el.textContent = '—';
+      });
+      document.querySelector<HTMLElement>('#dashboard-avance-porcentaje')!.textContent = '—%';
+      document.querySelector<HTMLElement>('#dashboard-avance-texto')!.textContent = 'No hay datos disponibles para mostrar.';
+      document.querySelector<HTMLElement>('#dashboard-cumplidas')!.textContent = '—';
+      document.querySelector<HTMLElement>('#dashboard-vencidas')!.textContent = '—';
+      document.querySelector<HTMLElement>('#dashboard-acciones-vencidas')!.textContent = '—';
+      document.querySelector<HTMLElement>('#dashboard-acciones-prioritarias-total')!.textContent = '—';
+      listaAtencion.replaceChildren();
+      estadoAtencion.textContent = 'No fue posible cargar las acciones prioritarias.';
+      document.querySelector<HTMLElement>('#dashboard-avance-estado')!.textContent = 'Sin datos';
+      document.querySelector<HTMLElement>('#dashboard-avance-grafico')!.style.background =
+        'conic-gradient(#DAD6F0 0% 100%)';
+      const meses = document.querySelector<HTMLElement>('#dashboard-meses')!;
+      meses.replaceChildren();
+      const mensaje = document.createElement('p');
+      mensaje.className = 'col-span-full self-center text-center text-sm text-neutral-500';
+      mensaje.textContent = 'No se pudo cargar la actividad mensual.';
+      meses.append(mensaje);
+      estado.textContent = fallo instanceof Error
+        ? `No fue posible cargar las métricas: ${fallo.message}`
+        : 'No fue posible cargar las métricas. Inténtalo nuevamente.';
+      const actualizado = document.querySelector<HTMLElement>('#dashboard-actualizado');
+      if (actualizado) actualizado.textContent = '';
+    } finally {
+      if (idSolicitud === solicitudActual) recargar.disabled = false;
+    }
+  }
+
+  recargar.addEventListener('click', () => void cargar());
+  window.addEventListener('pageshow', (evento) => {
+    if (evento.persisted) void cargar();
+  });
+  void cargar();
+</script>

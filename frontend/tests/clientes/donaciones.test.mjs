@@ -1,0 +1,239 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { crearClienteDonaciones } from '../../src/lib/donaciones/cliente.ts';
+import { ApiError } from '../../src/lib/api/transporte.ts';
+
+test('cliente donaciones: conserva los mensajes por campo del Backend', async () => {
+  const fields = { origen: ['El origen del donante es obligatorio.'] };
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'test-session', async () =>
+    Response.json({ok:false,error:{code:'DATOS_INVALIDOS',message:'Revisa los campos.',requestId:'test-request',fields},data:null},{status:400}));
+  await assert.rejects(cliente.crearDonacion(idOrg, {}), error => error instanceof ApiError
+    && error.code === 'DATOS_INVALIDOS' && error.requestId === 'test-request'
+    && error.fields.origen[0] === fields.origen[0]);
+});
+
+test('cliente donaciones: recupera los metadatos HU20 sin descartarlos', async () => {
+  const metadata = {id_pais:idOrg,categoria:'Servicio',tipo_donante:'empresa',origen:'Campaña',estado:'Comprometida',
+    valor_estimado:0,moneda_valorizacion:'CLP',metodo_valorizacion:'Declarado'};
+  const cliente=crearClienteDonaciones('http://api.test',async()=>'test-session',async()=>
+    Response.json({ok:true,code:'DONACION_OBTENIDA',message:'OK',data:{donation:{...donacionEjemplo,...metadata}}}));
+  const result=await cliente.obtenerDonacion(idOrg,idDonacion);
+  for(const [key,value] of Object.entries(metadata))assert.equal(result[key],value);
+});
+
+const idOrg = '11111111-1111-4111-8111-111111111111';
+const idDonacion = '22222222-2222-4222-8222-222222222222';
+const idArchivo = '33333333-3333-4333-8333-333333333333';
+
+const donacionEjemplo = {
+  id_donacion: idDonacion,
+  id_organizacion: idOrg,
+  fecha: '2026-10-19',
+  tipo_movimiento: 'recibida',
+  contraparte_nombre: 'Fundación Aliada',
+  descripcion: 'Donación de víveres',
+  tipo_aporte: 'recurso',
+  cantidad: 20,
+  unidad: 'cajas',
+  version: 1,
+};
+
+const respaldoEjemplo = {
+  id_archivo: idArchivo,
+  id_donacion: idDonacion,
+  bucket_id: 'fge-archivos',
+  ruta_objeto: `donaciones/${idDonacion}/${idArchivo}.pdf`,
+  nombre_original: 'comprobante.pdf',
+  mime_type: 'application/pdf',
+  tamano_bytes: 2048,
+  categoria: 'comprobante',
+  tipo_respaldo: 'comprobante',
+  descripcion: 'Comprobante bancario',
+  estado_carga: 'reservado',
+  version: 1,
+};
+
+test('cliente donaciones: listar, obtener y crear donaciones', async () => {
+  const llamadas = [];
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'jwt-token', async (url, init) => {
+    llamadas.push({ url, init });
+    if (init?.method === 'POST') {
+      return Response.json({
+        ok: true,
+        code: 'DONACION_CREADA',
+        message: 'Donación creada',
+        data: { donation: donacionEjemplo },
+      });
+    }
+    if (url.endsWith(`/donations/${idDonacion}`)) {
+      return Response.json({
+        ok: true,
+        code: 'DONACION_OBTENIDA',
+        message: 'Donación obtenida',
+        data: { donation: donacionEjemplo },
+      });
+    }
+    return Response.json({
+      ok: true,
+      code: 'DONACIONES_OBTENIDAS',
+      message: 'Donaciones obtenidas',
+      data: { donations: [donacionEjemplo] },
+    });
+  });
+
+  const lista = await cliente.listarDonaciones(idOrg);
+  assert.equal(lista.length, 1);
+  assert.equal(lista[0].id_donacion, idDonacion);
+
+  const obtenida = await cliente.obtenerDonacion(idOrg, idDonacion);
+  assert.equal(obtenida.contraparte_nombre, 'Fundación Aliada');
+
+  const creada = await cliente.crearDonacion(idOrg, {
+    fecha: '2026-10-19',
+    tipo_movimiento: 'recibida',
+    contraparte_nombre: 'Fundación Aliada',
+    descripcion: 'Donación de víveres',
+    tipo_aporte: 'recurso',
+    cantidad: 20,
+    unidad: 'cajas',
+  });
+  assert.equal(creada.id_donacion, idDonacion);
+  assert.equal(llamadas[2].init.headers.authorization, 'Bearer jwt-token');
+});
+
+test('cliente donaciones: ciclo de respaldo (reserva, subida binaria y descarga autenticada)', async () => {
+  const llamadas = [];
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'jwt-token', async (url, init) => {
+    llamadas.push({ url, init });
+    if (init?.method === 'PUT' && url.includes('/file?version_esperada=1')) {
+      return Response.json({
+        ok: true,
+        code: 'ARCHIVO_DONACION_CONFIRMADO',
+        message: 'Archivo confirmado',
+        data: {
+          file: {
+            ...respaldoEjemplo,
+            estado_carga: 'disponible',
+            version: 2,
+          },
+        },
+      });
+    }
+    if (init?.method === 'GET' && url.endsWith('/file')) {
+      return new Response(Buffer.from('%PDF-1.4\n...fake pdf content...'), {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': 'attachment; filename="comprobante.pdf"',
+        },
+      });
+    }
+    if (init?.method === 'POST') {
+      return Response.json({
+        ok: true,
+        code: 'ARCHIVO_DONACION_RESERVADO',
+        message: 'Archivo reservado',
+        data: { file: respaldoEjemplo },
+      });
+    }
+    return Response.json({
+      ok: true,
+      code: 'ARCHIVOS_DONACION_OBTENIDOS',
+      message: 'Archivos obtenidos',
+      data: { files: [respaldoEjemplo] },
+    });
+  });
+
+  // 1. Listar respaldos
+  const respaldos = await cliente.listarRespaldos(idOrg, idDonacion);
+  assert.equal(respaldos.length, 1);
+  assert.equal(respaldos[0].tipo_respaldo, 'comprobante');
+
+  // 2. Reservar respaldo
+  const reservado = await cliente.reservarRespaldo(idOrg, idDonacion, {
+    tipo_respaldo: 'comprobante',
+    nombre_original: 'comprobante.pdf',
+    mime_type: 'application/pdf',
+    tamano_bytes: 2048,
+    descripcion: 'Comprobante bancario',
+  });
+  assert.equal(reservado.estado_carga, 'reservado');
+
+  // 3. Subir archivo binario
+  const file = new Blob(['%PDF-1.4\nfake content'], { type: 'application/pdf' });
+  const confirmado = await cliente.subirRespaldo(idOrg, reservado, file);
+  assert.equal(confirmado.estado_carga, 'disponible');
+  assert.equal(confirmado.version, 2);
+
+  // 4. Descargar archivo privado (autenticado)
+  const blob = await cliente.descargarRespaldo(idOrg, confirmado);
+  assert.ok(blob.size > 0);
+  assert.equal(llamadas[3].init.headers.authorization, 'Bearer jwt-token');
+});
+
+test('cliente donaciones: rechaza archivos asociados a otra donación o respuestas corruptas', async () => {
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'jwt-token', async () => {
+    return Response.json({
+      ok: true,
+      code: 'ARCHIVOS_DONACION_OBTENIDOS',
+      data: {
+        files: [
+          {
+            ...respaldoEjemplo,
+            id_donacion: '99999999-9999-4999-8999-999999999999', // otra donación
+          },
+        ],
+      },
+    });
+  });
+
+  await assert.rejects(
+    () => cliente.listarRespaldos(idOrg, idDonacion),
+    (err) => err.code === 'RESPUESTA_INVALIDA',
+  );
+});
+
+test('cliente donaciones: falla limpiamente si la carga no queda en estado disponible', async () => {
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'jwt-token', async (url, init) => {
+    if (init?.method === 'PUT') {
+      return Response.json({
+        ok: true,
+        data: {
+          file: {
+            ...respaldoEjemplo,
+            estado_carga: 'fallido',
+            version: 2,
+          },
+        },
+      });
+    }
+    return Response.json({ ok: false }, { status: 500 });
+  });
+
+  const file = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+  await assert.rejects(
+    () => cliente.subirRespaldo(idOrg, respaldoEjemplo, file),
+    (err) => err.code === 'CARGA_PENDIENTE',
+  );
+});
+
+test('cliente donaciones: cambia el estado con la versión esperada', async () => {
+  const llamadas = [];
+  const cliente = crearClienteDonaciones('http://api.test', async () => 'jwt-token', async (url, init) => {
+    llamadas.push({ url, init });
+    return Response.json({
+      ok: true,
+      code: 'DONACION_ACTUALIZADA',
+      message: 'Donación actualizada',
+      data: { donation: { ...donacionEjemplo, estado: 'Recibida', version: 2 } },
+    });
+  });
+
+  const actualizada = await cliente.actualizarDonacion(idOrg, idDonacion, 1, { estado: 'Recibida' });
+  assert.equal(actualizada.estado, 'Recibida');
+  assert.equal(actualizada.version, 2);
+  assert.equal(llamadas[0].init.method, 'PATCH');
+  assert.ok(llamadas[0].url.endsWith(`/organizations/${idOrg}/donations/${idDonacion}`));
+  assert.deepEqual(JSON.parse(llamadas[0].init.body), { version_esperada: 1, cambios: { estado: 'Recibida' } });
+  assert.equal(llamadas[0].init.headers.authorization, 'Bearer jwt-token');
+});

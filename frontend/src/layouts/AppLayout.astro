@@ -1,0 +1,279 @@
+---
+// frontend/src/layouts/AppLayout.astro
+import Layout from './Layout.astro';
+import Header from '../components/ui/Header.astro';
+import Sidebar from '../components/ui/Sidebar.astro';
+import type { NavItem } from '../config/nav';
+
+interface Props {
+  title?: string;
+  navItems: NavItem[];
+  allowedRoles?: string[];
+}
+
+const { title, navItems, allowedRoles = [] } = Astro.props;
+const hasBreadcrumb = Astro.slots.has('breadcrumb');
+const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
+---
+
+<Layout title={title}>
+  <div class="flex h-screen overflow-hidden bg-[#F7F6FA]">
+    <!-- Menú lateral de altura completa -->
+    <Sidebar items={navItems} />
+
+    <!-- Columna principal: encabezado y contenido -->
+    <div class="flex min-w-0 flex-1 flex-col md:ml-64">
+      <Header
+        title={title ?? 'Fundación Gestionar Esperanzas'}
+        showBreadcrumb={hasHeaderBreadcrumb}
+      >
+        <slot name="actions" slot="actions" />
+
+        {
+          hasHeaderBreadcrumb && (
+            <Fragment slot="breadcrumb">
+              <slot name="headerBreadcrumb" />
+            </Fragment>
+          )
+        }
+      </Header>
+
+      <main
+        id="main-content"
+        class="relative min-w-0 flex-1 overflow-y-auto box-border
+          bg-[#F7F6FA] p-4 opacity-0 transition-opacity duration-300
+          md:p-8"
+      >
+        <div id="page-content">
+          {hasBreadcrumb && (
+            <div class="mb-4 flex items-center gap-1.5
+              text-xs text-neutral-500 md:text-sm">
+              <slot name="breadcrumb" />
+            </div>
+          )}
+
+          <slot />
+        </div>
+
+        <!-- Mensaje de acceso denegado -->
+        <div
+          id="unauthorized-message"
+          class="hidden h-full flex-col items-center
+            justify-center text-center"
+        >
+          <div class="mb-4 rounded-xl bg-danger/10 p-4 text-danger">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="mx-auto h-10 w-10"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+
+          <h2 class="mb-2 text-xl font-bold text-neutral-900">
+            Acceso no autorizado
+          </h2>
+
+          <p class="max-w-sm text-sm text-neutral-500">
+            No tienes los permisos necesarios para visualizar esta sección.
+            Si crees que esto es un error, contacta al administrador.
+          </p>
+        </div>
+      </main>
+
+      <!-- Roles permitidos para la página actual -->
+      <div
+        id="auth-config"
+        data-allowed-roles={JSON.stringify(allowedRoles)}
+        class="hidden"
+        aria-hidden="true"
+      ></div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { verificarSesion } from '../lib/auth/cliente';
+  import { getSupabaseClient, getUserRoles } from '../lib/supabase';
+
+  interface RolSesion {
+    codigo: string;
+    nombre?: string;
+    nombre_rol?: string;
+  }
+
+  function textoDeMetadatos(...valores: unknown[]): string {
+    const valor = valores.find(
+      (item) => typeof item === 'string' && item.trim().length > 0
+    );
+    return typeof valor === 'string' ? valor.trim() : '';
+  }
+
+  function nombreDesdeCorreo(correo: string): string {
+    const parteLocal = correo.split('@')[0] ?? '';
+    const legible = parteLocal.replace(/[._-]+/g, ' ').trim();
+    if (!legible) return 'Usuario';
+
+    return legible.replace(/\b\p{L}/gu, (letra) =>
+      letra.toLocaleUpperCase('es-CL')
+    );
+  }
+
+  function etiquetaRol(rol: RolSesion): string {
+    const codigo = String(rol.codigo ?? '').trim();
+    const normalizado = codigo.toLocaleUpperCase('es-CL').replace(/[\s-]+/g, '_');
+    const nombreConfigurado = rol.nombre?.trim() || rol.nombre_rol?.trim();
+
+    if (nombreConfigurado) return nombreConfigurado;
+    if (['ADMIN', 'ADMINISTRADOR', 'ADMINISTRACION'].includes(normalizado)) {
+      return 'Administrador';
+    }
+    if (normalizado.includes('COORD')) return 'Coordinador';
+    if (['INVITADO', 'INVITED', 'GUEST'].includes(normalizado)) return 'Invitado';
+    return codigo || 'Rol no disponible';
+  }
+
+  function actualizarDatosPerfil(nombre: string, correo: string, rol: string) {
+    const contenedor = document.querySelector<HTMLElement>('[data-session-profile]');
+    if (!contenedor) return;
+
+    const nombreSeguro = nombre.trim() || 'Usuario';
+    const inicial = Array.from(nombreSeguro)[0]?.toLocaleUpperCase('es-CL') || 'U';
+
+    contenedor.querySelectorAll<HTMLElement>('[data-session-initial]').forEach((el) => {
+      el.textContent = inicial;
+    });
+    contenedor.querySelectorAll<HTMLElement>('[data-session-initial-large]').forEach((el) => {
+      el.textContent = inicial;
+    });
+
+    const nombreEl = contenedor.querySelector<HTMLElement>('[data-session-name]');
+    const correoEl = contenedor.querySelector<HTMLElement>('[data-session-email]');
+    const rolEl = contenedor.querySelector<HTMLElement>('[data-session-role]');
+    const toggleEl = contenedor.querySelector<HTMLButtonElement>('[data-profile-toggle]');
+
+    if (nombreEl) nombreEl.textContent = nombreSeguro;
+    if (correoEl) correoEl.textContent = correo || 'Correo no disponible';
+    if (rolEl) rolEl.textContent = rol || 'Rol no disponible';
+    toggleEl?.setAttribute('aria-label', `Ver datos de sesión de ${nombreSeguro}`);
+
+    contenedor.hidden = false;
+  }
+
+  async function validateSession() {
+    const hasSession = await verificarSesion();
+
+    if (!hasSession) {
+      window.location.replace('/login');
+      return;
+    }
+
+    const configEl = document.getElementById('auth-config');
+    let allowedRoles: string[] = [];
+
+    if (configEl?.dataset.allowedRoles) {
+      try {
+        allowedRoles = JSON.parse(configEl.dataset.allowedRoles);
+      } catch (error) {
+        console.error('Error parseando roles permitidos', error);
+      }
+    }
+
+    const mainContent = document.getElementById('main-content');
+    const pageContent = document.getElementById('page-content');
+    const unauthorizedMsg = document.getElementById('unauthorized-message');
+
+    let roles: RolSesion[] = [];
+    let rolesDisponibles = false;
+
+    try {
+      roles = (await getUserRoles()) as RolSesion[];
+      rolesDisponibles = true;
+    } catch (error) {
+      console.error('Error obteniendo los roles del usuario:', error);
+    }
+
+    // Completar el perfil del encabezado con los datos de la sesión autenticada.
+    try {
+      const { data, error } = await getSupabaseClient().auth.getUser();
+      const usuario = data.user;
+
+      if (!error && usuario) {
+        const metadatos = (usuario.user_metadata ?? {}) as Record<string, unknown>;
+        const correo = usuario.email?.trim() ?? '';
+        const nombre = textoDeMetadatos(
+          metadatos.full_name,
+          metadatos.nombre_completo,
+          metadatos.nombre,
+          metadatos.name,
+          metadatos.display_name
+        ) || nombreDesdeCorreo(correo);
+        const rol = roles.map(etiquetaRol).filter(Boolean).join(' · ') || 'Rol no disponible';
+
+        actualizarDatosPerfil(nombre, correo, rol);
+
+        // Compartir los datos ya consultados con el dashboard para personalizar el saludo.
+        // No se realiza una segunda consulta a Supabase desde dashboard.astro.
+        const codigosRol = roles
+          .map((item) => String(item.codigo ?? '').trim())
+          .filter(Boolean);
+
+        if (configEl) {
+          configEl.dataset.sessionName = nombre;
+          configEl.dataset.sessionRoleCodes = JSON.stringify(codigosRol);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('fge:perfil-actualizado', {
+            detail: { nombre, roles: codigosRol },
+          }),
+        );
+      }
+    } catch (error) {
+      console.error('Error obteniendo los datos de perfil:', error);
+    }
+
+    // Mantener la visibilidad original del menú según los roles asignados.
+    document.querySelectorAll<HTMLElement>('[data-nav-roles]').forEach((enlace) => {
+      let rolesItem: string[] = [];
+      try {
+        rolesItem = JSON.parse(enlace.dataset.navRoles ?? '[]');
+      } catch {
+        rolesItem = [];
+      }
+      enlace.hidden = !roles.some((role) => rolesItem.includes(role.codigo));
+    });
+
+    if (allowedRoles.length > 0) {
+      const userHasRole = roles.some((role) => allowedRoles.includes(role.codigo));
+
+      if (!rolesDisponibles || !userHasRole) {
+        pageContent?.classList.add('hidden');
+        unauthorizedMsg?.classList.remove('hidden');
+        unauthorizedMsg?.classList.add('flex');
+      }
+    }
+
+    mainContent?.classList.remove('opacity-0');
+  }
+
+  void validateSession();
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) void validateSession();
+  });
+</script>
+<script>
+  import { iniciarCapitalizacionCampos } from '../lib/capitalizacion-campos';
+
+  iniciarCapitalizacionCampos();
+</script>

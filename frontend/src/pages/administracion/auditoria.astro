@@ -1,0 +1,58 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Card from '../../components/ui/Card.astro';
+import Button from '../../components/ui/Button.astro';
+import { mainNavItems } from '../../config/nav';
+const campos = [
+  ['usuario', 'Usuario', 'search', 'Nombre, correo o identificador'],
+  ['pais', 'País', 'search', 'Nombre o código del país'],
+  ['desde', 'Desde', 'date', ''], ['hasta', 'Hasta', 'date', ''],
+  ['operacion', 'Operación', 'search', 'Ej. INSERT, UPDATE o DELETE'],
+  ['entidad', 'Entidad afectada', 'search', 'Ej. organizaciones'],
+] as const;
+---
+<AppLayout title="Auditoría" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <Fragment slot="headerBreadcrumb"><span class="text-sm font-semibold text-neutral-900">Auditoría</span></Fragment>
+  <section id="auditoria" class="space-y-6 min-w-0">
+    <header>
+      <h1 class="text-3xl font-bold text-neutral-900 md:text-4xl">Historial de auditoría</h1>
+      <p class="mt-2 text-neutral-500">Consulta quién realizó cada operación y sobre qué registro. El historial es de solo lectura.</p>
+    </header>
+    <Card class="border-l-4 border-l-primary p-5">
+      <h2 class="text-lg font-semibold">Filtrar eventos</h2>
+      <p class="mt-1 mb-5 text-sm text-neutral-500">Combina los criterios que necesites. Todos los filtros son opcionales; las fechas incluyen ambos días.</p>
+      <form id="audit-form" novalidate>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {campos.map(([id, label, tipo, placeholder]) => <div class="min-w-0">
+            <label for={`audit-${id}`} class="block mb-2 text-sm font-medium">{label}</label>
+            <input id={`audit-${id}`} name={id} type={tipo} placeholder={placeholder} aria-describedby={`audit-error-${id}`} class="min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p id={`audit-error-${id}`} hidden class="mt-1 text-sm text-danger"></p>
+          </div>)}
+        </div>
+        <div class="mt-5 flex flex-wrap gap-3">
+          <Button type="submit" size="lg" id="audit-aplicar">Aplicar filtros</Button>
+          <Button type="button" variant="outline" size="lg" id="audit-limpiar">Limpiar filtros</Button>
+        </div>
+      </form>
+    </Card>
+    <Card class="p-5 min-w-0">
+      <h2 class="text-xl font-semibold">Eventos registrados</h2>
+      <p class="mt-1 text-sm text-neutral-500">Fecha y hora en UTC. Los datos no informados aparecen como «No disponible».</p>
+      <p id="audit-criterios" class="mt-3 break-words text-sm text-primary"></p>
+      <p id="audit-pendientes" hidden class="mt-2 text-sm text-neutral-500">Hay cambios sin aplicar en los filtros.</p>
+      <p id="audit-estado" role="status" class="my-4 text-neutral-500"></p>
+      <div id="audit-error" hidden role="alert" class="my-4 rounded-xl bg-danger/5 p-4 text-danger"></div>
+      <div id="audit-reintento" hidden><Button id="audit-reintentar" variant="outline" size="lg" class="mb-4">Reintentar consulta</Button></div>
+      <div id="audit-resultados" aria-busy="false"></div>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <Button id="audit-anterior" variant="outline" size="lg" disabled>Anterior</Button>
+        <span id="audit-pagina" class="text-sm text-neutral-500"></span>
+        <Button id="audit-siguiente" variant="outline" size="lg" disabled>Siguiente</Button>
+      </div>
+    </Card>
+  </section>
+</AppLayout>
+<script>
+  import { iniciarAuditoria } from '../../lib/auditoria/interfaz';
+  void iniciarAuditoria();
+</script>

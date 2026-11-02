@@ -1,0 +1,45 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import ProgramaForm from '../../../components/programas/ProgramaForm.astro';
+import { mainNavItems } from '../../../config/nav';
+import { obtenerProgramaPorIdSchema } from '../../../lib/validaciones/programas';
+import BackButton from '../../../components/ui/BackButton.astro';
+
+const idPrograma = Astro.params.id ?? '';
+
+if (!obtenerProgramaPorIdSchema.safeParse({id_programa: idPrograma,}).success
+) {
+  Astro.response.status = 404;
+}
+
+const rutaPrograma = `/programas/${encodeURIComponent(idPrograma)}`;
+---
+
+<AppLayout
+  title="Editar programa"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href={rutaPrograma} />
+    <a
+      href="/programas"
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Programas Institucionales
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <a
+      href={rutaPrograma}
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Detalle del programa
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">
+      Editar programa
+    </span>
+  </Fragment>
+
+  <ProgramaForm idPrograma={idPrograma} />
+</AppLayout>

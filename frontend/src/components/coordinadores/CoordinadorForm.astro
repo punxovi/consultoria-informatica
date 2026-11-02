@@ -1,0 +1,89 @@
+---
+import Button from '../ui/Button.astro';
+import Card from '../ui/Card.astro';
+import { LIMITE_CORREO, LIMITE_NOMBRE } from '../../lib/coordinadores/modelo';
+
+interface Props {
+  modo: 'crear' | 'editar';
+  idUsuario?: string;
+}
+
+const { modo, idUsuario = '' } = Astro.props;
+const editar = modo === 'editar';
+const claseControl =
+  'mt-1.5 min-h-12 w-full rounded-xl border border-[#DCD8E8] bg-white px-3.5 py-2.5 text-base text-[#1A1A1A] placeholder:text-[#A09FA2] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5] disabled:cursor-not-allowed disabled:bg-neutral-50 aria-[invalid=true]:border-[#C81E5B]';
+const obligatorio = '<span class="text-[#C81E5B]" aria-hidden="true">*</span>';
+---
+
+<section id="coordinador-form" data-modo={modo} data-id={idUsuario} class="mx-auto max-w-3xl space-y-6">
+  <header class="min-w-0">
+    <p class="text-sm font-medium text-primary">Cuentas de Coordinadores</p>
+    <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">{editar ? 'Editar coordinador' : 'Nuevo coordinador'}</h1>
+    <p class="mt-2 text-sm text-neutral-500">
+      {editar
+        ? 'Actualiza el nombre o el país principal de la cuenta. El correo identifica el inicio de sesión y no se modifica aquí.'
+        : 'Registra la cuenta con su nombre, correo y país principal. El Coordinador iniciará sesión con ese correo.'}{' '}
+      Los campos marcados con <span class="font-semibold text-[#C81E5B]">*</span> son obligatorios.
+    </p>
+  </header>
+
+  <div id="cf-carga" hidden role="status" class="flex items-center justify-center gap-3 rounded-2xl border border-[#E4E0F2] bg-white p-6 text-sm text-neutral-500">
+    <span class="h-4 w-4 animate-spin rounded-full border-2 border-[#D8D3E8] border-t-primary" aria-hidden="true"></span>
+    <span id="cf-carga-texto">Cargando información…</span>
+  </div>
+
+  <div id="cf-error-carga" hidden role="alert" class="flex flex-col gap-3 rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger sm:flex-row sm:items-center sm:justify-between">
+    <p id="cf-error-carga-texto"></p>
+    <div class="flex shrink-0 flex-wrap gap-2">
+      <Button id="cf-reintentar" variant="outline" size="lg">Reintentar</Button>
+      <Button href="/administracion/coordinadores" variant="ghost" size="lg">Volver al listado</Button>
+    </div>
+  </div>
+
+  <form id="cf-form" novalidate hidden>
+    <Card class="border-t-4 border-t-primary p-4 md:p-6">
+      {editar && (
+        <div id="cf-estado-cuenta" class="mb-5 flex flex-wrap items-center gap-2 rounded-xl bg-[#F7F5FB] px-3 py-2 text-sm text-neutral-600"></div>
+      )}
+      <fieldset id="cf-campos" class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <legend class="sr-only">Datos de la cuenta</legend>
+        <div class="md:col-span-2" data-campo="nombre">
+          <label for="cf-nombre" class="text-sm font-semibold text-[#383165]">Nombre completo <Fragment set:html={obligatorio} /></label>
+          <input id="cf-nombre" name="nombre" type="text" autocomplete="name" maxlength={LIMITE_NOMBRE} required aria-required="true" aria-invalid="false" placeholder="Ej. María Castillo" class={claseControl} />
+        </div>
+        <div data-campo="correo">
+          <label for="cf-correo" class="text-sm font-semibold text-[#383165]">Correo electrónico {!editar && <Fragment set:html={obligatorio} />}</label>
+          {editar ? (
+            <input id="cf-correo" type="email" readonly aria-describedby="cf-correo-ayuda" class={`${claseControl} bg-[#F7F5FB] text-[#4A4660]`} />
+          ) : (
+            <input id="cf-correo" name="correo" type="email" autocomplete="email" maxlength={LIMITE_CORREO} required aria-required="true" aria-invalid="false" aria-describedby="cf-correo-ayuda" placeholder="nombre@fundacion.org" class={claseControl} />
+          )}
+          <p id="cf-correo-ayuda" class="mt-1 text-xs text-neutral-500">
+            {editar ? 'Es el usuario de inicio de sesión; no se modifica desde aquí.' : 'Será el usuario con el que el Coordinador iniciará sesión.'}
+          </p>
+        </div>
+        <div data-campo="id_pais">
+          <label for="cf-pais" class="text-sm font-semibold text-[#383165]">País principal <Fragment set:html={obligatorio} /></label>
+          <select id="cf-pais" name="id_pais" required aria-required="true" aria-invalid="false" aria-describedby="cf-pais-ayuda" class={claseControl}>
+            <option value="">Selecciona un país</option>
+          </select>
+          <p id="cf-pais-ayuda" class="mt-1 text-xs text-neutral-500">
+            {editar ? 'Si lo cambias, los permisos del nuevo país se aplicarán en el próximo inicio de sesión del Coordinador.' : 'Define el país donde el Coordinador podrá gestionar registros.'}
+          </p>
+        </div>
+      </fieldset>
+
+      <p id="cf-error-general" hidden role="alert" tabindex="-1" class="mt-5 rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger focus:outline-none"></p>
+
+      <div class="mt-6 flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-5 sm:flex-row sm:justify-end">
+        <Button href="/administracion/coordinadores" variant="outline" size="lg" id="cf-cancelar">Cancelar</Button>
+        <Button id="cf-guardar" type="submit" size="lg">{editar ? 'Guardar cambios' : 'Crear coordinador'}</Button>
+      </div>
+    </Card>
+  </form>
+</section>
+
+<script>
+  import { iniciarFormularioCoordinador } from '../../lib/coordinadores/interfaz-formulario';
+  iniciarFormularioCoordinador();
+</script>

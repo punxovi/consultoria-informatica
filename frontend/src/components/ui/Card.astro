@@ -1,0 +1,36 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+
+const hasHeader = Astro.slots.has('header');
+const hasFooter = Astro.slots.has('footer');
+---
+
+<div
+  class:list={[
+    'rounded-2xl border border-[#E8E5EF] bg-white p-4 md:p-5',
+    'shadow-[0_2px_10px_rgba(47,39,83,0.06)]',
+    className,
+  ]}
+>
+  {hasHeader && (
+    <div
+      class="mb-4 border-b border-[#EEEAF5] pb-3 text-[#383165]"
+    >
+      <slot name="header" />
+    </div>
+  )}
+
+  <div class="min-w-0">
+    <slot />
+  </div>
+
+  {hasFooter && (
+    <div class="mt-4 border-t border-[#EEEAF5] pt-4">
+      <slot name="footer" />
+    </div>
+  )}
+</div>

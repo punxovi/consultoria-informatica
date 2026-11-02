@@ -1,0 +1,40 @@
+---
+import AppLayout from './AppLayout.astro';
+import BackButton from '../components/ui/BackButton.astro';
+import { mainNavItems } from '../config/nav';
+
+interface Props {
+  idPlan: string;
+  title: string;
+}
+
+const { idPlan, title } = Astro.props;
+const rutaPlan = `/planes/${encodeURIComponent(idPlan)}`;
+---
+
+<AppLayout
+  title={title}
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN', 'COORD']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <BackButton href={`${rutaPlan}#acciones-plan`} />
+    <a
+      href="/planes"
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Planes de Intervención
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <a
+      href={`${rutaPlan}#acciones-plan`}
+      class="truncate text-sm text-neutral-500 transition-colors hover:text-primary"
+    >
+      Acciones del plan
+    </a>
+    <span aria-hidden="true" class="text-neutral-300">›</span>
+    <span class="truncate text-sm font-semibold text-neutral-900">{title}</span>
+  </Fragment>
+
+  <slot />
+</AppLayout>

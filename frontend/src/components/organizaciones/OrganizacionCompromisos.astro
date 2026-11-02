@@ -1,0 +1,232 @@
+---
+import Card from '../ui/Card.astro';
+import Button from '../ui/Button.astro';
+import Input from '../ui/Input.astro';
+import EmptyState from '../ui/EmptyState.astro';
+
+interface Props {
+  idOrganizacion: string;
+}
+
+const { idOrganizacion } = Astro.props;
+---
+
+<section
+  id="compromisos"
+  data-organizacion={idOrganizacion}
+  class="space-y-6 text-slate-900"
+  aria-labelledby="comp-titulo"
+>
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="flex items-start gap-3">
+      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-6 w-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 4.75h7l4 4v10.5A1.75 1.75 0 0 1 17.25 21h-10.5A1.75 1.75 0 0 1 5 19.25V6.5A1.75 1.75 0 0 1 6.75 4.75H8Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 4.75v4h4M8.5 13h7M8.5 16.5h7" />
+        </svg>
+      </div>
+      <div>
+        <h2 id="comp-titulo" class="text-xl font-semibold tracking-tight text-slate-900">Compromisos</h2>
+        <p class="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">
+          Consulta los acuerdos, sus responsables y las fechas de cumplimiento de esta organización.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 sm:justify-end">
+      <Button id="comp-recargar" variant="outline" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.5 9A7 7 0 0 1 17 5l3 2M4 17l3 2a7 7 0 0 0 11.5-4" />
+        </svg>
+        Recargar datos
+      </Button>
+      <Button id="comp-nuevo" type="button" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
+        </svg>
+        Registrar compromiso
+      </Button>
+    </div>
+  </header>
+
+  <p id="comp-permisos" hidden role="status" class="rounded-xl border border-[#DED9EE] bg-white p-4 text-sm text-slate-600">
+    Puedes consultar los compromisos, pero no tienes permiso para modificarlos en esta organización.
+  </p>
+
+  <div id="comp-carga" hidden role="status" aria-live="polite">
+    <Card>
+      <div class="flex items-center justify-center gap-3 py-5 text-sm text-slate-600">
+        <span class="h-5 w-5 animate-spin rounded-full border-2 border-[#DED9EE] border-t-[#4C4688]" aria-hidden="true"></span>
+        Cargando compromisos…
+      </div>
+    </Card>
+  </div>
+
+  <div id="comp-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"></div>
+  <div id="comp-exito" hidden role="status" aria-live="polite" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"></div>
+
+  <!-- Listado -->
+  <div id="comp-listado" hidden class="space-y-4">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-slate-900">Listado de compromisos</h3>
+        <p class="mt-1 text-sm text-slate-500">Cada tarjeta muestra el estado, la persona responsable y su fecha límite.</p>
+      </div>
+    </div>
+
+    <div id="comp-estados-vacios" class="space-y-3">
+      <EmptyState
+        id="comp-vacio"
+        hidden
+        title="Todavía no hay compromisos"
+        description="Cuando se registren acuerdos para esta organización, aparecerán aquí con su responsable y estado."
+      />
+      <div id="comp-sin-actas" hidden class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path stroke-linecap="round" d="M12 8v4m0 4h.01" />
+        </svg>
+        <p>Para registrar compromisos, primero debes crear un acta en la sección Actas de Reunión.</p>
+      </div>
+    </div>
+
+    <div id="comp-lista" class="space-y-4"></div>
+  </div>
+
+  <!-- Detalle -->
+  <div id="comp-detalle" hidden class="space-y-4">
+    <Card>
+      <div class="flex flex-col gap-4 border-b border-[#E8E5EF] pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex items-start gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 4.75h7l4 4v10.5A1.75 1.75 0 0 1 17.25 21h-10.5A1.75 1.75 0 0 1 5 19.25V6.5A1.75 1.75 0 0 1 6.75 4.75H8Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 4.75v4h4" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-[#4C4688]">Ficha del compromiso</p>
+            <h3 class="mt-1 text-lg font-semibold text-slate-900">Detalle del compromiso</h3>
+          </div>
+        </div>
+        <span id="comp-detalle-estado" class="inline-flex w-fit items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800"></span>
+      </div>
+
+      <dl id="comp-datos" class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></dl>
+
+      <div class="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Registros relacionados">
+        <a
+          id="comp-origen"
+          class="group flex min-h-[88px] items-center justify-between gap-3 rounded-xl border border-[#E2DDED] bg-[#F7F6FA] p-4 no-underline transition hover:border-[#CFC8E4] hover:bg-[#F0EDF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688]/30 focus-visible:ring-offset-2"
+        >
+          <span class="flex min-w-0 flex-col gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Acta de origen</span>
+            <span id="comp-origen-label" class="break-words font-semibold text-[#4C4688]">Consultar acta relacionada</span>
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-[#4C4688] transition-transform group-hover:translate-x-0.5" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </a>
+        <a
+          id="comp-accion"
+          hidden
+          class="group flex min-h-[88px] items-center justify-between gap-3 rounded-xl border border-[#D7EBEF] bg-[#F0F9FA] p-4 no-underline transition hover:border-[#B5DDE4] hover:bg-[#E7F7FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1BAAC1]/30 focus-visible:ring-offset-2"
+        >
+          <span class="flex min-w-0 flex-col gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Acción relacionada</span>
+            <span class="font-semibold text-[#167F91]">Ver acción de origen</span>
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-[#167F91] transition-transform group-hover:translate-x-0.5" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </a>
+      </div>
+
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button id="comp-volver" type="button" variant="outline">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m14.5 18-6-6 6-6" />
+          </svg>
+          Volver al listado
+        </Button>
+        <Button id="comp-editar" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m14 5 5 5M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
+          </svg>
+          Editar compromiso
+        </Button>
+      </div>
+    </Card>
+  </div>
+
+  <!-- Crear y editar -->
+  <form id="comp-form" hidden novalidate class="space-y-4">
+    <fieldset id="comp-campos" class="m-0 min-w-0 space-y-4 border-0 p-0">
+      <Card>
+        <div class="mb-5 flex items-start gap-3 border-b border-[#E8E5EF] pb-4">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 4.75h7l4 4v10.5A1.75 1.75 0 0 1 17.25 21h-10.5A1.75 1.75 0 0 1 5 19.25V6.5A1.75 1.75 0 0 1 6.75 4.75H8Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 4.75v4h4" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="comp-form-titulo" class="text-lg font-semibold text-slate-900">Registrar compromiso</h3>
+            <p class="mt-1 text-sm text-slate-500">Completa los datos del acuerdo y quién será responsable de cumplirlo.</p>
+          </div>
+        </div>
+        <p class="mb-5 text-sm text-slate-500">Los campos con * son obligatorios. Los nuevos compromisos quedan Pendientes.</p>
+
+        <div class="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
+          <div class="md:col-span-2">
+            <label for="comp-acta" class="block text-sm font-medium text-slate-800">Acta de origen <span class="text-rose-600">*</span></label>
+            <select id="comp-acta" name="id_acta" required class="mt-2 min-h-[48px] w-full rounded-xl border border-[#D9D4E8] bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15"></select>
+            <p id="comp-acta-hint" class="mt-1.5 text-xs text-slate-500">Selecciona el acta donde se acordó este compromiso.</p>
+          </div>
+          <div class="md:col-span-2">
+            <label for="comp-descripcion" class="block text-sm font-medium text-slate-800">Acción o acuerdo comprometido <span class="text-rose-600">*</span></label>
+            <textarea id="comp-descripcion" name="descripcion" required maxlength="2000" rows="3" placeholder="Describe el acuerdo que debe cumplirse…" class="mt-2 w-full resize-y rounded-xl border border-[#D9D4E8] bg-white p-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15"></textarea>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h4 class="text-base font-semibold text-slate-900">Responsabilidad y cumplimiento</h4>
+        <p class="mt-1 text-sm text-slate-500">Define una persona de contacto y la fecha en que debe completarse el acuerdo.</p>
+        <div class="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 [&>*]:min-w-0">
+          <Input id="comp-responsable" name="responsable_nombre" label="Responsable" required maxlength={150} />
+          <Input id="comp-contacto" name="responsable_contacto" label="Contacto del responsable" required maxlength={300} hint="Correo, teléfono u otro medio de contacto." />
+          <Input id="comp-fecha" name="fecha_limite" type="date" label="Fecha límite" required />
+          <div>
+            <label for="comp-estado" class="block text-sm font-medium text-slate-800">Estado <span class="text-rose-600">*</span></label>
+            <select id="comp-estado" name="estado" required class="mt-2 min-h-[48px] w-full rounded-xl border border-[#D9D4E8] bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15">
+              <option value="pendiente">Pendiente</option>
+              <option value="cumplido">Cumplido</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label for="comp-observaciones" class="block text-sm font-medium text-slate-800">Observaciones <span class="font-normal text-slate-400">(opcional)</span></label>
+            <textarea id="comp-observaciones" name="observaciones" maxlength="2000" rows="3" placeholder="Añade contexto o comentarios relevantes…" class="mt-2 w-full resize-y rounded-xl border border-[#D9D4E8] bg-white p-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15"></textarea>
+          </div>
+        </div>
+      </Card>
+
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button id="comp-cancelar" type="button" variant="outline">Cancelar</Button>
+        <Button id="comp-guardar" type="submit">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 4.75h12l2.25 2.5v12A1.75 1.75 0 0 1 17.5 21h-11A1.75 1.75 0 0 1 4.75 19.25V6.5A1.75 1.75 0 0 1 6.5 4.75Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 4.75v5h8v-5M8 21v-7h8v7" />
+          </svg>
+          Guardar compromiso
+        </Button>
+      </div>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  import { iniciarCompromisos } from '../../lib/compromisos/interfaz';
+  iniciarCompromisos();
+</script>
