@@ -1,3 +1,4 @@
+
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/ui/Button.astro';
@@ -9,8 +10,15 @@ import Input from '../components/ui/Input.astro';
   <main class="auth-page">
     <section class="brand-panel">
       <div class="brand-circle"></div>
-      <img src="/Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas" class="brand-logo" />
+
+      <img
+        src="/Logo-FGE-SIN-FONDO.png"
+        alt="Fundación Gestionar Esperanzas"
+        class="brand-logo"
+      />
+
       <div class="brand-wave"></div>
+
       <div class="brand-footer">
         <span>Chile · Argentina · Uruguay</span>
         <span>© Fundación Gestionar Esperanzas</span>
@@ -22,14 +30,18 @@ import Input from '../components/ui/Input.astro';
         <div class="auth-content">
           <header class="auth-header">
             <h1>Inicia sesión</h1>
-            <p>Accede a la intranet de Fundación Gestionar Esperanzas.</p>
+            <p>
+              Accede a la intranet de Fundación Gestionar Esperanzas.
+            </p>
           </header>
 
+          <!-- Mensaje de error -->
           <div id="error-alert" class="error-alert hidden" role="alert">
             <span class="error-icon">!</span>
             <span id="error-message"></span>
           </div>
 
+          <!-- Formulario de inicio de sesión -->
           <form id="login-form" class="auth-form" novalidate>
             <Input
               label="Correo electrónico"
@@ -50,30 +62,52 @@ import Input from '../components/ui/Input.astro';
                 showPasswordToggle
                 required
               />
+
               <div class="forgot">
-                <a href="/recuperar-contrasena">¿Olvidaste tu contraseña?</a>
+                <a href="/recuperar-contrasena">
+                  ¿Olvidaste tu contraseña?
+                </a>
               </div>
             </div>
 
-            <Button id="submit-btn" type="submit" variant="primary" size="lg" class="full">
+            <Button
+              id="submit-btn"
+              type="submit"
+              variant="primary"
+              size="lg"
+              class="full"
+            >
               Iniciar sesión
             </Button>
 
-            <div class="divider"><span>O CONTINÚA COMO</span></div>
+            <div class="divider">
+              <span>O CONTINÚA COMO</span>
+            </div>
 
-            <Button id="btn-guest" type="button" variant="outline" size="lg" class="full">
-              Ingresar como invitado
+            <!-- Solicitud de acceso para Invitados -->
+            <Button
+              href="/solicitar-acceso-invitado"
+              variant="outline"
+              size="lg"
+              class="full"
+            >
+              Solicitar acceso como invitado
             </Button>
           </form>
 
-          <p class="auth-footer">Acceso seguro para usuarios autorizados.</p>
+          <p class="auth-footer">
+            Acceso seguro para usuarios autorizados.
+          </p>
         </div>
       </Card>
     </section>
   </main>
 
-<script>
-    import { AuthApiError, iniciarSesion } from '../lib/auth/cliente';
+  <script>
+    import {
+      AuthApiError,
+      iniciarSesion,
+    } from '../lib/auth/cliente';
 
     const form = document.getElementById('login-form') as HTMLFormElement;
     const email = document.getElementById('email') as HTMLInputElement;
@@ -102,15 +136,22 @@ import Input from '../components/ui/Input.astro';
         return;
       }
 
-      // 1. Verificar si el correo se encuentra bajo bloqueo temporal
+      // Verificar si el correo se encuentra bajo bloqueo temporal
       const lockoutKey = `lockout_${emailValue}`;
       const lockoutUntil = localStorage.getItem(lockoutKey);
 
       if (lockoutUntil) {
         const remainingTime = parseInt(lockoutUntil, 10) - Date.now();
+
         if (remainingTime > 0) {
-          const minutesLeft = Math.ceil(remainingTime / (60 * 1000));
-          showError(`Demasiados intentos fallidos. Cuenta temporalmente bloqueada por seguridad. Inténtalo en ${minutesLeft} minuto(s).`);
+          const minutesLeft = Math.ceil(
+            remainingTime / (60 * 1000)
+          );
+
+          showError(
+            `Demasiados intentos fallidos. Cuenta temporalmente bloqueada por seguridad. Inténtalo en ${minutesLeft} minuto(s).`
+          );
+
           return;
         } else {
           localStorage.removeItem(lockoutKey);
@@ -124,17 +165,22 @@ import Input from '../components/ui/Input.astro';
 
         await iniciarSesion(emailValue, passwordValue);
 
-        // Éxito: limpiar registros de intentos fallidos y bloqueo
+        // Limpiar registros de intentos fallidos y bloqueo
         localStorage.removeItem(`attempts_${emailValue}`);
         localStorage.removeItem(lockoutKey);
 
         window.location.href = '/dashboard';
+
       } catch (error) {
-        if (error instanceof AuthApiError && error.code !== 'CREDENCIALES_INVALIDAS') {
+        if (
+          error instanceof AuthApiError &&
+          error.code !== 'CREDENCIALES_INVALIDAS'
+        ) {
           showError(error.message);
         } else {
           handleFailedAttempt(emailValue);
         }
+
         submit.textContent = 'Iniciar sesión';
         submit.disabled = false;
       }
@@ -144,13 +190,19 @@ import Input from '../components/ui/Input.astro';
       const attemptsKey = `attempts_${emailValue}`;
       const lockoutKey = `lockout_${emailValue}`;
 
-      let currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0', 10) + 1;
+      let currentAttempts =
+        parseInt(localStorage.getItem(attemptsKey) || '0', 10) + 1;
+
       localStorage.setItem(attemptsKey, currentAttempts.toString());
 
       if (currentAttempts > MAX_FAILED_ATTEMPTS) {
         const unblockTime = Date.now() + LOCKOUT_TIME_MS;
+
         localStorage.setItem(lockoutKey, unblockTime.toString());
-        showError('Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos por seguridad.');
+
+        showError(
+          'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos por seguridad.'
+        );
       } else {
         showError('Credenciales incorrectas o acceso no autorizado.');
       }
@@ -182,7 +234,12 @@ import Input from '../components/ui/Input.astro';
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #fff 0%, #fafafa 65%, #f5f3fb 100%);
+    background: linear-gradient(
+      135deg,
+      #fff 0%,
+      #fafafa 65%,
+      #f5f3fb 100%
+    );
   }
 
   .brand-logo {
@@ -286,9 +343,13 @@ import Input from '../components/ui/Input.astro';
     text-decoration: none;
   }
 
-  .forgot a:hover { text-decoration: underline; }
+  .forgot a:hover {
+    text-decoration: underline;
+  }
 
-  .full { width: 100%; }
+  .full {
+    width: 100%;
+  }
 
   .divider {
     display: flex;
@@ -324,7 +385,9 @@ import Input from '../components/ui/Input.astro';
     font-size: .82rem;
   }
 
-  .error-alert.hidden { display: none; }
+  .error-alert.hidden {
+    display: none;
+  }
 
   .error-icon {
     display: inline-flex;
@@ -348,18 +411,52 @@ import Input from '../components/ui/Input.astro';
   }
 
   @media (max-width: 900px) {
-    .auth-page { grid-template-columns: 40% 60%; }
-    .auth-panel { padding: 2rem; }
+    .auth-page {
+      grid-template-columns: 40% 60%;
+    }
+
+    .auth-panel {
+      padding: 2rem;
+    }
   }
 
   @media (max-width: 700px) {
-    .auth-page { display: flex; flex-direction: column; }
-    .brand-panel { min-height: 230px; height: 230px; }
-    .brand-logo { width: 220px; }
-    .brand-wave { bottom: -85px; height: 150px; }
-    .brand-footer { left: 1.25rem; bottom: .9rem; font-size: .65rem; }
-    .auth-panel { min-height: auto; padding: 2rem 1.25rem 3rem; }
-    .auth-card { padding: 0; }
-    .auth-header h1 { font-size: 1.8rem; }
+    .auth-page {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-panel {
+      min-height: 230px;
+      height: 230px;
+    }
+
+    .brand-logo {
+      width: 220px;
+    }
+
+    .brand-wave {
+      bottom: -85px;
+      height: 150px;
+    }
+
+    .brand-footer {
+      left: 1.25rem;
+      bottom: .9rem;
+      font-size: .65rem;
+    }
+
+    .auth-panel {
+      min-height: auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    .auth-card {
+      padding: 0;
+    }
+
+    .auth-header h1 {
+      font-size: 1.8rem;
+    }
   }
 </style>
