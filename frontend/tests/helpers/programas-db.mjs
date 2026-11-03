@@ -44,7 +44,11 @@ export async function crearBaseProgramas({ planesAcciones = true, ordenLineas = 
   for (const nombre of migraciones) {
     await db.exec(await readFile(new URL(`../../../supabase/migrations/${nombre}`, import.meta.url), 'utf8'));
   }
-  await db.exec(await readFile(new URL('../../../supabase/seed.sql', import.meta.url), 'utf8'));
+  // Esta base carga un subconjunto histórico de migraciones. Los seeds de cuentas
+  // e indicadores requieren migraciones posteriores y se prueban por separado.
+  const seed = await readFile(new URL('../../../supabase/seed.sql', import.meta.url), 'utf8');
+  await db.exec(seed.slice(0, seed.indexOf('-- El nombre no es UNIQUE:'))
+    + seed.slice(seed.indexOf('INSERT INTO public.programas (')));
   for (const [rol, id] of Object.entries(usuarios)) {
     await db.query('INSERT INTO auth.users VALUES ($1)', [id]);
     await db.query('INSERT INTO public.perfiles (id_usuario, nombre) VALUES ($1, $2)', [id, `QA ${rol}`]);

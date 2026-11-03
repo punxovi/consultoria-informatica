@@ -11,17 +11,25 @@ INSERT INTO public.roles (codigo, nombre) VALUES
 ('INVIT', 'Invitado')
 ON CONFLICT (codigo) DO UPDATE SET nombre = EXCLUDED.nombre;
 
-INSERT INTO public.indicadores (nombre, descripcion, unidad_medida, criterio_medicion)
-VALUES
+-- El nombre no es UNIQUE: las asociaciones a Acciones pueden repetirlo.
+WITH catalogo(nombre, descripcion, unidad_medida, criterio_medicion) AS (VALUES
   ('Personas beneficiadas', 'Cantidad de personas beneficiadas por la accion.', 'Personas', 'Conteo de personas beneficiadas.'),
   ('Participantes', 'Cantidad de participantes de la actividad.', 'Personas', 'Conteo de participantes.'),
   ('Actividades realizadas', 'Cantidad de actividades ejecutadas.', 'Actividades', 'Conteo de actividades realizadas.'),
   ('Organizaciones acompañadas', 'Cantidad de organizaciones acompañadas.', 'Organizaciones', 'Conteo de organizaciones acompañadas.'),
   ('Raciones entregadas', 'Cantidad de raciones o apoyos alimentarios entregados.', 'Raciones', 'Conteo de raciones entregadas.'),
   ('Acciones ejecutadas', 'Cantidad de acciones completadas.', 'Acciones', 'Conteo de acciones en estado cumplida.')
-ON CONFLICT (nombre) DO UPDATE SET
-  descripcion = EXCLUDED.descripcion, unidad_medida = EXCLUDED.unidad_medida,
-  criterio_medicion = EXCLUDED.criterio_medicion, archived_at = NULL;
+), actualizados AS (
+  UPDATE public.indicadores i SET descripcion = c.descripcion,
+    unidad_medida = c.unidad_medida, criterio_medicion = c.criterio_medicion, archived_at = NULL
+  FROM catalogo c WHERE i.id_accion IS NULL AND i.nombre = c.nombre
+  RETURNING i.id_indicador
+)
+INSERT INTO public.indicadores (nombre, descripcion, unidad_medida, criterio_medicion)
+SELECT c.nombre, c.descripcion, c.unidad_medida, c.criterio_medicion
+FROM catalogo c WHERE NOT EXISTS (
+  SELECT 1 FROM public.indicadores i WHERE i.id_accion IS NULL AND i.nombre = c.nombre
+);
 
 -- Cuenta de prueba para validar que un Coordinador no puede administrar
 -- paises, cuentas, coberturas ni auditoria. Credencial local: password.
