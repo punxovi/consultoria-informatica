@@ -1,4 +1,3 @@
--- Consulta paginada y de solo lectura del historial institucional.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.consultar_eventos_auditoria(

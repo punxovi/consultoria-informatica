@@ -13,6 +13,17 @@ const catalogo = [
   { id_indicador: '13700000-0000-4000-8000-0000000000c1', codigo: '13700000-0000-4000-8000-0000000000c1', nombre: 'Raciones entregadas', unidad_medida: 'raciones', descripcion: 'Total de raciones' },
   { id_indicador: '13700000-0000-4000-8000-0000000000c2', codigo: '13700000-0000-4000-8000-0000000000c2', nombre: 'Familias atendidas', unidad_medida: 'familias', descripcion: 'Familias' },
 ];
+const accionDemo = '13700000-0000-4000-8000-0000000000d0';
+const indicadoresAsociados = catalogo.map((indicador, index) => ({
+  id_indicador: `13700000-0000-4000-8000-0000000000e${index + 1}`,
+  id_accion: accionDemo,
+  id_catalogo: indicador.id_indicador,
+  meta: 10,
+  version: 1,
+  nombre: indicador.nombre,
+  unidad_medida: indicador.unidad_medida,
+  resultado: null,
+}));
 let consultasOrganizaciones;
 test.beforeEach(async ({ context }) => {
   consultasOrganizaciones = [];
@@ -21,7 +32,8 @@ test.beforeEach(async ({ context }) => {
   await context.route('**/api/v1/auth/session', (r) => r.fulfill({ json: { ok: true, data: { authenticated: true, user: { id } } } }));
   await context.route('**/api/v1/programs', (r) => r.fulfill({ json: { ok: true, data: { programs: programas } } }));
   await context.route('**/api/v1/indicators/catalog', (r) => r.fulfill({ json: { ok: true, data: { catalogo } } }));
-  await context.route('**/api/v1/actions', (r) => r.fulfill({ json: { ok: true, data: { actions: [] } } }));
+  await context.route('**/api/v1/actions', (r) => r.fulfill({ json: { ok: true, data: { actions: [{ id_accion: accionDemo, nombre: 'Acción de prueba' }] } } }));
+  await context.route(`**/api/v1/actions/${accionDemo}/indicators`, (r) => r.fulfill({ json: { ok: true, data: { indicadores: indicadoresAsociados } } }));
   await context.route('**/api/v1/reports/consolidated**', (r) => {
     const query = new URL(r.request().url()).searchParams;
     const parametros = {
@@ -64,7 +76,7 @@ test('acceso desde el módulo, catálogos reales del sistema y resultados sin op
   await abrir(page);
   await expect(page.locator('#rep-pais option')).toHaveText(['Todos los países', 'Chile', 'Perú']);
   await expect(page.locator('#rep-organizacion option')).toHaveText(['Todas las organizaciones', 'Comedor Las Palmas', 'Centro Esperanza']);
-  await expect(page.locator('#rep-indicadores-opciones')).toContainText('Raciones entregadas (raciones)');
+  await expect(page.locator('#rep-indicadores-opciones')).toContainText('Acción de prueba · Raciones entregadas (raciones)');
   await expect(page.locator('#rep-resultados-opciones')).toContainText('No hay resultados disponibles para seleccionar.');
   await expect(page.locator('#rep-seleccion-resumen')).toContainText('Sin filtros');
   await captura(page, info, 'reporte-configuracion');
@@ -124,7 +136,7 @@ test('filtros: etiquetas seleccionadas, país acota organizaciones, quitar y res
   const detalle = await page.evaluate(() => window.detalleSolicitud);
   expect(detalle).toEqual({
     fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31', destino: 'interno',
-    id_pais: id, id_organizacion: organizaciones[1].id_organizacion, indicadores: [catalogo[1].id_indicador],
+    id_pais: id, id_organizacion: organizaciones[1].id_organizacion, indicadores: [indicadoresAsociados[1].id_indicador],
   });
 
   await page.locator('#rep-restablecer').click();
