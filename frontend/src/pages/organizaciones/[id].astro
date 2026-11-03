@@ -59,7 +59,8 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     </Card>
   </section>
 
-  <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6">
+  <!-- data-solo-lectura se quita solo si la sesión gestiona el país de la Organización. -->
+  <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6" data-solo-lectura>
     
     <!-- Encabezado -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -82,6 +83,8 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
         </p>
       </div>
 
+      <!-- Visible solo si la sesión gestiona el país de la Organización. -->
+      <div id="gestion-organizacion" class="shrink-0" hidden>
       <Button
         href={`/organizaciones/${encodeURIComponent(idOrganizacion)}/editar`}
         variant="outline"
@@ -93,6 +96,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
         </svg>
         <span>Editar organización</span>
       </Button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -371,9 +375,34 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
   </section>
 </AppLayout>
 
+<style is:global>
+  /*
+   * Un Coordinador consulta Organizaciones de cualquier país, pero solo
+   * registra o edita Diagnóstico, Compromisos, Donaciones y Expediente Legal
+   * en su país principal o con cobertura vigente. La regla prevalece aunque
+   * cada módulo vuelva a mostrar sus botones; RLS sigue validando en el servidor.
+   */
+  #ficha-organizacion[data-solo-lectura] :is(
+    #btn-registrar-diagnostico,
+    #form-diagnostico,
+    #comp-nuevo,
+    #comp-editar,
+    #comp-form,
+    .solo-gestor,
+    #don-form-donacion,
+    #don-respaldo-form,
+    #legal-registrar,
+    #legal-editar,
+    #legal-form
+  ) {
+    display: none !important;
+  }
+</style>
+
 <script>
   import { OrganizacionesApiError, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
+  import { obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
 
   const estado = document.querySelector<HTMLElement>('#estado-organizacion')!;
   const ficha = document.querySelector<HTMLElement>('#ficha-organizacion')!;
@@ -489,7 +518,14 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     }
 
     try {
-      mostrarFicha(await obtenerOrganizacion(idOrganizacion));
+      const [organizacion, alcance] = await Promise.all([
+        obtenerOrganizacion(idOrganizacion),
+        obtenerAlcanceGestion(),
+      ]);
+      mostrarFicha(organizacion);
+      const gestionable = puedeGestionarPais(alcance, organizacion.id_pais);
+      elemento('gestion-organizacion').hidden = !gestionable;
+      ficha.toggleAttribute('data-solo-lectura', !gestionable);
     } catch (error) {
       if (error instanceof OrganizacionesApiError && error.code === 'NO_ENCONTRADA') {
         mostrarEstado('Organización no encontrada', error.message);

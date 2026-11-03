@@ -67,7 +67,8 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
           <p data-plan="resumen" class="mt-2 text-base text-neutral-600 md:text-lg"></p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
+        <div data-gestion-plan hidden class="flex flex-wrap items-center gap-3">
           <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
@@ -121,6 +122,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
 
 <script>
   import { obtenerPlan } from '../../lib/planes/cliente';
+  import { obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
 
   const seccion = document.querySelector<HTMLElement>('[data-id-plan]')!;
   const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
@@ -139,8 +141,14 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
     return { texto: 'En ejecución', clase: 'bg-success/10 text-success' };
   }
 
-  void obtenerPlan(seccion.dataset.idPlan ?? '')
-    .then((plan) => {
+  void Promise.all([obtenerPlan(seccion.dataset.idPlan ?? ''), obtenerAlcanceGestion()])
+    .then(([plan, alcance]) => {
+      const gestionable = puedeGestionarPais(alcance, plan.organizacion.id_pais);
+      document.querySelectorAll<HTMLElement>('[data-gestion-plan]').forEach((elemento) => {
+        elemento.hidden = !gestionable;
+      });
+      document.querySelector<HTMLElement>('#acciones-plan')?.toggleAttribute('data-solo-lectura', !gestionable);
+
       const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
       if (raizEliminar) raizEliminar.dataset.version = String(plan.version);
 

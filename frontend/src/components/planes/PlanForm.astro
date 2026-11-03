@@ -115,6 +115,7 @@ const textos = [
   import { crearPlanSchema } from '../../lib/validaciones/planes';
   import { crearPlan, actualizarPlan, obtenerPlan, listarOrganizacionesParaPlan, listarProgramasParaPlan } from '../../lib/planes/cliente';
   import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
+  import { MENSAJE_SIN_PERMISO_TERRITORIAL, obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
 
   const form = document.querySelector<HTMLFormElement>('#plan-form')!;
   const campos = document.querySelector<HTMLFieldSetElement>('#plan-campos')!;
@@ -179,11 +180,22 @@ const textos = [
     form.setAttribute('aria-busy', 'true');
     estado.textContent = idPlan ? 'Cargando plan, organizaciones y programas…' : 'Cargando organizaciones y programas…';
     try {
-      const [organizaciones, programas, plan] = await Promise.all([
+      const [todasLasOrganizaciones, programas, plan, alcance] = await Promise.all([
         listarOrganizacionesParaPlan(),
         listarProgramasParaPlan(),
         idPlan ? obtenerPlan(idPlan) : Promise.resolve(null),
+        obtenerAlcanceGestion(),
       ]);
+      // Un Coordinador consulta todos los países, pero solo registra o edita
+      // Planes de su país principal o de un país con cobertura vigente.
+      if (plan && !puedeGestionarPais(alcance, plan.organizacion.id_pais)) {
+        estado.textContent = '';
+        mostrarError(MENSAJE_SIN_PERMISO_TERRITORIAL);
+        return;
+      }
+      const organizaciones = todasLasOrganizaciones.filter(
+        organizacion => puedeGestionarPais(alcance, organizacion.id_pais),
+      );
       selectOrganizacion.length = 1;
       selectPrograma.length = 1;
       for (const organizacion of organizaciones) {
