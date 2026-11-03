@@ -2,6 +2,7 @@ import type {
   ActualizarOrganizacionInput,
   CrearOrganizacionInput,
   FiltrosOrganizaciones,
+  ImagenOrganizacion,
   Organizacion,
   PaisResumen,
 } from '../modelos/organizaciones.ts';
@@ -122,6 +123,72 @@ export async function listarMisCoberturasVigentes(): Promise<CoberturaTerritoria
   }
 
   return response.data.coverages;
+}
+
+export function crearClienteImagenOrganizacion(
+  baseUrl: string,
+  obtenerToken: () => Promise<string>,
+  fetchImpl: typeof fetch = fetch,
+) {
+  const base = baseUrl.replace(/\/$/, '');
+  const ruta = (idOrganizacion: string) => `${base}/api/v1/organizations/${encodeURIComponent(idOrganizacion)}/image`;
+
+  async function solicitar(url: string, init: RequestInit): Promise<Response> {
+    const token = await obtenerToken();
+    let response: Response;
+    try {
+      response = await fetchImpl(url, {
+        ...init,
+        headers: { ...init.headers, authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+    } catch {
+      throw new ApiError('SERVICIO_NO_DISPONIBLE', 'No fue posible conectar con el servicio de imágenes.', 0);
+    }
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new ApiError(
+        payload?.error?.code ?? 'ERROR_IMAGEN',
+        payload?.error?.message ?? (response.status === 413
+          ? 'La imagen supera el tamaño permitido.'
+          : 'No fue posible completar la operación con la imagen.'),
+        response.status,
+        payload?.error?.requestId,
+      );
+    }
+    return response;
+  }
+
+  return {
+    async subir(idOrganizacion: string, archivo: File): Promise<ImagenOrganizacion> {
+      const response = await solicitar(`${ruta(idOrganizacion)}?nombre=${encodeURIComponent(archivo.name)}`, {
+        method: 'PUT',
+        headers: { 'content-type': archivo.type },
+        body: archivo,
+      });
+      const payload = await response.json().catch(() => null);
+      const imagen = payload?.data?.imagen;
+      if (!payload?.ok || typeof imagen?.id_archivo !== 'string') {
+        throw new ApiError('RESPUESTA_INVALIDA', 'No se pudo confirmar la carga de la imagen.', 502);
+      }
+      return imagen as ImagenOrganizacion;
+    },
+
+    async descargar(idOrganizacion: string): Promise<Blob> {
+      const response = await solicitar(ruta(idOrganizacion), { method: 'GET' });
+      return response.blob();
+    },
+  };
+}
+
+const imagenes = crearClienteImagenOrganizacion(API_BASE_URL, accessToken);
+
+export function subirImagenOrganizacion(idOrganizacion: string, archivo: File): Promise<ImagenOrganizacion> {
+  return imagenes.subir(idOrganizacion, archivo);
+}
+
+export function descargarImagenOrganizacion(idOrganizacion: string): Promise<Blob> {
+  return imagenes.descargar(idOrganizacion);
 }
 
 export { ApiError as OrganizacionesApiError } from '../api/transporte.ts';

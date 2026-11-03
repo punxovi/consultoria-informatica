@@ -153,6 +153,47 @@ const tiposOrganizacion = [
         </div>
       </Card>
 
+      <Card class="w-full border-t-4 border-t-[#FF2471] p-5 md:p-6">
+        <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFE9F1] text-[#FF2471]" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path stroke-linecap="round" stroke-linejoin="round" d="m20.5 16-4.5-4.5L7 19.5"/>
+            </svg>
+          </span>
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Imagen representativa</h2>
+            <p class="mt-1 text-sm text-neutral-500">Ayuda a identificar visualmente la organización en el listado y en su ficha.</p>
+          </div>
+        </div>
+
+        <div class="mt-5 flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start">
+          <img
+            id="imagen-organizacion-vista"
+            src="/images/organizacion-predeterminada.svg"
+            alt="Vista previa de la imagen de la organización"
+            class="aspect-[4/3] w-full max-w-[240px] shrink-0 rounded-xl border border-neutral-200 bg-white object-contain object-center p-2"
+          />
+          <div class="min-w-0 flex-1 space-y-2">
+            <label for="imagen-organizacion" class="block text-sm font-medium text-neutral-800">
+              <span id="imagen-organizacion-etiqueta">{esEdicion ? 'Reemplazar imagen' : 'Cargar imagen'}</span>
+              <span class="font-normal text-neutral-500">(opcional)</span>
+            </label>
+            <input
+              id="imagen-organizacion"
+              name="imagen"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-describedby="imagen-organizacion-ayuda imagen-organizacion-error"
+              class="block min-h-[48px] w-full max-w-full text-sm text-neutral-700 file:mr-3 file:min-h-[44px] file:rounded-xl file:border file:border-neutral-300 file:bg-white file:px-4 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/5"
+            />
+            <p id="imagen-organizacion-ayuda" class="text-sm leading-5 text-neutral-500">JPG, PNG o WebP, hasta 5 MB. Si no cargas una imagen se usará una predeterminada.</p>
+            <p id="imagen-organizacion-estado" role="status" aria-live="polite" class="text-sm text-neutral-600"></p>
+            <p id="imagen-organizacion-error" role="alert" hidden class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"></p>
+            <button id="imagen-organizacion-descartar" type="button" hidden class="inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Descartar selección</button>
+          </div>
+        </div>
+      </Card>
+
       <div class="flex flex-col-reverse gap-3 border-t border-neutral-100 pt-5 sm:flex-row sm:justify-end">
         <Button id="cancelar-organizacion" variant="outline" href={esEdicion ? `/organizaciones/${encodeURIComponent(idOrganizacion)}` : '/organizaciones'}>Cancelar</Button>
         <Button id="guardar-organizacion" type="submit">{esEdicion ? 'Guardar cambios' : 'Crear organización'}</Button>
@@ -169,9 +210,15 @@ const tiposOrganizacion = [
   import {
     actualizarOrganizacion,
     crearOrganizacion,
+    descargarImagenOrganizacion,
     listarPaisesOrganizaciones,
     obtenerOrganizacion,
+    subirImagenOrganizacion,
   } from '../../lib/organizaciones/cliente';
+  import {
+    IMAGEN_ORGANIZACION_PREDETERMINADA,
+    validarImagenOrganizacion,
+  } from '../../lib/organizaciones/imagen';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
   import {
     MENSAJE_SIN_PERMISO_TERRITORIAL,
@@ -226,11 +273,85 @@ const tiposOrganizacion = [
     throw new Error('No se encontraron los elementos del formulario de organización.');
   }
 
-  const esEdicion = form.dataset.modo === 'editar';
-  const idOrganizacion = form.dataset.id ?? '';
+  // Tras crear la organización, un fallo al subir la imagen deja el formulario
+  // en modo edición para reintentar sin duplicar el registro.
+  let esEdicion = form.dataset.modo === 'editar';
+  const esCreacionInicial = !esEdicion;
+  let idOrganizacion = form.dataset.id ?? '';
   let versionActual: number | undefined;
   let guardando = false;
   let alcanceGestion: AlcanceGestion | undefined;
+
+  const inputImagen = document.querySelector<HTMLInputElement>('#imagen-organizacion')!;
+  const vistaImagen = document.querySelector<HTMLImageElement>('#imagen-organizacion-vista')!;
+  const estadoImagen = document.querySelector<HTMLElement>('#imagen-organizacion-estado')!;
+  const errorImagen = document.querySelector<HTMLElement>('#imagen-organizacion-error')!;
+  const descartarImagen = document.querySelector<HTMLButtonElement>('#imagen-organizacion-descartar')!;
+  let urlImagenActual: string | null = null;
+  let urlImagenSeleccionada: string | null = null;
+
+  function mostrarImagen(url: string | null) {
+    vistaImagen.src = url ?? IMAGEN_ORGANIZACION_PREDETERMINADA;
+  }
+
+  function errorDeImagen(mensaje: string) {
+    errorImagen.textContent = mensaje;
+    errorImagen.hidden = !mensaje;
+  }
+
+  function limpiarSeleccionImagen() {
+    inputImagen.value = '';
+    if (urlImagenSeleccionada) URL.revokeObjectURL(urlImagenSeleccionada);
+    urlImagenSeleccionada = null;
+    descartarImagen.hidden = true;
+    mostrarImagen(urlImagenActual);
+  }
+
+  inputImagen.addEventListener('change', () => {
+    errorDeImagen('');
+    estadoImagen.textContent = '';
+    const archivo = inputImagen.files?.[0];
+    if (!archivo) {
+      limpiarSeleccionImagen();
+      return;
+    }
+    const problema = validarImagenOrganizacion(archivo);
+    if (problema) {
+      limpiarSeleccionImagen();
+      errorDeImagen(problema);
+      return;
+    }
+    if (urlImagenSeleccionada) URL.revokeObjectURL(urlImagenSeleccionada);
+    urlImagenSeleccionada = URL.createObjectURL(archivo);
+    mostrarImagen(urlImagenSeleccionada);
+    descartarImagen.hidden = false;
+    estadoImagen.textContent = 'La imagen se cargará al guardar.';
+  });
+
+  descartarImagen.addEventListener('click', () => {
+    limpiarSeleccionImagen();
+    errorDeImagen('');
+    estadoImagen.textContent = '';
+    inputImagen.focus();
+  });
+
+  async function cargarImagenActual(organizacion: Organizacion) {
+    if (!organizacion.imagen) {
+      estadoImagen.textContent = 'La organización usa la imagen predeterminada.';
+      return;
+    }
+    estadoImagen.textContent = 'Cargando imagen actual…';
+    try {
+      const blob = await descargarImagenOrganizacion(organizacion.id_organizacion);
+      if (urlImagenActual) URL.revokeObjectURL(urlImagenActual);
+      urlImagenActual = URL.createObjectURL(blob);
+      if (!urlImagenSeleccionada) mostrarImagen(urlImagenActual);
+      estadoImagen.textContent = '';
+    } catch {
+      estadoImagen.textContent = '';
+      errorDeImagen('No se pudo cargar la imagen actual. Puedes reemplazarla igualmente.');
+    }
+  }
 
   inputTelefono?.addEventListener('input', () => {
     let cantidadDigitos = 0;
@@ -395,6 +516,7 @@ const tiposOrganizacion = [
         throw new Error(MENSAJE_SIN_PERMISO_TERRITORIAL);
       }
       precargarOrganizacion(organizacion);
+      void cargarImagenActual(organizacion);
       campos!.disabled = false;
       form!.hidden = false;
       estado!.textContent = '';
@@ -454,6 +576,7 @@ const tiposOrganizacion = [
     estado!.textContent = esEdicion ? 'Guardando cambios...' : 'Guardando organización...';
     form!.setAttribute('aria-busy', 'true');
 
+    let organizacionGuardada = false;
     try {
       const organizacion = esEdicion
         ? await actualizarOrganizacion(
@@ -464,14 +587,44 @@ const tiposOrganizacion = [
         : await crearOrganizacion(
             datosFormulario as Parameters<typeof crearOrganizacion>[0],
           );
+      organizacionGuardada = true;
+      esEdicion = true;
+      idOrganizacion = organizacion.id_organizacion;
+      versionActual = organizacion.version;
 
-      estado!.textContent = esEdicion
-        ? 'Organización actualizada correctamente.'
-        : 'Organización creada correctamente.';
+      const archivoImagen = inputImagen.files?.[0];
+      if (archivoImagen) {
+        estado!.textContent = 'Subiendo imagen...';
+        guardar!.textContent = 'Subiendo imagen...';
+        estadoImagen.textContent = 'Subiendo imagen…';
+        await subirImagenOrganizacion(idOrganizacion, archivoImagen);
+        estadoImagen.textContent = 'Imagen cargada correctamente.';
+      }
+
+      estado!.textContent = esCreacionInicial
+        ? 'Organización creada correctamente.'
+        : 'Organización actualizada correctamente.';
       window.location.replace(
-        `/organizaciones/${encodeURIComponent(organizacion.id_organizacion)}?resultado=${esEdicion ? 'actualizado' : 'creado'}`,
+        `/organizaciones/${encodeURIComponent(idOrganizacion)}?resultado=${esCreacionInicial ? 'creado' : 'actualizado'}`,
       );
     } catch (fallo) {
+      if (organizacionGuardada) {
+        const detalle = fallo instanceof Error ? fallo.message : 'Ocurrió un error inesperado.';
+        estadoImagen.textContent = '';
+        errorDeImagen(`No se pudo cargar la imagen: ${detalle}`);
+        mostrarError(
+          'La organización se guardó, pero la imagen no se pudo cargar',
+          `${detalle} Puedes reintentar guardando de nuevo, seleccionar otra imagen o continuar sin ella desde la ficha de la organización.`,
+          detalle.toLocaleLowerCase('es').includes('sesión'),
+        );
+        form!.dataset.modo = 'editar';
+        form!.dataset.id = idOrganizacion;
+        document.querySelector('#cancelar-organizacion')
+          ?.setAttribute('href', `/organizaciones/${encodeURIComponent(idOrganizacion)}`);
+        campos!.disabled = false;
+        return;
+      }
+
       const mensaje =
         fallo instanceof Error
           ? fallo.message

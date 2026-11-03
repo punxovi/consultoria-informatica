@@ -37,9 +37,25 @@ if (!idValido) Astro.response.status = 404;
 
     <div id="detalle-contenido" hidden class="space-y-5">
       <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
-        <div class="min-w-0">
-          <h1 id="detalle-nombre" class="break-words text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl"></h1>
-          <p class="mt-2 text-base text-neutral-600 md:text-lg">Objetivos, contexto y líneas de acción del programa.</p>
+        <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+          <figure class="relative w-full max-w-[320px] shrink-0 sm:w-48 lg:w-56">
+            <a id="detalle-imagen-enlace" class="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" target="_blank" rel="noopener" aria-disabled="true" tabindex="-1">
+              <img
+                id="detalle-imagen"
+                src="/images/programa-predeterminado.svg"
+                alt="Imagen predeterminada de programa"
+                class="aspect-[4/3] w-full rounded-2xl border border-[#E2DDED] bg-white object-contain object-center p-2 shadow-sm"
+              />
+            </a>
+            <figcaption class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500">
+              <span id="detalle-imagen-estado" role="status" aria-live="polite"></span>
+              <button id="reintentar-imagen" type="button" hidden class="inline-flex min-h-[32px] items-center font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Reintentar</button>
+            </figcaption>
+          </figure>
+          <div class="min-w-0">
+            <h1 id="detalle-nombre" class="break-words text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl"></h1>
+            <p class="mt-2 text-base text-neutral-600 md:text-lg">Objetivos, contexto y líneas de acción del programa.</p>
+          </div>
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-3">
           <div id="editar-programa-enlace" hidden>
@@ -60,17 +76,6 @@ if (!idValido) Astro.response.status = 404;
           </div>
         </div>
       </header>
-
-      <div id="detalle-imagen-panel" hidden class="min-w-0">
-        <Card class="p-4 md:p-5">
-          <p id="detalle-imagen-estado" role="status" aria-live="polite" class="mb-3 text-sm text-neutral-500"></p>
-          <img id="detalle-imagen" hidden alt="Imagen representativa del programa" class="max-h-72 w-full rounded-xl object-contain" />
-          <div id="detalle-imagen-recuperacion" hidden class="space-y-3">
-            <p id="detalle-imagen-error" role="alert" class="rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
-            <Button id="reintentar-imagen" variant="outline">Reintentar imagen</Button>
-          </div>
-        </Card>
-      </div>
 
       <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
         <div class="mb-5">
@@ -144,7 +149,7 @@ if (!idValido) Astro.response.status = 404;
 
 <script>
   import { obtenerPrograma, archivarPrograma } from '../../lib/programas/cliente';
-  import { obtenerImagen } from '../../lib/programas/imagen';
+  import { IMAGEN_PROGRAMA_PREDETERMINADA, obtenerImagen } from '../../lib/programas/imagen';
   import { getUserRoles } from '../../lib/supabase';
   import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
   import { obtenerProgramaPorIdSchema } from '../../lib/validaciones/programas';
@@ -152,11 +157,9 @@ if (!idValido) Astro.response.status = 404;
   const recargar = document.querySelector<HTMLButtonElement>('#recargar-programa')!;
   const raiz = document.querySelector<HTMLElement>('#programa-detalle')!;
   const contenido = document.querySelector<HTMLElement>('#detalle-contenido')!;
-  const imagenPanel = document.querySelector<HTMLElement>('#detalle-imagen-panel')!;
   const imagen = document.querySelector<HTMLImageElement>('#detalle-imagen')!;
+  const imagenEnlace = document.querySelector<HTMLAnchorElement>('#detalle-imagen-enlace')!;
   const imagenEstado = document.querySelector<HTMLElement>('#detalle-imagen-estado')!;
-  const imagenError = document.querySelector<HTMLElement>('#detalle-imagen-error')!;
-  const imagenRecuperacion = document.querySelector<HTMLElement>('#detalle-imagen-recuperacion')!;
   const reintentarImagen = document.querySelector<HTMLButtonElement>('#reintentar-imagen')!;
   const editarPanel = document.querySelector<HTMLElement>('#editar-programa-enlace')!;
   const eliminarPanel = document.querySelector<HTMLElement>('#eliminar-programa-panel')!;
@@ -164,34 +167,53 @@ if (!idValido) Astro.response.status = 404;
   let cargando = false;
   let secuenciaImagen = 0;
 
+  function mostrarPredeterminada() {
+    imagen.onload = null;
+    imagen.onerror = null;
+    imagen.src = IMAGEN_PROGRAMA_PREDETERMINADA;
+    imagen.alt = 'Imagen predeterminada de programa';
+    imagen.classList.remove('animate-pulse');
+    imagenEnlace.removeAttribute('href');
+    imagenEnlace.setAttribute('aria-disabled', 'true');
+    imagenEnlace.tabIndex = -1;
+    imagenEnlace.removeAttribute('title');
+  }
+
   function mostrarErrorImagen(mensaje: string) {
-    imagen.hidden = true;
-    imagenEstado.textContent = '';
-    imagenError.textContent = mensaje;
-    imagenRecuperacion.hidden = false;
-    imagenPanel.hidden = false;
+    mostrarPredeterminada();
+    imagenEstado.textContent = mensaje;
+    reintentarImagen.hidden = false;
   }
 
   async function cargarImagen() {
     const solicitud = ++secuenciaImagen;
     reintentarImagen.disabled = true;
-    imagenRecuperacion.hidden = true;
-    imagenPanel.hidden = true;
-    imagen.hidden = true;
-    imagen.removeAttribute('src');
+    reintentarImagen.hidden = true;
+    mostrarPredeterminada();
     imagenEstado.textContent = '';
     try {
       const url = await obtenerImagen(raiz.dataset.id!);
       if (solicitud !== secuenciaImagen) return;
-      if (!url) return;
+      if (!url) {
+        imagenEstado.textContent = 'Sin imagen registrada.';
+        return;
+      }
       imagenEstado.textContent = 'Cargando imagen…';
-      imagen.onload = () => { if (solicitud === secuenciaImagen) imagenEstado.textContent = ''; };
+      imagen.classList.add('animate-pulse');
+      imagen.onload = () => {
+        if (solicitud !== secuenciaImagen) return;
+        imagen.classList.remove('animate-pulse');
+        imagen.alt = `Imagen representativa de ${document.querySelector('#detalle-nombre')?.textContent ?? 'programa'}`;
+        imagenEnlace.href = url;
+        imagenEnlace.removeAttribute('aria-disabled');
+        imagenEnlace.removeAttribute('tabindex');
+        imagenEnlace.title = 'Abrir imagen en tamaño completo';
+        imagenEstado.textContent = '';
+      };
       imagen.onerror = () => {
-        if (solicitud === secuenciaImagen) mostrarErrorImagen('No se pudo cargar la imagen actual. Vuelve a intentarlo.');
+        if (solicitud === secuenciaImagen) mostrarErrorImagen('No se pudo cargar la imagen.');
       };
       imagen.src = url;
-      imagen.hidden = false;
-      imagenPanel.hidden = false;
     } catch (fallo) {
       if (solicitud === secuenciaImagen) mostrarErrorImagen(fallo instanceof Error ? fallo.message : 'No se pudo cargar la imagen actual.');
     } finally {
@@ -220,7 +242,6 @@ if (!idValido) Astro.response.status = 404;
     editarPanel.hidden = true;
     eliminarPanel.hidden = true;
     confirmacion.hidden = true;
-    imagenPanel.hidden = true;
     ++secuenciaImagen;
 
     try {

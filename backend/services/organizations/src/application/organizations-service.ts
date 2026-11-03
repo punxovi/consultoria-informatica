@@ -8,6 +8,7 @@ import type {
   ActualizarCompromisoInput,
   ActualizarDiagnosticoInput,
   CamposDiagnostico,
+  OrganizationImageUpload,
 } from '../domain/organizations.ts';
 
 export function createOrganizationsApplication(repository: OrganizationsRepository) {
@@ -99,6 +100,12 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     },
     downloadDonationFile(accessToken: string, donationId: string, fileId: string) {
       return repository.downloadDonationFile(accessToken, donationId, fileId);
+    },
+    replaceOrganizationImage(accessToken: string, orgId: string, upload: OrganizationImageUpload) {
+      return repository.replaceOrganizationImage(accessToken, orgId, upload);
+    },
+    downloadOrganizationImage(accessToken: string, orgId: string) {
+      return repository.downloadOrganizationImage(accessToken, orgId);
     },
   };
 }

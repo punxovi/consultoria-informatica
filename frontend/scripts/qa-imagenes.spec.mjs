@@ -230,17 +230,17 @@ test('muestra error de consulta de imagen en el detalle', async ({ page, context
   await nuevo(page, 'QA error detalle');
   await seleccionar(page, await imagen(page, 'image/png'));
   await page.locator('#guardar-programa').click();
-  await expect(page.locator('#detalle-imagen')).toBeVisible();
+  await expect(page.locator('#detalle-imagen')).not.toHaveAttribute('src', /programa-predeterminado.svg/);
   storage.fallarConsulta = true;
   await page.reload();
   await expect(page.locator('#detalle-contenido')).toBeVisible();
-  await expect(page.locator('#detalle-imagen')).toBeHidden();
+  await expect(page.locator('#detalle-imagen')).toHaveAttribute('src', /programa-predeterminado.svg/);
   // PostgREST reintenta lecturas 503 con espera de 1, 2 y 4 segundos.
   await expect(page.getByText(/No se pudo consultar la imagen|No se pudo cargar la imagen/)).toBeVisible({ timeout: 12000 });
   storage.fallarConsulta = false;
   await page.locator('#reintentar-imagen').click();
-  await expect(page.locator('#detalle-imagen')).toBeVisible();
-  await expect(page.locator('#detalle-imagen-recuperacion')).toBeHidden();
+  await expect(page.locator('#detalle-imagen')).not.toHaveAttribute('src', /programa-predeterminado.svg/);
+  await expect(page.locator('#reintentar-imagen')).toBeHidden();
 });
 
 test('cambios de texto después de una subida fallida actualizan el mismo programa', async ({ page, context }) => {
@@ -267,7 +267,7 @@ test('quitar imagen permite reintentar sin conflicto de versión', async ({ page
   await nuevo(page, 'QA retiro parcial');
   await seleccionar(page, await imagen(page, 'image/png'));
   await page.locator('#guardar-programa').click();
-  await expect(page.locator('#detalle-imagen')).toBeVisible();
+  await expect(page.locator('#detalle-imagen')).not.toHaveAttribute('src', /programa-predeterminado.svg/);
   await page.goto(`${new URL(page.url()).pathname}/editar`);
   await expect(page.locator('#imagen-preview')).toBeVisible();
   await page.locator('#quitar-imagen').click();
@@ -277,7 +277,7 @@ test('quitar imagen permite reintentar sin conflicto de versión', async ({ page
   storage.fallarRetiro = false;
   await page.locator('#guardar-programa').click();
   await expect(page.locator('#programa-confirmacion')).toBeVisible();
-  await expect(page.locator('#detalle-imagen')).toBeHidden();
+  await expect(page.locator('#detalle-imagen')).toHaveAttribute('src', /programa-predeterminado.svg/);
   expect(storage.archivos.every(a => a.archived_at)).toBe(true);
 });
 

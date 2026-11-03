@@ -31,7 +31,23 @@ before(async () => {
     }));
   });
   const authUrl = await listen(authServer);
-  organizationsServer = createServer((request, response) => {
+  organizationsServer = createServer(async (request, response) => {
+    if (request.url?.includes('/image') && request.method === 'PUT') {
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ path: request.url, method: request.method,
+        authorization: request.headers.authorization, contentType: request.headers['content-type'],
+        bytes: Buffer.concat(chunks).toString('hex') }));
+      return;
+    }
+    if (request.url?.endsWith('/image') && request.method === 'GET') {
+      response.setHeader('content-type', 'image/png');
+      response.setHeader('cache-control', 'private, no-store');
+      response.setHeader('x-content-type-options', 'nosniff');
+      response.end(Buffer.from([137, 80, 78, 71]));
+      return;
+    }
     response.setHeader('content-type', 'application/json');
     response.end(JSON.stringify({ path: request.url, method: request.method, authorization: request.headers.authorization, territoryId: request.headers['x-territory-id'] }));
   });
@@ -257,6 +273,32 @@ describe('API Gateway', () => {
     assert.equal(response.headers.get('cache-control'), 'private, no-store');
     assert.match(response.headers.get('content-disposition') ?? '', /registro\.pdf/);
     assert.equal(await response.text(), '%PDF-123');
+  });
+
+  test('envía la imagen de una Organización como binario con su tipo y sesión', async () => {
+    const id = '22222222-2222-4222-8222-222222222222';
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations/${id}/image?nombre=fachada.png`, {
+      method: 'PUT',
+      headers: { authorization: 'Bearer sesion-organizaciones', 'content-type': 'image/png' },
+      body: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    });
+    const body = await response.json();
+    assert.equal(body.path, `/v1/organizations/${id}/image?nombre=fachada.png`);
+    assert.equal(body.method, 'PUT');
+    assert.equal(body.authorization, 'Bearer sesion-organizaciones');
+    assert.equal(body.contentType, 'image/png');
+    assert.equal(body.bytes, '89504e470d0a1a0a');
+  });
+
+  test('conserva la imagen privada de una Organización y sus cabeceras', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations/22222222-2222-4222-8222-222222222222/image`, {
+      headers: { authorization: 'Bearer sesion-organizaciones' },
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [137, 80, 78, 71]);
   });
 
   test('envía el archivo binario y la sesión al servicio de Evidencias', async () => {
