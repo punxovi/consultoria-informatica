@@ -4,7 +4,7 @@ import { crearClienteIndicadores } from '../indicadores/cliente.ts';
 import { listarOrganizaciones, listarPaisesOrganizaciones } from '../organizaciones/cliente.ts';
 import { listarProgramas } from '../programas/cliente.ts';
 import { listarAcciones } from '../acciones/cliente.ts';
-import { cargarOpcionesResultados } from './resultados.ts';
+import { cargarOpcionesIndicadoresYResultados } from './resultados.ts';
 import { crearControladorConsulta, type EstadoConsulta, type SolicitudReporte } from './consulta.ts';
 import { renderizarVistaPrevia } from './interfaz-vista-previa.ts';
 import { crearClienteReportesPdf, type ReportFilters, type ReportPreview } from './pdf.ts';
@@ -50,7 +50,6 @@ export function iniciarConfiguracionReporte() {
     indicadores: new Map(),
     resultados: new Map(),
   };
-  let opcionesIndicadores: Opcion[] = [];
   let intentado = false;
   let secuenciaOrganizaciones = 0;
   let fallidos: NombreCatalogo[] = [];
@@ -266,15 +265,18 @@ export function iniciarConfiguracionReporte() {
         avisoSelect(selectores.id_programa, activos.length === 0 ? 'No hay programas disponibles.' : '');
       })]);
     }
-    if (quiere('Indicadores')) {
-      tareas.push(['Indicadores', indicadores.catalogo().then((catalogo) => {
-        opcionesIndicadores = catalogo.map((i) => ({ valor: i.id_indicador, etiqueta: i.nombre, detalle: i.unidad_medida }));
-        pintarLista('indicadores', opcionesIndicadores, 'No hay indicadores disponibles para seleccionar.');
+    const necesitaIndicadoresOResultados = quiere('Indicadores') || quiere('Resultados');
+    const opcionesIndicadoresYResultados = necesitaIndicadoresOResultados
+      ? cargarOpcionesIndicadoresYResultados(() => listarAcciones(), (accion) => indicadores.listar(accion))
+      : null;
+    if (quiere('Indicadores') && opcionesIndicadoresYResultados) {
+      tareas.push(['Indicadores', opcionesIndicadoresYResultados.then(({ indicadores: opciones }) => {
+        pintarLista('indicadores', opciones, 'No hay indicadores disponibles para seleccionar.');
       })]);
     }
     if (quiere('Organizaciones')) tareas.push(['Organizaciones', cargarOrganizaciones()]);
     if (quiere('Resultados')) {
-      tareas.push(['Resultados', cargarOpcionesResultados(() => listarAcciones(), (accion) => indicadores.listar(accion)).then((opciones) => {
+      tareas.push(['Resultados', opcionesIndicadoresYResultados!.then(({ resultados: opciones }) => {
         pintarLista('resultados', opciones, 'No hay resultados disponibles para seleccionar.');
       })]);
     }

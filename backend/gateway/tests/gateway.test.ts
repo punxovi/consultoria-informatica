@@ -198,6 +198,9 @@ describe('API Gateway', () => {
     for (const path of [
       '/api/v1/plans?incluir_archivados=false',
       '/api/v1/actions?estado=atrasada',
+      '/api/v1/indicators/catalog',
+      '/api/v1/actions/44444444-4444-4444-8444-444444444444/indicators',
+      '/api/v1/results',
       '/api/v1/meeting-minutes?id_organizacion=11111111-1111-4111-8111-111111111111',
       '/api/v1/evidences?id_accion=44444444-4444-4444-8444-444444444444',
     ]) {
