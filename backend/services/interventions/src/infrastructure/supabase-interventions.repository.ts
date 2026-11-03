@@ -1,4 +1,5 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
+import { readSupabaseConnection } from '../../../../shared/config/src/supabase.ts';
 import type { ActionFilters, ActionsRepository, InterventionAction, UpdateActionInput } from '../domain/actions.ts';
 import type {
   MeetingMinute,
@@ -354,8 +355,7 @@ function unavailableRepositories(): { plans: PlansRepository; actions: ActionsRe
 }
 
 export function createSupabaseInterventionsRepositoriesFromEnv() {
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY;
+  const { supabaseUrl, anonKey } = readSupabaseConnection();
   if (!supabaseUrl || !anonKey) return unavailableRepositories();
   return createSupabaseInterventionsRepositories({ supabaseUrl, anonKey });
 }

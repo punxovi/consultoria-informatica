@@ -19,6 +19,7 @@ test('interfaz → HTTP → Gateway → Backend → persistencia: asociación, m
   }
   try {
     await page.goto(`/planes/${planId}/acciones/${actionId}`);
+    await page.getByRole('tab',{name:'Indicadores y resultados',exact:true}).click();
     await expect(page.locator('#ind-asociar')).toBeEnabled();
     await page.locator(`[data-catalogo="${catalogId}"]`).check();
     await page.locator(`[data-meta="${catalogId}"]`).fill('20');
@@ -42,7 +43,9 @@ test('interfaz → HTTP → Gateway → Backend → persistencia: asociación, m
     await card.getByRole('button',{name:'Actualizar resultado',exact:true}).click();
     await page.locator('#ind-valor').fill('25');await page.locator('#ind-observaciones').fill('QA SCRUM-118: resultado actualizado');
     await page.locator('#ind-guardar').click();await expect(page.locator('#ind-exito')).toHaveText('Resultado guardado correctamente.');
-    await page.reload();await expect(card.locator('dd').first()).toHaveText('30');await expect(card.locator('dd').nth(1)).toHaveText('25');
+    await page.reload();
+    await page.getByRole('tab',{name:'Indicadores y resultados',exact:true}).click();
+    await expect(card.locator('dd').first()).toHaveText('30');await expect(card.locator('dd').nth(1)).toHaveText('25');
     const list=await request.get(`${gatewayUrl}/api/v1/actions/${actionId}/indicators`,{headers:auth});
     expect(list.ok()).toBe(true);item=(await list.json()).data.indicadores.find(i=>i.id_indicador===item.id_indicador);
     const result=await stored('resultados','id_resultado',item.resultado.id_resultado);
