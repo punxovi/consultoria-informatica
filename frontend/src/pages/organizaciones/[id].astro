@@ -64,6 +64,18 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     
     <!-- Encabezado -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+      <figure class="relative w-full max-w-[320px] shrink-0 sm:w-48 lg:w-56">
+        <a id="org-imagen-enlace" class="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" target="_blank" rel="noopener" aria-disabled="true" tabindex="-1">
+          <img
+            id="org-imagen"
+            src="/images/organizacion-predeterminada.svg"
+            alt="Imagen predeterminada de organización"
+            class="aspect-[4/3] w-full rounded-2xl border border-[#E2DDED] bg-white object-contain object-center p-2 shadow-sm"
+          />
+        </a>
+        <figcaption id="org-imagen-estado" role="status" aria-live="polite" class="mt-1 text-xs text-neutral-500"></figcaption>
+      </figure>
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="break-words text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
@@ -81,6 +93,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
           <span class="mx-1">·</span>
           <span id="pais-organizacion">—</span>
         </p>
+      </div>
       </div>
 
       <!-- Visible solo si la sesión gestiona el país de la Organización. -->
@@ -400,7 +413,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 </style>
 
 <script>
-  import { OrganizacionesApiError, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
+  import { OrganizacionesApiError, descargarImagenOrganizacion, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
   import { obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
 
@@ -506,6 +519,35 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     ficha.classList.remove('hidden');
   }
 
+  async function mostrarImagen(organizacion: Organizacion) {
+    const imagen = elemento('org-imagen') as HTMLImageElement;
+    const enlace = elemento('org-imagen-enlace') as HTMLAnchorElement;
+    const estadoImagen = elemento('org-imagen-estado');
+    if (!organizacion.imagen) {
+      imagen.alt = 'Imagen predeterminada de organización';
+      estadoImagen.textContent = 'Sin imagen registrada.';
+      return;
+    }
+    estadoImagen.textContent = 'Cargando imagen…';
+    imagen.classList.add('animate-pulse');
+    try {
+      const url = URL.createObjectURL(await descargarImagenOrganizacion(organizacion.id_organizacion));
+      imagen.src = url;
+      imagen.alt = `Imagen representativa de ${organizacion.nombre}`;
+      enlace.href = url;
+      enlace.removeAttribute('aria-disabled');
+      enlace.removeAttribute('tabindex');
+      enlace.title = 'Abrir imagen en tamaño completo';
+      estadoImagen.textContent = '';
+    } catch (error) {
+      estadoImagen.textContent = error instanceof Error
+        ? `No se pudo cargar la imagen: ${error.message}`
+        : 'No se pudo cargar la imagen.';
+    } finally {
+      imagen.classList.remove('animate-pulse');
+    }
+  }
+
   async function cargarOrganizacion() {
     const idOrganizacion = estado.dataset.id;
 
@@ -523,6 +565,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
         obtenerAlcanceGestion(),
       ]);
       mostrarFicha(organizacion);
+      void mostrarImagen(organizacion);
       const gestionable = puedeGestionarPais(alcance, organizacion.id_pais);
       elemento('gestion-organizacion').hidden = !gestionable;
       ficha.toggleAttribute('data-solo-lectura', !gestionable);

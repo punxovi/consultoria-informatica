@@ -32,6 +32,15 @@ export interface Organizacion {
   archived_at: string | null;
   version: number;
   pais: PaisResumen;
+  imagen?: ImagenOrganizacion | null;
+}
+
+export interface ImagenOrganizacion {
+  id_archivo: string;
+  nombre_original: string;
+  mime_type: 'image/jpeg' | 'image/png' | 'image/webp';
+  tamano_bytes: number;
+  updated_at: string;
 }
 
 export interface CrearOrganizacionInput {

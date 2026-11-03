@@ -146,12 +146,7 @@ import Button from '../components/ui/Button.astro';
 <template id="plantilla-programa">
   <article class="flex min-w-0 flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5">
     <div class="flex min-w-0 flex-1 items-start gap-4">
-      <span class="shrink-0 rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <rect x="4" y="3" width="16" height="18" rx="2" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 8h8M8 12h8M8 16h5" />
-        </svg>
-      </span>
+      <img data-miniatura src="/images/programa-predeterminado.svg" alt="" width="48" height="48" class="h-12 w-12 shrink-0 rounded-xl border border-neutral-200 bg-white object-contain object-center p-0.5" />
       <div class="min-w-0 flex-1">
         <h3 class="break-words text-base font-bold text-neutral-900 sm:text-lg"></h3>
         <p data-objetivo class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600"></p>
@@ -168,6 +163,7 @@ import Button from '../components/ui/Button.astro';
 
 <script>
   import { listarProgramas } from '../lib/programas/cliente';
+  import { IMAGEN_PROGRAMA_PREDETERMINADA, obtenerMiniaturas } from '../lib/programas/imagen';
   import { listarPlanes } from '../lib/planes/cliente';
   import { getUserRoles } from '../lib/supabase';
 
@@ -196,6 +192,33 @@ import Button from '../components/ui/Button.astro';
   let planes: Plan[] = [];
   let planesDisponibles = true;
   let cargando = false;
+  let miniaturas = new Map<string, string>();
+
+  function asignarMiniatura(miniatura: HTMLImageElement, programa: Programa) {
+    const url = miniaturas.get(String(programa.id_programa));
+    miniatura.src = url ?? IMAGEN_PROGRAMA_PREDETERMINADA;
+    miniatura.alt = url ? `Imagen de ${programa.nombre}` : '';
+    miniatura.onerror = url ? () => {
+      miniatura.onerror = null;
+      miniatura.src = IMAGEN_PROGRAMA_PREDETERMINADA;
+      miniatura.alt = '';
+      miniatura.title = 'No se pudo cargar la imagen del programa.';
+    } : null;
+  }
+
+  // Las imágenes llegan después del listado para no retrasarlo; si fallan,
+  // las tarjetas conservan la imagen predeterminada.
+  async function cargarMiniaturas() {
+    try {
+      miniaturas = await obtenerMiniaturas(programas.map((programa) => String(programa.id_programa)));
+    } catch {
+      miniaturas = new Map();
+    }
+    listado.querySelectorAll<HTMLImageElement>('img[data-miniatura]').forEach((miniatura) => {
+      const programa = programas.find((item) => String(item.id_programa) === miniatura.dataset.idPrograma);
+      if (programa) asignarMiniatura(miniatura, programa);
+    });
+  }
 
   function normalizar(texto: string) {
     return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CL').trim();
@@ -259,6 +282,9 @@ import Button from '../components/ui/Button.astro';
     for (const programa of coincidencias) {
       const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
       tarjeta.querySelector('h3')!.textContent = programa.nombre;
+      const miniatura = tarjeta.querySelector<HTMLImageElement>('img[data-miniatura]')!;
+      miniatura.dataset.idPrograma = String(programa.id_programa);
+      asignarMiniatura(miniatura, programa);
       tarjeta.querySelector<HTMLElement>('[data-objetivo]')!.textContent =
         programa.objetivo_general?.trim() || 'Este programa todavía no tiene un objetivo general registrado.';
 
@@ -320,6 +346,7 @@ import Button from '../components/ui/Button.astro';
       planes = resultadoPlanes.status === 'fulfilled' ? resultadoPlanes.value : [];
       cargarOpcionesFiltros();
       renderizar();
+      void cargarMiniaturas();
     } catch (fallo) {
       listado.replaceChildren();
       estado.textContent = '';

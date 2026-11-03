@@ -46,6 +46,13 @@ export async function readMultipartBody(request: IncomingMessage): Promise<FormD
   }
 }
 
+export async function readLimitedBinaryBody(request: IncomingMessage, maximum: number): Promise<Buffer> {
+  if (Number(request.headers['content-length']) > maximum) {
+    throw new ServiceError('CUERPO_DEMASIADO_GRANDE', 'El archivo supera el tamaño permitido.', 413);
+  }
+  return readBody(request, maximum);
+}
+
 export async function readBinaryFile(request: IncomingMessage, expectedSize: number): Promise<Buffer> {
   if (Number(request.headers['content-length']) > expectedSize) {
     throw new ServiceError('ARCHIVO_INVALIDO', 'El tamaño del archivo no coincide con el registro.', 400);

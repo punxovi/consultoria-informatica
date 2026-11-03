@@ -32,6 +32,27 @@ export async function obtenerImagen(idPrograma: string) {
   return enlace.signedUrl;
 }
 
+export const IMAGEN_PROGRAMA_PREDETERMINADA = '/images/programa-predeterminado.svg';
+
+/** Miniaturas del listado: una consulta y una firma por lote, no por tarjeta. */
+export async function obtenerMiniaturas(idsProgramas: string[]): Promise<Map<string, string>> {
+  const miniaturas = new Map<string, string>();
+  if (idsProgramas.length === 0) return miniaturas;
+  const { data, error } = await clienteProgramas.from('archivos').select('id_programa,ruta_objeto').in('id_programa', idsProgramas).eq('categoria', 'imagen_programa').eq('estado_carga', 'disponible').is('archived_at', null).order('created_at', { ascending: false });
+  if (error) throw new Error('No se pudieron consultar las imágenes de los programas.');
+  const rutas = new Map<string, string>();
+  for (const fila of data ?? []) if (!rutas.has(fila.id_programa)) rutas.set(fila.id_programa, fila.ruta_objeto);
+  if (rutas.size === 0) return miniaturas;
+  const { data: enlaces, error: errorEnlaces } = await clienteProgramas.storage.from('fge-archivos').createSignedUrls([...rutas.values()], 300);
+  if (errorEnlaces) throw new Error('No se pudieron cargar las imágenes de los programas.');
+  const porRuta = new Map((enlaces ?? []).filter((enlace) => enlace.signedUrl).map((enlace) => [enlace.path, enlace.signedUrl]));
+  for (const [idPrograma, ruta] of rutas) {
+    const url = porRuta.get(ruta);
+    if (url) miniaturas.set(idPrograma, url);
+  }
+  return miniaturas;
+}
+
 /** Archiva todas las imágenes activas para que no reaparezca una versión anterior. */
 export async function quitarImagen(idPrograma: string) {
   const { data, error } = await clienteProgramas.from('archivos')

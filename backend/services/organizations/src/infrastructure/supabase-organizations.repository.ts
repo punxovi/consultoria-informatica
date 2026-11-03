@@ -17,6 +17,7 @@ import type {
   DownloadedFile,
   CreateDonationInput,
   CreateDonationFileInput,
+  OrganizationImage,
 } from '../domain/organizations.ts';
 import { LEGAL_DOCUMENT_TYPES, assertFileSignature, normalizarTipoRespaldo } from '../domain/organizations.ts';
 import { mergeDonationChanges, parseCreateDonation, parseUpdateDonation, parseArchiveDonation, type UpdateDonationInput } from '../domain/donations.ts';
@@ -28,8 +29,6 @@ interface RepositoryOptions {
   fetchImpl?: typeof fetch;
 }
 
-// Devuelve el registro autorizado por RLS, incluidos metadatos HU20 cuando ya
-// están desplegados. Permite leer el esquema anterior durante el despliegue.
 const DONATION_FIELDS = '*';
 
 const DONATION_FILE_FIELDS = [
@@ -46,6 +45,16 @@ const ORGANIZATION_FIELDS = [
   'created_by', 'updated_by', 'archived_at', 'version',
   'pais:paises!organizaciones_id_pais_fkey(id_pais,codigo_iso,nombre)',
 ].join(',');
+
+const ORGANIZATION_IMAGE_FIELDS = 'id_archivo,nombre_original,mime_type,tamano_bytes,updated_at';
+const ORGANIZATION_WITH_IMAGE_FIELDS = `${ORGANIZATION_FIELDS},imagen:archivos!archivos_id_organizacion_fkey(${ORGANIZATION_IMAGE_FIELDS})`;
+
+function withImageFilters(params: URLSearchParams): URLSearchParams {
+  params.set('imagen.categoria', 'eq.imagen_organizacion');
+  params.set('imagen.estado_carga', 'eq.disponible');
+  params.set('imagen.archived_at', 'is.null');
+  return params;
+}
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -119,7 +128,21 @@ function organization(value: unknown): Organization {
   if (typeof data.id_organizacion !== 'string' || typeof data.nombre !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una organización inválida.', 502);
   }
-  return data as unknown as Organization;
+  if (!('imagen' in data)) return data as unknown as Organization;
+  const imagen = Array.isArray(data.imagen) ? data.imagen[0] : data.imagen;
+  return { ...data, imagen: organizationImage(imagen) } as unknown as Organization;
+}
+
+function organizationImage(value: unknown): OrganizationImage | null {
+  const data = record(value);
+  if (typeof data.id_archivo !== 'string') return null;
+  return {
+    id_archivo: data.id_archivo,
+    nombre_original: String(data.nombre_original ?? ''),
+    mime_type: data.mime_type as OrganizationImage['mime_type'],
+    tamano_bytes: Number(data.tamano_bytes ?? 0),
+    updated_at: String(data.updated_at ?? ''),
+  };
 }
 
 function country(value: unknown): CountrySummary {
@@ -207,7 +230,6 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     params: URLSearchParams,
     init?: RequestInit,
   ): Promise<Organization[]> {
-    // Si no enviamos un select personalizado con joins extras, usa el por defecto
     if (!params.has('select')) {
       params.set('select', ORGANIZATION_FIELDS);
     }
@@ -292,10 +314,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     accessToken: string,
     path: string,
     init: RequestInit,
-  ): Promise<void> {
+    bucket = 'fge-expedientes-legales',
+  ): Promise<Response> {
     let response: Response;
     try {
-      response = await fetchImpl(`${baseUrl}/storage/v1/object/fge-expedientes-legales/${path}`, {
+      response = await fetchImpl(`${baseUrl}/storage/v1/object/${bucket}/${path}`, {
         ...init,
         headers: {
           apikey: options.anonKey,
@@ -309,8 +332,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     if (!response.ok) {
       let body: unknown = null;
       try { body = await response.json(); } catch { body = null; }
-      throw postgrestError(response.status, body);
+      const status = String(record(body).statusCode ?? '') === '403' ? 403 : response.status;
+      if (status === 404) throw new ServiceError('ARCHIVO_NO_ENCONTRADO', 'El archivo no fue encontrado en Storage.', 404);
+      throw postgrestError(status, body);
     }
+    return response;
   }
 
   async function saveLegalRecord(
@@ -363,32 +389,25 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       const params = new URLSearchParams({ order: 'nombre.asc' });
       let selectString = ORGANIZATION_FIELDS;
 
-      // Filtro de archivadas
       if (!filters.includeArchived) params.set('archived_at', 'is.null');
-
-      // Búsqueda por nombre (no distingue mayúsculas/minúsculas)
       if (filters.search) params.set('nombre', `ilike.*${filters.search}*`);
-
-      // Filtro por país
       if (filters.idPais) params.set('id_pais', `eq.${filters.idPais}`);
-
-      // Filtro por Programa Institucional (mediante Plan de Intervención)
       if (filters.idPrograma) {
-        // Hacemos un inner join rápido. PostgREST devuelve la organización sin duplicarla.
         selectString += ',planes!inner(id_programa)';
         params.set('planes.id_programa', `eq.${filters.idPrograma}`);
       }
 
-      params.set('select', selectString);
-      return organizationRows(accessToken, params);
+      params.set('select', selectString.replace(ORGANIZATION_FIELDS, ORGANIZATION_WITH_IMAGE_FIELDS));
+      return organizationRows(accessToken, withImageFilters(params));
     },
 
     async getById(accessToken, id) {
-      const rows = await organizationRows(accessToken, new URLSearchParams({
+      const rows = await organizationRows(accessToken, withImageFilters(new URLSearchParams({
+        select: ORGANIZATION_WITH_IMAGE_FIELDS,
         id_organizacion: `eq.${id}`,
         archived_at: 'is.null',
         limit: '1',
-      }));
+      })));
       if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe.', 404);
       return rows[0];
     },
@@ -831,6 +850,62 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         fileName: file.nombre_original,
       };
     },
+
+    async replaceOrganizationImage(accessToken, orgId, upload) {
+      await this.getById(accessToken, orgId);
+      const extension = upload.mimeType === 'image/jpeg' ? 'jpg' : upload.mimeType.slice('image/'.length);
+      const path = `organizaciones/${orgId}/imagen/${randomUUID()}.${extension}`;
+      await storageRequest(accessToken, path, {
+        method: 'POST',
+        headers: { 'content-type': upload.mimeType, 'x-upsert': 'false' },
+        body: upload.bytes,
+      }, 'fge-archivos');
+      let saved: unknown;
+      try {
+        saved = await request('rpc/reemplazar_imagen_organizacion', accessToken, new URLSearchParams(), {
+          method: 'POST',
+          body: JSON.stringify({
+            p_id_organizacion: orgId,
+            p_ruta_objeto: path,
+            p_nombre_original: upload.nombre,
+            p_mime_type: upload.mimeType,
+            p_tamano_bytes: upload.bytes.length,
+          }),
+        });
+      } catch (error) {
+        // Sin registro, el objeto quedaría huérfano: se retira de Storage.
+        await storageRequest(accessToken, path, { method: 'DELETE' }, 'fge-archivos').catch(() => null);
+        if (error instanceof ServiceError && ['PGRST202', '42883'].includes(String(record(error.cause).code))) {
+          throw new ServiceError('MIGRACION_PENDIENTE', 'La base de datos requiere la migración SCRUM-175.', 503);
+        }
+        throw error;
+      }
+      const image = organizationImage(Array.isArray(saved) ? saved[0] : saved);
+      if (!image) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una imagen inválida.', 502);
+      return image;
+    },
+
+    async downloadOrganizationImage(accessToken, orgId) {
+      const body = await request('archivos', accessToken, new URLSearchParams({
+        select: `${ORGANIZATION_IMAGE_FIELDS},ruta_objeto`,
+        id_organizacion: `eq.${orgId}`,
+        categoria: 'eq.imagen_organizacion',
+        estado_carga: 'eq.disponible',
+        archived_at: 'is.null',
+        limit: '1',
+      }));
+      if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
+      const row = record(body[0]);
+      if (typeof row.ruta_objeto !== 'string') {
+        throw new ServiceError('IMAGEN_NO_ENCONTRADA', 'La Organización no tiene una imagen registrada.', 404);
+      }
+      const response = await storageRequest(accessToken, row.ruta_objeto, { method: 'GET' }, 'fge-archivos');
+      return {
+        bytes: Buffer.from(await response.arrayBuffer()),
+        mimeType: String(row.mime_type),
+        fileName: String(row.nombre_original ?? 'imagen'),
+      };
+    },
   };
 }
 
@@ -868,6 +943,8 @@ function unconfiguredRepository(): OrganizationsRepository {
     reserveDonationFile: unavailable,
     uploadDonationFile: unavailable,
     downloadDonationFile: unavailable,
+    replaceOrganizationImage: unavailable,
+    downloadOrganizationImage: unavailable,
   };
 }
 

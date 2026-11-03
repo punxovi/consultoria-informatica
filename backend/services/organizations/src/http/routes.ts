@@ -16,8 +16,11 @@ import {
   parseCreateDonation,
   parseCreateDonationFile,
   parseUploadDonationFile,
+  parseOrganizationImageMimeType,
+  parseOrganizationImageUpload,
+  ORGANIZATION_IMAGE_MAX_BYTES,
 } from '../domain/organizations.ts';
-import { readJsonBody, readMultipartBody, readBinaryFile } from './body.ts';
+import { readJsonBody, readMultipartBody, readBinaryFile, readLimitedBinaryBody } from './body.ts';
 import { parseUpdateDonation, parseArchiveDonation } from '../domain/donations.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -78,6 +81,8 @@ export async function routeOrganizations(
           'donations:files:reserve',
           'donations:files:upload',
           'donations:files:download',
+          'image:replace',
+          'image:download',
         ],
       }), requestId);
       return;
@@ -160,6 +165,29 @@ export async function routeOrganizations(
         const input = await parseLegalRecordInput(await readMultipartBody(request), true);
         const expediente = await application.updateLegalRecord(token, id, input);
         respond(response, 200, success('EXPEDIENTE_LEGAL_ACTUALIZADO', 'El expediente legal fue actualizado correctamente.', { expediente }), requestId);
+        return;
+      }
+    }
+
+    const imageMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/image$/);
+    if (imageMatch) {
+      const id = parseUuid(decodeURIComponent(imageMatch[1]), 'La organización');
+      if (request.method === 'PUT') {
+        const mimeType = parseOrganizationImageMimeType(request.headers['content-type']);
+        const bytes = await readLimitedBinaryBody(request, ORGANIZATION_IMAGE_MAX_BYTES);
+        const upload = parseOrganizationImageUpload(bytes, mimeType, url.searchParams.get('nombre'));
+        const imagen = await application.replaceOrganizationImage(token, id, upload);
+        respond(response, 200, success('IMAGEN_ORGANIZACION_GUARDADA', 'La imagen de la organización fue guardada correctamente.', { imagen }), requestId);
+        return;
+      }
+      if (request.method === 'GET') {
+        const file = await application.downloadOrganizationImage(token, id);
+        response.statusCode = 200;
+        response.setHeader('content-type', file.mimeType);
+        response.setHeader('cache-control', 'private, no-store');
+        response.setHeader('x-content-type-options', 'nosniff');
+        response.setHeader('x-request-id', requestId);
+        response.end(file.bytes);
         return;
       }
     }
