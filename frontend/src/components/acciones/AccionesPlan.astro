@@ -28,9 +28,17 @@ const opcionesUrgencia = [
 ];
 ---
 
+<style is:global>
+  /* La vista del plan quita data-solo-lectura si la sesión gestiona su país. */
+  #acciones-plan[data-solo-lectura] [data-editar] {
+    display: none;
+  }
+</style>
+
 <section
   id="acciones-plan"
   data-plan={idPlan}
+  data-solo-lectura
   aria-labelledby="acciones-titulo"
   class="min-w-0 space-y-5"
 >
@@ -44,10 +52,12 @@ const opcionesUrgencia = [
       </p>
     </div>
 
-    <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/nueva`}>
-      <span aria-hidden="true">+</span>
-      Crear acción
-    </Button>
+    <div data-gestion-plan hidden>
+      <Button href={`/planes/${encodeURIComponent(idPlan)}/acciones/nueva`}>
+        <span aria-hidden="true">+</span>
+        Crear acción
+      </Button>
+    </div>
   </div>
 
   <p

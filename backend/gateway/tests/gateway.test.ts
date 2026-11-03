@@ -230,6 +230,21 @@ describe('API Gateway', () => {
     assert.equal(body.territoryId, '11111111-1111-4111-8111-111111111111');
   });
 
+  test('autoriza el contexto territorial en el preflight CORS del navegador', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/organizations`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'http://127.0.0.1:4321',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization,x-territory-id',
+      },
+    });
+    const permitidos = (response.headers.get('access-control-allow-headers') ?? '').split(',');
+    assert.equal(response.status, 204);
+    assert.ok(permitidos.includes('authorization'));
+    assert.ok(permitidos.includes('x-territory-id'));
+  });
+
   test('conserva el archivo privado y sus cabeceras al descargar una evidencia', async () => {
     const response = await fetch(`${gatewayUrl}/api/v1/evidences/66666666-6666-4666-8666-666666666666/file`, {
       headers: { authorization: 'Bearer sesion-intervenciones' },

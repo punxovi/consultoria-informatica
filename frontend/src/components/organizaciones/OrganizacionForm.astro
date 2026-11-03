@@ -173,6 +173,12 @@ const tiposOrganizacion = [
     obtenerOrganizacion,
   } from '../../lib/organizaciones/cliente';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
+  import {
+    MENSAJE_SIN_PERMISO_TERRITORIAL,
+    obtenerAlcanceGestion,
+    puedeGestionarPais,
+    type AlcanceGestion,
+  } from '../../lib/territorio/permisos';
 
   const form = document.querySelector<HTMLFormElement>(
     '#form-organizacion',
@@ -224,6 +230,7 @@ const tiposOrganizacion = [
   const idOrganizacion = form.dataset.id ?? '';
   let versionActual: number | undefined;
   let guardando = false;
+  let alcanceGestion: AlcanceGestion | undefined;
 
   inputTelefono?.addEventListener('input', () => {
     let cantidadDigitos = 0;
@@ -288,7 +295,13 @@ const tiposOrganizacion = [
 
   async function cargarPaises() {
     const seleccionPrevia = selectPais!.value;
-    const paises = await listarPaisesOrganizaciones();
+    const [todosLosPaises, alcance] = await Promise.all([
+      listarPaisesOrganizaciones(),
+      obtenerAlcanceGestion(),
+    ]);
+    alcanceGestion = alcance;
+    const paises = todosLosPaises.filter((pais) => puedeGestionarPais(alcance, pais.id_pais));
+    if (paises.length === 0) throw new Error(MENSAJE_SIN_PERMISO_TERRITORIAL);
     selectPais!.replaceChildren(new Option('Selecciona un país', '', true, false));
     for (const pais of paises) {
       selectPais!.add(new Option(pais.nombre, pais.id_pais));
@@ -377,7 +390,11 @@ const tiposOrganizacion = [
 
     try {
       await cargarPaises();
-      precargarOrganizacion(await obtenerOrganizacion(idOrganizacion));
+      const organizacion = await obtenerOrganizacion(idOrganizacion);
+      if (!alcanceGestion || !puedeGestionarPais(alcanceGestion, organizacion.id_pais)) {
+        throw new Error(MENSAJE_SIN_PERMISO_TERRITORIAL);
+      }
+      precargarOrganizacion(organizacion);
       campos!.disabled = false;
       form!.hidden = false;
       estado!.textContent = '';

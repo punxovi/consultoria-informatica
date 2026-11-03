@@ -42,7 +42,8 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
           </p>
         </div>
 
-        <div class="flex shrink-0 flex-wrap items-center gap-3">
+        <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
+        <div id="gestion-accion" hidden class="flex shrink-0 flex-wrap items-center gap-3">
           <EliminarRegistro
             tipo="accion"
             id={idAccion}
@@ -82,6 +83,8 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
 
 <script>
   import { obtenerAccion } from '../../../../lib/acciones/cliente';
+  import { obtenerPlan } from '../../../../lib/planes/cliente';
+  import { obtenerAlcanceGestion, puedeGestionarPais } from '../../../../lib/territorio/permisos';
   import { etiquetaEstado, estaVencida, mostrarFecha } from '../../../../lib/acciones/presentacion';
 
   const seccion = document.querySelector<HTMLElement>('#accion-detalle')!;
@@ -130,10 +133,16 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
     estado.textContent = 'Cargando acción…';
 
     try {
-      const accion = await obtenerAccion(seccion.dataset.idAccion!);
+      const [accion, plan, alcance] = await Promise.all([
+        obtenerAccion(seccion.dataset.idAccion!),
+        obtenerPlan(seccion.dataset.idPlan!),
+        obtenerAlcanceGestion(),
+      ]);
       if (accion.id_plan !== seccion.dataset.idPlan) {
         throw new Error('La acción solicitada no pertenece a este plan.');
       }
+      document.querySelector<HTMLElement>('#gestion-accion')!.hidden =
+        !puedeGestionarPais(alcance, plan.organizacion.id_pais);
 
       const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
       if (raizEliminar) raizEliminar.dataset.version = String(accion.version);
