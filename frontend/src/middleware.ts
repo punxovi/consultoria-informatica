@@ -4,6 +4,7 @@ const PUBLIC_PATHS = new Set(['/','/catalogo','/cotizar','/login','/recuperar-co
 const PUBLIC_PREFIXES = ['/api/v1/public/','/_astro/','/favicon','/Logo-'];
 
 function isPublic(pathname: string) {
+  if (pathname === '/images/producto-sin-foto.svg' || pathname === '/catalogo/') return true;
   return PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
