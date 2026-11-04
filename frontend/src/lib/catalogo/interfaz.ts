@@ -1,4 +1,5 @@
 import { crearClienteCatalogo } from './cliente.ts';
+import { agregarProducto } from '../cotizacion/seleccion.ts';
 import { caracteristicasPublicas, filtrarCatalogo, imagenPredeterminada, urlImagen, type ItemPublico } from './modelo.ts';
 
 export async function iniciarCatalogo() {
@@ -61,7 +62,16 @@ export async function iniciarCatalogo() {
       tarjeta.append(imagen(item, item.imagenes?.[0]?.url), texto('span', item.tipo_item === 'servicio' ? 'Servicio' : 'Producto', 'text-xs font-semibold uppercase tracking-wide text-primary'), texto('h3', item.nombre, 'text-xl font-bold break-words'), texto('p', item.descripcion, 'line-clamp-3 break-words text-sm leading-relaxed text-neutral-600'), datos(item));
       const boton = document.createElement('button'); boton.type = 'button'; boton.textContent = 'Ver detalle'; boton.setAttribute('aria-label', `Ver detalle de ${item.nombre}`);
       boton.className = 'mt-auto min-h-12 rounded-xl border border-primary px-4 py-3 font-semibold text-primary hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-primary';
-      boton.addEventListener('click', () => abrir(item, boton)); tarjeta.append(boton); q('lista').append(tarjeta);
+      boton.addEventListener('click', () => abrir(item, boton)); tarjeta.append(boton);
+      const agregar = document.createElement('button'); agregar.type = 'button'; agregar.textContent = 'Agregar a cotización';
+      agregar.className = 'min-h-12 rounded-xl bg-primary px-4 py-3 font-semibold text-white focus-visible:outline-2 focus-visible:outline-primary';
+      agregar.addEventListener('click', () => {
+        try {
+          const total = agregarProducto(item.id_producto);
+          q('seleccion').textContent = `${item.nombre} está en tu selección. ${total} productos seleccionados. Puedes revisar las cantidades en Solicitar cotización.`;
+        } catch { q('seleccion').textContent = 'No se pudo guardar la selección en esta pestaña. Revisa el almacenamiento del navegador o restablece la selección en Solicitar cotización.'; }
+      });
+      tarjeta.append(agregar); q('lista').append(tarjeta);
     }
   }
   async function cargar() {

@@ -14,9 +14,9 @@ test('acceso anónimo, solo publicados, campos y detalle accesible',async({page,
  await expect(page.locator('#catalogo-lista article')).toHaveCount(3);
  const card=page.locator('#catalogo-lista article').first();
  for(const valor of ['Producto 1','Organización A','Chile','Artesanía','Madera barnizada'])await expect(card).toContainText(valor);
- await card.getByRole('button').click();await expect(page.getByRole('dialog')).toBeVisible();
+ await card.getByRole('button',{name:/Ver detalle/}).click();await expect(page.getByRole('dialog')).toBeVisible();
  await expect(page.getByRole('dialog')).toContainText('Trabajo artesanal');
- await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(card.getByRole('button')).toBeFocused();
+ await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(card.getByRole('button',{name:/Ver detalle/})).toBeFocused();
  expect(solicitudes.every(r=>r.method()==='GET'&&!r.headers().authorization)).toBe(true);
 });
 test('país y organización separados, combinados, vacío y restablecer',async({page})=>{
@@ -43,7 +43,7 @@ test('móvil, fotografía válida, textos seguros, sin precio ni stock',async({p
  await page.setViewportSize({width:390,height:844});await abrir(page);
  await expect(page.locator('#catalogo-lista script')).toHaveCount(0);await expect(page.locator('#catalogo-lista')).not.toContainText('5000');await expect(page.locator('#catalogo-lista')).not.toContainText('42');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.locator('#catalogo-lista button').click();expect(await page.getByRole('dialog').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+ await page.locator('#catalogo-lista').getByRole('button',{name:/Ver detalle/}).click();expect(await page.getByRole('dialog').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
  await page.screenshot({path:'test-results/catalogo-mobile.png'});
 });
 test('escritorio y rutas de entrada',async({page})=>{
