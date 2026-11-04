@@ -178,6 +178,13 @@ const currentPath = Astro.url.pathname;
                 </>
               )}
 
+              {item.href.startsWith('/administracion/productos') && (
+                <>
+                  <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+                  <path d="m3 8 9 5 9-5M12 13v8" />
+                </>
+              )}
+
               {item.href.startsWith('/administracion/auditoria') && (
                 <>
                   <path d="M4 5h10M4 10h7M4 15h5" />
