@@ -15,6 +15,8 @@ import { routeCoverages } from './http/coverages-routes.ts';
 import { createAuditApplication, type AuditApplication } from './application/audit-service.ts';
 import { createSupabaseAuditRepositoryFromEnv } from './infrastructure/supabase-audit.repository.ts';
 import { routeAudit } from './http/audit-routes.ts';
+import { createPublicCatalogApplication, type PublicCatalogApplication } from './application/public-catalog-service.ts';
+import { routePublicCatalog } from './http/public-routes.ts';
 
 // Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
@@ -45,11 +47,16 @@ export function createOrganizationsServer(
   countries?: CountriesApplication,
   coverages?: CoveragesApplication,
   audit?: AuditApplication,
+  publicCatalog?: PublicCatalogApplication,
 ): Server {
   const resolved = application ?? createOrganizationsApplication(createSupabaseOrganizationsRepositoryFromEnv());
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
   const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
+  const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication({
+    supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
+    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
+  });
 
   // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
@@ -113,6 +120,11 @@ export function createOrganizationsServer(
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;
+
+    if (path === '/v1/public/catalog' || path === '/v1/public/quote-requests') {
+      await routePublicCatalog(request, response, requestId, resolvedPublicCatalog);
+      return;
+    }
 
     if (path === '/v1/audit/events') {
       await routeAudit(request, response, requestId, resolvedAudit);

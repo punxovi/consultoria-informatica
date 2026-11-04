@@ -34,6 +34,7 @@ async function saveSession(session: Session): Promise<Session> {
       500,
     );
   }
+  document.cookie = `fge_access_token=${encodeURIComponent(data.session.access_token)}; Path=/; SameSite=Lax; Max-Age=${Math.max(60, data.session.expires_in ?? 3600)}`;
   return data.session;
 }
 
@@ -148,6 +149,7 @@ export async function cerrarSesion(): Promise<void> {
     }
   } finally {
     await supabase.auth.signOut({ scope: 'local' });
+    document.cookie = 'fge_access_token=; Path=/; Max-Age=0; SameSite=Lax';
   }
 }
 

@@ -31,6 +31,13 @@ export async function routeRequest(
   }
 
   const authPrefix = `${API_PREFIX}/auth`;
+  const publicQuotePrefix = `${API_PREFIX}/public`;
+  if (incomingUrl.pathname === `${publicQuotePrefix}/catalog` || incomingUrl.pathname === `${publicQuotePrefix}/quote-requests`) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
   if (/^\/api\/v1\/public\/evidences\/[^/]+\/file$/.test(incomingUrl.pathname)) {
     const targetUrl = new URL(`${incomingUrl.pathname.slice('/api'.length)}${incomingUrl.search}`, targets.interventions);
     await proxyRequest(request, response, targetUrl, requestId);
