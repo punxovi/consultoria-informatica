@@ -180,6 +180,7 @@ import AppLayout from '../layouts/AppLayout.astro';
 <script>
   import { listarPlanes } from '../lib/planes/cliente';
   import { listarOrganizaciones } from '../lib/organizaciones/cliente';
+  import { agregarRetorno, hrefOrganizacion } from '../lib/navegacion/retorno-organizaciones';
 
   type PlanListado = Awaited<ReturnType<typeof listarPlanes>>[number];
   type OrganizacionListado = Awaited<ReturnType<typeof listarOrganizaciones>>[number];
@@ -310,7 +311,7 @@ import AppLayout from '../layouts/AppLayout.astro';
       tarjeta.querySelector<HTMLElement>('[data-nombre]')!.textContent = plan.nombre;
       const enlaceOrganizacion = tarjeta.querySelector<HTMLAnchorElement>('[data-organizacion]')!;
       enlaceOrganizacion.textContent = plan.organizacion.nombre;
-      enlaceOrganizacion.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+      enlaceOrganizacion.href = hrefOrganizacion(String(plan.id_organizacion), new URLSearchParams(window.location.search));
       enlaceOrganizacion.setAttribute('aria-label', `Ver organización ${plan.organizacion.nombre}`);
 
       const enlacePrograma = tarjeta.querySelector<HTMLAnchorElement>('[data-programa]')!;
@@ -331,6 +332,7 @@ import AppLayout from '../layouts/AppLayout.astro';
       if (filtroPrograma.value) parametrosRetorno.set('id_programa', filtroPrograma.value);
       const idOrgActual = idOrganizacionFiltro();
       if (idOrgActual) parametrosRetorno.set('id_organizacion', idOrgActual);
+      agregarRetorno(parametrosRetorno, new URLSearchParams(window.location.search));
       const queryRetorno = parametrosRetorno.toString();
       enlace.href = `/planes/${encodeURIComponent(plan.id_plan)}${queryRetorno ? `?${queryRetorno}` : ''}`;
       enlace.setAttribute('aria-label', `Ver detalle de ${plan.nombre}`);
