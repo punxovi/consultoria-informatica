@@ -48,7 +48,13 @@ export async function routeRequest(
   const donationsPrefix = `${API_PREFIX}/donations`;
   const countriesPrefix = `${API_PREFIX}/countries`;
   const auditPrefix = `${API_PREFIX}/audit`;
+  const productsPrefix = `${API_PREFIX}/products`;
+  const publicProductsPrefix = `${API_PREFIX}/public/products`;
   if (
+    incomingUrl.pathname === productsPrefix ||
+    incomingUrl.pathname.startsWith(`${productsPrefix}/`) ||
+    incomingUrl.pathname === publicProductsPrefix ||
+    incomingUrl.pathname.startsWith(`${publicProductsPrefix}/`) ||
     incomingUrl.pathname === organizationsPrefix ||
     incomingUrl.pathname.startsWith(`${organizationsPrefix}/`) ||
     incomingUrl.pathname === countriesPrefix ||

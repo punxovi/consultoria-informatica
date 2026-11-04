@@ -139,4 +139,12 @@ try {
   await user(admin);
   check(await scalar('SELECT count(*)::int FROM public.productos'), 0);
   console.log(JSON.stringify({ ok: true, checks, engine: 'PostgreSQL/PGlite', remoteSupabaseModified: false }));
+  if (process.argv.includes('--scrum162')) {
+    await db.exec('RESET ROLE');
+    await db.query('UPDATE public.perfiles SET activo=true WHERE id_usuario=$1', [admin]);
+    await load('20261103160000_fge_scrum162_operaciones_productos.sql');
+    const { verifyProductOperations } = await import('./verificar-operaciones-productos-db.mjs');
+    const operations = await verifyProductOperations(db, { admin, coord, guest, noRole, cl, ar, orgCL, orgAR, service });
+    console.log(JSON.stringify({ scrum162: true, ...operations }));
+  }
 } finally { await db.close(); }

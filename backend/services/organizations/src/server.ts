@@ -15,6 +15,9 @@ import { routeCoverages } from './http/coverages-routes.ts';
 import { createAuditApplication, type AuditApplication } from './application/audit-service.ts';
 import { createSupabaseAuditRepositoryFromEnv } from './infrastructure/supabase-audit.repository.ts';
 import { routeAudit } from './http/audit-routes.ts';
+import { createProductsApplication, type ProductsApplication } from './application/products-service.ts';
+import { createSupabaseProductsRepositoryFromEnv } from './infrastructure/supabase-products.repository.ts';
+import { routeProducts } from './http/products-routes.ts';
 
 // Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
@@ -45,11 +48,13 @@ export function createOrganizationsServer(
   countries?: CountriesApplication,
   coverages?: CoveragesApplication,
   audit?: AuditApplication,
+  products?: ProductsApplication,
 ): Server {
   const resolved = application ?? createOrganizationsApplication(createSupabaseOrganizationsRepositoryFromEnv());
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
   const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
+  const resolvedProducts = products ?? createProductsApplication(createSupabaseProductsRepositoryFromEnv());
 
   // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
@@ -113,6 +118,11 @@ export function createOrganizationsServer(
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;
+
+    if (path === '/v1/products' || path.startsWith('/v1/products/') || path === '/v1/public/products' || path.startsWith('/v1/public/products/')) {
+      await routeProducts(request, response, requestId, resolvedProducts);
+      return;
+    }
 
     if (path === '/v1/audit/events') {
       await routeAudit(request, response, requestId, resolvedAudit);

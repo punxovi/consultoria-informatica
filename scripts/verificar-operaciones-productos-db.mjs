@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+export async function verifyProductOperations(db, f) {
+  let checks = 0;
+  const check = (actual, expected) => { assert.deepEqual(actual, expected); checks++; };
+  const scalar = async (sql, values = []) => Object.values((await db.query(sql, values)).rows[0])[0];
+  const adminRpc = (operation, data = {}) => scalar('SELECT public.administrar_productos_cotizacion($1,$2::jsonb)', [operation, JSON.stringify(data)]);
+  const publicRpc = (operation, data = {}) => scalar('SELECT public.consultar_productos_publicos($1,$2::jsonb)', [operation, JSON.stringify(data)]);
+  const rejected = async (operation, data, code, isPublic = false) => { await assert.rejects((isPublic ? publicRpc : adminRpc)(operation, data), e => e.code === code); checks++; };
+  const user = async uid => { await db.exec('RESET ROLE'); await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [uid]); await db.exec('SET ROLE authenticated'); };
+  const missing = '16200000-0000-4000-8000-000000000099';
+  await user(f.admin);
+  check(await adminRpc('authorize'), { authorized: true });
+  const input = { id_organizacion: f.orgCL, nombre: ' Producto QA 162 ', descripcion: 'Descripción pública', unidad_medida: 'unidad', caracteristicas: { color: 'azul' } };
+  let product = await adminRpc('create', input);
+  check(product.nombre, 'Producto QA 162'); check(product.publicado, false); check(product.created_by, f.admin);
+  check(product.id_pais, f.cl); check(product.tipo_item, 'producto'); check(product.version, 1);
+  check((await adminRpc('get', { id_producto: product.id_producto })).id_producto, product.id_producto);
+  check((await adminRpc('list', { id_organizacion: f.orgCL })).products.length, 1);
+  await rejected('create', { ...input, id_organizacion: missing }, 'P0163');
+  await rejected('create', { ...input, publicado: true }, '22023');
+  for (const field of ['id_organizacion', 'nombre', 'descripcion', 'unidad_medida']) { const data = { ...input }; delete data[field]; await rejected('create', data, '22023'); }
+  for (const data of [{ ...input, nombre: ' ' }, { ...input, caracteristicas: [] }, { ...input, categoria: 4 }, { ...input, tipo_item: 'inventario' }, { ...input, nombre: 'x'.repeat(201) }]) await rejected('create', data, '22023');
+  product = await adminRpc('update', { id_producto: product.id_producto, version_esperada: product.version, cambios: { nombre: 'Actualizado QA', categoria: 'Artesanía', material_terminacion: 'Tela' } });
+  check(product.version, 2); check(product.nombre, 'Actualizado QA'); check(product.publicado, false);
+  await rejected('update', { id_producto: product.id_producto, version_esperada: 1, cambios: { nombre: 'Anterior' } }, '40001');
+  await rejected('update', { id_producto: product.id_producto, version_esperada: 2, cambios: {} }, '22023');
+  await rejected('update', { id_producto: product.id_producto, version_esperada: 2, cambios: { id_organizacion: f.orgAR } }, '22023');
+  await rejected('get', { id_producto: missing }, 'P0162');
+  await rejected('get', { id_producto: product.id_producto, interno: true }, '22023');
+  for (const version of [null, '2', 0, -1, 1.5, 9007199254740992]) await rejected('activate', { id_producto: product.id_producto, version_esperada: version }, '22023');
+
+  await db.exec('RESET ROLE; SET ROLE anon');
+  await rejected('get', { id_producto: product.id_producto }, 'P0162', true); // borrador no visible
+  let page = await publicRpc('list');
+  check(page.products.length, 1); check(page.products[0].id_producto, f.service);
+  check(Object.keys(page.products[0]).sort(), ['id_producto','nombre','descripcion','unidad_medida','tipo_item','categoria','material_terminacion','caracteristicas','informacion_adicional','organizacion','pais','imagenes'].sort());
+  check(Object.keys(page.products[0].organizacion).sort(), ['id_organizacion','nombre']);
+  check(JSON.stringify(page).includes('correo'), false); check(JSON.stringify(page).includes('created_by'), false);
+  await rejected('get', { id_producto: missing }, 'P0162', true);
+  await rejected('list', { id_pais: missing }, 'P0165', true);
+  await rejected('list', { id_organizacion: missing }, 'P0165', true);
+  for (const data of [{ limit: 0 }, { limit: 101 }, { offset: -1 }, { offset: 1.5 }, { limit: '5' }, { publicado: false }]) await rejected('list', data, '22023', true);
+  check((await publicRpc('list', { id_pais: f.cl })).products.length, 0);
+  await rejected('create', input, '22023', true);
+  await assert.rejects(db.query('SELECT * FROM public.productos'), { code: '42501' }); checks++;
+  await assert.rejects(adminRpc('authorize'), { code: '42501' }); checks++;
+  await user(f.admin);
+  product = await adminRpc('activate', { id_producto: product.id_producto, version_esperada: product.version });
+  check(product.publicado, true); check(product.version, 3);
+  await db.exec('RESET ROLE; SET ROLE anon');
+  check((await publicRpc('list', { limit: 1 })).hasMore, true);
+  const first = await publicRpc('list', { limit: 1 }), second = await publicRpc('list', { limit: 1, offset: 1 });
+  check(first.products[0].id_producto === second.products[0].id_producto, false); check(second.hasMore, false);
+  check((await publicRpc('list', { id_pais: f.cl, id_organizacion: f.orgAR })).products.length, 0);
+  check((await publicRpc('list', { id_pais: f.cl, id_organizacion: f.orgCL })).products[0].id_producto, product.id_producto);
+  check((await publicRpc('get', { id_producto: product.id_producto })).nombre, 'Actualizado QA');
+  for (const uid of [f.coord, f.guest, f.noRole]) {
+    await user(uid);
+    for (const op of ['authorize','list','get','create','update','activate','deactivate']) await rejected(op, input, '42501');
+    await assert.rejects(db.query("INSERT INTO public.productos(id_organizacion,nombre,descripcion,unidad_medida) VALUES($1,'No','No','unidad')", [f.orgCL]), { code: '42501' }); checks++;
+    check((await db.query("UPDATE public.productos SET publicado=false WHERE id_producto=$1 RETURNING id_producto", [product.id_producto])).rows.length, 0);
+  }
+  await user(f.admin);
+  product = await adminRpc('deactivate', { id_producto: product.id_producto, version_esperada: product.version });
+  check(product.publicado, false);
+  await rejected('activate', { id_producto: product.id_producto, version_esperada: 3 }, '40001');
+  await db.exec('RESET ROLE');
+  await db.query('UPDATE public.organizaciones SET archived_at=now() WHERE id_organizacion=$1', [f.orgCL]);
+  await user(f.admin);
+  await rejected('create', input, 'P0164');
+  await rejected('activate', { id_producto: product.id_producto, version_esperada: product.version }, 'P0164');
+  product = await adminRpc('deactivate', { id_producto: product.id_producto, version_esperada: product.version });
+  check(product.publicado, false); // se puede retirar aun con Organización inactiva
+  check((await publicRpc('list')).products.some(p => p.id_producto === product.id_producto), false);
+  await db.exec('RESET ROLE');
+  await db.query('UPDATE public.paises SET archived_at=now() WHERE id_pais=$1', [f.ar]);
+  await db.exec('SET ROLE anon');
+  check((await publicRpc('list')).products.length, 0);
+  await rejected('get', { id_producto: f.service }, 'P0162', true);
+  await db.exec('RESET ROLE');
+  await db.query('UPDATE public.perfiles SET activo=false WHERE id_usuario=$1', [f.admin]);
+  await user(f.admin);
+  await rejected('authorize', {}, '42501');
+  check(await scalar('SELECT count(*)::int FROM public.productos'), 0);
+  await db.exec('RESET ROLE');
+  check(await scalar("SELECT count(*)::int>0 FROM fge_private.historial_cambios WHERE tabla_afectada='productos'"), true);
+  await db.query('UPDATE public.perfiles SET activo=true WHERE id_usuario=$1', [f.admin]);
+  await db.query('UPDATE public.organizaciones SET archived_at=NULL WHERE id_organizacion=$1', [f.orgCL]);
+  const remoteTest = await db.exec(await readFile(new URL('../supabase/tests/database/041_scrum162_verificacion_remota.sql', import.meta.url), 'utf8'));
+  check(remoteTest.flatMap(r => r.rows).find(r => r.resultado)?.resultado?.resultado, 'OK');
+  check(await scalar("SELECT count(*)::int FROM public.productos WHERE nombre='QA SCRUM-162'"), 0);
+  return { checks, engine: 'PostgreSQL/PGlite', remoteSupabaseModified: false };
+}
