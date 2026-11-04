@@ -27,6 +27,7 @@ interface RepositoryOptions {
   supabaseUrl: string;
   anonKey: string;
   fetchImpl?: typeof fetch;
+  resolveRoles?: boolean;
 }
 
 const DONATION_FIELDS = '*';
@@ -48,6 +49,11 @@ const ORGANIZATION_FIELDS = [
 
 const ORGANIZATION_IMAGE_FIELDS = 'id_archivo,nombre_original,mime_type,tamano_bytes,updated_at';
 const ORGANIZATION_WITH_IMAGE_FIELDS = `${ORGANIZATION_FIELDS},imagen:archivos!archivos_id_organizacion_fkey(${ORGANIZATION_IMAGE_FIELDS})`;
+const INVITED_ORGANIZATION_FIELDS = [
+  'id_organizacion', 'id_pais', 'nombre', 'region_departamento',
+  'comuna_municipio_ciudad', 'publico_objetivo', 'descripcion_breve',
+  'tipo_organizacion', 'numero_beneficiarios', 'pais', 'archived_at', 'version',
+].join(',');
 
 function withImageFilters(params: URLSearchParams): URLSearchParams {
   params.set('imagen.categoria', 'eq.imagen_organizacion');
@@ -240,6 +246,26 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     return body.map(organization);
   }
 
+  async function invitedOrganizationRows(accessToken: string, params: URLSearchParams): Promise<Organization[]> {
+    if (!params.has('select')) params.set('select', INVITED_ORGANIZATION_FIELDS);
+    const body = await request('organizaciones_invitado', accessToken, params);
+    if (!Array.isArray(body)) {
+      throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolviÃ³ una organizaciÃ³n invÃ¡lida.', 502);
+    }
+    return body.map(organization);
+  }
+
+  async function esInvitado(accessToken: string): Promise<boolean> {
+    if (!options.resolveRoles) return false;
+
+    const body = await request('rpc/get_user_roles', accessToken, new URLSearchParams(), {
+      method: 'POST', body: JSON.stringify({}),
+    });
+    if (!Array.isArray(body)) return false;
+    const roles = body.map((item) => record(item).codigo);
+    return roles.includes('INVIT') && !roles.some((role) => role === 'ADMIN' || role === 'COORD');
+  }
+
   async function requireDonationManagement(accessToken: string, orgId: string): Promise<void> {
     const allowed = await request('rpc/puede_gestionar_donaciones', accessToken, new URLSearchParams(), {
       method: 'POST', body: JSON.stringify({ p_id_organizacion: orgId }),
@@ -386,6 +412,13 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
   return {
     async list(accessToken, filters) {
+      if (await esInvitado(accessToken)) {
+        const params = new URLSearchParams({ order: 'nombre.asc' });
+        if (filters.search) params.set('nombre', `ilike.*${filters.search}*`);
+        if (filters.idPais) params.set('id_pais', `eq.${filters.idPais}`);
+        params.set('archived_at', 'is.null');
+        return invitedOrganizationRows(accessToken, params);
+      }
       const params = new URLSearchParams({ order: 'nombre.asc' });
       let selectString = ORGANIZATION_FIELDS;
 
@@ -402,6 +435,13 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     },
 
     async getById(accessToken, id) {
+      if (await esInvitado(accessToken)) {
+        const rows = await invitedOrganizationRows(accessToken, new URLSearchParams({
+          id_organizacion: `eq.${id}`, archived_at: 'is.null', limit: '1',
+        }));
+        if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La OrganizaciÃ³n solicitada no existe o no estÃ¡ disponible.', 404);
+        return rows[0];
+      }
       const rows = await organizationRows(accessToken, withImageFilters(new URLSearchParams({
         select: ORGANIZATION_WITH_IMAGE_FIELDS,
         id_organizacion: `eq.${id}`,
@@ -952,5 +992,5 @@ export function createSupabaseOrganizationsRepositoryFromEnv(): OrganizationsRep
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) return unconfiguredRepository();
-  return createSupabaseOrganizationsRepository({ supabaseUrl, anonKey });
+  return createSupabaseOrganizationsRepository({ supabaseUrl, anonKey, resolveRoles: true });
 }
