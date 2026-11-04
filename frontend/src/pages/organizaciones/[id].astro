@@ -11,6 +11,7 @@ import OrganizacionDiagnostico from '../../components/organizaciones/Organizacio
 import Card from '../../components/ui/Card.astro';
 import BackButton from '../../components/ui/BackButton.astro';
 import Button from '../../components/ui/Button.astro';
+import { retornoHaciaPlanes } from '../../lib/navegacion/retorno-organizaciones';
 
 const idOrganizacion = Astro.params.id ?? '';
 const filtrosRetorno = new URLSearchParams();
@@ -23,6 +24,8 @@ const hrefVolverOrganizaciones = `/organizaciones${queryRetorno ? `?${queryRetor
 const parametrosPlanes = new URLSearchParams({ id_organizacion: idOrganizacion });
 const programaContextual = Astro.url.searchParams.get('id_programa');
 if (programaContextual) parametrosPlanes.set('id_programa', programaContextual);
+// Los filtros del listado viajan con Planes para restaurarlos al volver desde un Plan.
+for (const [clave, valor] of retornoHaciaPlanes(Astro.url.searchParams)) parametrosPlanes.set(clave, valor);
 const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 ---
 
@@ -193,15 +196,15 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </nav>
     </div>
 
-    <div id="tab-compromisos" data-main-panel="intervenciones" role="tabpanel" aria-label="Compromisos" class="contenido-tab hidden space-y-5">
+    <div id="tab-compromisos" data-main-panel="intervenciones" role="region" aria-label="Compromisos" class="contenido-tab hidden space-y-5">
       <OrganizacionCompromisos idOrganizacion={idOrganizacion} />
     </div>
 
-    <div id="tab-expediente-legal" data-main-panel="seguimiento" role="tabpanel" aria-label="Expediente legal" class="contenido-tab hidden space-y-5">
+    <div id="tab-expediente-legal" data-main-panel="seguimiento" role="region" aria-label="Expediente legal" class="contenido-tab hidden space-y-5">
       <OrganizacionExpedienteLegal idOrganizacion={idOrganizacion} />
     </div>
 
-    <div id="tab-donaciones" data-main-panel="seguimiento" role="tabpanel" aria-label="Donaciones y recursos" class="contenido-tab hidden space-y-5">
+    <div id="tab-donaciones" data-main-panel="seguimiento" role="region" aria-label="Donaciones y recursos" class="contenido-tab hidden space-y-5">
       <OrganizacionDonaciones idOrganizacion={idOrganizacion} />
     </div>
 
@@ -359,12 +362,12 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     </div>
 
     <!-- Diagnóstico -->
-    <div id="tab-diagnostico" data-main-panel="intervenciones" role="tabpanel" aria-label="Diagnóstico" class="contenido-tab hidden space-y-5">
+    <div id="tab-diagnostico" data-main-panel="intervenciones" role="region" aria-label="Diagnóstico" class="contenido-tab hidden space-y-5">
       <OrganizacionDiagnostico />
     </div>
 
     <!-- Actas de Reunión -->
-    <div id="tab-actas" data-main-panel="intervenciones" role="tabpanel" aria-label="Actas de reunión" class="contenido-tab hidden space-y-5">
+    <div id="tab-actas" data-main-panel="intervenciones" role="region" aria-label="Actas de reunión" class="contenido-tab hidden space-y-5">
       <OrganizacionActas idOrganizacion={idOrganizacion} />
     </div>
 
@@ -629,10 +632,13 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       mostrarVista(categoria, null, true);
     });
     tab.addEventListener('keydown', (evento) => {
-      if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(evento.key)) return;
       evento.preventDefault();
-      const desplazamiento = evento.key === 'ArrowRight' ? 1 : -1;
-      const siguiente = (indice + desplazamiento + tabs.length) % tabs.length;
+      const siguiente = evento.key === 'Home'
+        ? 0
+        : evento.key === 'End'
+          ? tabs.length - 1
+          : (indice + (evento.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
       tabs[siguiente]?.focus();
       tabs[siguiente]?.click();
     });
@@ -650,15 +656,20 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     });
   });
 
-  // Permite enlazar directamente a una sección interna mediante el fragmento de URL.
-  const fragmento = window.location.hash.replace(/^#/, '');
-  if (fragmento in categoriaPorSubseccion) {
-    mostrarVista(categoriaPorSubseccion[fragmento], fragmento);
-  } else if (['intervenciones', 'seguimiento'].includes(fragmento)) {
-    mostrarVista(fragmento);
-  } else {
-    mostrarVista('informacion');
+  function aplicarFragmento() {
+    const fragmento = window.location.hash.replace(/^#/, '');
+    // Object.hasOwn evita que claves heredadas (#toString, #constructor) se tomen como subsecciones.
+    if (Object.hasOwn(categoriaPorSubseccion, fragmento)) {
+      mostrarVista(categoriaPorSubseccion[fragmento], fragmento);
+    } else if (['intervenciones', 'seguimiento'].includes(fragmento)) {
+      mostrarVista(fragmento);
+    } else {
+      mostrarVista('informacion');
+    }
   }
+  aplicarFragmento();
+  // Un enlace a otra subsección de esta misma ficha solo cambia el fragmento.
+  window.addEventListener('hashchange', aplicarFragmento);
 
   void cargarOrganizacion();
 </script>
