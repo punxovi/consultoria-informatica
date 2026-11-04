@@ -1,3 +1,14 @@
 ---
-return Astro.redirect('/dashboard', 302);
+import Layout from '../layouts/Layout.astro';
 ---
+<Layout title="Catálogo público - Fundación Gestionar Esperanzas">
+  <main class="mx-auto max-w-6xl space-y-8 px-6 py-10">
+    <header class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm font-semibold text-[#4C4688]">Fundación Gestionar Esperanzas</p><h1 class="mt-2 text-4xl font-bold text-neutral-900">Catálogo de productos y servicios</h1><p class="mt-2 max-w-2xl text-neutral-600">Consulta nuestra oferta pública y envía una solicitud de cotización sin crear una cuenta.</p></div><a class="rounded-xl bg-[#4C4688] px-5 py-3 font-semibold text-white" href="/cotizar">Solicitar cotización</a></header>
+    <section id="catalogo" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-live="polite"><p class="text-neutral-500">Cargando catálogo…</p></section>
+  </main>
+</Layout>
+<script>
+  const root = document.querySelector('#catalogo');
+  fetch('/api/v1/public/catalog', { headers: { accept: 'application/json' } }).then(async (response) => { const payload = await response.json(); if (!response.ok || !payload.ok) throw new Error('No fue posible cargar el catálogo.'); root.innerHTML = payload.data.items.map((item) => `<article class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"><span class="text-xs font-semibold uppercase tracking-wide text-[#4C4688]">${escapeHtml(item.tipo_item)}</span><h2 class="mt-2 text-xl font-bold text-neutral-900">${escapeHtml(item.nombre)}</h2><p class="mt-2 text-sm leading-6 text-neutral-600">${escapeHtml(item.descripcion)}</p><p class="mt-4 text-xs text-neutral-500">Unidad: ${escapeHtml(item.unidad_medida)}</p></article>`).join(''); }).catch((error) => { root.innerHTML = `<p class="text-red-700">${escapeHtml(error.message)}</p>`; });
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
+</script>
