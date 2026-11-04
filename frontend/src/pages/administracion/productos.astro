@@ -1,0 +1,209 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Card from '../../components/ui/Card.astro';
+import Button from '../../components/ui/Button.astro';
+import Input from '../../components/ui/Input.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import { mainNavItems } from '../../config/nav';
+
+const atributos = [
+  ['categoria', 'Categoría', 'Ej. Textil, Madera, Hogar'],
+  ['material', 'Material', 'Ej. Textil reciclado, Madera recuperada'],
+  ['terminacion', 'Terminación', 'Ej. Artesanal, pulida natural'],
+] as const;
+const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] bg-white px-3.5 py-2.5 text-base text-[#1A1A1A] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5] aria-[invalid=true]:border-[#C81E5B] disabled:cursor-not-allowed disabled:bg-[#F5F3F9]';
+---
+
+<AppLayout title="Productos de cotización" navItems={mainNavItems} allowedRoles={['ADMIN']}>
+  <Fragment slot="headerBreadcrumb"><span class="text-sm font-semibold text-neutral-900">Productos de cotización</span></Fragment>
+  <section id="productos" class="min-w-0 space-y-6" aria-labelledby="productos-titulo">
+    <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-primary">Administración</p>
+        <h1 id="productos-titulo" class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Productos de cotización</h1>
+        <p class="mt-2 max-w-2xl text-sm text-neutral-500">
+          Gestiona los productos que las organizaciones ofrecen en el catálogo público de cotizaciones.
+        </p>
+      </div>
+      <Button id="productos-nuevo" size="lg" class="shrink-0">
+        <span aria-hidden="true">+</span>
+        Agregar producto
+      </Button>
+    </header>
+
+    <p id="productos-confirmacion" hidden role="status" aria-live="polite"
+      class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"></p>
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Resumen de productos">
+      <Card class="border-l-4 border-l-primary p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Productos registrados</p>
+        <p id="productos-total" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+      </Card>
+      <Card class="border-l-4 border-l-brand-green p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Publicados en catálogo</p>
+        <p id="productos-publicados" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+      </Card>
+      <Card class="border-l-4 border-l-brand-yellow p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Sin publicar</p>
+        <p id="productos-no-publicados" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
+      </Card>
+    </div>
+
+    <!-- Formulario de alta y edición -->
+    <div id="productos-panel" hidden>
+      <Card class="border-l-4 border-l-primary p-5">
+        <h2 id="productos-form-titulo" class="text-lg font-semibold text-neutral-900">Nuevo producto</h2>
+        <p id="productos-form-nota" class="mt-1 text-sm text-neutral-500">
+          El producto se guarda sin publicar. Podrás publicarlo en el catálogo desde el listado.
+        </p>
+        <form id="productos-form" novalidate class="mt-5 space-y-5" aria-labelledby="productos-form-titulo">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="min-w-0">
+              <Input label="Nombre del producto" id="productos-nombre" name="nombre" required maxlength={150} placeholder="Ej. Bolso reutilizable tejido" />
+              <p id="productos-error-nombre" hidden class="mt-1 text-sm text-[#AD174F]"></p>
+            </div>
+            <div class="min-w-0">
+              <Input label="Unidad de medida" id="productos-unidad_medida" name="unidad_medida" required maxlength={50} placeholder="Ej. unidad, set de 6, caja" />
+              <p id="productos-error-unidad_medida" hidden class="mt-1 text-sm text-[#AD174F]"></p>
+            </div>
+            <div class="min-w-0 md:col-span-2">
+              <label for="productos-descripcion" class="text-sm font-semibold text-[#383165]">
+                Descripción <span class="ml-0.5 text-[#C81E5B]" aria-hidden="true">*</span>
+              </label>
+              <textarea id="productos-descripcion" name="descripcion" rows="4" maxlength="2000" required
+                aria-describedby="productos-error-descripcion"
+                placeholder="Características, medidas y usos del producto"
+                class={`mt-1.5 ${controlBase}`}></textarea>
+              <p id="productos-error-descripcion" hidden class="mt-1 text-sm text-[#AD174F]"></p>
+            </div>
+            <div class="min-w-0">
+              <label for="productos-id_organizacion" class="text-sm font-semibold text-[#383165]">
+                Organización <span class="ml-0.5 text-[#C81E5B]" aria-hidden="true">*</span>
+              </label>
+              <select id="productos-id_organizacion" name="id_organizacion" required
+                aria-describedby="productos-error-id_organizacion productos-organizaciones-aviso"
+                class={`mt-1.5 cursor-pointer ${controlBase}`}>
+                <option value="">Selecciona una Organización</option>
+              </select>
+              <p id="productos-organizaciones-aviso" hidden role="status" class="mt-1 text-sm text-neutral-500"></p>
+              <p id="productos-error-id_organizacion" hidden class="mt-1 text-sm text-[#AD174F]"></p>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-[#383165]">País</p>
+              <p id="productos-pais" class="mt-1.5 flex min-h-12 items-center rounded-xl border border-[#E5E1EE] bg-[#F5F3F9] px-3.5 text-base text-neutral-700" aria-live="polite">—</p>
+              <p class="mt-1 text-sm text-neutral-500">Se toma de la Organización seleccionada.</p>
+            </div>
+          </div>
+
+          <fieldset class="space-y-3">
+            <legend class="text-sm font-semibold text-[#383165]">Características del catálogo</legend>
+            <p class="text-sm text-neutral-500">Elige un valor ya registrado o escribe uno nuevo para registrarlo.</p>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {atributos.map(([campo, etiqueta, ejemplo]) => (
+                <div class="min-w-0">
+                  <label for={`productos-${campo}`} class="text-sm font-semibold text-[#383165]">{etiqueta}</label>
+                  <input id={`productos-${campo}`} name={campo} list={`productos-opciones-${campo}`} maxlength="80"
+                    placeholder={ejemplo} autocomplete="off" aria-describedby={`productos-error-${campo}`}
+                    class={`mt-1.5 ${controlBase}`} />
+                  <datalist id={`productos-opciones-${campo}`}></datalist>
+                  <p id={`productos-error-${campo}`} hidden class="mt-1 text-sm text-[#AD174F]"></p>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+
+          <div class="space-y-3">
+            <label for="productos-imagenes" class="text-sm font-semibold text-[#383165]">Imágenes del producto</label>
+            <p id="productos-imagenes-ayuda" class="text-sm text-neutral-500">JPG, PNG o WebP de hasta 5 MB. Puedes seleccionar varias.</p>
+            <p id="productos-imagenes-existentes" hidden class="text-sm text-neutral-700"></p>
+            <input id="productos-imagenes" type="file" multiple accept="image/jpeg,image/png,image/webp"
+              aria-describedby="productos-imagenes-ayuda productos-error-imagenes"
+              class={`${controlBase} file:mr-3 file:min-h-9 file:rounded-lg file:border-0 file:bg-[#F0EEF8] file:px-3 file:font-semibold file:text-[#4C4688]`} />
+            <p id="productos-error-imagenes" hidden role="alert" class="text-sm text-[#AD174F]"></p>
+            <p id="productos-vista-previa-titulo" hidden class="text-sm font-semibold text-[#383165]">Vista previa antes de guardar</p>
+            <ul id="productos-vista-previa" hidden class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-label="Vista previa de imágenes"></ul>
+          </div>
+
+          <div id="productos-form-error" hidden role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            <p id="productos-form-error-texto"></p>
+          </div>
+          <p id="productos-form-estado" hidden role="status" aria-live="polite" class="text-sm font-medium text-[#4C4688]"></p>
+
+          <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button id="productos-cancelar" variant="outline" size="lg">Cancelar</Button>
+            <Button id="productos-guardar" type="submit" size="lg">Guardar producto</Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+
+    <!-- Listado -->
+    <section id="productos-listado" aria-labelledby="productos-listado-titulo" class="space-y-4" aria-busy="false">
+      <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 id="productos-listado-titulo" class="text-lg font-semibold text-neutral-900">Productos registrados</h2>
+          <p class="mt-1 text-sm text-neutral-500">Nombre, Organización, país y estado de publicación de cada producto.</p>
+        </div>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <label for="productos-buscar" class="sr-only">Buscar producto</label>
+          <input id="productos-buscar" type="search" placeholder="Buscar por nombre, Organización o país…"
+            class="min-h-11 w-full min-w-0 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-72" />
+          <label for="productos-estado" class="sr-only">Estado de publicación</label>
+          <select id="productos-estado"
+            class="min-h-11 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+            <option value="todos">Todos los estados</option>
+            <option value="publicados">Publicados</option>
+            <option value="no_publicados">No publicados</option>
+          </select>
+          <Button id="productos-recargar" variant="outline">Recargar</Button>
+        </div>
+      </header>
+
+      <p id="productos-cargando" role="status" aria-live="polite"
+        class="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-500">Cargando productos…</p>
+
+      <div id="productos-error" hidden role="alert"
+        class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <p id="productos-error-texto">No fue posible cargar los productos.</p>
+        <Button id="productos-reintentar" variant="outline">Intentar nuevamente</Button>
+      </div>
+
+      <EmptyState
+        id="productos-vacio"
+        hidden
+        title="Todavía no hay productos registrados"
+        description="Cuando agregues un producto aparecerá aquí con su Organización, país y estado de publicación."
+      />
+
+      <p id="productos-sin-resultados" hidden role="status"
+        class="rounded-xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
+        No se encontraron productos que coincidan con los filtros.
+      </p>
+
+      <ul id="productos-lista" hidden class="grid grid-cols-1 gap-4" aria-label="Productos registrados"></ul>
+    </section>
+
+    <!-- Confirmación de cambios en la disponibilidad pública -->
+    <dialog id="productos-dialogo" aria-labelledby="productos-dialogo-titulo" aria-describedby="productos-dialogo-texto"
+      class="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[#E8E5EF] bg-white p-0 shadow-xl backdrop:bg-[#2F2753]/40">
+      <div class="space-y-4 p-5 md:p-6">
+        <h2 id="productos-dialogo-titulo" class="text-lg font-bold text-neutral-900"></h2>
+        <p id="productos-dialogo-texto" class="text-sm text-neutral-600"></p>
+        <p id="productos-dialogo-estado" hidden role="status" aria-live="polite" class="text-sm font-medium text-[#4C4688]"></p>
+        <p id="productos-dialogo-error" hidden role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"></p>
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button id="productos-dialogo-cancelar" variant="outline" size="lg">Cancelar</Button>
+          <button id="productos-dialogo-aceptar" type="button"
+            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </dialog>
+  </section>
+
+  <script>
+    import { iniciarProductos } from '../../lib/productos/interfaz';
+    void iniciarProductos();
+  </script>
+</AppLayout>
