@@ -34,7 +34,8 @@ export async function routeRequest(
   const authPrefix = `${API_PREFIX}/auth`;
   const guestsPrefix = `${API_PREFIX}/guests`;
   const publicQuotePrefix = `${API_PREFIX}/public`;
-  if (incomingUrl.pathname === `${publicQuotePrefix}/catalog` || incomingUrl.pathname === `${publicQuotePrefix}/quote-requests`) {
+  if (incomingUrl.pathname === `${publicQuotePrefix}/catalog` || incomingUrl.pathname === `${publicQuotePrefix}/quote-requests`
+    || /^\/api\/v1\/public\/catalog\/images\/[^/]+$/.test(incomingUrl.pathname)) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
     const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
     await proxyRequest(request, response, targetUrl, requestId);

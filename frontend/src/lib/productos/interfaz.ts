@@ -206,7 +206,7 @@ export async function iniciarProductos() {
     const contenedor = q('vista-previa');
     contenedor.innerHTML = imagenesNuevas.map((imagen, indice) => `
       <li class="relative overflow-hidden rounded-xl border border-[#E8E5EF] bg-[#F5F3F9]">
-        <img src="${imagen.url}" alt="Vista previa de ${escapar(imagen.archivo.name)}" class="aspect-square w-full object-cover" />
+        <img src="${imagen.url}" alt="Vista previa de ${escapar(imagen.archivo.name)}" class="aspect-square w-full bg-white object-contain object-center p-2" />
         <div class="flex items-center justify-between gap-2 p-2">
           <span class="min-w-0 truncate text-xs text-neutral-600">${escapar(imagen.archivo.name)}</span>
           <button type="button" data-quitar="${indice}" class="min-h-10 shrink-0 rounded-lg px-2 text-xs font-semibold text-[#AD174F] hover:bg-[#FCE8F0]" aria-label="Quitar ${escapar(imagen.archivo.name)}">Quitar</button>

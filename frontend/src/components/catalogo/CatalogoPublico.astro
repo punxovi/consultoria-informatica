@@ -1,47 +1,107 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Button from '../ui/Button.astro';
-import Card from '../ui/Card.astro';
+import EncabezadoPublico from '../publico/EncabezadoPublico.astro';
+
+const pasos = [
+  ['1', 'País', 'bg-brand-green'],
+  ['2', 'Organización', 'bg-brand-cyan'],
+  ['3', 'Productos', 'bg-brand-pink'],
+  ['4', 'Contacto', 'bg-brand-yellow'],
+] as const;
 ---
 <Layout title="Catálogo público · Fundación Gestionar Esperanzas">
   <div class="min-h-screen bg-[#F7F6FA] text-neutral-900">
-    <header class="border-b border-[#DCD8EA] bg-white">
-      <nav aria-label="Navegación pública" class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <a href="/" class="text-lg font-bold text-primary">Fundación Gestionar Esperanzas</a>
-        <div class="flex flex-wrap items-center gap-4"><a href="/catalogo" aria-current="page" class="inline-flex min-h-12 items-center font-semibold text-primary">Catálogo</a><a href="/login?returnTo=%2Fdashboard" class="inline-flex min-h-12 items-center font-semibold text-primary">Iniciar sesión</a><Button href="/cotizar" size="lg">Solicitar cotización</Button></div>
-      </nav>
-    </header>
-    <main id="catalogo-publico" class="mx-auto max-w-7xl space-y-6 px-5 py-8 md:py-12">
-      <header class="rounded-3xl border border-[#DCD8EA] bg-[#EDEAF7] p-6 md:p-9">
-        <h1 class="max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">Productos con propósito</h1>
-        <p class="mt-4 max-w-2xl text-lg text-neutral-700">Explora productos y servicios de nuestras organizaciones. Conoce sus características y encuentra opciones para tu próxima cotización.</p>
-        <p class="mt-4 text-sm font-medium text-primary">Catálogo público · Sin necesidad de crear una cuenta</p>
+    <EncabezadoPublico actual="catalogo" />
+
+    <main id="catalogo-publico" class="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-5 md:py-8">
+      <header class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#4C4688] via-[#463F80] to-[#5B54A0] p-6 text-white shadow-sm md:p-9">
+        <span aria-hidden="true" class="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10"></span>
+        <span aria-hidden="true" class="pointer-events-none absolute -bottom-24 right-40 h-48 w-48 rounded-full bg-brand-cyan/20"></span>
+        <p class="relative text-xs font-bold uppercase tracking-[0.14em] text-[#D2CFF0]">Catálogo público · Sin necesidad de crear una cuenta</p>
+        <h1 class="relative mt-3 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">Productos con propósito</h1>
+        <p class="relative mt-4 max-w-3xl text-base leading-relaxed text-[#ECEAF8] md:text-lg">
+          Selecciona productos de nuestras organizaciones y solicita una cotización manual. La Fundación revisará tu solicitud y te contactará con precio, plazos, condiciones y forma de entrega.
+        </p>
+        <ol class="relative mt-6 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Pasos para solicitar una cotización">
+          {pasos.map(([numero, texto, color]) => (
+            <li class="flex min-h-12 items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold backdrop-blur-sm">
+              <span class={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#2B2654] ${color}`}>{numero}</span>
+              <span class="min-w-0 break-words">{texto}</span>
+            </li>
+          ))}
+        </ol>
       </header>
-      <Card class="border-l-4 border-l-primary p-5 md:p-6">
-        <h2 class="text-xl font-semibold">Encuentra lo que buscas</h2>
-        <p class="mt-1 text-sm text-neutral-600">Explora por país, organización o combina ambos filtros.</p>
-        <form id="catalogo-filtros" class="mt-5 grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
-          <div class="min-w-0"><label for="catalogo-pais" class="mb-2 block font-medium">País</label><select id="catalogo-pais" disabled class="min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 focus:ring-2 focus:ring-primary"><option value="">Todos los países</option></select></div>
-          <div class="min-w-0"><label for="catalogo-organizacion" class="mb-2 block font-medium">Organización</label><select id="catalogo-organizacion" disabled class="min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 focus:ring-2 focus:ring-primary"><option value="">Todas las organizaciones</option></select></div>
-          <Button id="catalogo-limpiar" variant="outline" size="lg" disabled>Restablecer filtros</Button>
+
+      <section aria-labelledby="catalogo-filtros-titulo" class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:px-6">
+        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4C4688] via-brand-cyan to-brand-green"></span>
+        <form id="catalogo-filtros">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span aria-hidden="true" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 8v5l-4 2v-7L4 5Z"/></svg>
+              </span>
+              <h2 id="catalogo-filtros-titulo" class="text-xl font-bold">Filtrar catálogo</h2>
+            </div>
+            <Button id="catalogo-limpiar" variant="ghost" size="sm" disabled>Restablecer filtros</Button>
+          </div>
+          <div class="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-end">
+            <fieldset class="min-w-0">
+              <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">País</legend>
+              <div id="catalogo-paises" class="flex flex-wrap gap-2">
+                <button type="button" data-pais="" aria-pressed="true" disabled class="min-h-11 rounded-full border border-[#4C4688] bg-[#4C4688] px-5 text-sm font-semibold text-white disabled:opacity-60">Todos</button>
+              </div>
+            </fieldset>
+            <div class="min-w-0">
+              <label for="catalogo-organizacion" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-600">Organización</label>
+              <select id="catalogo-organizacion" disabled class="min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 focus:ring-2 focus:ring-primary"><option value="">Todas las organizaciones</option></select>
+            </div>
+          </div>
         </form>
-        <p id="catalogo-criterios" class="mt-4 break-words text-sm text-primary"></p>
-      </Card>
-      <section aria-labelledby="catalogo-titulo">
-        <p id="catalogo-seleccion" role="status" class="mb-4 text-primary"></p>
-        <h2 id="catalogo-titulo" class="text-2xl font-bold">Catálogo de productos y servicios</h2>
-        <p id="catalogo-estado" role="status" class="my-4 text-neutral-600">Cargando catálogo…</p>
-        <div id="catalogo-error" hidden role="alert" class="my-4 rounded-xl border border-danger/20 bg-white p-5"><p id="catalogo-error-texto">No fue posible cargar el catálogo. Inténtalo nuevamente.</p><Button id="catalogo-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
-        <div id="catalogo-lista" aria-busy="true" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <p id="catalogo-criterios" class="mt-4 break-words text-sm font-medium text-primary"></p>
       </section>
-      <dialog id="catalogo-detalle" aria-labelledby="catalogo-detalle-titulo" class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-2xl border border-[#DCD8EA] p-5 backdrop:bg-black/40 md:p-7">
-        <div class="flex items-start justify-between gap-3"><h2 id="catalogo-detalle-titulo" class="break-words text-2xl font-bold"></h2><Button id="catalogo-cerrar" variant="outline" size="lg">Cerrar</Button></div>
-        <div id="catalogo-detalle-contenido" class="mt-5 space-y-4"></div>
-        <p class="mt-5 text-sm text-neutral-600">Las condiciones de la cotización se acuerdan con la organización.</p>
-        <Button href="/cotizar" size="lg" class="mt-4">Solicitar cotización</Button>
+
+      <section aria-labelledby="catalogo-titulo">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="catalogo-titulo" class="text-2xl font-bold">Productos disponibles</h2>
+          <p id="catalogo-estado" role="status" class="text-sm text-neutral-600">Cargando catálogo…</p>
+        </div>
+        <div id="catalogo-error" hidden role="alert" class="mt-4 rounded-2xl border border-danger/20 bg-white p-5"><p id="catalogo-error-texto">No fue posible cargar el catálogo. Inténtalo nuevamente.</p><Button id="catalogo-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
+        <div id="catalogo-lista" aria-busy="true" class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </section>
+
+      <p id="catalogo-seleccion" role="status" aria-live="polite" class="pointer-events-none fixed inset-x-4 bottom-20 z-30 mx-auto max-w-md rounded-2xl bg-[#2B2654] px-5 py-3 text-center text-sm font-medium text-white opacity-0 shadow-lg transition-opacity duration-300 md:bottom-6 data-[visible]:opacity-100"></p>
+
+      <a href="/cotizar" class="fixed inset-x-4 bottom-4 z-20 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#4C4688] px-5 font-semibold text-white shadow-lg md:hidden">
+        Ver mi solicitud <span data-contador class="inline-flex min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-[#4C4688]">0</span>
+      </a>
+
+      <dialog id="catalogo-detalle" aria-labelledby="catalogo-detalle-titulo" class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-2xl border border-[#E2DDED] p-0 backdrop:bg-black/40">
+        <span aria-hidden="true" class="block h-1 bg-gradient-to-r from-[#4C4688] via-brand-cyan to-brand-green"></span>
+        <div class="p-5 md:p-6">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p id="catalogo-detalle-tipo" class="text-xs font-semibold uppercase tracking-wide text-primary"></p>
+              <h2 id="catalogo-detalle-titulo" class="mt-1 break-words text-2xl font-bold"></h2>
+            </div>
+            <Button id="catalogo-cerrar" variant="outline">Cerrar</Button>
+          </div>
+          <div class="mt-4 grid gap-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+            <div id="catalogo-detalle-galeria" class="min-w-0 space-y-2"></div>
+            <div class="flex min-w-0 flex-col gap-4">
+              <div id="catalogo-detalle-contenido" class="space-y-3"></div>
+              <p class="rounded-xl border border-[#F3D58C] bg-[#FFF8E6] p-3 text-sm leading-relaxed text-neutral-700"><strong class="font-semibold">Condiciones:</strong> precio, plazos y forma de entrega se acuerdan con la Fundación y la organización al preparar la cotización.</p>
+              <div id="catalogo-detalle-acciones" class="mt-auto"></div>
+            </div>
+          </div>
+          <div class="mt-5 border-t border-[#EEEAF5] pt-4">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-600">Descripción</h3>
+            <p id="catalogo-detalle-descripcion" class="mt-2 whitespace-pre-wrap break-words leading-relaxed text-neutral-700"></p>
+          </div>
+        </div>
       </dialog>
     </main>
-    <footer class="border-t border-[#DCD8EA] bg-white px-5 py-6 text-center text-sm text-neutral-600">Fundación Gestionar Esperanzas · Conectamos organizaciones y oportunidades.</footer>
+    <footer class="mt-6 bg-[#423C76] px-5 pb-24 pt-6 text-center text-sm text-[#E5E2F8] md:pb-6">Fundación Gestionar Esperanzas · Conectamos organizaciones y oportunidades.</footer>
   </div>
 </Layout>
 <script>

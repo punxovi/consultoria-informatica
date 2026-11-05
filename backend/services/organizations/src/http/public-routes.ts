@@ -22,6 +22,18 @@ export async function routePublicCatalog(request: IncomingMessage, response: Ser
       respond(response, 200, success('CATALOGO_PUBLICO_LISTADO', 'Catálogo disponible.', { items: await application.list({ id_pais: idPais, id_organizacion: idOrganizacion }) }), requestId);
       return;
     }
+    const imagen = /^\/v1\/public\/catalog\/images\/([^/]+)$/.exec(url.pathname);
+    if (request.method === 'GET' && imagen) {
+      const archivo = await application.image(decodeURIComponent(imagen[1]));
+      response.statusCode = 200;
+      response.setHeader('content-type', archivo.mimeType);
+      response.setHeader('content-length', String(archivo.bytes.length));
+      response.setHeader('cache-control', 'public, max-age=300');
+      response.setHeader('x-content-type-options', 'nosniff');
+      response.setHeader('x-request-id', requestId);
+      response.end(archivo.bytes);
+      return;
+    }
     if (request.method === 'POST' && url.pathname === '/v1/public/quote-requests') {
       if(url.search)throw new ServiceError('DATOS_INVALIDOS','El registro público no admite filtros.',400);
       if(request.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')throw new ServiceError('FORMATO_INVALIDO','Usa application/json.',415);

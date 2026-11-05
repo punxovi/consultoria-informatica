@@ -23,7 +23,6 @@ import { routeProducts } from './http/products-routes.ts';
 import { createQuoteRequestsApplication, type QuoteRequestsApplication } from './application/quote-requests-service.ts';
 import { routeQuoteRequests } from './http/quote-requests-routes.ts';
 
-// Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
   try {
     const envPath = path.resolve(process.cwd(), '../../.env');
@@ -60,14 +59,16 @@ export function createOrganizationsServer(
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
   const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
-  const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication(readSupabaseConnection());
+  const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication({
+    ...readSupabaseConnection(),
+    serverKey: process.env.SUPABASE_PUBLICATION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
   const resolvedProducts = products ?? createProductsApplication({
     supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
     anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
   });
   const resolvedQuoteRequests = quoteRequests ?? createQuoteRequestsApplication(readSupabaseConnection());
 
-  // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1';
 
@@ -130,7 +131,7 @@ export function createOrganizationsServer(
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;
 
-    if (path === '/v1/public/catalog' || path === '/v1/public/quote-requests') {
+    if (path === '/v1/public/catalog' || path === '/v1/public/quote-requests' || path.startsWith('/v1/public/catalog/images/')) {
       await routePublicCatalog(request, response, requestId, resolvedPublicCatalog);
       return;
     }
