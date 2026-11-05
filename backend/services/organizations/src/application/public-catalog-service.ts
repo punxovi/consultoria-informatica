@@ -1,4 +1,7 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
+import { createQuoteRepository } from '../infrastructure/supabase-quote-requests.repository.ts';
+import type { PublicQuoteRequest } from '../domain/quote-requests.ts';
+export type { PublicQuoteRequest } from '../domain/quote-requests.ts';
 
 export interface PublicCatalogItem {
   id_producto: string;
@@ -10,26 +13,19 @@ export interface PublicCatalogItem {
   organizacion: { id_organizacion: string; nombre: string; pais: { id_pais: string; nombre: string } | null };
 }
 
-export interface PublicQuoteRequest {
-  nombre_solicitante: string;
-  correo: string;
-  telefono?: string;
-  mensaje?: string;
-  items: Array<{ id_producto: string; cantidad: number }>;
-}
-
 export interface PublicCatalogApplication {
   list(filters?: { id_pais?: string; id_organizacion?: string }): Promise<PublicCatalogItem[]>;
-  createQuote(input: PublicQuoteRequest): Promise<{ id_solicitud: string; estado: string }>;
+  createQuote(input: PublicQuoteRequest): Promise<{ id_solicitud: string; estado: string; id_envio?:string; solicitudes?:Array<{id_solicitud:string;estado:string}> }>;
 }
 
 export function createPublicCatalogApplication(options: { supabaseUrl: string; anonKey: string; fetchImpl?: typeof fetch }): PublicCatalogApplication {
   const fetchImpl = options.fetchImpl ?? fetch;
   const base = options.supabaseUrl.replace(/\/$/, '');
+  const quotes=createQuoteRepository(options);
   async function call(path: string, init: RequestInit = {}): Promise<unknown> {
     const response = await fetchImpl(`${base}/rest/v1/${path}`, {
       ...init,
-      headers: { apikey: options.anonKey, authorization: `Bearer ${options.anonKey}`, 'content-type': 'application/json', ...init.headers },
+      headers: { apikey: options.anonKey, 'content-type': 'application/json', ...init.headers },
     });
     let body: unknown = null;
     try { body = await response.json(); } catch { /* respuesta vacía */ }
@@ -47,10 +43,7 @@ export function createPublicCatalogApplication(options: { supabaseUrl: string; a
         (!filters.id_pais || item.organizacion?.pais?.id_pais === filters.id_pais));
     },
     async createQuote(input) {
-      const body = await call('rpc/registrar_solicitud_cotizacion', { method: 'POST', body: JSON.stringify({ p_datos: input }) });
-      const result = Array.isArray(body) ? body[0] : body;
-      if (!result || typeof result.id_solicitud !== 'string') throw new ServiceError('RESPUESTA_INVALIDA', 'La solicitud no fue confirmada.', 502);
-      return result as { id_solicitud: string; estado: string };
+      return await quotes.execute('create',input,undefined,true) as {id_solicitud:string;estado:string;id_envio:string;solicitudes:Array<{id_solicitud:string;estado:string}>};
     },
   };
 }

@@ -25,7 +25,7 @@ describe('superficie pública de cotización', () => {
     const catalog = await fetch(`${baseUrl}/v1/public/catalog`);
     assert.equal(catalog.status, 200);
     assert.deepEqual((await catalog.json()).data.items[0], { id_producto: '11111111-1111-4111-8111-111111111111', nombre: 'Taller', descripcion: 'Descripción pública', unidad_medida: 'hora', tipo_item: 'servicio', caracteristicas: { modalidad: 'online' } });
-    const quote = await fetch(`${baseUrl}/v1/public/quote-requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nombre_solicitante: 'Visitante', correo: 'visitante@example.com', items: [{ id_producto: '11111111-1111-4111-8111-111111111111', cantidad: 1 }] }) });
+    const quote = await fetch(`${baseUrl}/v1/public/quote-requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nombre:'Visitante',apellido:'QA',nombre_solicitante: 'Visitante QA', correo: 'visitante@example.com', items: [{ id_producto: '11111111-1111-4111-8111-111111111111', cantidad: 1 }] }) });
     assert.equal(quote.status, 201);
     assert.equal((await quote.json()).data.quote.estado, 'solicitada');
   });

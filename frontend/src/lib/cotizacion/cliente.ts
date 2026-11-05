@@ -6,7 +6,7 @@ export function crearClienteCotizacion(baseUrl: string, fetchImpl: typeof fetch 
   return {
     async enviar(contacto: Contacto, items: Seleccion) {
       const respuesta = await http.request<unknown>('/api/v1/public/quote-requests', { method: 'POST', body: prepararSolicitud(contacto, items) });
-      const confirmacion = z.object({ quote: z.object({ id_solicitud: z.string().min(1), estado: z.literal('solicitada') }) }).safeParse(respuesta.data);
+      const confirmacion = z.object({ quote: z.object({ id_solicitud: z.string().min(1), estado: z.literal('solicitada'),id_envio:z.string().optional(),solicitudes:z.array(z.object({id_solicitud:z.string(),estado:z.literal('solicitada')})).optional() }) }).safeParse(respuesta.data);
       if (!confirmacion.success) throw new ApiError('CONFIRMACION_INVALIDA', 'No se pudo verificar la confirmación de la solicitud.', 502);
       return confirmacion.data.quote;
     },

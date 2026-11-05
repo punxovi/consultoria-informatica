@@ -108,7 +108,8 @@ export async function iniciarCotizacion() {
       if(seleccion.some(i=>!productos.has(i.id_producto))){pintar();throw new Error('Un producto dejó de estar disponible. Quítalo de la selección para continuar.');}
       const respuesta=await cliente.enviar(validacion.data,seleccion);
       confirmado=true;
-      const confirmacion=q('confirmacion');confirmacion.textContent=`Solicitud registrada correctamente. Referencia: ${respuesta.id_solicitud}. La Fundación revisará tu solicitud y te contactará para preparar la cotización final.`;confirmacion.hidden=false;confirmacion.focus();
+      const confirmacion=q('confirmacion');const cantidad=respuesta.solicitudes?.length??1;
+      confirmacion.textContent=`${cantidad>1?`Se registraron ${cantidad} solicitudes, una por país.`:'Solicitud registrada correctamente.'} Referencia: ${respuesta.id_envio??respuesta.id_solicitud}. La Fundación revisará tu solicitud y te contactará para preparar la cotización final.`;confirmacion.hidden=false;confirmacion.focus();
       form.hidden=true;q('restablecer').hidden=true;
       try {guardarSeleccion([]);}catch {confirmacion.append(crear('p','No se pudo limpiar la selección del navegador. Tu solicitud ya está registrada; no vuelvas a enviarla.','mt-3'));}
       form.reset();
