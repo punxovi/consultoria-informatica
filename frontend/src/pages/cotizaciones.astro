@@ -1,0 +1,35 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Card from '../components/ui/Card.astro';
+import Button from '../components/ui/Button.astro';
+import {mainNavItems} from '../config/nav';
+---
+<AppLayout title="Solicitudes de cotización" navItems={mainNavItems} allowedRoles={['ADMIN','COORD']}>
+ <Fragment slot="headerBreadcrumb"><span class="text-sm font-semibold">Solicitudes de cotización</span></Fragment>
+ <section id="solicitudes" class="space-y-6">
+  <header class="flex flex-wrap items-end justify-between gap-4"><div><h1 class="text-3xl font-bold md:text-4xl">Solicitudes de cotización</h1><p class="mt-2 text-neutral-600">Revisa las solicitudes recibidas y gestiona su estado dentro de tu alcance territorial.</p></div><Button id="sol-recargar" variant="outline" size="lg">Actualizar listado</Button></header>
+  <div class="grid gap-4 sm:grid-cols-3">{[['total','Recibidas','border-l-primary'],['nuevas','Nuevas','border-l-brand-yellow'],['gestionadas','Gestionadas','border-l-brand-green']].map(([id,titulo,color])=><Card class={`border-l-4 ${color} p-5`}><p class="text-sm text-neutral-600">{titulo}</p><p id={`sol-${id}`} class="mt-2 text-3xl font-bold">—</p></Card>)}</div>
+  <Card class="p-5"><label for="sol-filtro" class="block font-semibold">Mostrar solicitudes</label><select id="sol-filtro" class="mt-2 min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 sm:max-w-xs"><option value="todas">Todas las solicitudes</option><option value="nuevas">Nuevas</option><option value="gestionadas">Gestionadas</option></select></Card>
+  <p id="sol-confirmacion" hidden role="status" class="rounded-xl border border-success/30 bg-success/10 p-4"></p>
+  <p id="sol-carga" role="status" class="text-neutral-600"></p>
+  <div id="sol-error" hidden role="alert" class="rounded-xl border border-danger/30 bg-white p-5"><p id="sol-error-texto"></p><Button id="sol-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
+  <div id="sol-lista" aria-busy="false" class="grid gap-4 lg:grid-cols-2"></div>
+  <dialog id="sol-dialogo" aria-labelledby="sol-titulo" class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-2xl border border-[#DCD8EA] p-5 backdrop:bg-black/40 md:p-7">
+   <div class="flex items-start justify-between gap-3"><h2 id="sol-titulo" class="text-2xl font-bold">Detalle de solicitud</h2><Button id="sol-cerrar" variant="outline" size="lg">Cerrar</Button></div>
+   <p id="sol-detalle-carga" role="status" class="my-4 text-neutral-600"></p>
+   <div id="sol-detalle-error" hidden role="alert" class="my-4 text-danger"></div>
+   <div id="sol-detalle" class="mt-4 space-y-4"></div>
+   <form id="sol-form" hidden class="mt-6 space-y-3 border-t border-[#DCD8EA] pt-5">
+    <label for="sol-estado" class="block font-semibold">Actualizar estado</label>
+    <select id="sol-estado" aria-describedby="sol-estado-error" class="min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3"></select>
+    <p id="sol-estado-error" hidden role="alert" class="text-sm text-danger"></p>
+    <Button id="sol-guardar" type="submit" size="lg">Guardar estado</Button>
+   </form>
+   <p id="sol-solo-lectura" hidden class="mt-4 text-neutral-600">No hay cambios de estado autorizados para esta solicitud.</p>
+  </dialog>
+ </section>
+</AppLayout>
+<script>
+ import {iniciarSolicitudes} from '../lib/solicitudes-cotizacion/interfaz';
+ void iniciarSolicitudes();
+</script>

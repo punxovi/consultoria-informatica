@@ -10,6 +10,7 @@ export const mainNavItems: NavItem[] = [
   { label: 'Programas Institucionales', href: '/programas' },
   { label: 'Planes de Intervención', href: '/planes' },
   { label: 'Reportes', href: '/reportes' },
+  { label: 'Solicitudes de cotización', href: '/cotizaciones', roles: ['ADMIN','COORD'] },
   { label: 'Países', href: '/administracion/paises', roles: ['ADMIN'] },
   { label: 'Coordinadores', href: '/administracion/coordinadores', roles: ['ADMIN'] },
   { label: 'Coberturas temporales', href: '/administracion/coberturas', roles: ['ADMIN'] },
