@@ -13,7 +13,8 @@ export const mainNavItems: NavItem[] = [
   { label: 'Países', href: '/administracion/paises', roles: ['ADMIN'] },
   { label: 'Coordinadores', href: '/administracion/coordinadores', roles: ['ADMIN'] },
   { label: 'Coberturas temporales', href: '/administracion/coberturas', roles: ['ADMIN'] },
-  { label: 'Productos de cotización', href: '/administracion/productos', roles: ['ADMIN'] },
+  { label: 'Productos', href: '/administracion/productos', roles: ['ADMIN'] },
+  { label: 'Solicitudes de cotización', href: '/solicitudes-cotizacion', roles: ['ADMIN', 'COORD'] },
   { label: 'Auditoría', href: '/administracion/auditoria', roles: ['ADMIN'] },
   { label: 'Solicitudes de Invitado', href: '/administracion/solicitudes-invitado', roles: ['ADMIN'], },
 ];

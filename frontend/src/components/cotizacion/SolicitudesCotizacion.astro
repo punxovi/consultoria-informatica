@@ -1,0 +1,15 @@
+<section id="bandeja-cotizaciones" class="min-w-0 space-y-6" aria-labelledby="cotizaciones-titulo">
+  <header>
+    <p class="text-sm font-medium text-primary">Gestión</p>
+    <h1 id="cotizaciones-titulo" class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Solicitudes de cotización</h1>
+    <p class="mt-2 max-w-2xl text-sm text-neutral-500">Consulta las solicitudes correspondientes a tu cobertura y actualiza su estado.</p>
+  </header>
+  <p id="cotizaciones-mensaje" role="status" aria-live="polite" class="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">Cargando solicitudes…</p>
+  <div id="cotizaciones-error" hidden role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></div>
+  <ul id="cotizaciones-lista" class="space-y-4" aria-label="Solicitudes recibidas"></ul>
+</section>
+
+<script>
+  import { iniciarBandejaCotizaciones } from '../../lib/cotizacion/bandeja.ts';
+  void iniciarBandejaCotizaciones();
+</script>

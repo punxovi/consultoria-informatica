@@ -230,7 +230,7 @@ export async function iniciarProductos() {
     liberarVistasPrevias();
     renderizarVistaPrevia();
     q('form-titulo').textContent = producto ? `Editar «${producto.nombre}»` : 'Nuevo producto';
-    q('guardar').textContent = producto ? 'Guardar cambios' : 'Guardar producto';
+    q('guardar').textContent = producto ? 'Confirmar edición' : 'Guardar producto';
     q('form-nota').hidden = Boolean(producto);
     if (producto) {
       for (const campo of camposFormulario) {
@@ -336,7 +336,7 @@ export async function iniciarProductos() {
         fijarOcupado(false);
         editando = producto;
         q('form-titulo').textContent = `Editar «${producto.nombre}»`;
-        q('guardar').textContent = 'Reintentar carga de imágenes';
+        q('guardar').textContent = 'Confirmar edición';
         q('form-nota').hidden = true;
         errorFormulario(`El producto se guardó, pero no fue posible cargar las imágenes. ${mensajeErrorProductos(error, 'cargar las imágenes')}`);
         void cargarListado();
@@ -344,11 +344,9 @@ export async function iniciarProductos() {
       }
     }
 
-    const cantidad = imagenesNuevas.length;
     fijarOcupado(false);
     cerrarFormulario();
-    const sufijo = cantidad > 0 ? ` Se ${cantidad === 1 ? 'cargó 1 imagen' : `cargaron ${cantidad} imágenes`}.` : '';
-    confirmar(`${actual ? 'Producto actualizado' : 'Producto creado sin publicar'} correctamente.${sufijo}`);
+    confirmar(actual ? 'Producto actualizado correctamente.' : 'Producto creado exitosamente');
     await cargarListado();
   }
 

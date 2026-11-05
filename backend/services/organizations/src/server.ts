@@ -17,6 +17,10 @@ import { createSupabaseAuditRepositoryFromEnv } from './infrastructure/supabase-
 import { routeAudit } from './http/audit-routes.ts';
 import { createPublicCatalogApplication, type PublicCatalogApplication } from './application/public-catalog-service.ts';
 import { routePublicCatalog } from './http/public-routes.ts';
+import { createProductsApplication, type ProductsApplication } from './application/products-service.ts';
+import { routeProducts } from './http/products-routes.ts';
+import { createQuoteRequestsApplication, type QuoteRequestsApplication } from './application/quote-requests-service.ts';
+import { routeQuoteRequests } from './http/quote-requests-routes.ts';
 
 // Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
@@ -48,12 +52,22 @@ export function createOrganizationsServer(
   coverages?: CoveragesApplication,
   audit?: AuditApplication,
   publicCatalog?: PublicCatalogApplication,
+  products?: ProductsApplication,
+  quoteRequests?: QuoteRequestsApplication,
 ): Server {
   const resolved = application ?? createOrganizationsApplication(createSupabaseOrganizationsRepositoryFromEnv());
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
   const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
   const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication({
+    supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
+    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
+  });
+  const resolvedProducts = products ?? createProductsApplication({
+    supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
+    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
+  });
+  const resolvedQuoteRequests = quoteRequests ?? createQuoteRequestsApplication({
     supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
     anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
   });
@@ -123,6 +137,16 @@ export function createOrganizationsServer(
 
     if (path === '/v1/public/catalog' || path === '/v1/public/quote-requests') {
       await routePublicCatalog(request, response, requestId, resolvedPublicCatalog);
+      return;
+    }
+
+    if (path === '/v1/products' || path.startsWith('/v1/products/')) {
+      await routeProducts(request, response, requestId, resolvedProducts);
+      return;
+    }
+
+    if (path === '/v1/quote-requests' || path.startsWith('/v1/quote-requests/')) {
+      await routeQuoteRequests(request, response, requestId, resolvedQuoteRequests);
       return;
     }
 

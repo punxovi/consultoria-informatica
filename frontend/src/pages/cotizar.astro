@@ -10,7 +10,7 @@ const campos = [['nombre','Nombre','text',79],['apellido','Apellido','text',80],
     <header><h1 class="text-3xl font-bold md:text-4xl">Solicitar cotización</h1><p class="mt-3 text-neutral-600">Revisa tu selección, indica las cantidades estimadas y completa tus datos de contacto.</p></header>
     <p class="rounded-xl border border-[#DCD8EA] bg-[#F0EEF8] p-4 text-sm leading-relaxed text-neutral-700">La Fundación revisará disponibilidad, precios, plazos, condiciones y forma de entrega antes de preparar la cotización final. Esta solicitud no realiza pagos ni reserva o modifica el inventario.</p>
     <p id="cot-carga" role="status" class="text-neutral-600">Cargando selección…</p>
-    <div id="cot-error-carga" hidden role="alert"><p>No fue posible cargar el catálogo. Tu selección se conserva.</p><Button id="cot-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
+    <div id="cot-error-carga" hidden role="alert"><p id="cot-error-carga-texto">No fue posible cargar el catálogo. Tu selección se conserva.</p><Button id="cot-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
     <div id="cot-error-seleccion" hidden role="alert" class="rounded-xl border border-danger/30 p-4"><p>No se pudo recuperar la selección guardada. Restablécela y agrega los productos nuevamente.</p></div>
     <Button id="cot-restablecer" variant="outline" size="lg">Vaciar selección</Button>
     <div id="cot-confirmacion" hidden role="status" tabindex="-1" class="rounded-xl border border-success/30 bg-success/10 p-6"></div>

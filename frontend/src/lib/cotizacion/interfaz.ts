@@ -18,7 +18,8 @@ export async function iniciarCotizacion() {
   let ocupado = false; let listo = false; let confirmado = false;
   const crear = (tag: string, texto: string, clase = '') => { const e = document.createElement(tag); e.textContent = texto; e.className = clase; return e; };
   function controles() {
-    q<HTMLFieldSetElement>('campos').disabled = ocupado || !listo || confirmado;
+    q<HTMLFieldSetElement>('campos').disabled = confirmado;
+    q<HTMLButtonElement>('enviar').disabled = ocupado || !listo || confirmado || seleccion.length === 0 || seleccion.some(i => !productos.has(i.id_producto));
     q<HTMLButtonElement>('restablecer').disabled = ocupado || confirmado;
     q<HTMLButtonElement>('reintentar').disabled = ocupado;
     q('items').querySelectorAll<HTMLInputElement|HTMLButtonElement>('input,button').forEach(e=>e.disabled=ocupado||confirmado);
@@ -66,12 +67,20 @@ export async function iniciarCotizacion() {
   }
   async function cargar() {
     if(ocupado)return;ocupado=true;listo=false;controles();q('carga').textContent='Cargando selección…';q('error-carga').hidden=true;
+    try { seleccion=leerSeleccion(); q('error-seleccion').hidden=true; }
+    catch { seleccion=[]; q('error-seleccion').hidden=false; }
+    pintar();
     try {
       productos=new Map((await catalogo.listar()).map(i=>[i.id_producto,i]));
-      try {seleccion=leerSeleccion();q('error-seleccion').hidden=true;listo=true;}
-      catch {q('error-seleccion').hidden=false;}
+      listo=true;
       pintar();q('carga').textContent='';
-    } catch {q('error-carga').hidden=false;q('carga').textContent='';}
+    } catch (error) {
+      const detalle = q('error-carga-texto');
+      detalle.textContent = error instanceof ApiError
+        ? `${error.message} La selección se conserva; puedes completar tus datos y reintentar.`
+        : 'No fue posible conectar con API Gateway, Backend o Supabase. Tu selección se conserva; puedes completar tus datos y reintentar.';
+      q('error-carga').hidden=false;q('carga').textContent='';pintar();
+    }
     finally {ocupado=false;controles();}
   }
   q('reintentar').addEventListener('click',()=>void cargar());
@@ -81,12 +90,13 @@ export async function iniciarCotizacion() {
     catch {q('error-seleccion').hidden=false;}
   });
   form.addEventListener('submit',async event=>{
-    event.preventDefault();if(ocupado||!listo||confirmado)return;
+    event.preventDefault();if(ocupado||confirmado)return;
     campos.forEach(c=>{q(`error-${c}`).hidden=true;q(c).removeAttribute('aria-invalid');});
     q('error-envio').hidden=true;q('error-items').hidden=true;
     const contacto=Object.fromEntries(campos.map(c=>[c,q<HTMLInputElement|HTMLTextAreaElement>(c).value])) as Contacto;
     const validacion=formularioSchema.safeParse(contacto);
     if(!validacion.success){for(const error of validacion.error.issues){const c=String(error.path[0]);q(`error-${c}`).textContent=error.message;q(`error-${c}`).hidden=false;q(c).setAttribute('aria-invalid','true');}q(String(validacion.error.issues[0].path[0])).focus();return;}
+    if(!listo){q('error-items').textContent='No fue posible confirmar los productos. Reintenta la carga del catálogo antes de enviar.';q('error-items').hidden=false;q<HTMLButtonElement>('reintentar').focus();return;}
     if(!seleccion.length||seleccion.some(i=>!productos.has(i.id_producto)||!cantidadSchema.safeParse(i.cantidad).success)){
       q('error-items').textContent='Selecciona al menos un producto disponible y revisa sus cantidades.';q('error-items').hidden=false;
       q('items').querySelector<HTMLInputElement>('input[aria-invalid="true"]')?.focus();return;

@@ -1,5 +1,6 @@
 import { crearClienteCatalogo } from './cliente.ts';
 import { agregarProducto } from '../cotizacion/seleccion.ts';
+import { ApiError } from '../api/transporte.ts';
 import { caracteristicasPublicas, filtrarCatalogo, imagenPredeterminada, urlImagen, type ItemPublico } from './modelo.ts';
 
 export async function iniciarCatalogo() {
@@ -89,12 +90,33 @@ export async function iniciarCatalogo() {
       opciones(pais, paises, 'Todos los países'); opciones(organizacion, organizaciones, 'Todas las organizaciones');
       pais.disabled = paises.size === 0; organizacion.disabled = organizaciones.size === 0;
       q<HTMLButtonElement>('limpiar').disabled = false; pintar();
-    } catch { q('estado').textContent = ''; q('error').hidden = false; }
+    } catch (error) {
+      q('estado').textContent = '';
+      const detalle = raiz.querySelector<HTMLElement>('#catalogo-error-texto');
+      if (detalle) detalle.textContent = error instanceof ApiError
+        ? `${error.message} Si usas Supabase local, comprueba que esté iniciado con «supabase start».`
+        : 'No fue posible cargar el catálogo. Comprueba que API Gateway, Backend y Supabase estén iniciados.';
+      q('error').hidden = false;
+    }
     finally { cargando = false; q('lista').setAttribute('aria-busy','false'); q<HTMLButtonElement>('reintentar').disabled = false; }
   }
   q<HTMLFormElement>('filtros').addEventListener('submit', e => e.preventDefault());
-  pais.addEventListener('change', pintar); organizacion.addEventListener('change', pintar);
-  q('limpiar').addEventListener('click', () => { pais.value = ''; organizacion.value = ''; pintar(); });
+  async function aplicarFiltros() {
+    if (cargando) return;
+    cargando = true; q('error').hidden = true; q('lista').setAttribute('aria-busy', 'true');
+    q('estado').textContent = 'Actualizando catálogo…';
+    try { items = await cliente.listar(pais.value, organizacion.value); pintar(); }
+    catch (error) {
+      q('estado').textContent = '';
+      const detalle = raiz.querySelector<HTMLElement>('#catalogo-error-texto');
+      if (detalle) detalle.textContent = error instanceof ApiError ? error.message : 'No fue posible conectar con el catálogo.';
+      q('error').hidden = false;
+    }
+    finally { cargando = false; q('lista').setAttribute('aria-busy', 'false'); }
+  }
+  pais.addEventListener('change', () => void aplicarFiltros());
+  organizacion.addEventListener('change', () => void aplicarFiltros());
+  q('limpiar').addEventListener('click', () => { pais.value = ''; organizacion.value = ''; void aplicarFiltros(); });
   q('reintentar').addEventListener('click', () => void cargar());
   q('cerrar').addEventListener('click', () => dialogo.close());
   dialogo.addEventListener('close', () => origen?.focus());
