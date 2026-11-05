@@ -22,6 +22,8 @@ import type {
 import { LEGAL_DOCUMENT_TYPES, assertFileSignature, normalizarTipoRespaldo } from '../domain/organizations.ts';
 import { mergeDonationChanges, parseCreateDonation, parseUpdateDonation, parseArchiveDonation, type UpdateDonationInput } from '../domain/donations.ts';
 import type { Compromiso } from '../domain/compromisos.ts';
+import { identifyDonationParties } from '../domain/donation-parties.ts';
+import { parseCreateDonationFile, parseUploadDonationFile } from '../domain/donations.ts';
 
 interface RepositoryOptions {
   supabaseUrl: string;
@@ -79,6 +81,16 @@ function commitment(value: unknown, orgId: string): Compromiso {
 function postgrestError(status: number, body: unknown): ServiceError {
   const detail = record(body);
   const code = typeof detail.code === 'string' ? detail.code : '';
+  if (code === '23514' && typeof detail.message === 'string') {
+    for (const prefix of ['RESPALDO_INMUTABLE', 'ESTADO_RESPALDO_INVALIDO', 'RESPALDO_INVALIDO']) {
+      if (detail.message.startsWith(`${prefix}:`)) {
+        return new ServiceError(prefix, detail.message.slice(prefix.length + 1).trim(), prefix === 'RESPALDO_INVALIDO' ? 400 : 409, detail);
+      }
+    }
+  }
+  if (code === '23503' && String(detail.message).startsWith('DONACION_NO_DISPONIBLE:')) {
+    return new ServiceError('NO_ENCONTRADA', 'La donación no existe o está archivada.', 404, detail);
+  }
   if (code === '23503') {
     return new ServiceError('PAIS_NO_EXISTE', 'El país indicado no existe o ya no está disponible.', 409, detail);
   }
@@ -164,7 +176,7 @@ function donation(value: unknown): Donation {
   if (typeof data.id_donacion !== 'string' || typeof data.id_organizacion !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una donación inválida.', 502);
   }
-  return data as unknown as Donation;
+  return { ...(data as unknown as Donation), ...identifyDonationParties(data) };
 }
 
 function donationFile(value: unknown): DonationFile {
@@ -172,7 +184,18 @@ function donationFile(value: unknown): DonationFile {
   if (typeof data.id_archivo !== 'string' || typeof data.id_donacion !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un archivo de donación inválido.', 502);
   }
-  const tipoRespaldo = normalizarTipoRespaldo(String(data.tipo_respaldo || data.categoria || 'comprobante'));
+  let tipoRespaldo: DonationFile['tipo_respaldo'];
+  try {
+    tipoRespaldo = normalizarTipoRespaldo(String(data.tipo_respaldo || data.categoria || ''));
+  } catch (error) {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'El respaldo recibido no tiene un tipo documental válido.', 502, error);
+  }
+  if (data.bucket_id !== 'fge-archivos' || typeof data.ruta_objeto !== 'string' ||
+      !data.ruta_objeto.startsWith(`donaciones/${data.id_donacion}/`) ||
+      !/^[^/\\%?#]+$/.test(data.ruta_objeto.slice(`donaciones/${data.id_donacion}/`.length)) ||
+      (data.categoria !== tipoRespaldo && data.categoria !== 'respaldo_donacion')) {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'La referencia almacenada del respaldo no corresponde a su donación.', 502);
+  }
   return {
     ...(data as unknown as DonationFile),
     tipo_respaldo: tipoRespaldo,
@@ -721,7 +744,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body)) {
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida de archivos.', 502);
       }
-      return body.map(donationFile);
+      return body.map(value => {
+        const file = donationFile(value);
+        if (file.id_donacion !== donationId) throw new ServiceError('RESPUESTA_INVALIDA', 'El respaldo no pertenece a la donación consultada.', 502);
+        return file;
+      });
     },
 
     async getDonationFileById(accessToken: string, donationId: string, fileId: string): Promise<DonationFile> {
@@ -738,10 +765,18 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body) || !body[0]) {
         throw new ServiceError('NO_ENCONTRADO', 'El archivo de respaldo no existe o no está disponible.', 404);
       }
-      return donationFile(body[0]);
+      const file = donationFile(body[0]);
+      if (file.id_archivo !== fileId || (donationId && file.id_donacion !== donationId)) {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'El respaldo recibido no coincide con la consulta.', 502);
+      }
+      return file;
     },
 
     async reserveDonationFile(accessToken: string, donationId: string, input: CreateDonationFileInput): Promise<DonationFile> {
+      input = parseCreateDonationFile(input);
+      if (input.id_donacion && input.id_donacion !== donationId) {
+        throw new ServiceError('DONACION_NO_COINCIDE', 'La donación del respaldo no coincide con la ruta.', 400);
+      }
       const donFound = await request('donaciones', accessToken, new URLSearchParams({
         id_donacion: `eq.${donationId}`,
         archived_at: 'is.null',
@@ -790,6 +825,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       bytes: Buffer,
       mimeType: string,
     ): Promise<DonationFile> {
+      parseUploadDonationFile({ version_esperada: expectedVersion });
       let file = await this.getDonationFileById(accessToken, donationId, fileId);
       if (file.version !== expectedVersion) {
         throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El archivo cambió. Recarga antes de cargarlo.', 409);
@@ -836,7 +872,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       });
 
       if (!response.ok) {
-        await request('archivos', accessToken, new URLSearchParams({ id_archivo: `eq.${fileId}` }), {
+        await request('archivos', accessToken, new URLSearchParams({
+          id_archivo: `eq.${fileId}`, id_donacion: `eq.${donationId}`,
+          version: `eq.${file.version}`, estado_carga: 'eq.reservado', archived_at: 'is.null',
+        }), {
           method: 'PATCH',
           body: JSON.stringify({ estado_carga: 'fallido' }),
         }).catch(() => null);
@@ -849,7 +888,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
       const updated = await request('archivos', accessToken, new URLSearchParams({
         id_archivo: `eq.${fileId}`,
+        id_donacion: `eq.${donationId}`,
         version: `eq.${file.version}`,
+        estado_carga: 'eq.reservado',
+        archived_at: 'is.null',
         select: DONATION_FILE_FIELDS,
       }), {
         method: 'PATCH',
@@ -978,6 +1020,8 @@ function unconfiguredRepository(): OrganizationsRepository {
     listDonations: unavailable,
     getDonationById: unavailable,
     createDonation: unavailable,
+    updateDonation: unavailable,
+    archiveDonation: unavailable,
     listDonationFiles: unavailable,
     getDonationFileById: unavailable,
     reserveDonationFile: unavailable,
