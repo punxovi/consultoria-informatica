@@ -2,6 +2,18 @@ import { getSupabaseClient, getUserRoles } from '../supabase';
 import { ApiError } from '../api/transporte.ts';
 import { crearClienteAuditoria, mensajeError } from './cliente.ts';
 import { filtrosSchema, vacios, type Filtros, type Evento } from './modelo.ts';
+import { describirEvento, opcionesAccion, opcionesSeccion, type Tono } from './presentacion.ts';
+
+const tonos: Record<Tono, { insignia: string; borde: string }> = {
+  crear: { insignia: 'bg-[#E7F6EF] text-[#137A53]', borde: 'border-l-brand-green' },
+  modificar: { insignia: 'bg-[#E7F7FA] text-[#12798A]', borde: 'border-l-brand-cyan' },
+  eliminar: { insignia: 'bg-[#FCE8F0] text-[#AD174F]', borde: 'border-l-brand-pink' },
+  restaurar: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'border-l-primary' },
+  sesion: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'border-l-primary' },
+  alerta: { insignia: 'bg-[#FFF4DB] text-[#8A5A00]', borde: 'border-l-brand-yellow' },
+  consulta: { insignia: 'bg-neutral-100 text-neutral-700', borde: 'border-l-neutral-300' },
+};
+const textoOpcion = new Map<string, string>([...opcionesAccion, ...opcionesSeccion]);
 
 export async function iniciarAuditoria() {
   const raiz = document.querySelector<HTMLElement>('#auditoria');
@@ -10,7 +22,7 @@ export async function iniciarAuditoria() {
   const q = <T extends HTMLElement = HTMLElement>(id: string) => raiz.querySelector<T>(`#audit-${id}`)!;
   const form = q<HTMLFormElement>('form');
   const campos = Object.keys(vacios) as (keyof Filtros)[];
-  const etiquetas: Record<keyof Filtros, string> = { usuario: 'Usuario', pais: 'País', desde: 'Desde', hasta: 'Hasta', operacion: 'Operación', entidad: 'Entidad' };
+  const etiquetas: Record<keyof Filtros, string> = { usuario: 'Persona', pais: 'País', desde: 'Desde', hasta: 'Hasta', operacion: 'Qué hizo', entidad: 'Sección' };
   let filtros = { ...vacios };
   let curso = false;
   let numero = 0;
@@ -29,7 +41,7 @@ export async function iniciarAuditoria() {
     q<HTMLButtonElement>('anterior').disabled = curso || numero === 0;
     q<HTMLButtonElement>('siguiente').disabled = curso || !siguiente;
     q<HTMLButtonElement>('reintentar').disabled = curso || !autorizado;
-    for (const campo of campos) q<HTMLInputElement>(campo).disabled = curso || !autorizado;
+    for (const campo of campos) q<HTMLInputElement | HTMLSelectElement>(campo).disabled = curso || !autorizado;
     q('resultados').setAttribute('aria-busy', String(curso));
   }
   function errores() {
@@ -38,34 +50,70 @@ export async function iniciarAuditoria() {
       q(campo).removeAttribute('aria-invalid');
     }
   }
-  const leer = () => Object.fromEntries(campos.map(campo => [campo, q<HTMLInputElement>(campo).value])) as Filtros;
+  const leer = () => Object.fromEntries(campos.map(campo => [campo, q<HTMLInputElement | HTMLSelectElement>(campo).value])) as Filtros;
+  const crear = (tag: string, texto = '', clase = '') => { const n = document.createElement(tag); n.textContent = texto; n.className = clase; return n; };
+  // Detalle técnico (para soporte): operación, tabla, registro e IP tal como los guarda el sistema.
+  function detalles(evento: Evento) {
+    const caja = document.createElement('details'); caja.className = 'mt-2 text-xs text-neutral-500';
+    const resumen = crear('summary', 'Ver detalles técnicos', 'inline-flex min-h-8 cursor-pointer items-center font-medium text-primary hover:underline');
+    const dl = crear('dl', '', 'mt-2 grid gap-x-4 gap-y-1 rounded-lg bg-neutral-50 p-3 sm:grid-cols-2');
+    const pares: [string, string | null][] = [['Operación', evento.operacion], ['Tabla', evento.entidad], ['Registro afectado', evento.referencia], ['IP', evento.ip], ['Usuario', evento.usuario], ['Rol', evento.rol]];
+    for (const [etiqueta, valor] of pares) {
+      const grupo = crear('div', '', 'min-w-0');
+      grupo.append(crear('dt', etiqueta, 'font-medium text-neutral-600'), crear('dd', valor ?? 'No disponible', '[overflow-wrap:anywhere]'));
+      dl.append(grupo);
+    }
+    caja.append(resumen, dl);
+    return caja;
+  }
+  type Legible = ReturnType<typeof describirEvento>;
+  function accion(evento: Evento, legible: Legible) {
+    const bloque = crear('div', '', 'min-w-0');
+    bloque.append(
+      crear('span', legible.accion, `inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tonos[legible.tono].insignia}`),
+      crear('p', legible.descripcion, 'mt-1.5 text-sm leading-relaxed text-neutral-800 [overflow-wrap:anywhere]'),
+      detalles(evento),
+    );
+    return bloque;
+  }
+  function quien(legible: Legible) {
+    const bloque = crear('div', '', 'min-w-0');
+    bloque.append(crear('p', legible.persona, 'font-medium text-neutral-900 [overflow-wrap:anywhere]'));
+    if (legible.detallePersona) bloque.append(crear('p', legible.detallePersona, 'mt-0.5 text-xs text-neutral-500 [overflow-wrap:anywhere]'));
+    return bloque;
+  }
+  function cuando(legible: Legible) {
+    const bloque = crear('div', '', 'min-w-0');
+    bloque.append(crear('p', legible.fecha, 'text-sm font-medium text-neutral-800 first-letter:uppercase'), crear('p', `${legible.hora} h`, 'mt-0.5 text-xs text-neutral-500'));
+    return bloque;
+  }
   function pintar(eventos: Evento[]) {
     const tabla = document.createElement('table');
     tabla.className = 'hidden xl:table w-full table-fixed text-left text-sm';
-    const caption = tabla.createCaption(); caption.textContent = 'Historial de eventos de auditoría'; caption.className = 'sr-only';
-    const columnas: [keyof Evento, string][] = [['usuario','Usuario'], ['rol','Rol'], ['fecha_hora','Fecha y hora (UTC)'], ['pais','País'], ['ip','IP'], ['operacion','Operación'], ['entidad','Entidad'], ['referencia','Registro afectado']];
+    const caption = tabla.createCaption(); caption.textContent = 'Historial de cambios'; caption.className = 'sr-only';
+    const columnas: [string, string][] = [['Cuándo', 'w-52'], ['Quién', 'w-64'], ['Qué hizo', ''], ['País', 'w-32']];
     const head = tabla.createTHead().insertRow();
-    for (const [, titulo] of columnas) {
+    for (const [titulo, ancho] of columnas) {
       const th = document.createElement('th'); th.scope = 'col'; th.textContent = titulo;
-      th.className = 'p-3 bg-primary/5 border-b border-[#DCD8EA] break-words'; head.append(th);
+      th.className = `p-3 bg-primary/5 border-b border-[#DCD8EA] font-semibold ${ancho}`; head.append(th);
     }
     const body = tabla.createTBody();
-    const tarjetas = document.createElement('div'); tarjetas.className = 'grid gap-3 xl:hidden';
+    const tarjetas = crear('div', '', 'grid gap-3 xl:hidden');
     for (const evento of eventos) {
+      const legible = describirEvento(evento);
       const fila = body.insertRow();
-      const tarjeta = document.createElement('article'); tarjeta.className = 'rounded-xl border border-[#DCD8EA] border-l-4 border-l-primary p-4';
-      const titulo = document.createElement('h3'); titulo.className = 'font-semibold text-primary break-words'; titulo.textContent = `${evento.operacion} · ${evento.entidad}`;
-      tarjeta.append(titulo);
-      const dl = document.createElement('dl'); dl.className = 'mt-3 grid gap-3 sm:grid-cols-2';
-      for (const [campo, etiqueta] of columnas) {
-        const valor = evento[campo] === null ? 'No disponible' : campo === 'fecha_hora' ? new Date(evento.fecha_hora).toISOString().replace('T', ' ').replace('.000Z', ' UTC') : evento[campo];
-        const celda = fila.insertCell(); celda.textContent = valor; celda.className = 'p-3 align-top border-b border-[#EEEAF5] [overflow-wrap:anywhere]';
-        const grupo = document.createElement('div'); grupo.className = 'min-w-0';
-        const dt = document.createElement('dt'); dt.textContent = etiqueta; dt.className = 'text-xs text-neutral-500';
-        const dd = document.createElement('dd'); dd.textContent = valor; dd.className = 'mt-1 text-sm [overflow-wrap:anywhere]';
-        grupo.append(dt, dd); dl.append(grupo);
+      for (const contenido of [cuando(legible), quien(legible), accion(evento, legible), crear('span', evento.pais ?? 'No disponible')]) {
+        const celda = fila.insertCell(); celda.className = 'p-3 align-top border-b border-[#EEEAF5]'; celda.append(contenido);
       }
-      tarjeta.append(dl); tarjetas.append(tarjeta);
+      const tarjeta = crear('article', '', `min-w-0 rounded-xl border border-[#DCD8EA] border-l-4 ${tonos[legible.tono].borde} bg-white p-4`);
+      const pie = crear('div', '', 'mt-3 grid gap-3 border-t border-[#EEEAF5] pt-3 sm:grid-cols-2');
+      const pais = crear('div', '', 'min-w-0');
+      pais.append(crear('p', 'País', 'text-xs text-neutral-500'), crear('p', evento.pais ?? 'No disponible', 'text-sm font-medium'));
+      pie.append(quien(legible), pais);
+      const cuerpo = crear('div', '', 'mt-3');
+      cuerpo.append(accion(evento, legible));
+      tarjeta.append(cuando(legible), cuerpo, pie);
+      tarjetas.append(tarjeta);
     }
     q('resultados').replaceChildren(tabla, tarjetas);
   }
@@ -75,12 +123,12 @@ export async function iniciarAuditoria() {
     q('error').hidden = true; q('reintento').hidden = true;
     q('estado').textContent = 'Consultando historial…';
     q('resultados').replaceChildren(); q('pagina').textContent = '';
-    q('criterios').textContent = `Filtros aplicados: ${campos.filter(c => filtros[c]).map(c => `${etiquetas[c]}: ${filtros[c]}`).join(' · ') || 'Todos los eventos'}`;
+    q('criterios').textContent = `Filtros aplicados: ${campos.filter(c => filtros[c]).map(c => `${etiquetas[c]}: ${textoOpcion.get(filtros[c]) ?? filtros[c]}`).join(' · ') || 'Todos los eventos'}`;
     try {
       const respuesta = await cliente.consultar(filtros, cursores[pagina]);
       numero = pagina; siguiente = respuesta.nextCursor;
       pintar(respuesta.events);
-      q('estado').textContent = respuesta.events.length ? `${respuesta.events.length} eventos en esta página.` : 'No hay eventos para los criterios aplicados.';
+      q('estado').textContent = respuesta.events.length ? `${respuesta.events.length} ${respuesta.events.length === 1 ? 'cambio' : 'cambios'} en esta página.` : 'No hay eventos para los criterios aplicados.';
       q('pagina').textContent = `Página ${numero + 1}`;
     } catch (error) {
       siguiente = null;

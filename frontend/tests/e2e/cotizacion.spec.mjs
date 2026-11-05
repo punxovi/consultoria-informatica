@@ -6,13 +6,28 @@ test.beforeEach(async({context})=>{
  await context.route('**/api/v1/public/catalog',r=>r.fulfill({json:{ok:true,data:{items:catalogo}}}));
  await context.route('**/api/v1/public/quote-requests',async r=>{posts.push(r.request().postDataJSON());if(espera)await espera;return r.fulfill(fallo?{status:503,json:{ok:false,error:{code:'ERROR',message:'falló'}}}:{json:{ok:true,data:{quote:{id_solicitud:'solicitud-123',estado:'solicitada'}}}});});
 });
-async function seleccionar(page){await page.goto('/catalogo');await page.getByRole('button',{name:'Agregar a cotización',exact:true}).nth(0).click();await page.getByRole('button',{name:'Agregar a cotización',exact:true}).nth(1).click();await page.goto('/cotizar');await expect(page.locator('#cot-items article')).toHaveCount(2);}
+async function seleccionar(page){await page.goto('/catalogo');await page.getByRole('button',{name:'Agregar a cotización',exact:true}).first().click();await page.getByRole('button',{name:'Agregar a cotización',exact:true}).first().click();await page.goto('/cotizar');await expect(page.locator('#cot-items article')).toHaveCount(2);}
 async function contacto(page){for(const [campo,valor]of Object.entries({nombre:'Ana',apellido:'Pérez',correo:'ana@example.org',telefono:'+56 912345678',mensaje:'Entrega durante diciembre'}))await page.locator(`#cot-${campo}`).fill(valor);}
 test('seleccionar sin duplicados, editar cantidades, resumen, quitar y persistir',async({page})=>{
  await seleccionar(page);await page.locator('#cot-cantidad-0').fill('2.5');await expect(page.locator('#cot-resumen')).toContainText('3,5');await expect(page.locator('#cot-resumen')).toContainText('2 organizaciones y 2 países');
  await page.reload();await expect(page.locator('#cot-cantidad-0')).toHaveValue('2.5');
  await page.getByRole('button',{name:'Quitar Producto 2'}).click();await expect(page.locator('#cot-items article')).toHaveCount(1);
- await page.goto('/catalogo');await page.getByRole('button',{name:'Agregar a cotización',exact:true}).first().click();await page.goto('/cotizar');await expect(page.locator('#cot-items article')).toHaveCount(1);await expect(page.locator('#cot-cantidad-0')).toHaveValue('2.5');
+ await page.goto('/catalogo');const tarjeta=page.locator('#catalogo-lista article').first();await expect(tarjeta).toContainText('En tu solicitud');await expect(tarjeta).toContainText('2,5 unidad');await expect(tarjeta.getByRole('button',{name:'Agregar a cotización',exact:true})).toHaveCount(0);
+ await page.goto('/cotizar');await expect(page.locator('#cot-items article')).toHaveCount(1);await expect(page.locator('#cot-cantidad-0')).toHaveValue('2.5');
+});
+test('el catálogo agrega y ajusta unidades y Mi solicitud lleva al formulario',async({page})=>{
+ await page.goto('/catalogo');const contador=page.locator('header [data-contador]');await expect(contador).toHaveText('0');
+ const tarjeta=page.locator('#catalogo-lista article').first();
+ await tarjeta.getByRole('button',{name:'Agregar a cotización',exact:true}).click();
+ await expect(page.locator('#catalogo-seleccion')).toContainText('se agregó a tu solicitud');await expect(contador).toHaveText('1');
+ await tarjeta.getByRole('button',{name:'Aumentar cantidad de Producto 1'}).click();await tarjeta.getByRole('button',{name:'Aumentar cantidad de Producto 1'}).click();
+ await expect(tarjeta).toContainText('3 unidad');
+ await tarjeta.getByRole('button',{name:'Disminuir cantidad de Producto 1'}).click();await expect(tarjeta).toContainText('2 unidad');
+ await page.getByRole('link',{name:/Mi solicitud/}).click();await expect(page).toHaveURL(/\/cotizar$/);
+ await expect(page.locator('#cot-items article')).toHaveCount(1);await expect(page.locator('#cot-cantidad-0')).toHaveValue('2');
+ await expect(page.getByRole('heading',{name:'Sin pago directo'})).toBeVisible();
+ await page.locator('#cotizacion').getByRole('button',{name:'Aumentar cantidad de Producto 1'}).click();await expect(page.locator('#cot-cantidad-0')).toHaveValue('3');await expect(page.locator('#cot-resumen')).toContainText('Productos seleccionados');
+ await page.locator('#cotizacion').getByRole('button',{name:'Quitar Producto 1'}).click();await expect(page.locator('#cot-items')).toContainText('vacía');await expect(page.locator('header [data-contador]')).toHaveText('0');
 });
 test('validación de contacto, cantidades y selección vacía',async({page})=>{
  await seleccionar(page);await page.locator('#cot-enviar').click();await expect(page.locator('#cot-error-nombre')).toBeVisible();await expect(page.locator('#cot-error-apellido')).toBeVisible();await expect(page.locator('#cot-error-correo')).toBeVisible();expect(posts).toHaveLength(0);
@@ -26,7 +41,7 @@ test('registro confirmado, contrato correcto, bloqueo de doble envío y limpieza
  liberar();await expect(page.locator('#cot-confirmacion')).toContainText('solicitud-123');await expect(page.locator('#cot-form')).toBeHidden();expect(await page.evaluate(()=>sessionStorage.getItem('fge-cotizacion-seleccion-v1'))).toBeNull();expect(posts).toHaveLength(1);
 });
 test('fallo conserva selección y contacto y no confirma',async({page})=>{
- fallo=true;await seleccionar(page);await contacto(page);await page.locator('#cot-enviar').click();await expect(page.locator('#cot-error-envio')).toBeVisible();await expect(page.locator('#cot-confirmacion')).toBeHidden();await expect(page.locator('#cot-nombre')).toHaveValue('Ana');await expect(page.locator('#cot-items article')).toHaveCount(2);await expect(page.locator('#cot-enviar')).toBeEnabled();
+ fallo=true;await seleccionar(page);await contacto(page);await page.locator('#cot-enviar').click();await expect(page.locator('#cot-error-envio')).toContainText('No se pudo registrar la solicitud: falló');await expect(page.locator('#cot-confirmacion')).toBeHidden();await expect(page.locator('#cot-nombre')).toHaveValue('Ana');await expect(page.locator('#cot-items article')).toHaveCount(2);await expect(page.locator('#cot-enviar')).toBeEnabled();
 });
 
 test('confirma las solicitudes separadas por país con una referencia de envío',async({page})=>{

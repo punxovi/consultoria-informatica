@@ -23,6 +23,16 @@ test('consulta auditoría: valida tipos, rango y cursor opaco', () => {
     error => error instanceof AuditError && error.fields?.cursor?.length === 1);
 });
 
+test('repositorio auditoría: conserva los datos para describir el evento en lenguaje claro', async () => {
+  const claro = { ...event, correo: 'admin@fge.test', nombre_usuario: 'Administradora QA', nombre_registro: 'Cooperativa QA',
+    campos_modificados: ['telefono'], cambio_estado: null, accion_especial: null };
+  const repository = createSupabaseAuditRepository({
+    url: 'https://project.example', anonKey: 'public-key',
+    fetchImpl: async () => Response.json({ events: [claro], next_cursor: null }),
+  });
+  assert.deepEqual((await repository.list('jwt', { limit: 50 })).events, [claro]);
+});
+
 test('repositorio auditoría: usa RPC, JWT y cursor estable', async () => {
   let call: { url: string; init?: RequestInit } | undefined;
   const repository = createSupabaseAuditRepository({

@@ -18,8 +18,10 @@ público y bandeja. No se crea un segundo módulo de solicitudes.
   correos ni mensajes externos. Los destinatarios informados no pueden editar la
   solicitud por el solo hecho de haber recibido el aviso.
 
-Si hay más de un Coordinador principal activo para el país, la operación devuelve
-un error controlado de asignación ambigua. No elige arbitrariamente una persona.
+Si hay más de un Coordinador principal activo para el país, la solicitud llega a
+todos ellos como responsables (`solicitud_cotizacion_destinatarios`, tipo
+`responsable`) y cualquiera puede gestionarla. `id_coordinador` guarda solo un
+responsable de referencia. Ver `20261105170000_fge_solicitudes_todos_coordinadores.sql`.
 El país aplicado a la cuenta, no un cambio de país pendiente de inicio de sesión,
 determina el principal. Para cuentas anteriores sin registro de administración,
 solo se acepta una asignación territorial COORD activa no ambigua.
@@ -136,7 +138,7 @@ sin modificar datos de recepción ni detalles históricos.
 
 Los errores mantienen `ok: false`, código, mensaje y `requestId`: validación 400,
 sesión 401, permisos 403, solicitud inexistente o fuera del ámbito 404, versión
-desactualizada 409, producto retirado 409, asignación ambigua 503 y migración o
+desactualizada 409, producto retirado 409 y migración o
 conexión no disponible 503. No se devuelven errores internos de Supabase.
 
 ## Despliegue y evidencia

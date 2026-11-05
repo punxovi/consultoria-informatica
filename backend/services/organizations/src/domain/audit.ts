@@ -54,6 +54,12 @@ export const auditEventSchema = z.object({
   operacion: z.string().min(1),
   entidad: z.string().min(1),
   referencia: z.string().nullable(),
+  correo: z.string().nullable().optional(),
+  nombre_usuario: z.string().nullable().optional(),
+  nombre_registro: z.string().nullable().optional(),
+  campos_modificados: z.array(z.string()).nullable().optional(),
+  cambio_estado: z.enum(['archivado', 'restaurado']).nullable().optional(),
+  accion_especial: z.enum(['inicio_sesion', 'inicio_sesion_fallido', 'lectura_documento']).nullable().optional(),
 });
 
 export type AuditEvent = z.infer<typeof auditEventSchema>;
@@ -77,7 +83,7 @@ function decodeCursor(value: string): AuditCursor {
     const parsed = cursorSchema.safeParse(JSON.parse(Buffer.from(value, 'base64url').toString('utf8')));
     if (parsed.success) return parsed.data;
   } catch {
-    // La respuesta se normaliza abajo para no exponer detalles del cursor.
+
   }
   throw new AuditError('DATOS_INVALIDOS', 'El cursor de la consulta no es válido.', 400, {
     cursor: ['El cursor de la consulta no es válido.'],

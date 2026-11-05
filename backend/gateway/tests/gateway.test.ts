@@ -131,6 +131,13 @@ describe('API Gateway', () => {
     assert.equal(body.body, '{"correo":"qa@example.com"}');
   });
 
+  test('enruta las imágenes públicas del catálogo a Organizaciones', async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/public/catalog/images/33333333-3333-4333-8333-333333333333`);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.path, '/v1/public/catalog/images/33333333-3333-4333-8333-333333333333');
+  });
+
   test('rechaza rutas que todavía no pertenecen a un servicio', async () => {
     const response = await fetch(`${gatewayUrl}/api/v1/desconocido`);
     const body = await response.json();
