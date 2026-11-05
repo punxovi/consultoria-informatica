@@ -4,7 +4,7 @@ import {prepararSolicitud,cantidadSchema} from '../../src/lib/cotizacion/modelo.
 import {crearClienteCotizacion} from '../../src/lib/cotizacion/cliente.ts';
 const contacto={nombre:' Ana ',apellido:' Pérez ',correo:'ana@example.org',telefono:'',mensaje:''};
 const items=[{id_producto:'1',cantidad:2.5}];
-test('contrato: nombre y apellido, cantidades decimales y opcionales omitidos',()=>{assert.deepEqual(prepararSolicitud(contacto,items),{nombre_solicitante:'Ana Pérez',correo:'ana@example.org',items});});
+test('contrato: nombre y apellido, cantidades decimales y opcionales omitidos',()=>{assert.deepEqual(prepararSolicitud(contacto,items),{nombre:'Ana',apellido:'Pérez',nombre_solicitante:'Ana Pérez',correo:'ana@example.org',items});});
 test('rechaza selección vacía, duplicados, cantidades inválidas y contacto incompleto',()=>{
  for(const cantidad of [0,-1,NaN,Infinity])assert.equal(cantidadSchema.safeParse(cantidad).success,false);
  assert.throws(()=>prepararSolicitud(contacto,[]));assert.throws(()=>prepararSolicitud(contacto,[...items,...items]));assert.throws(()=>prepararSolicitud({...contacto,apellido:''},items));assert.throws(()=>prepararSolicitud({...contacto,correo:'invalido'},items));

@@ -6,6 +6,7 @@ const solicitudSchema = z.object({
   id_solicitud: z.uuid(), nombre_solicitante: z.string(), correo: z.email(), telefono: z.string().nullable(),
   mensaje: z.string().nullable(), estado: z.enum(['solicitada', 'en_gestion', 'cotizada', 'cerrada', 'rechazada']),
   created_at: z.string(), updated_at: z.string(), version: z.number().int().positive(),
+  estados_permitidos:z.array(z.enum(['solicitada','en_gestion','cotizada','cerrada','rechazada'])),
   items: z.array(z.object({ id_producto: z.uuid(), nombre: z.string(), unidad_medida: z.string(), cantidad: z.number(),
     organizacion: z.object({ id_organizacion: z.uuid(), nombre: z.string(), pais: z.object({ id_pais: z.uuid(), nombre: z.string() }) }) })),
 });
@@ -60,10 +61,14 @@ export async function iniciarBandejaCotizaciones() {
           products.append(elemento('li', line, 'break-words rounded-lg border border-neutral-100 p-3 text-sm text-neutral-700'));
         }
         card.append(elemento('h3', 'Productos solicitados', 'font-semibold text-neutral-800'), products);
+        if(!solicitud.estados_permitidos.length){
+          card.append(elemento('p','Solicitud informativa: el país destinatario no tenía Coordinador al recibirla.','text-sm text-neutral-600'));
+          item.append(card);lista.append(item);continue;
+        }
         const controls = document.createElement('form'); controls.className = 'flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-end';
         const label = elemento('label', 'Estado', 'grid gap-1 text-sm font-semibold text-neutral-700');
         const select = document.createElement('select'); select.className = 'min-h-11 rounded-lg border border-neutral-300 bg-white px-3';
-        for (const [value, labelText] of estados) select.add(new Option(labelText, value, false, value === solicitud.estado));
+        for (const [value, labelText] of estados) if(value===solicitud.estado||solicitud.estados_permitidos.includes(value))select.add(new Option(labelText, value, false, value === solicitud.estado));
         label.append(select);
         const save = document.createElement('button'); save.type = 'submit'; save.textContent = 'Guardar estado';
         save.className = 'min-h-11 rounded-xl bg-[#4C4688] px-4 py-2 font-semibold text-white disabled:opacity-50';

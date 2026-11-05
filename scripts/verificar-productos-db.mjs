@@ -139,4 +139,16 @@ try {
   await user(admin);
   check(await scalar('SELECT count(*)::int FROM public.productos'), 0);
   console.log(JSON.stringify({ ok: true, checks, engine: 'PostgreSQL/PGlite', remoteSupabaseModified: false }));
+  if(process.argv.includes('--scrum163')){
+    await db.exec('RESET ROLE');
+    await db.query('UPDATE public.perfiles SET activo=true WHERE id_usuario=$1',[admin]);
+    await db.exec("ALTER TABLE auth.users ADD COLUMN email text, ADD COLUMN raw_user_meta_data jsonb DEFAULT '{}',ADD COLUMN raw_app_meta_data jsonb DEFAULT '{}',ADD COLUMN banned_until timestamptz;CREATE TABLE auth.sessions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid REFERENCES auth.users,updated_at timestamptz DEFAULT now());");
+    await load('20260909192500_fge_trigger_perfiles.sql');
+    await load('20261027120000_fge_scrum145_coordinadores.sql');
+    await load('20261104100000_fge_scrum170_superficie_publica_cotizacion.sql');
+    await load('20261104140000_fge_cotizaciones_coordinadores.sql');
+    await load('20261105120000_fge_scrum163_solicitudes_cotizacion.sql');
+    const {verifyQuotes}=await import('./verificar-solicitudes-cotizacion-db.mjs');
+    console.log(JSON.stringify({scrum163:true,...await verifyQuotes(db,{admin,coord,guest,noRole,cl,ar,orgCL,orgAR,service})}));
+  }
 } finally { await db.close(); }

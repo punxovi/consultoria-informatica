@@ -1,39 +1,27 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { authContext } from '../../../../shared/auth-context/src/index.ts';
 import { failure, success } from '../../../../shared/contracts/src/index.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type { QuoteRequestsApplication } from '../application/quote-requests-service.ts';
+import { quoteFilters,quoteId,quoteUpdateSchema,parseQuote } from '../domain/quote-requests.ts';
 import { readJsonBody } from './body.ts';
-
-function respond(response: ServerResponse, status: number, body: unknown, requestId: string) {
-  response.statusCode = status; response.setHeader('content-type', 'application/json; charset=utf-8');
-  response.setHeader('cache-control', 'no-store'); response.setHeader('x-request-id', requestId); response.end(JSON.stringify(body));
-}
-function tokenFrom(request: IncomingMessage): string {
-  const value = request.headers.authorization;
-  const token = authContext(Array.isArray(value) ? value[0] : value).accessToken;
-  if (!token) throw new ServiceError('SESION_REQUERIDA', 'Debes iniciar sesión.', 401);
-  return token;
-}
-export async function routeQuoteRequests(request: IncomingMessage, response: ServerResponse, requestId: string, application: QuoteRequestsApplication) {
-  try {
-    const url = new URL(request.url ?? '/', 'http://organizations.local');
-    const token = tokenFrom(request);
-    if (request.method === 'GET' && url.pathname === '/v1/quote-requests') {
-      respond(response, 200, success('SOLICITUDES_COTIZACION_LISTADAS', 'Solicitudes consultadas.', { requests: await application.list(token) }), requestId); return;
+export async function routeQuoteRequests(request:IncomingMessage,response:ServerResponse,requestId:string,application:QuoteRequestsApplication){
+  const send=(status:number,body:unknown)=>{response.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-request-id':requestId});response.end(JSON.stringify(body));};
+  try{
+    const header=request.headers.authorization;
+    if(!header||!/^Bearer\s+\S+$/i.test(header))throw new ServiceError('SESION_REQUERIDA','Debes iniciar sesión.',401);
+    const token=header.replace(/^Bearer\s+/i,'');
+    const url=new URL(request.url??'/','http://organizations.local');
+    if(request.method==='GET'&&url.pathname==='/v1/quote-requests')return send(200,success('SOLICITUDES_COTIZACION_LISTADAS','Solicitudes consultadas.',await application.list(token,quoteFilters(url))));
+    const match=/^\/v1\/quote-requests\/([^/]+)(?:\/(status))?$/.exec(url.pathname);
+    if(!match)throw new ServiceError('RUTA_NO_ENCONTRADA','La ruta no existe.',404);
+    const id=quoteId(match[1]);
+    if(url.search)throw new ServiceError('DATOS_INVALIDOS','Esta operación no admite filtros.',400);
+    if(request.method==='GET'&&!match[2])return send(200,success('SOLICITUD_COTIZACION_CONSULTADA','Solicitud consultada.',{request:await application.get(token,id)}));
+    if(request.method==='PATCH'){
+      if(request.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')throw new ServiceError('FORMATO_INVALIDO','Usa application/json.',415);
+      const data=parseQuote(quoteUpdateSchema,await readJsonBody(request));
+      return send(200,success('SOLICITUD_COTIZACION_ACTUALIZADA','Estado actualizado.',{request:await application.updateStatus(token,id,data.version_esperada,data.estado)}));
     }
-    const match = url.pathname.match(/^\/v1\/quote-requests\/([0-9a-f-]{36})\/status$/i);
-    if (request.method === 'PATCH' && match) {
-      const body = await readJsonBody(request) as Record<string, unknown>;
-      if (!Number.isSafeInteger(body?.version_esperada) || Number(body.version_esperada) < 1 || typeof body.estado !== 'string') {
-        throw new ServiceError('DATOS_INVALIDOS', 'La versión y el estado son obligatorios.', 400);
-      }
-      const requestData = await application.updateStatus(token, match[1], Number(body.version_esperada), body.estado);
-      respond(response, 200, success('SOLICITUD_COTIZACION_ACTUALIZADA', 'Estado actualizado.', { request: requestData }), requestId); return;
-    }
-    respond(response, 404, failure('RUTA_NO_ENCONTRADA', 'La ruta solicitada no existe.', requestId), requestId);
-  } catch (error) {
-    const e = error instanceof ServiceError ? error : new ServiceError('ERROR_INTERNO', 'No fue posible completar la operación.', 500, error);
-    respond(response, e.status, failure(e.code, e.message, requestId), requestId);
-  }
+    throw new ServiceError('METODO_NO_PERMITIDO','El método no está permitido.',405);
+  }catch(error){const e=error instanceof ServiceError?error:new ServiceError('ERROR_INTERNO','No fue posible completar la operación.',500);send(e.status,failure(e.code,e.message,requestId));}
 }

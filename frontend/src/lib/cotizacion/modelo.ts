@@ -15,6 +15,6 @@ export function prepararSolicitud(contacto: Contacto, seleccion: Seleccion) {
   const datos = formularioSchema.parse(contacto);
   const items = seleccionSchema.min(1, 'Selecciona al menos un producto.').parse(seleccion);
   if (new Set(items.map(i => i.id_producto)).size !== items.length) throw new Error('La selección contiene productos repetidos.');
-  return { nombre_solicitante: `${datos.nombre} ${datos.apellido}`, correo: datos.correo,
+  return { nombre:datos.nombre,apellido:datos.apellido,nombre_solicitante: `${datos.nombre} ${datos.apellido}`, correo: datos.correo,
     ...(datos.telefono ? { telefono: datos.telefono } : {}), ...(datos.mensaje ? { mensaje: datos.mensaje } : {}), items };
 }

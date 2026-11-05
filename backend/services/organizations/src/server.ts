@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readPort } from '../../../shared/config/src/index.ts';
+import { readSupabaseConnection } from '../../../shared/config/src/supabase.ts';
 import { getRequestId, logEvent } from '../../../shared/observability/src/index.ts';
 import { createOrganizationsApplication, type OrganizationsApplication } from './application/organizations-service.ts';
 import { routeOrganizations } from './http/routes.ts';
@@ -59,18 +60,12 @@ export function createOrganizationsServer(
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
   const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
-  const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication({
-    supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
-    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
-  });
+  const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication(readSupabaseConnection());
   const resolvedProducts = products ?? createProductsApplication({
     supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
     anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
   });
-  const resolvedQuoteRequests = quoteRequests ?? createQuoteRequestsApplication({
-    supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
-    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
-  });
+  const resolvedQuoteRequests = quoteRequests ?? createQuoteRequestsApplication(readSupabaseConnection());
 
   // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';

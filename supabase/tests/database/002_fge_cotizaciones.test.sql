@@ -24,7 +24,7 @@ SELECT is((SELECT nombre_producto || '/' || unidad_medida FROM public.solicitud_
 UPDATE public.solicitud_cotizacion_detalles SET nombre_producto='Manipulado',unidad_medida='otra' WHERE id_producto='12000000-0000-0000-0000-000000000001';
 SELECT is((SELECT nombre_producto || '/' || unidad_medida FROM public.solicitud_cotizacion_detalles WHERE id_producto='12000000-0000-0000-0000-000000000001'),'Bolso/unidad','Copia histórica no se sobrescribe');
 SELECT throws_ok($q$UPDATE public.productos SET id_organizacion='11000000-0000-0000-0000-000000000002' WHERE id_producto='12000000-0000-0000-0000-000000000001'$q$,'23514',NULL,'No reasignar producto ya cotizado');
-SELECT throws_ok($q$INSERT INTO public.solicitud_cotizacion_detalles(id_solicitud,id_producto,cantidad) VALUES ('13000000-0000-0000-0000-000000000001','12000000-0000-0000-0000-000000000003',1)$q$,'23514',NULL,'Producto sin publicar rechazado');
+SELECT throws_ok($q$INSERT INTO public.solicitud_cotizacion_detalles(id_solicitud,id_producto,cantidad) VALUES ('13000000-0000-0000-0000-000000000001','12000000-0000-0000-0000-000000000003',1)$q$,'P0166',NULL,'Producto sin publicar rechazado');
 SELECT throws_ok($q$INSERT INTO public.solicitud_cotizacion_detalles(id_solicitud,id_producto,cantidad) VALUES ('13000000-0000-0000-0000-000000000001','12000000-0000-0000-0000-000000000001',1)$q$,'23505',NULL,'Producto duplicado rechazado');
 SELECT throws_ok($q$UPDATE public.solicitud_cotizacion_detalles SET id_producto='12000000-0000-0000-0000-000000000003'$q$,'23514',NULL,'No cambiar referencia histórica');
 SELECT throws_ok($q$UPDATE public.solicitud_cotizacion_detalles SET cantidad=0$q$,'23514',NULL,'Cantidad inválida: 0');
@@ -45,9 +45,9 @@ SELECT ok(NOT (SELECT public FROM storage.buckets WHERE id='fge-archivos'),'Buck
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.productos'::regclass),'RLS productos');
 SELECT ok(NOT has_table_privilege('anon','public.productos','SELECT') AND has_table_privilege('authenticated','public.productos','SELECT'),'Productos: lectura autenticada sujeta a RLS, sin lectura anónima');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.solicitudes_cotizacion'::regclass),'RLS solicitudes_cotizacion');
-SELECT ok(NOT has_table_privilege('anon','public.solicitudes_cotizacion','SELECT') AND NOT has_table_privilege('authenticated','public.solicitudes_cotizacion','SELECT'),'Datos cerrados hasta integración: solicitudes_cotizacion');
+SELECT ok(NOT has_table_privilege('anon','public.solicitudes_cotizacion','SELECT') AND has_table_privilege('authenticated','public.solicitudes_cotizacion','SELECT'),'Solicitudes: lectura privada autenticada sujeta a RLS');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.solicitud_cotizacion_detalles'::regclass),'RLS solicitud_cotizacion_detalles');
-SELECT ok(NOT has_table_privilege('anon','public.solicitud_cotizacion_detalles','SELECT') AND NOT has_table_privilege('authenticated','public.solicitud_cotizacion_detalles','SELECT'),'Datos cerrados hasta integración: solicitud_cotizacion_detalles');
+SELECT ok(NOT has_table_privilege('anon','public.solicitud_cotizacion_detalles','SELECT') AND has_table_privilege('authenticated','public.solicitud_cotizacion_detalles','SELECT'),'Detalles: lectura privada autenticada sujeta a RLS');
 SET LOCAL ROLE anon;
 SELECT throws_ok('SELECT * FROM public.solicitudes_cotizacion','42501',NULL,'Visitante no puede leer datos personales');
 SELECT throws_ok($q$INSERT INTO public.solicitudes_cotizacion(nombre_solicitante,correo) VALUES ('P','p@example.invalid')$q$,'42501',NULL,'Sin escritura anónima directa');
