@@ -1,6 +1,7 @@
 ﻿import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteCompromisos } from './cliente';
+import { crearDescargaPdfCompromisos, guardarArchivo } from './pdf';
 import { guardarCompromisoSchema, vencido, type ActaOrigen, type Compromiso } from './modelo';
 
 export function iniciarCompromisos() {
@@ -30,16 +31,16 @@ export function iniciarCompromisos() {
 
   const form = q<HTMLFormElement>('form');
   const campo = (nombre: string) => form.elements.namedItem(nombre) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-  const real = crearClienteCompromisos(
-    createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'),
-    async () => {
-      const { data, error: errorSesion } = await getSupabaseClient().auth.getSession();
-      if (errorSesion || !data.session) {
-        throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
-      }
-      return data.session.access_token;
-    },
-  );
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
+  const tokenSesion = async () => {
+    const { data, error: errorSesion } = await getSupabaseClient().auth.getSession();
+    if (errorSesion || !data.session) {
+      throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
+    }
+    return data.session.access_token;
+  };
+  const real = crearClienteCompromisos(createApiTransport(apiBase), tokenSesion);
+  const pdf = crearDescargaPdfCompromisos(apiBase, tokenSesion);
 
   let servicio = real;
   let demo = false;
@@ -72,6 +73,8 @@ export function iniciarCompromisos() {
 
     if (!valor) {
       q<HTMLButtonElement>('nuevo').disabled = !cargado || actas.length === 0;
+      // El PDF se genera en el Backend con datos reales: no aplica a la demostración.
+      q<HTMLButtonElement>('pdf-acta').disabled = demo;
       q<HTMLButtonElement>('guardar').disabled = conflicto;
     }
   }
@@ -385,6 +388,23 @@ export function iniciarCompromisos() {
     }
   });
 
+  // Solo se descarga el PDF de un acta: sus compromisos se comparten con quienes participaron en esa reunión.
+  async function descargarPdf(idActa: string) {
+    if (ocupado || demo) return;
+    limpiar();
+    ocupar(true);
+    try {
+      const archivo = await pdf.descargar(org!, idActa);
+      guardarArchivo(archivo.blob, archivo.fileName);
+      q('exito').textContent = 'Se descargó el PDF con los compromisos del acta.';
+      q('exito').hidden = false;
+    } catch (fallo) {
+      error(fallo);
+    } finally {
+      ocupar(false);
+    }
+  }
+  q('pdf-acta').addEventListener('click', () => { if (actual) void descargarPdf(actual.id_acta); });
   q('nuevo').addEventListener('click', () => editar(true));
   q('editar').addEventListener('click', () => editar());
   q('cancelar').addEventListener('click', () => {
