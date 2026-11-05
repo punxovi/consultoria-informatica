@@ -60,6 +60,12 @@ export async function crearEntornoActas({ origin = 'http://127.0.0.1:4333' } = {
       const token = req.headers.authorization?.replace(/^Bearer /,'');
       let raw = ''; for await (const chunk of req) raw += chunk;
       try {
+        if (url.pathname === '/auth/v1/user') {
+          const id = { 'qa-admin': base.usuarios.ADMIN, 'qa-coord': base.usuarios.COORD }[token];
+          return id
+            ? responder(200, { id, email: 'qa@example.invalid', user_metadata: {} })
+            : responder(401, { message: 'Sesión inválida' });
+        }
         if (url.pathname === '/__qa/fixture' && token === 'qa-admin') {
           const entrada = raw ? JSON.parse(raw) : {};
           return responder(201,await fixture(entrada.pais,entrada.conPlan));
