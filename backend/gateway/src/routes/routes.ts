@@ -8,6 +8,7 @@ export interface GatewayTargets {
   programs: URL;
   interventions: URL;
   insights: URL;
+  guests?: URL; // Opcional o apuntando por defecto a auth
 }
 
 function responderJson(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -31,15 +32,22 @@ export async function routeRequest(
   }
 
   const authPrefix = `${API_PREFIX}/auth`;
+  const guestsPrefix = `${API_PREFIX}/guests`;
+
   if (/^\/api\/v1\/public\/evidences\/[^/]+\/file$/.test(incomingUrl.pathname)) {
     const targetUrl = new URL(`${incomingUrl.pathname.slice('/api'.length)}${incomingUrl.search}`, targets.interventions);
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }
-  if (incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`) ||
-      incomingUrl.pathname === `${API_PREFIX}/coordinators` || incomingUrl.pathname.startsWith(`${API_PREFIX}/coordinators/`)) {
+
+  // Rutas de Autenticación, Coordinadores e Invitados
+  if (
+    incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`) ||
+    incomingUrl.pathname === `${API_PREFIX}/coordinators` || incomingUrl.pathname.startsWith(`${API_PREFIX}/coordinators/`) ||
+    incomingUrl.pathname === guestsPrefix || incomingUrl.pathname.startsWith(`${guestsPrefix}/`)
+  ) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
-    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.auth);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.guests ?? targets.auth);
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }
