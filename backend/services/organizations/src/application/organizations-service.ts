@@ -1,3 +1,5 @@
+import { createCommitmentsPdfService } from './commitments-pdf-service.ts';
+import { generateCommitmentsPdf } from '../infrastructure/commitments-pdf.ts';
 import type {
   OrganizationFields,
   OrganizationFilters,
@@ -13,6 +15,7 @@ import type {
 
 export function createOrganizationsApplication(repository: OrganizationsRepository) {
   return {
+    downloadCommitmentsPdf: createCommitmentsPdfService(repository, generateCommitmentsPdf),
     list(accessToken: string, filters: OrganizationFilters) {
       return repository.list(accessToken, filters);
     },
