@@ -111,9 +111,8 @@ import Button from '../components/ui/Button.astro';
         </div>
       </div>
 
-      <p id="filtro-programa-hint" role="status" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        Los filtros se consultan en el Backend y los resultados respetan los permisos territoriales de tu sesión.
-      </p>
+      <!-- Solo se muestra si no se pudo cargar el catálogo de programas. -->
+      <p id="filtro-programa-hint" role="status" hidden class="mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger"></p>
 
       <div class="mt-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Filtros activos</p>
@@ -243,15 +242,15 @@ import Button from '../components/ui/Button.astro';
       selectPrograma.value = valorAnterior;
       if (selectPrograma.value !== valorAnterior) selectPrograma.value = '';
       catalogoProgramasDisponible = true;
-      hintPrograma.textContent = 'Los filtros se consultan en el Backend y los resultados respetan los permisos territoriales de tu sesión.';
-      hintPrograma.className = 'mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600';
+      hintPrograma.textContent = '';
+      hintPrograma.hidden = true;
     } catch {
       catalogoProgramasDisponible = false;
       selectPrograma.replaceChildren(new Option('Programas no disponibles', ''));
       selectPrograma.disabled = true;
       selectPrograma.value = '';
       hintPrograma.textContent = 'No se pudo cargar el catálogo de programas. Puedes seguir usando la búsqueda por nombre y el filtro por país; revisa la conexión para volver a cargar el catálogo.';
-      hintPrograma.className = 'mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger';
+      hintPrograma.hidden = false;
     }
   }
 

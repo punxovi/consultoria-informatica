@@ -3,6 +3,7 @@ import { getSupabaseClient } from '../supabase.ts';
 import { camposActaSchema, type AdjuntoActa, type ActaReunion, type CatalogoActas } from './modelo.ts';
 import { crearClienteActas } from './cliente.ts';
 import { iniciarCompromisosEnActas } from '../compromisos/en-actas.ts';
+import { crearDescargaPdfCompromisos, guardarArchivo } from '../compromisos/pdf.ts';
 
 export async function iniciarActasReunion() {
   const raiz = document.querySelector<HTMLElement>('#actas-reunion');
@@ -10,11 +11,15 @@ export async function iniciarActasReunion() {
   raiz.dataset.iniciado = 'true';
   const org = raiz.dataset.organizacion!;
   const buscar = <T extends HTMLElement = HTMLElement>(s: string) => raiz.querySelector<T>(s)!;
-  const servicio = crearClienteActas(createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'), async () => {
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
+  const tokenSesion = async () => {
     const { data, error } = await getSupabaseClient().auth.getSession();
     if (error || !data.session) throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
     return data.session.access_token;
-  });
+  };
+  const servicio = crearClienteActas(createApiTransport(apiBase), tokenSesion);
+  const pdfCompromisos = crearDescargaPdfCompromisos(apiBase, tokenSesion);
+  const botonPdf = buscar<HTMLButtonElement>('#actas-pdf-compromisos');
   const compromisos = iniciarCompromisosEnActas(raiz);
   const formulario = buscar<HTMLFormElement>('#actas-formulario');
   const plan = buscar<HTMLSelectElement>('#actas-plan');
@@ -79,6 +84,7 @@ export async function iniciarActasReunion() {
     formulario.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('input,select,textarea,button').forEach(n => n.disabled = valor);
     nueva.disabled = valor || !cargado || !catalogo?.puede_gestionar || !catalogo.planes.length || !catalogo.asistentes.length;
     editar.disabled = valor || !catalogo?.puede_gestionar;
+    botonPdf.disabled = valor;
     buscar<HTMLButtonElement>('#actas-volver').disabled = valor;
     buscar<HTMLButtonElement>('#actas-recargar').disabled = valor;
     guardar.disabled = valor || !catalogo?.puede_gestionar || !!editando && conflictos.has(editando.id_acta);
@@ -390,6 +396,7 @@ export async function iniciarActasReunion() {
     if (!acta.asistentes.length) lista.textContent = 'Sin asistentes registrados.';
     for (const nombre of acta.asistentes) { const item = document.createElement('span'); item.className = 'rounded-full bg-primary/10 px-3 py-1 text-sm'; item.textContent = nombre; lista.append(item); }
     compromisos?.detalle(acta.compromisos ?? []);
+    botonPdf.hidden = !(acta.compromisos ?? []).length;
     editar.hidden = !catalogo?.puede_gestionar;
     buscar('#actas-adjuntos-subir').hidden = !catalogo?.puede_gestionar;
     buscar('#actas-adjuntos-carga').hidden = !catalogo?.puede_gestionar;
@@ -480,6 +487,21 @@ export async function iniciarActasReunion() {
   subirAdjuntos.addEventListener('click', () => void procesarAdjuntos());
   nueva.addEventListener('click', () => abrirFormulario());
   editar.addEventListener('click', () => { if (actual) abrirFormulario(actual); });
+  // Mismo PDF que «Descargar PDF del acta» en el detalle de un compromiso.
+  botonPdf.addEventListener('click', async () => {
+    if (!actual || ocupado) return;
+    limpiarMensajes(); ocupar(true);
+    try {
+      const archivo = await pdfCompromisos.descargar(org, actual.id_acta);
+      guardarArchivo(archivo.blob, archivo.fileName);
+      const mensaje = buscar('#actas-mensaje'); mensaje.className = 'rounded-lg bg-success/10 p-4 text-success';
+      mensaje.textContent = 'Se descargó el PDF con los compromisos del acta.'; mensaje.hidden = false;
+    } catch (fallo) {
+      error(fallo);
+    } finally {
+      ocupar(false);
+    }
+  });
   buscar('#actas-cancelar').addEventListener('click', () => { if (!ocupado) { limpiarMensajes(); if (editando) detalle(editando); else historial(); ocupar(false); } });
   buscar('#actas-volver').addEventListener('click', () => { if (!ocupado) { limpiarMensajes(); historial(); } });
   buscar('#actas-recargar').addEventListener('click', () => void cargar());

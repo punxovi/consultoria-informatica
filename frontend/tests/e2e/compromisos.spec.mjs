@@ -13,11 +13,15 @@ async function crearActa(request) {
   expect(r.ok()).toBe(true);return (await r.json()).data.meetingMinute;
 }
 async function sesion(context,token='qa-admin') {
+  // El middleware SSR valida esta cookie contra /auth/v1/user del Supabase simulado.
+  await context.addCookies([{name:'fge_access_token',value:token,url:'http://127.0.0.1:4334'}]);
   await context.addInitScript(token=>localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'qa-refresh',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'17600000-0000-4000-8000-000000000001',email:'qa@example.invalid',user_metadata:{}}})),token);
   await context.route('**/api/v1/auth/session',r=>r.fulfill({json:{ok:true,data:{authenticated:true,user:{id:'17600000-0000-4000-8000-000000000001'}}}}));
 }
 test.beforeEach(async({context,request})=>{f=await datos(request);acta=await crearActa(request);await sesion(context);});
-async function abrir(page){await page.goto(`/organizaciones/${f.organizacion.id_organizacion}`);await page.locator('[data-tab="compromisos"]').click();}
+// La ficha agrupa Actas y Compromisos dentro de la categoría «Intervenciones».
+async function seccion(page,nombre){await page.locator('[data-tab="intervenciones"]').click();await page.locator(`[data-org-seccion="${nombre}"]`).click();}
+async function abrir(page){await page.goto(`/organizaciones/${f.organizacion.id_organizacion}`);await seccion(page,'compromisos');}
 async function completar(page){
   await page.locator('#comp-acta').selectOption(acta.id_acta);
   for(const [id,value] of Object.entries({descripcion:campos.descripcion,responsable:campos.responsable_nombre,contacto:campos.responsable_contacto,fecha:campos.fecha_limite})) await page.locator(`#comp-${id}`).fill(value);
@@ -98,18 +102,40 @@ test('registros no disponibles muestran error y no un detalle anterior',async({p
 
 test('compromisos creados dentro de Actas aparecen al cambiar pestaña; formulario móvil',async({page},info)=>{
   await abrir(page);await expect(page.locator('#comp-vacio')).toBeVisible();
-  await page.locator('[data-tab="actas"]').click();await page.locator('#actas-nueva').click();
+  await seccion(page,'actas');await page.locator('#actas-nueva').click();
   await page.locator('#actas-plan').selectOption(f.planes[0].id_plan);await page.locator('#actas-asistentes').selectOption('QA ADMIN');await page.locator('#actas-objetivo').fill('Acta integrada');
   for(const descripcion of ['Primer acuerdo','Segundo acuerdo']){
     await page.locator('#actas-agregar-compromiso').click();const grupo=page.locator('[data-borradores] fieldset').last();
     for(const [nombre,valor] of Object.entries({...campos,descripcion}))await grupo.locator(`[data-campo="${nombre}"]`).fill(valor);
   }
   await page.locator('#actas-guardar').click();await expect(page.locator('#actas-mensaje')).toContainText('se registró');
-  await page.locator('[data-tab="compromisos"]').click();await expect(page.locator('#comp-lista article')).toHaveCount(2);
+  await seccion(page,'compromisos');await expect(page.locator('#comp-lista article')).toHaveCount(2);
   await page.locator('#comp-lista button').first().click();await page.locator('#comp-editar').click();
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>document.querySelector('#app-sidebar').getBoundingClientRect().right<=0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   expect(await page.locator('#comp-form').evaluate(n=>n.scrollWidth<=n.clientWidth)).toBe(true);
   await page.locator('#compromisos').screenshot({path:info.outputPath('compromisos-movil.png'),animations:'disabled'});
   await page.locator('#comp-cancelar').click();await expect(page.locator('#comp-datos')).toContainText('Pendiente');
+});
+
+test('descarga el PDF de los compromisos del acta desde el detalle (SCRUM-178)',async({page})=>{
+  await crear(page);
+  const [descarga]=await Promise.all([page.waitForEvent('download'),page.locator('#comp-pdf-acta').click()]);
+  expect(descarga.suggestedFilename()).toMatch(new RegExp(`^compromisos-${f.organizacion.id_organizacion}-acta-${acta.id_acta}\.pdf$`));
+  await expect(page.locator('#comp-exito')).toContainText('compromisos del acta');
+  const bytes=await (await import('node:fs/promises')).readFile(await descarga.path());
+  expect(bytes.subarray(0,5).toString()).toBe('%PDF-');
+  // No se ofrece un PDF con todos los compromisos de la organización.
+  await page.locator('#comp-volver').click();await expect(page.locator('#comp-lista article')).toHaveCount(1);
+  await expect(page.locator('#compromisos').getByRole('button',{name:/Descargar PDF/})).toHaveCount(0);
+});
+
+test('el detalle del acta descarga el mismo PDF de compromisos (SCRUM-178)',async({page})=>{
+  await crear(page);
+  await page.locator('#comp-origen').click();await expect(page.locator('#actas-detalle')).toBeVisible();
+  const [descarga]=await Promise.all([page.waitForEvent('download'),page.locator('#actas-pdf-compromisos').click()]);
+  expect(descarga.suggestedFilename()).toBe(`compromisos-${f.organizacion.id_organizacion}-acta-${acta.id_acta}.pdf`);
+  await expect(page.locator('#actas-mensaje')).toContainText('compromisos del acta');
+  const bytes=await (await import('node:fs/promises')).readFile(await descarga.path());
+  expect(bytes.subarray(0,5).toString()).toBe('%PDF-');
 });

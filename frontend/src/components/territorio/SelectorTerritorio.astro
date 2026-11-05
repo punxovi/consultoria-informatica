@@ -1,27 +1,25 @@
 <div
   id="selector-territorio"
-  class="mx-1 my-3 rounded-xl border border-white/15 bg-white/5 p-3"
+  class="mx-1 my-3 rounded-2xl border border-white/15 bg-white/5 p-2.5"
   hidden
 >
-  <p class="text-xs font-semibold uppercase tracking-wide text-[#D2CFF0]">
+  <p id="selector-territorio-titulo" class="px-1 text-[11px] font-semibold uppercase tracking-wider text-[#D2CFF0]">
     Territorio de trabajo
   </p>
 
-  <label for="selector-territorio-select" class="sr-only">
-    Seleccionar territorio autorizado
-  </label>
-
-  <select
-    id="selector-territorio-select"
-    class="mt-2 min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-[#39336E] px-3 py-2 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-white"
-    disabled
+  <!-- Tarjetas en vez de una lista desplegable: el nombre completo del país siempre se lee. -->
+  <div
+    id="selector-territorio-opciones"
+    role="radiogroup"
+    aria-labelledby="selector-territorio-titulo"
+    class="mt-2 space-y-1.5"
   >
-    <option value="">Cargando territorio...</option>
-  </select>
+    <p class="px-1 text-sm text-[#E5E2F8]">Cargando territorio…</p>
+  </div>
 
   <p
     id="selector-territorio-ayuda"
-    class="mt-2 text-xs leading-5 text-[#E5E2F8]"
+    class="mt-2 px-1 text-xs leading-5 text-[#D2CFF0]"
     role="status"
     aria-live="polite"
   >
@@ -39,20 +37,15 @@
   type Territorio = {
     id_pais: string;
     nombre: string;
+    codigo_iso?: string;
     tipo: 'principal' | 'cobertura';
     inicio_at?: string;
     fin_at?: string;
   };
 
-  const contenedor = document.querySelector<HTMLElement>(
-    '#selector-territorio',
-  );
-  const selector = document.querySelector<HTMLSelectElement>(
-    '#selector-territorio-select',
-  );
-  const ayuda = document.querySelector<HTMLElement>(
-    '#selector-territorio-ayuda',
-  );
+  const contenedor = document.querySelector<HTMLElement>('#selector-territorio');
+  const opciones = document.querySelector<HTMLElement>('#selector-territorio-opciones');
+  const ayuda = document.querySelector<HTMLElement>('#selector-territorio-ayuda');
 
   const CLAVE_TERRITORIO = 'fge.territorio.activo';
 
@@ -90,8 +83,82 @@
     );
   }
 
+  function descripcion(territorio: Territorio) {
+    if (territorio.tipo === 'principal') return 'País principal';
+    if (!territorio.fin_at) return 'Cobertura temporal';
+    const fin = new Date(territorio.fin_at);
+    if (Number.isNaN(fin.getTime())) return 'Cobertura temporal';
+    const [anio, mes, dia] = fin.toISOString().slice(0, 10).split('-');
+    return `Cobertura hasta ${dia}/${mes}/${anio}`;
+  }
+
+  // Misma bandera circular que el perfil del encabezado; si no carga, se muestran las iniciales.
+  function bandera(territorio: Territorio, activo: boolean) {
+    const codigo = territorio.codigo_iso?.trim().toLowerCase() ?? '';
+    const marco = document.createElement('span');
+    marco.className = `flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold ring-2 ${
+      activo ? 'bg-[#F0EDF8] text-[#4C4688] ring-[#4C4688]/15' : 'bg-white/15 text-white ring-white/20'}`;
+    marco.setAttribute('aria-hidden', 'true');
+    marco.textContent = (codigo || territorio.nombre.slice(0, 2)).toUpperCase();
+    if (/^[a-z]{2}$/.test(codigo)) {
+      const imagen = document.createElement('img');
+      imagen.src = `https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/1x1/${codigo}.svg`;
+      imagen.alt = '';
+      imagen.className = 'h-full w-full object-cover';
+      imagen.addEventListener('load', () => { marco.textContent = ''; marco.append(imagen); }, { once: true });
+    }
+    return marco;
+  }
+
+  function tarjeta(territorio: Territorio, activo: boolean, seleccionable: boolean) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.setAttribute('role', 'radio');
+    boton.setAttribute('aria-checked', String(activo));
+    boton.dataset.pais = territorio.id_pais;
+    boton.disabled = !seleccionable;
+    boton.tabIndex = activo ? 0 : -1;
+    boton.className = `flex w-full min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+      activo
+        ? 'bg-white text-[#2B2654] shadow-sm'
+        : 'text-white hover:bg-white/10'
+    } ${seleccionable ? 'cursor-pointer' : 'cursor-default'}`;
+
+    const textos = document.createElement('span');
+    textos.className = 'min-w-0 flex-1';
+    const nombre = document.createElement('span');
+    nombre.className = 'block text-sm font-semibold leading-5 [overflow-wrap:anywhere]';
+    nombre.textContent = territorio.nombre;
+    const detalle = document.createElement('span');
+    detalle.className = `block text-xs leading-4 ${activo ? 'text-[#6B6591]' : 'text-[#D2CFF0]'}`;
+    detalle.textContent = descripcion(territorio);
+    textos.append(nombre, detalle);
+
+    boton.append(bandera(territorio, activo), textos);
+    if (activo) {
+      const marca = document.createElement('span');
+      marca.className = 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4C4688] text-[11px] font-bold text-white';
+      marca.setAttribute('aria-hidden', 'true');
+      marca.textContent = '✓';
+      boton.append(marca);
+    }
+    boton.setAttribute('aria-label', `${territorio.nombre}, ${descripcion(territorio)}`);
+    return boton;
+  }
+
+  function seleccionar(idPais: string) {
+    // La comprobación de la interfaz evita selecciones accidentales; el
+    // backend sigue siendo la autoridad efectiva de los permisos.
+    const autorizado = obtenerTerritorios().some((territorio) => territorio.id_pais === idPais);
+    if (!autorizado || sessionStorage.getItem(CLAVE_TERRITORIO) === idPais) return;
+    sessionStorage.setItem(CLAVE_TERRITORIO, idPais);
+    renderizarSelector();
+    opciones?.querySelector<HTMLButtonElement>(`[data-pais="${CSS.escape(idPais)}"]`)?.focus();
+    notificarTerritorioActivo(idPais);
+  }
+
   function renderizarSelector(notificarInicializacion = false) {
-    if (!contenedor || !selector || !ayuda || !principal) return;
+    if (!contenedor || !opciones || !ayuda || !principal) return;
 
     const territorios = obtenerTerritorios();
     const almacenado = sessionStorage.getItem(CLAVE_TERRITORIO);
@@ -101,28 +168,17 @@
     const activo = territorioAlmacenadoSigueAutorizado && almacenado
       ? almacenado
       : principal.id_pais;
+    const seleccionable = territorios.length > 1;
 
-    selector.replaceChildren();
-
-    for (const territorio of territorios) {
-      selector.add(
-        new Option(
-          territorio.tipo === 'principal'
-            ? `${territorio.nombre} · País principal`
-            : `${territorio.nombre} · Cobertura temporal`,
-          territorio.id_pais,
-        ),
-      );
-    }
-
-    selector.value = activo;
-    selector.disabled = territorios.length < 2;
+    opciones.replaceChildren(
+      ...territorios.map((territorio) => tarjeta(territorio, territorio.id_pais === activo, seleccionable)),
+    );
     contenedor.hidden = false;
     sessionStorage.setItem(CLAVE_TERRITORIO, activo);
 
-    ayuda.textContent = territorios.length > 1
-      ? 'Cambia entre tu país principal y los países con cobertura vigente autorizada.'
-      : 'Actualmente solo está disponible tu país principal. No hay coberturas territoriales vigentes adicionales.';
+    ayuda.textContent = seleccionable
+      ? 'Elige el país en el que vas a trabajar.'
+      : 'Sin coberturas temporales vigentes.';
 
     // Se notifica al inicializar para que las vistas operativas puedan leer
     // el territorio activo; también se notifica si una selección anterior ya
@@ -132,26 +188,25 @@
     }
   }
 
-  selector?.addEventListener('change', () => {
-    if (!selector.value) return;
+  opciones?.addEventListener('click', (evento) => {
+    const boton = (evento.target as HTMLElement).closest<HTMLButtonElement>('button[data-pais]');
+    if (boton && !boton.disabled && boton.dataset.pais) seleccionar(boton.dataset.pais);
+  });
 
-    // La comprobación de la interfaz evita selecciones accidentales; el
-    // backend sigue siendo la autoridad efectiva de los permisos.
-    const autorizado = obtenerTerritorios().some(
-      (territorio) => territorio.id_pais === selector.value,
-    );
-
-    if (!autorizado) {
-      renderizarSelector();
-      return;
-    }
-
-    sessionStorage.setItem(CLAVE_TERRITORIO, selector.value);
-    notificarTerritorioActivo(selector.value);
+  // Teclado de un grupo de opciones: las flechas recorren los territorios.
+  opciones?.addEventListener('keydown', (evento) => {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(evento.key)) return;
+    const botones = [...(opciones?.querySelectorAll<HTMLButtonElement>('button[data-pais]:not(:disabled)') ?? [])];
+    const indice = botones.indexOf(document.activeElement as HTMLButtonElement);
+    if (indice < 0 || botones.length < 2) return;
+    evento.preventDefault();
+    const paso = evento.key === 'ArrowDown' || evento.key === 'ArrowRight' ? 1 : -1;
+    const siguiente = botones[(indice + paso + botones.length) % botones.length];
+    if (siguiente?.dataset.pais) seleccionar(siguiente.dataset.pais);
   });
 
   async function iniciar() {
-    if (!contenedor || !selector || !ayuda) return;
+    if (!contenedor || !opciones || !ayuda) return;
 
     try {
       const roles = await getUserRoles();
@@ -185,6 +240,7 @@
       principal = {
         id_pais: paisPrincipal.id_pais,
         nombre: paisPrincipal.nombre,
+        codigo_iso: paisPrincipal.codigo_iso,
         tipo: 'principal',
       };
 
@@ -204,6 +260,7 @@
         return [{
           id_pais: cobertura.id_pais,
           nombre: pais.nombre,
+          codigo_iso: pais.codigo_iso,
           tipo: 'cobertura' as const,
           inicio_at: cobertura.inicio_at,
           fin_at: cobertura.fin_at,
@@ -217,7 +274,7 @@
       sessionStorage.removeItem(CLAVE_TERRITORIO);
       notificarTerritorioActivo('');
       contenedor.hidden = true;
-      selector.disabled = true;
+      opciones.replaceChildren();
       console.error(
         'No fue posible preparar el selector territorial:',
         error,

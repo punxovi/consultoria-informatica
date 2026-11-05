@@ -6,7 +6,7 @@ import {
   type CommitmentsPdfContext, type CommitmentsPdfFile, type CommitmentsPdfRenderer,
 } from '../domain/commitments-pdf.ts';
 
-type Repository = Pick<OrganizationsRepository, 'getById' | 'listCommitments'>;
+type Repository = Pick<OrganizationsRepository, 'getById' | 'listCommitments'> & Partial<Pick<OrganizationsRepository, 'listCommitmentOrigins'>>;
 
 export function createCommitmentsPdfService(repository: Repository, render: CommitmentsPdfRenderer) {
   return async (token: string, input: CommitmentsPdfContext): Promise<CommitmentsPdfFile> => {
@@ -33,9 +33,17 @@ export function createCommitmentsPdfService(repository: Repository, render: Comm
     }
     const commitments = parsed.data.sort((a, b) =>
       a.fecha_limite.localeCompare(b.fecha_limite) || a.id_compromiso.localeCompare(b.id_compromiso));
+    // Nombres legibles de las actas: si no están disponibles, el PDF se genera igual.
+    const actas: Record<string, string> = {};
+    try {
+      const origenes = await repository.listCommitmentOrigins?.(token, context.id_organizacion);
+      for (const acta of origenes?.actas ?? []) {
+        if (typeof acta?.id_acta === 'string' && typeof acta.nombre === 'string' && acta.nombre.trim()) actas[acta.id_acta] = acta.nombre.trim();
+      }
+    } catch { /* se usa una etiqueta genérica para el acta */ }
     let bytes: Buffer;
     try {
-      bytes = await render({ organization, context, commitments });
+      bytes = await render({ organization, context, commitments, actas, generatedAt: new Date().toISOString() });
       if (!Buffer.isBuffer(bytes) || bytes.subarray(0, 5).toString() !== '%PDF-' ||
           !bytes.subarray(-64).toString().includes('%%EOF')) throw new Error('PDF inválido');
     } catch (error) {

@@ -29,9 +29,13 @@ const contextSchema = z.object({
 export type CommitmentsPdfContext = z.infer<typeof contextSchema>;
 export type PdfCommitment = z.infer<typeof pdfCommitmentSchema>;
 export interface CommitmentsPdfDocument {
-  organization: { id_organizacion: string; nombre: string };
+  organization: { id_organizacion: string; nombre: string; pais?: { nombre: string } | null };
   context: CommitmentsPdfContext;
   commitments: PdfCommitment[];
+  /** Nombre legible de cada acta de origen («Acta del AAAA-MM-DD: título»), si está disponible. */
+  actas?: Record<string, string>;
+  /** Momento de generación (ISO); por defecto, el instante actual. */
+  generatedAt?: string;
 }
 export interface CommitmentsPdfFile {
   bytes: Buffer;
