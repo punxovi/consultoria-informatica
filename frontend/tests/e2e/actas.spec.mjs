@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 let fixture;
 async function sesion(context, token = 'qa-admin') {
+  await context.addCookies([{ name: 'fge_access_token', value: token, url: 'http://127.0.0.1:4333' }]);
   await context.addInitScript(token => localStorage.setItem('sb-127-auth-token', JSON.stringify({
     access_token: token, refresh_token: 'qa-refresh', token_type: 'bearer',
     expires_at: Math.floor(Date.now() / 1000) + 3600,
@@ -16,7 +17,8 @@ async function datos(request, body = {}) {
 test.beforeEach(async ({ context, request }) => { fixture = await datos(request); await sesion(context); });
 async function abrir(page) {
   await page.goto(`/organizaciones/${fixture.organizacion.id_organizacion}`);
-  await page.locator('[data-tab="actas"]').click();
+  await page.locator('[data-tab="intervenciones"]').click();
+  await page.locator('[data-org-seccion="actas"]').click();
 }
 async function completar(page) {
   await page.locator('#actas-plan').selectOption(fixture.planes[0].id_plan);
@@ -65,20 +67,31 @@ test('registra con compromisos, recarga, consulta y actualiza mediante Gateway y
 });
 
 test('valida campos y compromisos; filtra acciones al cambiar el plan', async ({ page }) => {
+  const errores = []; page.on('pageerror', error => errores.push(error.message));
   let envios = 0; page.on('request', r => { if (r.url().includes('/meeting-minutes') && r.method() === 'POST') envios++; });
   await abrir(page); await page.locator('#actas-nueva').click(); await page.locator('#actas-guardar').click();
   await expect(page.locator('#actas-objetivo')).toHaveAttribute('aria-invalid','true');
   await expect(page.locator('#actas-asistentes')).toHaveAttribute('aria-invalid','true');
+  for (const campo of ['plan', 'objetivo', 'asistentes']) {
+    await expect(page.locator(`#error-${campo}-acta`)).toBeVisible();
+    await expect(page.locator(`#error-${campo}-acta`)).not.toBeEmpty();
+  }
+  await page.locator('#actas-fecha').fill('');
+  await page.locator('#actas-guardar').click();
+  await expect(page.locator('#error-fecha-acta')).toBeVisible();
+  await expect(page.locator('#error-fecha-acta')).toContainText('fecha válida');
   await completar(page);
   await page.locator('#actas-plan').selectOption(fixture.planes[1].id_plan);
   await expect(page.locator('#actas-accion')).toHaveValue('');
   await expect(page.locator('#actas-accion option')).toHaveCount(2);
   await expect(page.locator('#actas-accion option').last()).toHaveAttribute('value',fixture.acciones[1].id_accion);
   await page.locator('#actas-fecha').fill('2099-01-01'); await page.locator('#actas-guardar').click();
-  await expect(page.locator('#actas-validacion-fecha_reunion')).toContainText('posterior a hoy');
+  await expect(page.locator('#error-fecha-acta')).toBeVisible();
+  await expect(page.locator('#error-fecha-acta')).toContainText('posterior a hoy');
   await page.locator('#actas-fecha').fill('2026-10-08'); await page.locator('#actas-agregar-compromiso').click();
   await page.locator('#actas-guardar').click(); await expect(page.locator('[data-campo="responsable_contacto"]')).toHaveAttribute('aria-invalid','true');
   expect(envios).toBe(0);
+  expect(errores).toEqual([]);
 });
 
 test('distingue carga, error y vacío; permite reintentar', async ({ page }) => {

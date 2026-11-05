@@ -1,6 +1,43 @@
 
-import type { ApiTransport } from '../api/transporte.ts';
-import type { AdjuntoActa, ActaReunion, CatalogoActas } from './modelo.ts';
+import { z } from 'zod';
+import { ApiError, type ApiTransport } from '../api/transporte.ts';
+import { camposCompromisoSchema } from '../compromisos/modelo.ts';
+import { camposActaSchema, type AdjuntoActa, type ActaReunion, type CatalogoActas, type GuardarActa } from './modelo.ts';
+
+const catalogoSchema = z.object({
+  puede_gestionar: z.boolean(),
+  planes: z.array(z.object({ id_plan: z.uuid(), nombre: z.string().min(1) })),
+  acciones: z.array(z.object({ id_accion: z.uuid(), id_plan: z.uuid(), nombre: z.string().min(1) })),
+  asistentes: z.array(z.string().min(1)),
+});
+
+const registroSchema = camposActaSchema.extend({
+  // Los registros históricos pueden carecer de asistentes o valores opcionales.
+  asistentes: z.array(z.string()),
+  asistentes_externos: z.string().max(500),
+  objetivo: z.string().max(1000),
+  id_accion: z.uuid().nullable().transform(v => v ?? ''),
+  observaciones: z.string().nullable().transform(v => v ?? ''),
+  id_acta: z.uuid(),
+  id_organizacion: z.uuid(),
+  version: z.number().int().positive(),
+  created_at: z.iso.datetime({ offset: true }),
+  updated_at: z.iso.datetime({ offset: true }),
+  compromisos: z.array(camposCompromisoSchema.extend({
+    responsable_contacto: z.string().nullable().transform(v => v ?? ''),
+    observaciones: z.string().nullable().transform(v => v ?? ''),
+    id_compromiso: z.uuid(),
+    estado: z.enum(['pendiente', 'cumplido']),
+  })).default([]),
+}).strip();
+
+function registro(data: unknown, org: string, id?: string): ActaReunion {
+  const resultado = registroSchema.safeParse(data);
+  if (!resultado.success || resultado.data.id_organizacion !== org || (id && resultado.data.id_acta !== id)) {
+    throw new ApiError('RESPUESTA_INVALIDA', 'No fue posible interpretar el acta recibida.', 502);
+  }
+  return resultado.data;
+}
 
 type ObtenerToken = () => Promise<string>;
 
@@ -48,49 +85,62 @@ export function crearClienteActas(http: ApiTransport, obtenerToken: ObtenerToken
       const data = await solicitar<{ catalog: CatalogoActas }>(
         `${base}/catalog?id_organizacion=${encodeURIComponent(organizacionId)}`,
       );
-      return data.catalog;
+      const resultado = catalogoSchema.safeParse(data.catalog);
+      if (!resultado.success || resultado.data.acciones.some(a => !resultado.data.planes.some(p => p.id_plan === a.id_plan))) {
+        throw new ApiError('RESPUESTA_INVALIDA', 'Las opciones del acta no son válidas.', 502);
+      }
+      return resultado.data;
     },
 
     async obtener(organizacionId: string): Promise<ActaReunion[]> {
       const data = await solicitar<{ meetingMinutes: ActaReunion[] }>(
         `${base}?id_organizacion=${encodeURIComponent(organizacionId)}`,
       );
-      return data.meetingMinutes;
+      if (!Array.isArray(data.meetingMinutes)) {
+        throw new ApiError('RESPUESTA_INVALIDA', 'No fue posible interpretar el historial de actas.', 502);
+      }
+      return data.meetingMinutes.map(acta => registro(acta, organizacionId));
     },
 
     async detalle(organizacionId: string, actaId: string): Promise<ActaReunion> {
       const data = await solicitar<{ meetingMinute: ActaReunion }>(
-        `${base}/${encodeURIComponent(actaId)}?organization_id=${encodeURIComponent(organizacionId)}`,
+        `${base}/${encodeURIComponent(actaId)}`,
       );
-      return data.meetingMinute;
+      return registro(data.meetingMinute, organizacionId, actaId);
     },
 
-    async crear(organizacionId: string, entrada: unknown): Promise<ActaReunion> {
+    async crear(organizacionId: string, entrada: GuardarActa): Promise<ActaReunion> {
+      const campos = camposActaSchema.parse(entrada.campos);
       const data = await solicitar<{ meetingMinute: ActaReunion }>(base, {
         method: 'POST',
-        body: { ...(entrada as object), organization_id: organizacionId },
+        body: {
+          ...campos,
+          id_organizacion: organizacionId,
+          id_accion: campos.id_accion || null,
+          compromisos: (entrada.compromisos ?? []).map(c => camposCompromisoSchema.parse(c)),
+        },
       });
-      return data.meetingMinute;
+      return registro(data.meetingMinute, organizacionId);
     },
 
     async actualizar(
       organizacionId: string,
       actaId: string,
       version: number,
-      entrada: unknown,
+      entrada: GuardarActa,
     ): Promise<ActaReunion> {
+      const campos = camposActaSchema.parse(entrada.campos);
       const data = await solicitar<{ meetingMinute: ActaReunion }>(
         `${base}/${encodeURIComponent(actaId)}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: {
-            ...(entrada as object),
-            organization_id: organizacionId,
-            version,
+            version_esperada: version,
+            cambios: { ...campos, id_accion: campos.id_accion || null },
           },
         },
       );
-      return data.meetingMinute;
+      return registro(data.meetingMinute, organizacionId, actaId);
     },
 
     async listarAdjuntos(organizacionId: string, actaId: string): Promise<AdjuntoActa[]> {
