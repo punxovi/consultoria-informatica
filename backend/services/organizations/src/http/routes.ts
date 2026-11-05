@@ -22,6 +22,7 @@ import {
 } from '../domain/organizations.ts';
 import { readJsonBody, readMultipartBody, readBinaryFile, readLimitedBinaryBody } from './body.ts';
 import { parseUpdateDonation, parseArchiveDonation } from '../domain/donations.ts';
+import { parseCommitmentsPdfQuery } from '../domain/commitments-pdf.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -68,6 +69,7 @@ export async function routeOrganizations(
           'commitments:create',
           'commitments:detail',
           'commitments:update',
+          'commitments:pdf',
           'diagnosticos:list',
           'diagnosticos:create',
           'diagnosticos:detail',
@@ -109,6 +111,23 @@ export async function routeOrganizations(
     const commitmentsMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/commitments(?:\/([^/]+))?$/);
     if (commitmentsMatch) {
       const orgId = parseUuid(decodeURIComponent(commitmentsMatch[1]), 'La organización');
+      if (commitmentsMatch[2] === 'pdf') {
+        response.setHeader('cache-control', 'private, no-store');
+        if (request.method !== 'GET') {
+          response.setHeader('allow', 'GET');
+          throw new ServiceError('METODO_NO_PERMITIDO', 'La descarga de compromisos solo permite GET.', 405);
+        }
+        const context = parseCommitmentsPdfQuery(orgId, url.searchParams);
+        const file = await application.downloadCommitmentsPdf(token, context);
+        response.statusCode = 200;
+        response.setHeader('content-type', file.mimeType);
+        response.setHeader('content-length', file.bytes.length);
+        response.setHeader('content-disposition', `attachment; filename="${file.fileName}"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+        response.setHeader('x-content-type-options', 'nosniff');
+        response.setHeader('x-request-id', requestId);
+        response.end(file.bytes);
+        return;
+      }
       // Subruta para orígenes (actas)
       if (commitmentsMatch[2] === 'origins' && request.method === 'GET') {
         const origins = await application.listCommitmentOrigins(token, orgId);

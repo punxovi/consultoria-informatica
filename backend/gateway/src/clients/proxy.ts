@@ -55,6 +55,8 @@ export async function proxyRequest(
     if (cacheControl) response.setHeader('cache-control', cacheControl);
     const contentTypeOptions = upstream.headers.get('x-content-type-options');
     if (contentTypeOptions) response.setHeader('x-content-type-options', contentTypeOptions);
+    const allow = upstream.headers.get('allow');
+    if (allow) response.setHeader('allow', allow);
     response.setHeader('x-request-id', requestId);
     response.end(Buffer.from(await upstream.arrayBuffer()));
   } catch (error) {

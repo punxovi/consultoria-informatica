@@ -12,6 +12,7 @@ import {
 import type { Compromiso, CamposCompromiso, ActualizarCompromisoInput, EstadoCompromiso } from './compromisos.ts';
 import type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput } from './diagnosticos.ts';
 import type { OrganizationImage, OrganizationImageUpload } from './organization-image.ts';
+import type { Donation, DonationFile, DownloadedFile, CreateDonationInput, CreateDonationFileInput } from './donations.ts';
 
 export {
   LEGAL_DOCUMENT_TYPES,
