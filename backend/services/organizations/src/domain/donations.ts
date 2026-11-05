@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
+import type { DonationParties } from './donation-parties.ts';
 
 export const TIPOS_RESPALDO = ['comprobante', 'acta_entrega', 'certificado', 'fotografia'] as const;
 export type TipoRespaldo = (typeof TIPOS_RESPALDO)[number];
@@ -206,7 +207,7 @@ export const uploadDonationFileSchema = z.object({
 
 export type UploadDonationFileInput = z.infer<typeof uploadDonationFileSchema>;
 
-export type Donation = {
+export type Donation = Partial<DonationParties> & {
   id_donacion: string;
   id_pais?: string;
   id_programa?: string | null;

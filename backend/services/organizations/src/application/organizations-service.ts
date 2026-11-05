@@ -1,5 +1,7 @@
 import { createCommitmentsPdfService } from './commitments-pdf-service.ts';
 import { generateCommitmentsPdf } from '../infrastructure/commitments-pdf.ts';
+import { parseCreateDonationFile } from '../domain/donations.ts';
+import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
   OrganizationFields,
   OrganizationFilters,
@@ -89,7 +91,11 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
       return repository.getDonationFileById(accessToken, donationId, fileId);
     },
     reserveDonationFile(accessToken: string, donationId: string, input: import('../domain/organizations.ts').CreateDonationFileInput) {
-      return repository.reserveDonationFile(accessToken, donationId, input);
+      const parsed = parseCreateDonationFile(input);
+      if (parsed.id_donacion && parsed.id_donacion !== donationId) {
+        throw new ServiceError('DONACION_NO_COINCIDE', 'La donación del respaldo no coincide con la ruta.', 400);
+      }
+      return repository.reserveDonationFile(accessToken, donationId, parsed);
     },
     uploadDonationFile(
       accessToken: string,
