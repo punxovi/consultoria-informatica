@@ -8,7 +8,7 @@ import Card from '../ui/Card.astro';
     <header class="border-b border-[#DCD8EA] bg-white">
       <nav aria-label="Navegación pública" class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
         <a href="/" class="text-lg font-bold text-primary">Fundación Gestionar Esperanzas</a>
-        <div class="flex flex-wrap items-center gap-4"><a href="/catalogo" aria-current="page" class="inline-flex min-h-12 items-center font-semibold text-primary">Catálogo</a><Button href="/cotizar" size="lg">Solicitar cotización</Button></div>
+        <div class="flex flex-wrap items-center gap-4"><a href="/catalogo" aria-current="page" class="inline-flex min-h-12 items-center font-semibold text-primary">Catálogo</a><a href="/login?returnTo=%2Fdashboard" class="inline-flex min-h-12 items-center font-semibold text-primary">Iniciar sesión</a><Button href="/cotizar" size="lg">Solicitar cotización</Button></div>
       </nav>
     </header>
     <main id="catalogo-publico" class="mx-auto max-w-7xl space-y-6 px-5 py-8 md:py-12">
@@ -31,7 +31,7 @@ import Card from '../ui/Card.astro';
         <p id="catalogo-seleccion" role="status" class="mb-4 text-primary"></p>
         <h2 id="catalogo-titulo" class="text-2xl font-bold">Catálogo de productos y servicios</h2>
         <p id="catalogo-estado" role="status" class="my-4 text-neutral-600">Cargando catálogo…</p>
-        <div id="catalogo-error" hidden role="alert" class="my-4 rounded-xl border border-danger/20 bg-white p-5"><p>No fue posible cargar el catálogo. Inténtalo nuevamente.</p><Button id="catalogo-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
+        <div id="catalogo-error" hidden role="alert" class="my-4 rounded-xl border border-danger/20 bg-white p-5"><p id="catalogo-error-texto">No fue posible cargar el catálogo. Inténtalo nuevamente.</p><Button id="catalogo-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
         <div id="catalogo-lista" aria-busy="true" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
       </section>
       <dialog id="catalogo-detalle" aria-labelledby="catalogo-detalle-titulo" class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-2xl border border-[#DCD8EA] p-5 backdrop:bg-black/40 md:p-7">

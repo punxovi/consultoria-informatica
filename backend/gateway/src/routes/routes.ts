@@ -41,6 +41,22 @@ export async function routeRequest(
     return;
   }
 
+  const productsPrefix = `${API_PREFIX}/products`;
+  if (incomingUrl.pathname === productsPrefix || incomingUrl.pathname.startsWith(`${productsPrefix}/`)) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
+  const quoteRequestsPrefix = `${API_PREFIX}/quote-requests`;
+  if (incomingUrl.pathname === quoteRequestsPrefix || incomingUrl.pathname.startsWith(`${quoteRequestsPrefix}/`)) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
   if (/^\/api\/v1\/public\/evidences\/[^/]+\/file$/.test(incomingUrl.pathname)) {
     const targetUrl = new URL(`${incomingUrl.pathname.slice('/api'.length)}${incomingUrl.search}`, targets.interventions);
     await proxyRequest(request, response, targetUrl, requestId);

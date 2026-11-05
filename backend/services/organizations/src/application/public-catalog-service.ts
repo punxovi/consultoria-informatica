@@ -7,6 +7,7 @@ export interface PublicCatalogItem {
   unidad_medida: string;
   tipo_item: 'producto' | 'servicio';
   caracteristicas: unknown;
+  organizacion: { id_organizacion: string; nombre: string; pais: { id_pais: string; nombre: string } | null };
 }
 
 export interface PublicQuoteRequest {
@@ -18,7 +19,7 @@ export interface PublicQuoteRequest {
 }
 
 export interface PublicCatalogApplication {
-  list(): Promise<PublicCatalogItem[]>;
+  list(filters?: { id_pais?: string; id_organizacion?: string }): Promise<PublicCatalogItem[]>;
   createQuote(input: PublicQuoteRequest): Promise<{ id_solicitud: string; estado: string }>;
 }
 
@@ -38,10 +39,12 @@ export function createPublicCatalogApplication(options: { supabaseUrl: string; a
     return body;
   }
   return {
-    async list() {
-      const body = await call('catalogo_cotizacion_publico?select=id_producto,nombre,descripcion,unidad_medida,tipo_item,caracteristicas&order=nombre.asc');
+    async list(filters = {}) {
+      const body = await call('catalogo_cotizacion_publico?select=id_producto,nombre,descripcion,unidad_medida,tipo_item,caracteristicas,organizacion&order=nombre.asc');
       if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'El catálogo no está disponible.', 502);
-      return body as PublicCatalogItem[];
+      return (body as PublicCatalogItem[]).filter((item) =>
+        (!filters.id_organizacion || item.organizacion?.id_organizacion === filters.id_organizacion) &&
+        (!filters.id_pais || item.organizacion?.pais?.id_pais === filters.id_pais));
     },
     async createQuote(input) {
       const body = await call('rpc/registrar_solicitud_cotizacion', { method: 'POST', body: JSON.stringify({ p_datos: input }) });

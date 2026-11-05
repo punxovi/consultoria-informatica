@@ -36,7 +36,9 @@ export async function routePublicCatalog(request: IncomingMessage, response: Ser
   try {
     const url = new URL(request.url ?? '/', 'http://organizations.local');
     if (request.method === 'GET' && url.pathname === '/v1/public/catalog') {
-      respond(response, 200, success('CATALOGO_PUBLICO_LISTADO', 'Catálogo disponible.', { items: await application.list() }), requestId);
+      const idPais = url.searchParams.get('id_pais')?.trim() || undefined;
+      const idOrganizacion = url.searchParams.get('id_organizacion')?.trim() || undefined;
+      respond(response, 200, success('CATALOGO_PUBLICO_LISTADO', 'Catálogo disponible.', { items: await application.list({ id_pais: idPais, id_organizacion: idOrganizacion }) }), requestId);
       return;
     }
     if (request.method === 'POST' && url.pathname === '/v1/public/quote-requests') {

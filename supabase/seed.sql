@@ -70,6 +70,48 @@ WHERE p.codigo_iso = 'CL'
 ON CONFLICT (id_usuario) DO UPDATE SET
   id_pais = EXCLUDED.id_pais, id_pais_aplicado = EXCLUDED.id_pais_aplicado;
 
+-- Cuenta Administrador y Organización de demostración para probar la gestión
+-- del catálogo al iniciar el entorno local. Credencial local: password.
+INSERT INTO auth.users (
+  id, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data
+) VALUES (
+  '14600000-0000-4000-8000-000000000003', 'admin@prueba.com',
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  now(), '{}'::jsonb, '{"full_name":"Administrador de Prueba"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email,
+  email_confirmed_at = EXCLUDED.email_confirmed_at, raw_user_meta_data = EXCLUDED.raw_user_meta_data;
+
+INSERT INTO public.perfiles (id_usuario, nombre)
+VALUES ('14600000-0000-4000-8000-000000000003', 'Administrador de Prueba')
+ON CONFLICT (id_usuario) DO UPDATE SET nombre = EXCLUDED.nombre, activo = true, archived_at = NULL;
+
+INSERT INTO public.asignaciones_roles (id_usuario, id_rol, alcance, id_pais, otorgado_por)
+SELECT '14600000-0000-4000-8000-000000000003', r.id_rol, 'global', NULL,
+       '14600000-0000-4000-8000-000000000003'
+FROM public.roles r WHERE r.codigo = 'ADMIN'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.asignaciones_roles a
+    WHERE a.id_usuario = '14600000-0000-4000-8000-000000000003'
+      AND a.id_rol = r.id_rol AND a.revocado_at IS NULL
+  );
+
+INSERT INTO public.organizaciones (
+  id_organizacion, id_pais, nombre, nombre_representante, telefono, correo,
+  region_departamento, comuna_municipio_ciudad, direccion, publico_objetivo,
+  descripcion_breve, tipo_organizacion, numero_beneficiarios, created_by, updated_by
+)
+SELECT '14600000-0000-4000-8000-000000000004', p.id_pais,
+  'Organización de demostración', 'Representante de prueba', '+56 9 0000 0000',
+  'demo@example.com', 'Región Metropolitana', 'Santiago', 'Dirección de demostración',
+  'Comunidad local', 'Organización local de prueba para el catálogo de cotizaciones.',
+  'emprendimiento_uv', 10, '14600000-0000-4000-8000-000000000003',
+  '14600000-0000-4000-8000-000000000003'
+FROM public.paises p WHERE p.codigo_iso = 'CL'
+ON CONFLICT (id_organizacion) DO UPDATE SET
+  nombre = EXCLUDED.nombre, archived_at = NULL;
+
 -- Los contenidos de estos seis programas provienen del documento oficial
 -- `PROGRAMAS FGE.docx`, entregado por la clienta el 20 de agosto de 2026.
 -- Sus UUID permanecen estables para conservar imágenes y futuras referencias.
