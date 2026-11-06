@@ -1,4 +1,5 @@
 ---
+import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -30,7 +31,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
   <p id="accion-estado" role="status" aria-live="polite" class="sr-only">Cargando formulario…</p>
   <div id="accion-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-300 bg-red-50 p-4 text-red-800"></div>
   <div id="accion-reintentar" hidden>
-    <Button id="recargar-accion" variant="outline">Recargar datos</Button>
+    <Button id="recargar-accion" variant="outline"> <Icono nombre="actualizar" />Recargar datos</Button>
   </div>
 
   <form id="accion-form" data-id-plan={idPlan} data-id-accion={idAccion} novalidate aria-busy="true" class="space-y-5">

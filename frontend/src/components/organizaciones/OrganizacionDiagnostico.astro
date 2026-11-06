@@ -1,4 +1,5 @@
 ---
+import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
@@ -63,7 +64,7 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
 
   <p id="diagnostico-carga" hidden role="status" aria-live="polite" class="rounded-xl border border-[#E3DFF0] bg-white p-4 text-sm text-neutral-600">Cargando diagnóstico…</p>
   <p id="diagnostico-error" hidden role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></p>
-  <div id="diagnostico-recuperacion" hidden><Button id="btn-recargar-diagnostico" variant="outline">Recargar diagnóstico</Button></div>
+  <div id="diagnostico-recuperacion" hidden><Button id="btn-recargar-diagnostico" variant="outline"> <Icono nombre="actualizar" />Recargar diagnóstico</Button></div>
   <p id="diagnostico-confirmacion" hidden role="status" aria-live="polite" class="rounded-xl border border-[#B8E3D1] bg-[#EDF8F2] p-4 text-sm text-[#16784F]"></p>
 
   <EmptyState

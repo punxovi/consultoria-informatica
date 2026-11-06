@@ -1,4 +1,5 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
@@ -60,17 +61,13 @@ if (!idValido) Astro.response.status = 404;
         <div class="flex shrink-0 flex-wrap items-center gap-3">
           <div id="editar-programa-enlace" hidden>
             <Button href={`/programas/${encodeURIComponent(id ?? '')}/editar`} variant="outline">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
-              </svg>
+              <Icono nombre="editar" />
               Editar programa
             </Button>
           </div>
           <div id="eliminar-programa-panel" hidden>
             <Button id="eliminar-programa" variant="danger">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" />
-              </svg>
+              <Icono nombre="eliminar" />
               Eliminar programa
             </Button>
           </div>

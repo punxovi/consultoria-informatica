@@ -1,4 +1,5 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
@@ -19,7 +20,7 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
   <section id="productos" class="min-w-0 space-y-6" aria-labelledby="productos-titulo">
     <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div class="min-w-0">
-        <p class="text-sm font-medium text-primary">Administración</p>
+        <p class="text-sm font-medium text-primary">Cotización</p>
         <h1 id="productos-titulo" class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Productos de cotización</h1>
         <p class="mt-2 max-w-2xl text-sm text-neutral-500">
           Gestiona los productos que las organizaciones ofrecen en el catálogo público de cotizaciones.
@@ -137,6 +138,37 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
       </Card>
     </div>
 
+    <Card class="p-4 md:p-5">
+      <div class="mb-4 flex items-start gap-3">
+        <span class="rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" /></svg></span>
+        <div>
+          <h2 class="text-lg font-semibold text-neutral-900">Filtrar productos</h2>
+          <p class="mt-1 text-sm text-neutral-500">Busca por nombre, Organización o país y filtra por estado de publicación.</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+        <div class="min-w-0 space-y-1.5 md:col-span-2">
+          <label for="productos-buscar" class="block text-sm font-medium text-neutral-800">Buscar producto</label>
+          <input id="productos-buscar" type="search" autocomplete="off" placeholder="Nombre, Organización o país…" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-neutral-400" />
+        </div>
+        <div class="min-w-0 space-y-1.5">
+          <label for="productos-estado" class="block text-sm font-medium text-neutral-800">Estado de publicación</label>
+          <select id="productos-estado" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="todos">Todos los estados</option>
+            <option value="publicados">Publicados</option>
+            <option value="no_publicados">No publicados</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+        <p id="productos-conteo" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando productos…</p>
+        <Button id="productos-limpiar" type="button" variant="outline" disabled>
+          <Icono nombre="limpiar" />
+          Limpiar filtros
+        </Button>
+      </div>
+    </Card>
+
     <!-- Listado -->
     <section id="productos-listado" aria-labelledby="productos-listado-titulo" class="space-y-4" aria-busy="false">
       <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -144,19 +176,7 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
           <h2 id="productos-listado-titulo" class="text-lg font-semibold text-neutral-900">Productos registrados</h2>
           <p class="mt-1 text-sm text-neutral-500">Nombre, Organización, país y estado de publicación de cada producto.</p>
         </div>
-        <div class="flex flex-col gap-2 sm:flex-row">
-          <label for="productos-buscar" class="sr-only">Buscar producto</label>
-          <input id="productos-buscar" type="search" placeholder="Buscar por nombre, Organización o país…"
-            class="min-h-11 w-full min-w-0 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-72" />
-          <label for="productos-estado" class="sr-only">Estado de publicación</label>
-          <select id="productos-estado"
-            class="min-h-11 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
-            <option value="todos">Todos los estados</option>
-            <option value="publicados">Publicados</option>
-            <option value="no_publicados">No publicados</option>
-          </select>
-          <Button id="productos-recargar" variant="outline">Recargar</Button>
-        </div>
+        <Button id="productos-recargar" variant="outline" class="shrink-0"> <Icono nombre="actualizar" />Actualizar listado</Button>
       </header>
 
       <p id="productos-cargando" role="status" aria-live="polite"

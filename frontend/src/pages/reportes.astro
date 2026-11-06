@@ -1,15 +1,25 @@
 ---
 import Button from '../components/ui/Button.astro';
-import Card from '../components/ui/Card.astro';
 import { mainNavItems } from '../config/nav';
 import AppLayout from '../layouts/AppLayout.astro';
 
+// Marcos con franja superior de color, como las tarjetas de la ficha de organización.
+const pasos = [
+  { numero: '1', titulo: 'Configura', texto: 'Elige el período y, si quieres, país, organización, programa, indicadores y destino.', color: 'bg-[#4C4688]' },
+  { numero: '2', titulo: 'Revisa la vista previa', texto: 'Comprueba la información en pantalla antes de generar el documento.', color: 'bg-brand-cyan' },
+  { numero: '3', titulo: 'Descarga el PDF', texto: 'Obtén el reporte institucional con el mismo contenido de la vista previa.', color: 'bg-brand-green' },
+];
 const contenido = [
-  { titulo: 'Organizaciones y beneficiarios', acento: 'border-l-primary' },
-  { titulo: 'Planes y Acciones', acento: 'border-l-brand-green' },
-  { titulo: 'Acciones ejecutadas y Compromisos cumplidos', acento: 'border-l-brand-yellow' },
-  { titulo: 'Donaciones y recursos', acento: 'border-l-primary' },
-  { titulo: 'Indicadores y resultados obtenidos', acento: 'border-l-brand-green' },
+  { titulo: 'Organizaciones y beneficiarios', texto: 'Organizaciones atendidas y personas beneficiadas.', franja: 'bg-[#4C4688]', fondo: 'bg-[#F0EDF8] text-[#4C4688]',
+    icono: '<path d="M3 21h18M5 21V5h14v16M9 9h1m4 0h1m-6 4h1m4 0h1"/>' },
+  { titulo: 'Planes y Acciones', texto: 'Planes de intervención y acciones registradas.', franja: 'bg-brand-cyan', fondo: 'bg-[#E7F7FA] text-[#1BAAC1]',
+    icono: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 12 3 3 5-6"/>' },
+  { titulo: 'Acciones ejecutadas y Compromisos cumplidos', texto: 'Avance de lo comprometido durante el período.', franja: 'bg-brand-yellow', fondo: 'bg-[#FFF4DB] text-[#B07800]',
+    icono: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>' },
+  { titulo: 'Donaciones y recursos', texto: 'Aportes recibidos y entregados.', franja: 'bg-brand-pink', fondo: 'bg-[#FCE8F0] text-[#C81E5B]',
+    icono: '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z"/>' },
+  { titulo: 'Indicadores y resultados obtenidos', texto: 'Metas y resultados de los indicadores seleccionados.', franja: 'bg-brand-green', fondo: 'bg-[#E7F6EF] text-[#199D6B]',
+    icono: '<path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/>' },
 ];
 ---
 
@@ -22,9 +32,11 @@ const contenido = [
     <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div class="min-w-0">
         <p class="text-sm font-medium text-primary">Rendición de cuentas</p>
-        <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Reportes</h1>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+          Reportes
+        </h1>
         <p class="mt-2 max-w-2xl text-sm text-neutral-500">
-          Genera reportes consolidados sobre las intervenciones registradas, filtrados por período, país, organización y programa.
+          Genera reportes consolidados de las intervenciones, filtrados por período, país, organización y programa, y descárgalos en PDF.
         </p>
       </div>
       <Button href="/reportes/nuevo" class="shrink-0" id="nuevo-reporte">
@@ -32,19 +44,57 @@ const contenido = [
       </Button>
     </header>
 
-    <Card class="p-4 md:p-5">
-      <h2 class="text-lg font-semibold text-neutral-900">Qué incluye un reporte</h2>
+    <p id="reportes-descargado" hidden role="status" class="rounded-2xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-[#14784D]"></p>
+
+    <section aria-labelledby="reportes-pasos">
+      <h2 id="reportes-pasos" class="text-lg font-semibold text-neutral-900">Cómo se genera un reporte</h2>
+      <ol class="mt-3 grid gap-4 md:grid-cols-3">
+        {pasos.map((paso) => (
+          <li class="flex gap-4 rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm">
+            <span class={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${paso.color}`}>{paso.numero}</span>
+            <div class="min-w-0">
+              <p class="font-semibold text-neutral-900">{paso.titulo}</p>
+              <p class="mt-1 text-sm leading-relaxed text-neutral-500">{paso.texto}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section aria-labelledby="reportes-contenido">
+      <h2 id="reportes-contenido" class="text-lg font-semibold text-neutral-900">Qué incluye un reporte</h2>
       <p class="mt-1 text-sm text-neutral-500">El reporte consolida, según los filtros que elijas:</p>
-      <ul class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <ul class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {contenido.map((item) => (
-          <li class:list={['rounded-xl border border-neutral-200 border-l-4 bg-white p-3 text-sm font-medium text-neutral-800', item.acento]}>
-            {item.titulo}
+          <li class="relative flex min-w-0 gap-4 overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm">
+            <span aria-hidden="true" class={`pointer-events-none absolute inset-x-0 top-0 h-1 ${item.franja}`}></span>
+            <span aria-hidden="true" class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.fondo}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" set:html={item.icono} />
+            </span>
+            <div class="min-w-0">
+              <p class="font-semibold text-neutral-900">{item.titulo}</p>
+              <p class="mt-1 text-sm text-neutral-500">{item.texto}</p>
+            </div>
           </li>
         ))}
       </ul>
-      <p class="mt-4 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]">
-        Los reportes para donantes u organismos externos incluyen solo información agregada.
-      </p>
-    </Card>
+    </section>
+
+    <p class="flex gap-3 rounded-2xl border border-[#D9D3EE] bg-[#F6F4FC] p-4 text-sm leading-relaxed text-[#423C76]">
+      <svg xmlns="http://www.w3.org/2000/svg" class="mt-0.5 h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+      Los reportes para donantes u organismos externos incluyen solo información agregada: no muestran nombres ni datos personales.
+    </p>
   </section>
 </AppLayout>
+
+<script>
+  // Al volver tras descargar un PDF se confirma la descarga y se limpia la dirección.
+  const parametros = new URLSearchParams(window.location.search);
+  const archivo = parametros.get('pdf');
+  const aviso = document.querySelector<HTMLElement>('#reportes-descargado');
+  if (archivo && aviso) {
+    aviso.textContent = `Se descargó el reporte «${archivo}». Puedes generar otro con «Nuevo reporte».`;
+    aviso.hidden = false;
+    history.replaceState(null, '', window.location.pathname);
+  }
+</script>

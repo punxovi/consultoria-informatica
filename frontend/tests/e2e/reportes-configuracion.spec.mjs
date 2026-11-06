@@ -28,7 +28,10 @@ let consultasOrganizaciones;
 test.beforeEach(async ({ context }) => {
   consultasOrganizaciones = [];
   await context.addInitScript(() => localStorage.setItem('sb-127-auth-token', JSON.stringify({ access_token: 'qa-admin', refresh_token: 'qa-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: '13700000-0000-4000-8000-000000000001', email: 'qa@example.test', user_metadata: {} } })));
+  await context.addCookies([{ name: 'fge_access_token', value: 'qa-admin', url: 'http://127.0.0.1:4331' }]);
   await context.route('http://127.0.0.1:54329/**', (r) => r.fulfill({ json: [{ codigo: 'COORD', alcance: 'global', id_pais: null }] }));
+  await context.route('**/rest/v1/rpc/get_user_roles', (r) => r.fulfill({ json: [{ codigo: 'COORD', alcance: 'global', id_pais: null }] }));
+  await context.route('**/auth/v1/user', (r) => r.fulfill({ json: { id, email: 'qa@example.test' } }));
   await context.route('**/api/v1/auth/session', (r) => r.fulfill({ json: { ok: true, data: { authenticated: true, user: { id } } } }));
   await context.route('**/api/v1/programs', (r) => r.fulfill({ json: { ok: true, data: { programs: programas } } }));
   await context.route('**/api/v1/indicators/catalog', (r) => r.fulfill({ json: { ok: true, data: { catalogo } } }));
@@ -159,6 +162,8 @@ test('quitar el país recarga organizaciones y editar el período invalida la so
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await page.locator('#rep-solicitar').click();
   await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
+  // La vista previa ocupa su propia pantalla: se vuelve a los filtros para editarlos.
+  await page.locator('#rep-volver-configurar').click();
   await page.locator('#rep-fecha-inicio').fill('2026-06-01');
   await expect(page.locator('#rep-consulta-listo')).toBeHidden();
   await page.locator('#rep-solicitar').click();
@@ -458,6 +463,15 @@ test('(respuesta simulada) modificar criterios con la vista previa abierta la re
   await page.locator('#rep-solicitar').click();
   await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
   await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(8);
+  // Paso 2 en su propia pantalla; «Modificar filtros» vuelve al formulario con los valores intactos.
+  await expect(page.locator('#rep-paso-configurar')).toBeHidden();
+  await expect(page).toHaveURL(/#vista-previa$/);
+  await page.locator('#rep-volver-configurar').click();
+  await expect(page.locator('#rep-form')).toBeVisible();
+  await expect(page.locator('#rep-fecha-inicio')).toHaveValue('2026-01-01');
+  await expect(page.locator('#rep-ver-vista')).toBeVisible();
+  await page.locator('#rep-ver-vista').click();await expect(page.locator('#rep-vista-previa')).toBeVisible();
+  await page.goBack();await expect(page.locator('#rep-form')).toBeVisible();
   await page.locator('#rep-fecha-termino').fill('2026-06-30');
   await expect(page.locator('#rep-vista-previa')).toBeHidden();
   await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(0);
@@ -498,6 +512,9 @@ test('integración HTTP: la vista previa usa el Gateway y el PDF descarga exacta
   await expect(page.locator('#rep-exportacion-exito')).toContainText('PDF descargado');
   expect(descargas).toBe(1);
   expect(consultas).toHaveLength(1);
+  // Tras descargar se vuelve a Reportes con la confirmación, sin quedarse en la vista previa.
+  await expect(page).toHaveURL(/\/reportes$/);
+  await expect(page.locator('#reportes-descargado')).toContainText('reporte-fge-2026-01-01_2026-12-31-interno.pdf');
 });
 
 test('integración HTTP: un error del PDF se informa sin mostrar una descarga exitosa', async ({ page, context }) => {

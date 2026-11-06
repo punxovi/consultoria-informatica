@@ -1,3 +1,4 @@
+import { iconoSvg } from '../ui/iconos.ts';
 import { listarPaisesOrganizaciones } from '../organizaciones/cliente.ts';
 import { clienteCoordinadoresNavegador, mensajeErrorCoordinadores, type ClienteCoordinadores } from './cliente.ts';
 import {
@@ -101,6 +102,7 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     const editar = crear('a', 'inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl border border-[#4C4688] bg-white px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F0EEF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2', 'Editar');
     editar.href = `/administracion/coordinadores/${encodeURIComponent(c.id_usuario)}/editar`;
     editar.setAttribute('aria-label', `Editar la cuenta de ${c.nombre}`);
+    editar.insertAdjacentHTML('afterbegin', iconoSvg('editar'));
     const cambiar = crear('button', `inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${c.activo ? 'border border-[#C81E5B] bg-white text-[#AD174F] hover:bg-[#FCE8F0] focus-visible:ring-[#C81E5B]' : 'border border-[#14784D] bg-white text-[#14784D] hover:bg-[#E5F6ED] focus-visible:ring-[#14784D]'}`) as HTMLButtonElement;
     cambiar.type = 'button';
     cambiar.dataset.accion = c.activo ? 'desactivar' : 'activar';

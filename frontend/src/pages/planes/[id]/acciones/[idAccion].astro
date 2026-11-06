@@ -1,4 +1,5 @@
 ---
+import Icono from '../../../../components/ui/Icono.astro';
 import Button from '../../../../components/ui/Button.astro';
 import DetalleAccionInfo from '../../../../components/acciones/DetalleAccionInfo.astro';
 import AccionLayout from '../../../../layouts/AccionLayout.astro';
@@ -50,9 +51,7 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
             regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`}
           />
           <Button href={`${rutaAccion}/editar`} variant="outline">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
-            </svg>
+            <Icono nombre="editar" />
             Editar acción
           </Button>
         </div>

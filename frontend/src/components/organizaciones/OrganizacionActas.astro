@@ -1,4 +1,5 @@
 ---
+import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -49,7 +50,7 @@ const { idOrganizacion } = Astro.props;
   <p id="actas-mensaje" hidden role="status" aria-live="polite"></p>
   <p id="actas-catalogo-estado" hidden class="rounded-lg bg-neutral-100 p-4 text-sm"></p>
   <div id="actas-recuperacion" hidden>
-    <Button id="actas-recargar" variant="outline">Recargar actas</Button>
+    <Button id="actas-recargar" variant="outline"> <Icono nombre="actualizar" />Recargar actas</Button>
   </div>
 
   <!-- Carga -->
@@ -312,8 +313,7 @@ const { idOrganizacion } = Astro.props;
               </svg>
               Descargar PDF de compromisos
             </Button>
-            <Button id="actas-editar" type="button" variant="outline">
-              <span aria-hidden="true" class="mr-1.5">✎</span> Editar acta
+            <Button id="actas-editar" type="button" variant="outline"> <Icono nombre="editar" /> Editar acta
             </Button>
             <Button id="actas-volver" type="button" variant="outline">Volver al historial</Button>
           </div>
