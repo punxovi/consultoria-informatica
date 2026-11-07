@@ -11,6 +11,10 @@ interface Props {
 const { idOrganizacion } = Astro.props;
 const claseSelect = 'mt-1.5 min-h-[48px] w-full rounded-xl border border-[#DCD8E8] bg-white px-3 text-base text-[#1A1A1A] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5]';
 const campoSoloLectura = 'min-h-[48px] w-full rounded-xl border border-[#E8E5EF] bg-[#F7F5FB] px-3.5 py-2.5 text-base text-[#4A4660]';
+const monedas = [
+  ['CLP', 'Peso chileno'], ['ARS', 'Peso argentino'], ['UYU', 'Peso uruguayo'],
+  ['USD', 'Dólar estadounidense'], ['EUR', 'Euro'],
+];
 const categorias = ['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro'];
 const tiposDonante = [
   { value: 'empresa', label: 'Empresa' },
@@ -143,7 +147,7 @@ const tiposRespaldo = [
               </div>
               <div id="don-grupo-dinero" class="contents">
                 <Input id="don-monto" name="monto" type="number" min="0.01" step="any" label="Monto" placeholder="Ej. 150000" required />
-                <Input id="don-moneda" name="moneda" label="Moneda (3 letras)" value="CLP" maxlength={3} placeholder="CLP" required />
+                <label class="text-sm font-semibold" for="don-moneda">Moneda<select id="don-moneda" name="moneda" class={claseSelect} required>{monedas.map(([codigo, nombre]) => <option value={codigo}>{codigo} · {nombre}</option>)}</select></label>
               </div>
               <div id="don-grupo-recurso" hidden class="contents">
                 <Input id="don-cantidad" name="cantidad" type="number" min="0.01" step="any" label="Cantidad" placeholder="Ej. 25" hint="Opcional. Si la indicas, completa también la unidad." />
@@ -157,7 +161,7 @@ const tiposRespaldo = [
             <p class="mb-4 text-sm text-neutral-500">Completa los tres campos o déjalos vacíos.</p>
             <div class="grid gap-5 sm:grid-cols-3">
               <Input id="don-valor-estimado" name="valor_estimado" type="number" min="0" step="any" label="Valor estimado" />
-              <Input id="don-moneda-valorizacion" name="moneda_valorizacion" label="Moneda (3 letras)" maxlength={3} placeholder="CLP" />
+              <label class="text-sm font-semibold" for="don-moneda-valorizacion">Moneda<select id="don-moneda-valorizacion" name="moneda_valorizacion" class={claseSelect} ><option value="">Sin especificar</option>{monedas.map(([codigo, nombre]) => <option value={codigo}>{codigo} · {nombre}</option>)}</select></label>
               <Input id="don-metodo-valorizacion" name="metodo_valorizacion" label="Método de valorización" maxlength={200} placeholder="Ej. Cotización" />
             </div>
           </section>

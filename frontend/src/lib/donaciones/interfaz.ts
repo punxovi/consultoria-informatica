@@ -120,7 +120,7 @@ export function iniciarDonaciones() {
 
   const claseEstado: Record<string, string> = {
     Comprometida: 'bg-[#FFF3DC] text-[#925500]',
-    Recibida: 'bg-[#E7F7FA] text-[#167F91]',
+    Recibida: 'bg-violet-100 text-violet-900',
     Entregada: 'bg-[#E5F6ED] text-[#14784D]',
     Cerrada: 'bg-[#F0EDF8] text-[#4C4688]',
   };
@@ -163,7 +163,7 @@ export function iniciarDonaciones() {
       const estado = item.estado ?? 'Sin estado';
       const card = document.createElement('article');
       card.innerHTML = `
-        <div class="h-0.5 bg-[#D8D3E8]"></div>
+        <div class="h-1.5 ${recibida ? 'bg-emerald-600' : 'bg-violet-600'}"></div>
         <div class="don-card-layout flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-stretch">
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -172,12 +172,12 @@ export function iniciarDonaciones() {
                   <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 .75-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h6"/></svg>
                 </span>
                 <div class="min-w-0">
-                  <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#77719F]">Donación registrada</p>
+                  <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#77719F]">${recibida ? '↓ Entrada a la organización' : '↑ Salida de la organización'}</p>
                   <h3 class="mt-1 break-words text-base font-semibold text-neutral-900">${htmlSeguro(item.contraparte_nombre)}</h3>
                 </div>
               </div>
               <div class="flex flex-wrap gap-2">
-                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'}">${recibida ? 'Recibida por la organización' : 'Entregada por la organización'}</span>
+                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-violet-100 text-violet-900'}">${recibida ? 'Recibida por la organización' : 'Entregada por la organización'}</span>
                 <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${claseEstado[estado] ?? 'bg-neutral-100 text-neutral-600'}">${htmlSeguro(estado)}</span>
               </div>
             </div>
@@ -359,9 +359,9 @@ export function iniciarDonaciones() {
     const badgeMov = q('detalle-movimiento');
     const esRecibida = donacion.tipo_movimiento === 'recibida';
     badgeMov.className = `inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-      esRecibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'
+      esRecibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-violet-100 text-violet-900'
     }`;
-    badgeMov.textContent = esRecibida ? 'Recibida por la organización' : 'Entregada por la organización';
+    badgeMov.textContent = esRecibida ? '↓ Entrada · Recibida por la organización' : '↑ Salida · Entregada por la organización';
 
     renderDetalle(donacion);
 
@@ -483,8 +483,19 @@ export function iniciarDonaciones() {
     }
   }
 
+  function seleccionarMoneda(campo: string, codigo: string) {
+    const select = q<HTMLSelectElement>(campo);
+    if (codigo && !Array.from(select.options).some(opcion => opcion.value === codigo)) {
+      const previa = new Option(codigo, codigo);
+      previa.dataset.historica = '';
+      select.add(previa);
+    }
+    select.value = codigo;
+  }
+
   function abrirFormularioCreacion() {
     modoFormulario = 'crear';
+    formDonacion.querySelectorAll('option[data-historica]').forEach(opcion => opcion.remove());
     formDonacion.reset();
     q<HTMLInputElement>('pais').value = nombrePais();
     q<HTMLInputElement>('organizacion').value = nombreOrganizacion();
@@ -499,6 +510,7 @@ export function iniciarDonaciones() {
     if (!donacionActual || ocupado || !puedeGestionar) return;
     modoFormulario = 'editar';
     const donacion = donacionActual;
+    formDonacion.querySelectorAll('option[data-historica]').forEach(opcion => opcion.remove());
     formDonacion.reset();
     q<HTMLInputElement>('pais').value = nombrePais();
     q<HTMLInputElement>('organizacion').value = nombreOrganizacion();
@@ -512,11 +524,11 @@ export function iniciarDonaciones() {
     q<HTMLInputElement>('categoria-otro').value = donacion.categoria_otro ?? '';
     q<HTMLTextAreaElement>('descripcion').value = donacion.descripcion;
     q<HTMLInputElement>('monto').value = donacion.monto == null ? '' : String(donacion.monto);
-    q<HTMLInputElement>('moneda').value = donacion.moneda ?? 'CLP';
+    seleccionarMoneda('moneda', donacion.moneda ?? 'CLP');
     q<HTMLInputElement>('cantidad').value = donacion.cantidad == null ? '' : String(donacion.cantidad);
     q<HTMLInputElement>('unidad').value = donacion.unidad ?? '';
     q<HTMLInputElement>('valor-estimado').value = donacion.valor_estimado == null ? '' : String(donacion.valor_estimado);
-    q<HTMLInputElement>('moneda-valorizacion').value = donacion.moneda_valorizacion ?? '';
+    seleccionarMoneda('moneda-valorizacion', donacion.moneda_valorizacion ?? '');
     q<HTMLInputElement>('metodo-valorizacion').value = donacion.metodo_valorizacion ?? '';
     q<HTMLSelectElement>('estado').value = donacion.estado ?? 'Comprometida';
     q('form-titulo').textContent = 'Editar donaci\u00f3n';
