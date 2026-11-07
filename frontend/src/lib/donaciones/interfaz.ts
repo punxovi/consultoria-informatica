@@ -4,6 +4,7 @@ import { crearClienteDonaciones } from './cliente.ts';
 import { listarProgramas } from '../programas/cliente.ts';
 import {
   esDinero,
+  partesDonacion,
   etiquetasTipoDonante,
   etiquetasTipoRespaldo,
   siguienteEstado,
@@ -157,6 +158,7 @@ export function iniciarDonaciones() {
     q('vacio').hidden = donaciones.length > 0;
     for (const item of donaciones) {
       const recibida = item.tipo_movimiento === 'recibida';
+      const partes = partesDonacion(item, nombreOrganizacion());
       const aporte = `${describirCategoria(item)} · ${describirAporte(item)}`;
       const estado = item.estado ?? 'Sin estado';
       const card = document.createElement('article');
@@ -175,12 +177,12 @@ export function iniciarDonaciones() {
                 </div>
               </div>
               <div class="flex flex-wrap gap-2">
-                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'}">${recibida ? 'Recibida' : 'Entregada'}</span>
+                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'}">${recibida ? 'Recibida por la organización' : 'Entregada por la organización'}</span>
                 <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${claseEstado[estado] ?? 'bg-neutral-100 text-neutral-600'}">${htmlSeguro(estado)}</span>
               </div>
             </div>
             <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              ${[['Fecha', formatearFecha(item.fecha)], ['Organización receptora', nombreOrganizacion()], ['Tipo de aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
+              ${[['Fecha', formatearFecha(item.fecha)], ['Quién entrega · origen', partes.entrega], ['Quién recibe · destino', partes.recibe], ['País de la organización', nombrePais()], ['Procedencia', item.origen ?? 'No registrada'], ['Tipo de aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
             </div>
           </div>
           <div class="flex items-center justify-end border-t border-[#F0EDF6] pt-3 lg:min-w-[190px] lg:justify-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
@@ -322,6 +324,10 @@ export function iniciarDonaciones() {
   }
 
   function renderDetalle(donacion: Donacion) {
+    const partes = partesDonacion(donacion, nombreOrganizacion());
+    q('detalle-emisor').textContent = partes.entrega;
+    q('detalle-receptor').textContent = partes.recibe;
+    q('detalle-referencia').textContent = `${donacion.id_donacion} · Versión ${donacion.version}`;
     q('detalle-fecha').textContent = formatearFecha(donacion.fecha);
     q('detalle-organizacion').textContent = nombreOrganizacion();
     q('detalle-pais').textContent = nombrePais();
@@ -344,6 +350,7 @@ export function iniciarDonaciones() {
 
   async function abrirDetalle(donacion: Donacion) {
     donacionActual = donacion;
+    respaldosActuales = [];
     reservaPendiente = null;
     filtroTipoRespaldo = 'todos';
     cambiarVista('detalle');
@@ -354,12 +361,13 @@ export function iniciarDonaciones() {
     badgeMov.className = `inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
       esRecibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-[#E7F7FA] text-[#167F91]'
     }`;
-    badgeMov.textContent = esRecibida ? 'Donación Recibida' : 'Donación Entregada';
+    badgeMov.textContent = esRecibida ? 'Recibida por la organización' : 'Entregada por la organización';
 
     renderDetalle(donacion);
 
     cerrarFormRespaldo();
     actualizarFiltrosUI();
+    renderRespaldos();
 
     bloquear(true, 'Cargando respaldos documentales...');
     try {
@@ -400,7 +408,7 @@ export function iniciarDonaciones() {
   function cerrarFormRespaldo() {
     reservaPendiente = null;
     q('respaldo-form-contenedor').hidden = true;
-    q('adjuntar-respaldo').hidden = false;
+    q('adjuntar-respaldo').hidden = !puedeGestionar;
     limpiarAlertas();
   }
 
@@ -416,6 +424,12 @@ export function iniciarDonaciones() {
   }
 
   q('adjuntar-respaldo').addEventListener('click', abrirFormRespaldo);
+  q('adjuntar-certificado').addEventListener('click', () => {
+    if (ocupado || !puedeGestionar || !donacionActual) return;
+    abrirFormRespaldo();
+    q<HTMLSelectElement>('respaldo-tipo').value = 'certificado';
+    q<HTMLInputElement>('respaldo-archivo').focus();
+  });
   q('respaldo-cancelar').addEventListener('click', cerrarFormRespaldo);
 
   const formDonacion = q<HTMLFormElement>('form-donacion-tag');
@@ -425,7 +439,17 @@ export function iniciarDonaciones() {
   const categoriaSelect = q<HTMLSelectElement>('categoria');
   const aporteTipo = q<HTMLInputElement>('aporte-tipo');
 
+  function actualizarSentido() {
+    const recibida = q<HTMLSelectElement>('tipo-movimiento').value === 'recibida';
+    const contraparte = q<HTMLInputElement>('contraparte').value.trim() || 'Contraparte por indicar';
+    const partes = partesDonacion({ tipo_movimiento: recibida ? 'recibida' : 'entregada', contraparte_nombre: contraparte }, nombreOrganizacion());
+    q('sentido').textContent = `Entrega: ${partes.entrega}. Recibe: ${partes.recibe}. El movimiento se interpreta desde la organización y es independiente del estado de gestión.`;
+  }
+  q('tipo-movimiento').addEventListener('change', actualizarSentido);
+  q('contraparte').addEventListener('input', actualizarSentido);
+
   function actualizarCamposAporte() {
+    actualizarSentido();
     const dinero = esDinero(categoriaSelect.value);
     aporteTipo.value = dinero ? 'dinero' : 'recurso';
     grupoDinero.hidden = !dinero;
