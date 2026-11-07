@@ -100,14 +100,26 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
       // Recuadro de contexto: organización, país y alcance del documento.
       const cajaOrg = wrap(document.organization.nombre + (document.organization.pais?.nombre ? ` · ${document.organization.pais.nombre}` : ''), width - 24, 11, 'bold');
       const cajaCtx = wrap(contexto, width - 24, 9);
-      const alto = 30 + cajaOrg.length * 14 + 14 + cajaCtx.length * 12;
-      doc.roundedRect(margin, y, width, alto, 5).fill(brand.light);
-      line('ORGANIZACIÓN', margin + 12, y + 8, 8, 'bold', brand.primary);
-      cajaOrg.forEach((texto, i) => line(texto, margin + 12, y + 22 + i * 14, 11, 'bold'));
-      const yCtx = y + 22 + cajaOrg.length * 14 + 4;
-      line(porActa ? 'ACTA DE REUNIÓN' : 'CONTENIDO', margin + 12, yCtx, 8, 'bold', brand.primary);
-      cajaCtx.forEach((texto, i) => line(texto, margin + 12, yCtx + 13 + i * 12, 9));
-      y += alto + 15;
+      const bloques = [
+        { titulo: 'ORGANIZACIÓN', lineas: cajaOrg, size: 11, font: 'bold', paso: 14 },
+        { titulo: porActa ? 'ACTA DE REUNIÓN' : 'CONTENIDO', lineas: cajaCtx, size: 9, font: 'regular', paso: 12 },
+      ];
+      for (const bloque of bloques) {
+        let offset = 0;
+        while (offset < bloque.lineas.length) {
+          if (y + 34 + bloque.paso > bottom) page();
+          const cantidad = Math.min(bloque.lineas.length - offset, Math.floor((bottom - y - 34) / bloque.paso));
+          const alto = 34 + cantidad * bloque.paso;
+          doc.roundedRect(margin, y, width, alto, 5).fill(brand.light);
+          line(bloque.titulo + (offset ? ' (continuación)' : ''), margin + 12, y + 8, 8, 'bold', brand.primary);
+          bloque.lineas.slice(offset, offset + cantidad).forEach((texto, i) =>
+            line(texto, margin + 12, y + 23 + i * bloque.paso, bloque.size, bloque.font));
+          y += alto + 8;
+          offset += cantidad;
+          if (offset < bloque.lineas.length) page();
+        }
+      }
+      if (y + 110 > bottom) page();
 
       // Tarjetas de resumen con el estado de cumplimiento.
       const conteo = { Pendiente: 0, Vencido: 0, Cumplido: 0 } as Record<Estado, number>;

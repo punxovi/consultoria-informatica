@@ -49,6 +49,19 @@ function validUser(value: Record<string, unknown>): AuthUser {
 export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRepository {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
+  async function checkGuestAccess(accessToken: string): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetchImpl(`${baseUrl}/rest/v1/rpc/validar_acceso_invitado`, {
+        method: 'POST', headers: { apikey: options.anonKey, authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+        body: '{}', signal: AbortSignal.timeout(10000),
+      });
+    } catch {
+      throw new ServiceError('SUPABASE_AUTH_NO_DISPONIBLE', 'No fue posible verificar la vigencia del acceso.', 503);
+    }
+    if (!response.ok) throw new ServiceError('SUPABASE_AUTH_NO_DISPONIBLE', 'No fue posible verificar la vigencia del acceso.', 503);
+    if (await response.json() !== true) throw new ServiceError('SESION_INVALIDA', 'El acceso fue revocado o expiró.', 401);
+  }
 
   async function request(
     path: string,
@@ -104,6 +117,7 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
 
       // Login exitoso
       const session = validSession(body);
+      await checkGuestAccess(session.access_token);
       try {
         await fetchImpl(`${baseUrl.replace(/\/auth\/v1$/, '')}/rest/v1/rpc/registrar_evento_autenticacion`, {
           method: 'POST',
@@ -138,14 +152,18 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
     },
 
     async getUser(accessToken: string) {
-      return validUser(await request('/user', { method: 'GET' }, accessToken));
+      const user = validUser(await request('/user', { method: 'GET' }, accessToken));
+      await checkGuestAccess(accessToken);
+      return user;
     },
 
     async refreshSession(refreshToken: string) {
-      return validSession(await request('/token?grant_type=refresh_token', {
+      const session = validSession(await request('/token?grant_type=refresh_token', {
         method: 'POST',
         body: JSON.stringify({ refresh_token: refreshToken }),
       }));
+      await checkGuestAccess(session.access_token);
+      return session;
     },
 
     async logout(accessToken: string) {

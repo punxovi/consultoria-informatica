@@ -8,6 +8,7 @@ export function createGuestApplication(repository: GuestRepository) {
     list: (token: string): Promise<Guest[]> => repository.execute(token, 'list', {}),
     
     get: (token: string, id: string): Promise<Guest> => repository.execute(token, 'get', { id_invitado: id }),
+    consume: (token: string): Promise<Guest> => repository.execute(token, 'consume', {}),
     
     async create(input: CreateGuestInput): Promise<Guest> {
       // El registro de solicitud es público (no requiere token de sesión)
@@ -24,11 +25,14 @@ export function createGuestApplication(repository: GuestRepository) {
         throw new GuestError('INVITADO_NO_ENCONTRADO', 'La solicitud de invitado no existe.', 404);
       }
       
-      // Si la aprobación es exitosa y se generó el token, enviamos el enlace de acceso por correo
-      if (result.correo && result.enlace_token) {
-        const frontendUrl = process.env.FRONTEND_URL ?? 'http://127.0.0.1:4321';
-        const accessLink = `${frontendUrl}/invitado/acceso?token=${result.enlace_token}`;
-        await repository.sendGuestAccessLink(result.correo, accessLink);
+      // El proveedor Auth genera y envía su enlace de un solo uso.
+      if (typeof result.correo !== 'string' || !result.correo) {
+        throw new GuestError('RESPUESTA_INVALIDA', 'No fue posible preparar el correo de acceso.', 502);
+      }
+      const frontendUrl = process.env.FRONTEND_URL ?? 'http://127.0.0.1:4321';
+      const accessLink = process.env.GUEST_ACCESS_REDIRECT_URL ?? `${frontendUrl.replace(/\/$/, '')}/invitado/acceso`;
+      if (!await repository.sendGuestAccessLink(result.correo, accessLink)) {
+        throw new GuestError('ENVIO_ENLACE_FALLIDO', 'La solicitud quedó aprobada, pero no fue posible enviar el enlace. Recarga y reintenta la aprobación.', 502);
       }
       
       return result;

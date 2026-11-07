@@ -36,6 +36,16 @@ export async function routeGuests(
       throw new GuestError('SESION_REQUERIDA', 'Debes iniciar sesión.', 401);
     }
     const token = authorization.replace(/^Bearer\s+/i, '');
+
+    if (url.pathname === '/v1/guests/consume' && request.method === 'POST') {
+      if (url.search) throw new GuestError('DATOS_INVALIDOS', 'Esta operación no admite parámetros.', 400);
+      const body = await readJsonBody(request);
+      if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) {
+        throw new GuestError('DATOS_INVALIDOS', 'Esta operación requiere un objeto vacío.', 400);
+      }
+      const guest = await application.consume(token);
+      return send(200, success('ACCESO_INVITADO_INICIADO', 'Acceso habilitado durante 24 horas.', { guest }));
+    }
     
     // Validar permisos de Administrador a través del servicio
     await application.authorize(token);

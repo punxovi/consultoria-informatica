@@ -1,0 +1,30 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout title="Acceso de Invitado">
+  <main style="max-width: 38rem; margin: 5rem auto; padding: 2rem">
+    <h1>Acceso de Invitado</h1>
+    <p id="access-message" role="status">Verificando tu enlace de acceso…</p>
+    <a href="/solicitar-acceso-invitado">Solicitar un nuevo acceso</a>
+  </main>
+</Layout>
+<script>
+  import { prepararSesionRecuperacion } from '../../lib/auth/cliente';
+  import { getSupabaseClient } from '../../lib/supabase';
+  import { createAuthTransport } from '../../lib/auth/transporte';
+  const message = document.getElementById('access-message');
+  async function consume() {
+    try {
+      if (!await prepararSesionRecuperacion()) throw new Error('El enlace no es válido o ha vencido.');
+      const { data } = await getSupabaseClient().auth.getSession();
+      if (!data.session) throw new Error('No fue posible verificar el enlace.');
+      const transport = createAuthTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000');
+      await transport.request('/api/v1/guests/consume', { method: 'POST', body: {}, accessToken: data.session.access_token });
+      document.cookie = `fge_access_token=${encodeURIComponent(data.session.access_token)}; Path=/; SameSite=Lax; Max-Age=${data.session.expires_in ?? 3600}${location.protocol === 'https:' ? '; Secure' : ''}`;
+      location.replace('/organizaciones');
+    } catch (error) {
+      if (message) message.textContent = error instanceof Error ? error.message : 'No fue posible iniciar el acceso.';
+    }
+  }
+  void consume();
+</script>
