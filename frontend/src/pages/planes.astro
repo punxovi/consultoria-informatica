@@ -177,6 +177,7 @@ import AppLayout from '../layouts/AppLayout.astro';
 </template>
 
 <script>
+  import { paisOperativo } from '../lib/territorio/contexto';
   import { listarPlanes } from '../lib/planes/cliente';
   import { listarOrganizaciones } from '../lib/organizaciones/cliente';
   import { agregarRetorno, hrefOrganizacion } from '../lib/navegacion/retorno-organizaciones';
@@ -205,6 +206,9 @@ import AppLayout from '../layouts/AppLayout.astro';
   let organizacionesRegistradas: OrganizacionListado[] = [];
   let organizacionContextual: string | null = new URLSearchParams(window.location.search).get('id_organizacion');
   let cargando = false;
+  let solicitudActual = 0;
+  let territorio: string | null = null;
+  let territorial = false;
 
   function obtenerEstado(inicio: string, termino: string) {
     const hoy = new Date().toISOString().slice(0, 10);
@@ -366,6 +370,7 @@ import AppLayout from '../layouts/AppLayout.astro';
   }
 
   async function cargar() {
+    if (territorial && !territorio) return;
     const confirmacion = document.querySelector<HTMLElement>('#plan-confirmacion')!;
     const resultado = new URLSearchParams(window.location.search).get('resultado');
     if (resultado === 'guardado' || resultado === 'eliminado') {
@@ -376,7 +381,11 @@ import AppLayout from '../layouts/AppLayout.astro';
       history.replaceState(null, '', `${urlLimpia.pathname}${urlLimpia.search}${urlLimpia.hash}`);
     }
 
-    if (cargando) return;
+    const solicitud = ++solicitudActual;
+    const pais = territorio;
+    listado.replaceChildren();
+    planes = [];
+    actualizarContadores([]);
     cargando = true;
     recargar.disabled = true;
     listado.setAttribute('aria-busy', 'true');
@@ -384,13 +393,18 @@ import AppLayout from '../layouts/AppLayout.astro';
     estado.textContent = 'Cargando planes…';
 
     try {
-      planes = await listarPlanes();
+      const recibidos = await listarPlanes();
+      if (solicitud !== solicitudActual) return;
+      planes = pais ? recibidos.filter(plan => plan.organizacion.id_pais === pais) : recibidos;
       try {
-        organizacionesRegistradas = await listarOrganizaciones();
+        const organizaciones = await listarOrganizaciones({idPais: pais || undefined});
+        if (solicitud !== solicitudActual) return;
+        organizacionesRegistradas = organizaciones;
       } catch {
         // El listado de planes puede funcionar aunque falle la carga del catálogo de organizaciones.
         organizacionesRegistradas = [];
       }
+      if (solicitud !== solicitudActual) return;
       poblarFiltros();
 
       const parametros = new URLSearchParams(window.location.search);
@@ -403,10 +417,12 @@ import AppLayout from '../layouts/AppLayout.astro';
       }
       renderizar();
     } catch (fallo) {
+      if (solicitud !== solicitudActual) return;
       estado.textContent = '';
       error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar los planes.';
       error.hidden = false;
     } finally {
+      if (solicitud !== solicitudActual) return;
       cargando = false;
       recargar.disabled = false;
       listado.setAttribute('aria-busy', 'false');
@@ -436,5 +452,18 @@ import AppLayout from '../layouts/AppLayout.astro';
   });
   recargar.addEventListener('click', () => void cargar());
   window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
-  void cargar();
+  window.addEventListener('fge:territorio-cambiado', (event) => {
+    const id = (event as CustomEvent<{id_pais:string}>).detail.id_pais;
+    if (!territorial || id === territorio) return;
+    territorio = id; solicitudActual += 1;
+    planes = []; organizacionesRegistradas = []; listado.replaceChildren(); actualizarContadores([]);
+    organizacionContextual = null; filtroOrganizacion.value = ''; filtroPrograma.value = ''; filtroAnio.value = '';
+    sincronizarFiltrosEnUrl();
+    if (!id) { error.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.'; error.hidden = false; return; }
+    void cargar();
+  });
+  void (async () => {
+    try { territorio = await paisOperativo(); territorial = Boolean(territorio); await cargar(); }
+    catch { error.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.'; error.hidden = false; }
+  })();
 </script>
