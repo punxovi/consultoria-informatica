@@ -94,7 +94,7 @@ test('Aplicación: PDF usa exactamente la vista preparada sin volver a consultar
   assert.deepEqual(rendered,expected);assert.equal(calls.filter(c=>c==='consolidated').length,1);
   assert.deepEqual(calls,['actor','consolidated','actor','render','audit']);
   assert.equal(file.mimeType,'application/pdf');assert.match(file.fileName,/2026-01-01_2026-12-31-interno.pdf$/);
-  assert.deepEqual(audits[0].filters,source.filters);
+  assert.deepEqual(audits[0].filters,{...source.filters,reportId:report.download.id});
   await assert.rejects(app.downloadReportPdf('sesion-b',report.download.id),{code:'REPORTE_NO_DISPONIBLE'});
 });
 test('Aplicación: ni la generación fallida ni un fallo de auditoría entregan PDF',async()=>{

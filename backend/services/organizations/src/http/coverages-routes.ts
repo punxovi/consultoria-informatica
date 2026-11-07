@@ -35,6 +35,10 @@ export async function routeCoverages(
     const url = new URL(request.url ?? '/', 'http://organizations.local');
     if (url.search) throw new CoverageError('DATOS_INVALIDOS', 'Esta operación no admite parámetros de consulta.', 400);
 
+    const decodeId = (value: string) => {
+      try { return parseCoverageId(decodeURIComponent(value)); }
+      catch { throw new CoverageError('DATOS_INVALIDOS', 'El identificador de cobertura no es válido.', 400); }
+    };
     const base = '/v1/organizations/temporary-coverages';
     if (url.pathname === base && request.method === 'GET') {
       const coverages = await app.list(token);
@@ -54,14 +58,14 @@ export async function routeCoverages(
 
     const historyMatch = new RegExp(`^${base}/([^/]+)/history$`).exec(url.pathname);
     if (historyMatch && request.method === 'GET') {
-      const history = await app.history(token, parseCoverageId(decodeURIComponent(historyMatch[1])));
+      const history = await app.history(token, decodeId(historyMatch[1]));
       send(200, success('HISTORIAL_COBERTURA_LISTADO', 'El historial de la cobertura fue consultado correctamente.', { history }));
       return;
     }
 
     const match = new RegExp(`^${base}/([^/]+)/(extend|revoke)$`).exec(url.pathname);
     if (match && request.method === 'PATCH') {
-      const id = parseCoverageId(decodeURIComponent(match[1]));
+      const id = decodeId(match[1]);
       if (match[2] === 'extend') {
         const coverage = await app.extend(token, id, parseCoverageExtension(await readJsonBody(request)));
         send(200, success('COBERTURA_EXTENDIDA', 'La cobertura fue extendida correctamente.', { coverage }));

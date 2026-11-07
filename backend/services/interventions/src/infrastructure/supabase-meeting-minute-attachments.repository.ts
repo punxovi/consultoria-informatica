@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import {
@@ -73,7 +74,7 @@ function databaseError(status: number): ServiceError {
 export function createSupabaseMeetingMinuteAttachmentsRepository(
   options: Options,
 ): MeetingMinuteAttachmentsRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
   const headers = (token: string, extra?: HeadersInit) => {
@@ -277,6 +278,7 @@ export function createSupabaseMeetingMinuteAttachmentsRepository(
         throw new ServiceError('STORAGE_ERROR', 'No fue posible descargar el archivo.', 502);
       }
 
+      await database('rpc/registrar_acceso_archivo',token,{method:'POST',body:JSON.stringify({p_tipo:'adjunto_acta',p_id:id})});
       return {
         bytes: Buffer.from(await result.arrayBuffer()),
         mimeType: item.mime_type,

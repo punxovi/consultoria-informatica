@@ -1,4 +1,5 @@
-import { CoverageError, type CoveragesRepository } from '../domain/coverages-api.ts';
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
+import { CoverageError, parseCoverageResponse, type CoveragesRepository } from '../domain/coverages-api.ts';
 
 interface Options {
   url: string;
@@ -6,8 +7,10 @@ interface Options {
   fetchImpl?: typeof fetch;
 }
 
-function databaseError(status: number, body: any): CoverageError {
-  const code = typeof body?.code === 'string' ? body.code : '';
+function databaseError(status: number, body: unknown): CoverageError {
+  const detail = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const code = typeof detail.code === 'string' ? detail.code : '';
+  if (status === 401) return new CoverageError('SESION_INVALIDA', 'La sesión no es válida o ha expirado.', 401);
   const mapped: Record<string, [string, string, number]> = {
     '42501': ['SIN_PERMISO', 'Solo un Administrador activo puede administrar coberturas.', 403],
     P0160: ['COBERTURA_NO_ENCONTRADA', 'La cobertura no existe o ya no está disponible.', 404],
@@ -21,13 +24,12 @@ function databaseError(status: number, body: any): CoverageError {
   };
   const known = mapped[code];
   if (known) return new CoverageError(...known);
-  if (status === 401) return new CoverageError('SESION_INVALIDA', 'La sesión no es válida o ha expirado.', 401);
   if (status === 403) return new CoverageError('SIN_PERMISO', 'No tienes permisos para esta operación.', 403);
   return new CoverageError('COBERTURAS_NO_DISPONIBLES', 'No fue posible completar la operación de coberturas.', 503);
 }
 
 export function createSupabaseCoveragesRepository(options: Options): CoveragesRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.url);
   const baseUrl = options.url.replace(/\/$/, '');
 
   return {
@@ -60,13 +62,7 @@ export function createSupabaseCoveragesRepository(options: Options): CoveragesRe
         throw new CoverageError('RESPUESTA_INVALIDA', 'El servicio devolvió una respuesta inválida.', 502);
       }
       if (!response.ok) throw databaseError(response.status, body);
-      if ((operation === 'list' || operation === 'mine' || operation === 'history') && !Array.isArray(body)) {
-        throw new CoverageError('RESPUESTA_INVALIDA', 'El servicio devolvió un listado de coberturas inválido.', 502);
-      }
-      if (!['list', 'mine'].includes(operation) && (!body || typeof body !== 'object' || Array.isArray(body))) {
-        throw new CoverageError('RESPUESTA_INVALIDA', 'El servicio devolvió una cobertura inválida.', 502);
-      }
-      return body;
+      return parseCoverageResponse(operation, body);
     },
   };
 }

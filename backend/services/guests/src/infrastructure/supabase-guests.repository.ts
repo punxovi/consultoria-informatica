@@ -1,9 +1,10 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { GuestError, type GuestRepository, type CreateGuestInput } from '../domain/guests.ts';
 
 interface Options { url: string; anonKey: string; adminKey?: string; redirectUrl: string; fetchImpl?: typeof fetch }
 
 export function createSupabaseGuestRepository(options: Options): GuestRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.url);
   const base = options.url.replace(/\/$/, '');
 
   async function request(path: string, key: string, token: string, body: unknown): Promise<any> {

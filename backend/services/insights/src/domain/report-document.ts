@@ -70,7 +70,7 @@ export function prepareReportDocument(snapshot: ConsolidatedReportSnapshot, requ
     {key:'completedActions',title:'Acciones ejecutadas',columns:['Acción cumplida','Plan','Término registrado'],rows:completed.map(r=>[text(r.nombre),text(r.plan),text(r.fecha_termino)])},
     {key:'commitments',title:'Compromisos cumplidos',columns:['Acuerdo','Organización','Cumplimiento'],rows:fulfilled.map(r=>[text(r.acuerdo),text(r.organizacion),optionalText(r.fecha_cumplimiento)])},
     {key:'donations',title:'Donaciones y recursos',columns:['Fecha','Tipo de aporte','Organización','Monto','Cantidad'],rows:s.donations.map(r=>[text(r.fecha),text(r.tipo_aporte),text(r.organizacion),optionalNumber(r.monto),optionalNumber(r.cantidad)]),note:'El consolidado no informa moneda ni unidad de medida. Se reproducen los valores recibidos, sin asumirlas.'},
-    {key:'indicators',title:'Indicadores',columns:['Indicador','Organización','Valor obtenido'],rows:s.indicators.map(r=>[text(r.nombre),text(r.organizacion),number(r.valor_obtenido)])},
+    {key:'indicators',title:'Indicadores',columns:['Indicador','Organización','Valor obtenido'],rows:s.indicators.map(r=>[text(r.nombre),text(r.organizacion),optionalNumber(r.valor_obtenido)])},
     {key:'results',title:'Resultados obtenidos',columns:['Resultado','Organización','Fecha'],rows:s.results.map(r=>[text(r.descripcion),text(r.organizacion),text(r.fecha_obtencion)])},
   ];
   return {

@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { readSupabaseConnection } from '../../../../shared/config/src/supabase.ts';
 import type { ActionFilters, ActionsRepository, InterventionAction, UpdateActionInput } from '../domain/actions.ts';
@@ -116,7 +117,7 @@ function meetingMinute(value: unknown): MeetingMinute {
 export function createSupabaseInterventionsRepositories(options: RepositoryOptions): {
   plans: PlansRepository; actions: ActionsRepository; meetingMinutes: MeetingMinutesRepository;
 } {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
   async function request(kind: ResourceKind, path: string, token: string, init: RequestInit = {}): Promise<unknown> {

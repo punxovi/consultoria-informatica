@@ -16,6 +16,7 @@ describe('repositorio Supabase de Organizaciones', () => {
       anonKey: 'anon-key',
       fetchImpl: async (input, init) => {
         const url = String(input);
+        if(url.includes('/rpc/registrar_acceso_documento')) return Response.json(null);
         calls.push({ url, init });
         if (url.includes('/paises?')) {
           return Response.json([{ id_pais: '11111111-1111-4111-8111-111111111111', codigo_iso: 'CL', nombre: 'Chile' }]);
@@ -81,6 +82,7 @@ describe('repositorio Supabase de Organizaciones', () => {
       supabaseUrl: 'https://proyecto.supabase.co', anonKey: 'key',
       fetchImpl: async (input, init) => {
         const url = String(input);
+        if(url.includes('/rpc/registrar_acceso_documento')) return Response.json(null);
         calls.push({ url, init });
         if (url.includes('/storage/v1/object/')) return Response.json({ Key: 'ok' });
         if (url.includes('/rest/v1/rpc/guardar_expediente_legal')) return Response.json(rawLegal.id_informacion_legal);
@@ -142,4 +144,14 @@ describe('repositorio Supabase de Organizaciones', () => {
       (error) => error instanceof ServiceError && error.code === 'ERROR_BASE_DATOS' && error.status === 502,
     );
   });
+});
+
+test('expediente: un fallo de auditoría bloquea la entrega de datos personales',async()=>{
+ const repo=createSupabaseOrganizationsRepository({supabaseUrl:'https://qa.invalid',anonKey:'public',fetchImpl:async(input)=>{
+  const url=String(input);if(url.includes('/organizaciones?'))return Response.json([organization]);
+  if(url.includes('/informacion_legal?'))return Response.json([{id_informacion_legal:'33333333-3333-4333-8333-333333333333'}]);
+  if(url.includes('/rpc/registrar_acceso_documento'))return Response.json({code:'XX000'},{status:500});
+  return Response.json([]);
+ }});
+ await assert.rejects(repo.getLegalRecord('jwt',organization.id_organizacion),{code:'ERROR_BASE_DATOS',status:502});
 });

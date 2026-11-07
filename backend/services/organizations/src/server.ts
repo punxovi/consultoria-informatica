@@ -1,4 +1,5 @@
-import { createServer, type Server } from 'node:http';
+import { createAuditedServer } from '../../../shared/observability/src/audit-context.ts';
+import { type Server } from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readPort } from '../../../shared/config/src/index.ts';
@@ -126,7 +127,7 @@ export function createOrganizationsServer(
     },
   };
 
-  return createServer(async (request, response) => {
+  return createAuditedServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;

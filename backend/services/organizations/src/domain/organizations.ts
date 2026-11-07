@@ -167,6 +167,7 @@ export interface SaveLegalRecordInput {
 }
 
 export interface OrganizationsRepository {
+  auditCommitmentsExport(token: string, context: {id_organizacion:string;id_acta?:string}): Promise<void>;
   list(accessToken: string, filters: OrganizationFilters): Promise<Organization[]>;
   getById(accessToken: string, id: string): Promise<Organization>;
   create(accessToken: string, fields: OrganizationFields): Promise<Organization>;

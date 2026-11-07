@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import {
   assertFileSignature, assertPublicationChange, type CreateEvidenceInput, type Evidence, type EvidencesRepository,
@@ -50,7 +51,7 @@ function flattened(input: CreateEvidenceInput | UpdateEvidenceInput['cambios']):
 }
 
 export function createSupabaseEvidencesRepository(options: Options): EvidencesRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
   const headers = (token: string, extra?: HeadersInit) => {
     const result = new Headers(extra);
@@ -162,6 +163,7 @@ export function createSupabaseEvidencesRepository(options: Options): EvidencesRe
       if (item.estado_carga !== 'disponible') throw new ServiceError('ARCHIVO_NO_DISPONIBLE', 'El archivo aún no está disponible.', 409);
       const result = await storage(token, item, 'GET');
       if (!result.ok) throw storageFail(result.status);
+      await database('rpc/registrar_acceso_archivo',token,{method:'POST',body:JSON.stringify({p_tipo:'evidencia',p_id:id})});
       return { bytes: Buffer.from(await result.arrayBuffer()), mimeType: item.mime_type, fileName: item.nombre_original };
     },
   };

@@ -1,3 +1,5 @@
+import { createAuthAuditSynchronizer, createAuthEventRecorder } from './auth-audit.ts';
+import { auditHeaders, withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
   AuthRepository,
@@ -10,6 +12,7 @@ import type {
 interface RepositoryOptions {
   supabaseUrl: string;
   anonKey: string;
+  auditKey?: string;
   fetchImpl?: typeof fetch;
 }
 
@@ -47,7 +50,9 @@ function validUser(value: Record<string, unknown>): AuthUser {
 }
 
 export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
+  const recordEvent=createAuthEventRecorder({...options,fetchImpl});
+  const synchronize=createAuthAuditSynchronizer({...options,fetchImpl});
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
   async function request(
@@ -79,46 +84,30 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
 
   return {
     async login(input: LoginInput) {
-      let body: Record<string, unknown>;
       try {
-        body = await request('/token?grant_type=password', {
-          method: 'POST',
-          body: JSON.stringify({ email: input.correo, password: input.password }),
-        });
-      } catch (error) {
-        // Login fallido (Llamada limpia a REST RPC)
-        try {
-          await fetchImpl(`${baseUrl.replace(/\/auth\/v1$/, '')}/rest/v1/rpc/registrar_evento_autenticacion`, {
-            method: 'POST',
-            headers: {
-              apikey: options.anonKey,
-              'content-type': 'application/json',
-            },
-            body: JSON.stringify({ p_exitoso: false, p_detalles: { correo_intentado: input.correo } })
-          });
-        } catch (auditErr) {
-          console.error('Error registrando auditoría de login fallido:', auditErr);
+        // Éxitos: fuente autoritativa auth.audit_log_entries, sin RPC del cliente.
+        const session = validSession(await request('/token?grant_type=password', {
+          method: 'POST', body: JSON.stringify({ email: input.correo, password: input.password }),
+        }));
+        await recordEvent('login_backend',session.user.id);
+        await synchronize(session.user.id);
+        return session;
+      } catch(error) {
+        if(error instanceof ServiceError && error.code==='SUPABASE_AUTH_ERROR' && error.status>=400 && error.status<500) {
+          if(!options.auditKey) throw new ServiceError('AUDITORIA_NO_DISPONIBLE','Falta configurar el registro seguro de autenticación.',503);
+          const context=auditHeaders();
+          let audit:Response;
+          try {
+            audit=await fetchImpl(`${baseUrl}/rest/v1/rpc/registrar_intento_autenticacion`,{
+              method:'POST',headers:{apikey:options.auditKey,authorization:`Bearer ${options.auditKey}`,'content-type':'application/json'},
+              body:JSON.stringify({p_request_id:context['x-fge-request-id']??null,p_ip:context['x-fge-ip-origen']??null,p_codigo:error.status}),
+              signal:AbortSignal.timeout(10000),redirect:'error',
+            });
+          } catch {throw new ServiceError('AUDITORIA_NO_DISPONIBLE','No fue posible registrar el intento de autenticación.',503);}
+          if(!audit.ok) throw new ServiceError('AUDITORIA_NO_DISPONIBLE','No fue posible registrar el intento de autenticación.',503);
         }
         throw error;
       }
-
-      // Login exitoso
-      const session = validSession(body);
-      try {
-        await fetchImpl(`${baseUrl.replace(/\/auth\/v1$/, '')}/rest/v1/rpc/registrar_evento_autenticacion`, {
-          method: 'POST',
-          headers: {
-            apikey: options.anonKey,
-            authorization: `Bearer ${session.access_token}`,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({ p_exitoso: true, p_detalles: { correo: input.correo } })
-        });
-      } catch (auditErr) {
-        console.error('Error registrando auditoría de login exitoso:', auditErr);
-      }
-
-      return session;
     },
 
 
@@ -128,13 +117,18 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
         method: 'POST',
         body: JSON.stringify({ email: input.correo }),
       });
+      await recordEvent('recuperacion_solicitada');
+      await synchronize();
     },
 
     async changePassword(accessToken: string, password: string) {
-      return validUser(await request('/user', {
+      const user = validUser(await request('/user', {
         method: 'PUT',
         body: JSON.stringify({ password }),
       }, accessToken));
+      await recordEvent('password_backend',user.id);
+      await synchronize(user.id);
+      return user;
     },
 
     async getUser(accessToken: string) {
@@ -142,14 +136,20 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
     },
 
     async refreshSession(refreshToken: string) {
-      return validSession(await request('/token?grant_type=refresh_token', {
+      const session = validSession(await request('/token?grant_type=refresh_token', {
         method: 'POST',
         body: JSON.stringify({ refresh_token: refreshToken }),
       }));
+      await recordEvent('refresh_backend',session.user.id);
+      await synchronize(session.user.id);
+      return session;
     },
 
     async logout(accessToken: string) {
+      const user=validUser(await request('/user',{method:'GET'},accessToken));
       await request('/logout?scope=local', { method: 'POST', body: '{}' }, accessToken);
+      await recordEvent('logout_backend',user.id);
+      await synchronize(user.id);
     },
   };
 }
@@ -176,5 +176,5 @@ export function createSupabaseAuthRepositoryFromEnv(): AuthRepository {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) return unconfiguredRepository();
-  return createSupabaseAuthRepository({ supabaseUrl, anonKey });
+  return createSupabaseAuthRepository({ supabaseUrl, anonKey, auditKey:process.env.SUPABASE_SERVICE_ROLE_KEY });
 }
