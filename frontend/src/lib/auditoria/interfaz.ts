@@ -121,6 +121,9 @@ export async function iniciarAuditoria() {
     if (curso || !autorizado) return;
     curso = true; objetivo = pagina; controles();
     q('error').hidden = true; q('reintento').hidden = true;
+    q('referencia').hidden = true;
+    q('codigo').textContent = '';
+    q('copia-estado').textContent = '';
     q('estado').textContent = 'Consultando historial…';
     q('resultados').replaceChildren(); q('pagina').textContent = '';
     q('criterios').textContent = `Filtros aplicados: ${campos.filter(c => filtros[c]).map(c => `${etiquetas[c]}: ${textoOpcion.get(filtros[c]) ?? filtros[c]}`).join(' · ') || 'Todos los eventos'}`;
@@ -134,6 +137,10 @@ export async function iniciarAuditoria() {
       siguiente = null;
       q('estado').textContent = '';
       q('error').textContent = mensajeError(error); q('error').hidden = false; q('reintento').hidden = false;
+      if (error instanceof ApiError && error.requestId) {
+        q('codigo').textContent = error.requestId;
+        q('referencia').hidden = false;
+      }
       if (error instanceof ApiError && error.fields) {
         for (const campo of campos) {
           const mensajes = error.fields[campo];
@@ -172,6 +179,16 @@ export async function iniciarAuditoria() {
     cursores[numero + 1] = siguiente; void cargar(numero + 1);
   });
   q('anterior').addEventListener('click', () => { if (numero > 0) void cargar(numero - 1); });
+  q('copiar').addEventListener('click', async () => {
+    const codigo = q('codigo').textContent;
+    if (!codigo) return;
+    try {
+      await navigator.clipboard.writeText(codigo);
+      q('copia-estado').textContent = 'Referencia copiada.';
+    } catch {
+      q('copia-estado').textContent = 'Selecciona la referencia para copiarla manualmente.';
+    }
+  });
   q('reintentar').addEventListener('click', () => void cargar(objetivo));
   controles();
   try {

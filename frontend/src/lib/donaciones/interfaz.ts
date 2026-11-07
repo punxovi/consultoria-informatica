@@ -182,7 +182,7 @@ export function iniciarDonaciones() {
               </div>
             </div>
             <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              ${[['Fecha', formatearFecha(item.fecha)], ['Quién entrega · origen', partes.entrega], ['Quién recibe · destino', partes.recibe], ['País de la organización', nombrePais()], ['Procedencia', item.origen ?? 'No registrada'], ['Tipo de aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
+              ${[['Fecha', formatearFecha(item.fecha)], ['Quién entrega · origen', partes.entrega], ['Quién recibe · destino', partes.recibe], ['Tipo de aporte', aporte]].map(([label, value]) => `<div class="min-w-0"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
             </div>
           </div>
           <div class="flex items-center justify-end border-t border-[#F0EDF6] pt-3 lg:min-w-[190px] lg:justify-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">

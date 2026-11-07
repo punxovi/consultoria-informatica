@@ -20,7 +20,6 @@ const control = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-w
   <Fragment slot="headerBreadcrumb"><span class="text-sm font-semibold text-neutral-900">Auditoría</span></Fragment>
   <section id="auditoria" class="space-y-6 min-w-0">
     <header>
-      <p class="text-sm font-medium text-primary">Administración</p>
       <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Historial de cambios</h1>
       <p class="mt-2 text-neutral-500">Revisa quién hizo cada cambio en el sistema, qué hizo y cuándo. Este historial es solo de consulta y no se puede modificar.</p>
     </header>
@@ -56,6 +55,11 @@ const control = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-w
       <p id="audit-pendientes" hidden class="mt-2 text-sm text-neutral-500">Hay cambios sin aplicar en los filtros.</p>
       <p id="audit-estado" role="status" class="my-4 text-neutral-500"></p>
       <div id="audit-error" hidden role="alert" class="my-4 rounded-xl bg-danger/5 p-4 text-danger"></div>
+      <div id="audit-referencia" hidden class="mb-3 text-sm">
+        <p>Referencia de consulta: <code id="audit-codigo" class="break-all"></code></p>
+        <button type="button" id="audit-copiar" class="min-h-12 font-semibold text-primary underline">Copiar referencia</button>
+        <span id="audit-copia-estado" role="status"></span>
+      </div>
       <div id="audit-reintento" hidden><Button id="audit-reintentar" variant="outline" size="lg" class="mb-4">Reintentar consulta</Button></div>
       <div id="audit-resultados" aria-busy="false"></div>
       <div class="mt-4 flex flex-wrap items-center gap-3">

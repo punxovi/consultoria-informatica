@@ -40,7 +40,12 @@ test('listado y detalle distinguen ambas partes sin alterar el estado ni la refe
 });
 test('formulario explica el sentido y conserva legibilidad en móvil', async ({page}, info) => {
   await page.setViewportSize({width:390,height:844});
-  await abrir(page);
+  await page.goto(`/organizaciones/${id}`);
+  const acceso = page.getByRole('link', {name:'Donaciones', exact:true});
+  await acceso.click();
+  await expect(acceso).toHaveAttribute('aria-current', 'location');
+  await expect(page).toHaveURL(/#donaciones$/);
+  await expect(page.locator('#don-lista article')).toHaveCount(2);
   await page.locator('#don-nueva').click();
   await page.locator('#don-contraparte').fill('Centro Comunitario');
   await expect(page.locator('#don-sentido')).toContainText('Recibe: Comedor Las Palmas');

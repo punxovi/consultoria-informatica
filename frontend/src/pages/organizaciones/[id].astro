@@ -192,6 +192,17 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
           class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E9E6F3] hover:text-[#4C4688] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2"
         >Seguimiento</button>
       </nav>
+      <nav aria-label="Accesos directos de la organización" class="mt-2 flex flex-wrap gap-x-1 border-t border-[#E8E5EF] px-1 pt-1">
+        {[
+          ['actas', 'Actas'], ['compromisos', 'Compromisos'], ['diagnostico', 'Diagnóstico'],
+          ['donaciones', 'Donaciones'], ['expediente-legal', 'Expediente legal'],
+        ].map(([destino, titulo]) => (
+          <a href={`#${destino}`} data-acceso-directo={destino}
+            class="inline-flex min-h-12 items-center rounded-lg px-3 text-sm font-medium text-[#4C4688] hover:bg-[#F5F3FA] focus-visible:outline-primary aria-[current=location]:bg-[#F0EDF8] aria-[current=location]:font-semibold aria-[current=location]:underline">
+            {titulo}
+          </a>
+        ))}
+      </nav>
     </div>
 
     <div id="tab-compromisos" data-main-panel="intervenciones" role="region" aria-label="Compromisos" class="contenido-tab hidden space-y-5">
@@ -607,6 +618,10 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
   }
 
   function mostrarVista(categoria: string, subseccion: string | null = null, actualizarUrl = false) {
+    document.querySelectorAll<HTMLElement>('[data-acceso-directo]').forEach(enlace => {
+      if (enlace.dataset.accesoDirecto === subseccion) enlace.setAttribute('aria-current', 'location');
+      else enlace.removeAttribute('aria-current');
+    });
     actualizarBarra(categoria);
 
     contenidos.forEach((contenido) => {
