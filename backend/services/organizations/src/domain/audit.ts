@@ -19,6 +19,9 @@ const texto = (maximo: number, mensaje: string) => z.string()
 const fecha = z.iso.date().refine(value => !value.startsWith('0000-'), 'Fecha calendario inválida.');
 const codigo = (patron: RegExp) => z.string().trim().regex(patron, 'Usa un código válido.').optional();
 const uuidFiltro = z.uuid().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+export const OPERACIONES_AUDITORIA = [
+  'crear', 'modificar', 'archivar', 'restaurar', 'eliminar', 'inicio_sesion', 'inicio_sesion_fallido', 'lectura_documento',
+] as const;
 const consultaSchema = z.object({
   id_usuario: uuidFiltro.optional(),
   id_pais: uuidFiltro.optional(),
@@ -26,8 +29,9 @@ const consultaSchema = z.object({
   pais: texto(100, 'Usa hasta 100 caracteres.'),
   desde: fecha.optional(),
   hasta: fecha.optional(),
-  operacion: codigo(/^[a-z][a-z0-9_:]{0,79}$/i),
+  operacion: z.enum(OPERACIONES_AUDITORIA, { error: 'Selecciona una acción válida.' }).optional(),
   entidad: codigo(/^[a-z][a-z0-9_.]{0,99}$/i),
+  zona_horaria: z.string().max(64).regex(/^[A-Za-z]+(?:[_+-]?[A-Za-z0-9]+)*(?:\/[A-Za-z0-9]+(?:[_+-]?[A-Za-z0-9]+)*)*$/, 'La zona horaria no es válida.').optional(),
   limit: z.string().regex(/^[1-9][0-9]*$/, 'El límite debe ser un entero positivo.').optional(),
   cursor: z.string().min(1).max(256, 'El cursor no es válido.').optional(),
 }).strict();
@@ -47,6 +51,7 @@ export interface AuditFilters {
   hasta?: string;
   operacion?: string;
   entidad?: string;
+  zonaHoraria?: string;
   limit: number;
   cursor?: AuditCursor;
 }
@@ -110,7 +115,7 @@ export function encodeAuditCursor(cursor: AuditCursor): string {
 }
 
 export function parseAuditQuery(search: URLSearchParams): AuditFilters {
-  const allowed = new Set(['id_usuario', 'id_pais', 'usuario', 'pais', 'desde', 'hasta', 'operacion', 'entidad', 'limit', 'cursor']);
+  const allowed = new Set(['id_usuario', 'id_pais', 'usuario', 'pais', 'desde', 'hasta', 'operacion', 'entidad', 'zona_horaria', 'limit', 'cursor']);
   const raw: Record<string, string> = {};
   for (const [key, value] of search.entries()) {
     if (!allowed.has(key) || search.getAll(key).length !== 1) {
@@ -140,6 +145,7 @@ export function parseAuditQuery(search: URLSearchParams): AuditFilters {
     hasta: parsed.data.hasta,
     operacion: parsed.data.operacion,
     entidad: parsed.data.entidad,
+    zonaHoraria: parsed.data.zona_horaria,
     limit,
     ...(parsed.data.cursor ? { cursor: decodeCursor(parsed.data.cursor) } : {}),
   };

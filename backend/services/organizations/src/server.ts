@@ -23,6 +23,7 @@ import { createProductsApplication, type ProductsApplication } from './applicati
 import { routeProducts } from './http/products-routes.ts';
 import { createQuoteRequestsApplication, type QuoteRequestsApplication } from './application/quote-requests-service.ts';
 import { routeQuoteRequests } from './http/quote-requests-routes.ts';
+import { createQuoteEmailWorker } from './infrastructure/quote-email-worker.ts';
 
 function loadEnvManually() {
   try {
@@ -69,6 +70,19 @@ export function createOrganizationsServer(
     anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
   });
   const resolvedQuoteRequests = quoteRequests ?? createQuoteRequestsApplication(readSupabaseConnection());
+  const emailServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? '';
+  const emailApiKey = process.env.RESEND_API_KEY?.trim() ?? '';
+  const emailFrom = process.env.EMAIL_FROM?.trim() ?? '';
+  const emailWorker = emailServiceKey && emailApiKey && emailFrom
+    ? createQuoteEmailWorker({ supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? '', serviceKey: emailServiceKey, apiKey: emailApiKey, from: emailFrom })
+    : undefined;
+  if (emailWorker) {
+    void emailWorker.drain();
+    const timer = setInterval(() => void emailWorker.drain(), 15_000);
+    timer.unref();
+  } else {
+    logEvent('warn', 'quote.email.disabled', { missing: [!emailServiceKey && 'SUPABASE_SERVICE_ROLE_KEY', !emailApiKey && 'RESEND_API_KEY', !emailFrom && 'EMAIL_FROM'].filter(Boolean) });
+  }
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1';

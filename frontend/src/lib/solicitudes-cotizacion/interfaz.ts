@@ -29,8 +29,10 @@ export async function iniciarSolicitudes(){
  }
  function pintar(){
   q('total').textContent=String(filas.length);q('nuevas').textContent=String(filas.filter(s=>s.estado==='solicitada').length);q('gestionadas').textContent=String(filas.filter(s=>s.estado!=='solicitada').length);
-  const visibles=filas.filter(s=>filtro.value==='todas'||(filtro.value==='nuevas'?s.estado==='solicitada':s.estado!=='solicitada'));
-  q('lista').replaceChildren();q('carga').textContent=visibles.length?`${visibles.length} solicitudes visibles.`:filas.length?'No hay solicitudes para el filtro seleccionado.':'No hay solicitudes en tu alcance territorial.';
+  // «nuevas» y «gestionadas» agrupan; el resto filtra por un estado concreto.
+  const visibles=filas.filter(s=>filtro.value==='todas'||(filtro.value==='nuevas'?s.estado==='solicitada':filtro.value==='gestionadas'?s.estado!=='solicitada':s.estado===filtro.value));
+  q('lista').replaceChildren();q<HTMLButtonElement>('limpiar').disabled=filtro.value==='todas';
+  q('carga').textContent=filas.length?`${visibles.length} de ${filas.length} ${filas.length===1?'solicitud registrada':'solicitudes registradas'}.`:'No hay solicitudes en tu alcance territorial.';
   for(const s of visibles){
    const card=nodo('article','','rounded-2xl border border-[#DCD8EA] border-l-4 border-l-primary bg-white p-5 space-y-3 min-w-0');
    card.append(nodo('span',etiquetas[s.estado],s.estado==='solicitada'?'inline-block rounded-full bg-brand-yellow/20 px-3 py-1 text-sm font-semibold':'inline-block rounded-full bg-brand-green/10 px-3 py-1 text-sm font-semibold'),nodo('h2',s.nombre_solicitante,'text-xl font-bold break-words'),nodo('p',s.correo,'text-sm break-all text-neutral-600'),nodo('p',`Recibida: ${fecha(s.created_at)}`,'text-sm text-neutral-600'),items(s));
@@ -40,7 +42,8 @@ export async function iniciarSolicitudes(){
  function mostrarDetalle(s:Solicitud){
   actual=s;q('detalle').replaceChildren(nodo('h3',s.nombre_solicitante,'text-xl font-semibold break-words'),nodo('p',`Correo: ${s.correo}`,'break-all'),nodo('p',`Teléfono: ${s.telefono||'No informado'}`,'break-words'),nodo('p',`Recibida: ${fecha(s.created_at)}`),nodo('p',`Estado actual: ${etiquetas[s.estado]}`),nodo('h3','Productos solicitados','font-semibold'),items(s),nodo('h3','Mensaje del solicitante','font-semibold'),nodo('p',s.mensaje||'Sin mensaje.','whitespace-pre-wrap break-words'));
   const estados=q<HTMLSelectElement>('estado');estados.replaceChildren(new Option('Selecciona un nuevo estado',''));
-  for(const estado of [...new Set(s.estados_permitidos)].filter(e=>e!==s.estado))estados.add(new Option(etiquetas[estado],estado));
+  // «Nueva» es solo el estado inicial: no se puede volver a ella (la base de datos también lo impide).
+  for(const estado of [...new Set(s.estados_permitidos)].filter(e=>e!==s.estado&&e!=='solicitada'))estados.add(new Option(etiquetas[estado],estado));
   q('form').hidden=estados.options.length===1;q('solo-lectura').hidden=estados.options.length!==1;
  }
  async function cargar(){
@@ -65,9 +68,16 @@ export async function iniciarSolicitudes(){
  q<HTMLFormElement>('form').addEventListener('submit',async e=>{
   e.preventDefault();if(!actual||guardando||detalleCargando)return;
   const estado=q<HTMLSelectElement>('estado').value as Estado;q('estado-error').hidden=true;
-  if(!actual.estados_permitidos.includes(estado)||estado===actual.estado){q('estado-error').textContent='Selecciona un estado permitido.';q('estado-error').hidden=false;q('estado').focus();return;}
+  if(!actual.estados_permitidos.includes(estado)||estado===actual.estado||estado==='solicitada'){q('estado-error').textContent='Selecciona un estado permitido.';q('estado-error').hidden=false;q('estado').focus();return;}
   const turno=epoca;guardando=true;q('confirmacion').hidden=true;controles();q('detalle-carga').textContent='Guardando estado…';
-  try{const s=await cliente.actualizar(actual,estado);if(turno!==epoca)return;filas=filas.map(f=>f.id_solicitud===s.id_solicitud?s:f);mostrarDetalle(s);pintar();q('confirmacion').textContent=`Estado actualizado a «${etiquetas[s.estado]}».`;q('confirmacion').hidden=false;q('detalle-carga').textContent='Estado actualizado correctamente.';}
+  try{
+   const s=await cliente.actualizar(actual,estado);if(turno!==epoca)return;
+   filas=filas.map(f=>f.id_solicitud===s.id_solicitud?s:f);
+   // Al guardar se cierra el detalle y el listado queda actualizado con el nuevo estado.
+   guardando=false;dialogo.close();pintar();
+   q('confirmacion').textContent=`Se actualizó la solicitud de ${s.nombre_solicitante} a «${etiquetas[s.estado]}».`;q('confirmacion').hidden=false;
+   q('confirmacion').scrollIntoView({block:'nearest'});
+  }
   catch(error){if(turno!==epoca)return;q('estado-error').textContent=mensajeError(error);q('estado-error').hidden=false;q('detalle-carga').textContent='';
    if(error instanceof ApiError && [401,403,404,409].includes(error.status)){actual=null;q('form').hidden=true;if(error.status!==409){q('detalle').replaceChildren();filas=[];q('lista').replaceChildren();for(const id of ['total','nuevas','gestionadas'])q(id).textContent='—';q('carga').textContent='Actualiza el listado para verificar tu acceso.';}}
   }finally{if(turno===epoca){guardando=false;controles();}}
@@ -75,7 +85,8 @@ export async function iniciarSolicitudes(){
  q('cerrar').addEventListener('click',()=>{if(!guardando)dialogo.close();});
  dialogo.addEventListener('cancel',e=>{if(guardando)e.preventDefault();});
  dialogo.addEventListener('close',()=>{++apertura;detalleCargando=false;actual=null;q('detalle').replaceChildren();controles();});
- filtro.addEventListener('change',()=>{if(!cargando)pintar();});
+  filtro.addEventListener('change',()=>{if(!cargando)pintar();});
+  q('limpiar').addEventListener('click',()=>{filtro.value='todas';if(!cargando)pintar();});
  for(const id of ['recargar','reintentar'])q(id).addEventListener('click',()=>{if(!guardando&&!cargando)void cargar();});
  window.addEventListener('fge:territorio-cambiado',()=>void cargar());
  controles();

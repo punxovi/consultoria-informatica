@@ -373,11 +373,48 @@ export function iniciarConfiguracionReporte() {
     try {
       const archivo = await reportes.descargar(vista.download);
       iniciarDescarga(archivo.blob, archivo.fileName);
-      pintarExportacion('exito', `PDF descargado: ${archivo.fileName}`);
+      pintarExportacion('exito', `PDF descargado: ${archivo.fileName}. Volviendo a Reportes…`);
+      // Terminada la descarga se vuelve al módulo; la breve espera deja iniciar la descarga del archivo.
+      window.setTimeout(() => {
+        window.location.assign(`/reportes?${new URLSearchParams({ pdf: archivo.fileName })}`);
+      }, 1200);
     } catch (error) {
       pintarExportacion('error', describirErrorPdf(error));
     }
   }
+
+  // --- Pasos: configurar → vista previa ----------------------------------------
+  // La vista previa ocupa su propia pantalla; los filtros se conservan al volver.
+  const HASH_VISTA = '#vista-previa';
+  function mostrarPaso(paso: 'configurar' | 'vista', enfocar = true) {
+    const enVista = paso === 'vista';
+    q('paso-configurar').hidden = enVista;
+    q('paso-vista').hidden = !enVista;
+    q('paso-1').classList.toggle('rep-paso-activo', !enVista);
+    q('paso-2').classList.toggle('rep-paso-activo', enVista);
+    q('vista-disponible').hidden = enVista || !vistaParaExportar;
+    const migas = document.getElementById('rep-migas-paso');
+    if (migas) migas.textContent = enVista ? 'Vista previa' : 'Configurar reporte';
+    // El área desplazable es el contenido principal, no la ventana: se lleva el reporte al inicio.
+    raiz.scrollIntoView({ block: 'start' });
+    if (!enfocar) return;
+    if (enVista) q('vista-titulo').focus({ preventScroll: true });
+    else q<HTMLButtonElement>('solicitar').focus({ preventScroll: true });
+  }
+  function abrirVista() {
+    if (!vistaParaExportar) return;
+    if (location.hash !== HASH_VISTA) history.pushState({ paso: 'vista' }, '', HASH_VISTA);
+    mostrarPaso('vista');
+  }
+  function volverAConfigurar() {
+    // Si la vista previa se abrió con pushState, «Atrás» deja el historial coherente.
+    if (location.hash === HASH_VISTA && history.state?.paso === 'vista') history.back();
+    else mostrarPaso('configurar');
+  }
+  window.addEventListener('popstate', () => {
+    if (location.hash === HASH_VISTA && vistaParaExportar) mostrarPaso('vista');
+    else mostrarPaso('configurar');
+  });
 
   function pintarConsulta(estado: EstadoConsulta) {
     for (const panel of Object.values(paneles)) q(`consulta-${panel}`).hidden = panel !== paneles[estado.tipo];
@@ -395,10 +432,14 @@ export function iniciarConfiguracionReporte() {
       vistaParaExportar = estado.vista;
       renderizarVistaPrevia(contenedorVista, estado.vista, { criterios: criteriosSolicitud });
       pintarExportacion('lista');
+      abrirVista();
     } else {
       vistaParaExportar = null;
       contenedorVista.replaceChildren();
       pintarExportacion('oculto');
+      // Sin vista previa vigente no se permanece en el paso 2.
+      if (!q('paso-vista').hidden) mostrarPaso('configurar', false);
+      q('vista-disponible').hidden = true;
     }
   }
 
@@ -510,6 +551,8 @@ export function iniciarConfiguracionReporte() {
     if (estado.tipo === 'error' && estado.reintentable) solicitar(estado.parametros);
   });
 
+  q('volver-configurar').addEventListener('click', volverAConfigurar);
+  q('ver-vista').addEventListener('click', abrirVista);
   q('exportar-pdf').addEventListener('click', () => pintarExportacion('confirmacion'));
   q('cancelar-pdf').addEventListener('click', () => pintarExportacion('lista'));
   q('confirmar-pdf').addEventListener('click', () => { void descargarPdf(); });
@@ -525,5 +568,8 @@ export function iniciarConfiguracionReporte() {
   pintarSeleccion();
   consulta.reiniciar();
   pintarExportacion('oculto');
+  // Al recargar con #vista-previa no hay vista vigente: se empieza configurando.
+  if (location.hash === HASH_VISTA) history.replaceState(null, '', location.pathname + location.search);
+  mostrarPaso('configurar', false);
   void cargarCatalogos();
 }

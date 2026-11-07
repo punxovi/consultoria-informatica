@@ -15,7 +15,6 @@ export interface Guest {
   institucion?: string;
   motivo?: string;
   estado: 'pendiente' | 'aprobado' | 'rechazado' | 'revocado';
-  enlace_token?: string;
   expira_en?: string;
   utilizado_en?: string;
   version: number;

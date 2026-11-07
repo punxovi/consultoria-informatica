@@ -52,7 +52,7 @@ export function iniciarFormularioCobertura(): void {
       ? 'La fecha de término debe ser posterior a la fecha de inicio.'
       : '';
     mostrarError(inicio, mensaje ? 'La fecha de inicio debe ser anterior al término.' : '');
-    mostrarError(termino, mensaje);
+    mostrarError(termino, mensaje || validar(termino));
     return !mensaje;
   }
 
@@ -113,12 +113,13 @@ export function iniciarFormularioCobertura(): void {
     event.preventDefault();
     if (enviando || !listo) return;
     limpiarErrores();
-    let valido = validarFechas();
+    let valido = true;
     for (const campo of campos) {
       const error = validar(campo);
       mostrarError(campo, error);
       if (error) valido = false;
     }
+    if (!validarFechas()) valido = false;
     if (!valido) {
       mostrarFeedback('Revisa los campos indicados antes de continuar.', 'error');
       campos.find((campo) => campo.getAttribute('aria-invalid') === 'true')?.focus();

@@ -264,6 +264,11 @@ function configurarFiltros(): void {
 
   busqueda.addEventListener('input', mostrarResultados);
   filtro.addEventListener('change', mostrarResultados);
+  buscar<HTMLButtonElement>('#coberturas-limpiar')?.addEventListener('click', () => {
+    busqueda.value = '';
+    filtro.value = '';
+    mostrarResultados();
+  });
 
   inicializado = true;
 }
@@ -306,6 +311,8 @@ function mostrarResultados(): void {
 
   const termino = busqueda.value.trim().toLocaleLowerCase('es-CL');
   const condicion = filtro.value;
+  const limpiar = buscar<HTMLButtonElement>('#coberturas-limpiar');
+  if (limpiar) limpiar.disabled = !termino && !condicion;
 
   const filtrados = registros.filter((cobertura) => {
     const coincideBusqueda = [
@@ -322,10 +329,10 @@ function mostrarResultados(): void {
     return coincideBusqueda && coincideCondicion;
   });
 
+  const conteo = `${new Intl.NumberFormat('es-CL').format(filtrados.length)} de ${new Intl.NumberFormat('es-CL').format(registros.length)} ${registros.length === 1 ? 'cobertura registrada' : 'coberturas registradas'}.`;
   if (filtrados.length === 0) {
     sinResultados.hidden = false;
-    estado.textContent =
-      'No hay coberturas que coincidan con los filtros seleccionados.';
+    estado.textContent = conteo;
     return;
   }
 
@@ -333,8 +340,7 @@ function mostrarResultados(): void {
   lista.hidden = false;
   lista.setAttribute('aria-busy', 'false');
 
-  estado.textContent =
-    `${new Intl.NumberFormat('es-CL').format(filtrados.length)} coberturas encontradas.`;
+  estado.textContent = conteo;
 }
 
 export function mostrarCargandoCoberturas(): void {

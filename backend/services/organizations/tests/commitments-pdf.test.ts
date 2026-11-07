@@ -26,6 +26,14 @@ const item: PdfCommitment = {
 const context = { id_organizacion: orgId };
 const fakePdf = Buffer.from('%PDF-1.7\n%%EOF\n');
 
+test('PDF: pagina un objetivo de acta válido con muchos saltos de línea', async () => {
+  const bytes = await generateCommitmentsPdf({ organization, context:{...context,id_acta:actaId},
+    actas:{[actaId]:'Acta: '+'Punto acordado\n'.repeat(50)},commitments:[item],generatedAt:'2026-11-06T12:00:00Z' });
+  assert.match(bytes.subarray(0,5).toString(),/%PDF-/);
+  assert.ok((bytes.toString('latin1').match(/\/Type \/Page\b/g) ?? []).length >= 3,
+    'El contexto y el detalle deben continuar en páginas adicionales, sin pintar el contexto fuera de la primera hoja.');
+});
+
 function repository(rows: unknown = [item]): OrganizationsRepository {
   return createSupabaseOrganizationsRepository({
     supabaseUrl: 'https://database.invalid', anonKey: 'anon-key',

@@ -114,8 +114,9 @@ link.remove();
 setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 ```
 
-Esta tarea incorpora el endpoint y la generación en backend; no añade un botón
-a la interfaz de compromisos.
+La descarga está disponible desde el detalle de Compromisos y el detalle del Acta.
+El contexto de Organización y Acta se pagina cuando es extenso, conservando su
+contenido y los márgenes del pie. El resumen pasa a una nueva página si no cabe.
 
 ## Verificación
 

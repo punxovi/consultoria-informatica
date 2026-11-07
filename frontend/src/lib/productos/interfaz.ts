@@ -1,3 +1,4 @@
+import { iconoSvg } from '../ui/iconos.ts';
 import { getSupabaseClient, getUserRoles } from '../supabase';
 import { ApiError } from '../api/transporte.ts';
 import { listarOrganizaciones } from '../organizaciones/cliente.ts';
@@ -64,8 +65,11 @@ export async function iniciarProductos() {
 
   function renderizarListado() {
     ocultarEstadosListado();
-    if (productos.length === 0) { q('vacio').hidden = false; return; }
+    const conFiltros = Boolean(q<HTMLInputElement>('buscar').value.trim()) || q<HTMLSelectElement>('estado').value !== 'todos';
+    q<HTMLButtonElement>('limpiar').disabled = !conFiltros;
+    if (productos.length === 0) { q('conteo').textContent = 'No hay productos registrados actualmente.'; q('vacio').hidden = false; return; }
     const filtrados = filtrarProductos(productos, q<HTMLInputElement>('buscar').value, q<HTMLSelectElement>('estado').value as Estado);
+    q('conteo').textContent = `${filtrados.length} de ${productos.length} ${productos.length === 1 ? 'producto registrado' : 'productos registrados'}.`;
     if (filtrados.length === 0) { q('sin-resultados').hidden = false; return; }
 
     lista.innerHTML = filtrados.map((producto) => {
@@ -98,8 +102,8 @@ export async function iniciarProductos() {
                 ${etiquetas ? `<div class="flex flex-wrap gap-2">${etiquetas}</div>` : ''}
               </div>
               <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-                <button type="button" data-editar="${id}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#4C4688] bg-white px-4 py-2 text-sm font-semibold text-[#4C4688] hover:bg-[#F0EEF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] disabled:opacity-50">Editar</button>
-                <button type="button" data-publicacion="${id}" class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${producto.publicado ? 'bg-[#C81E5B] text-white hover:bg-[#AD174F] focus-visible:ring-[#C81E5B]' : 'bg-[#4C4688] text-white hover:bg-[#423C76] focus-visible:ring-[#4C4688]'}">${producto.publicado ? 'Retirar del catálogo' : 'Publicar en catálogo'}</button>
+                <button type="button" data-editar="${id}" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#4C4688] bg-white px-4 py-2 text-sm font-semibold text-[#4C4688] hover:bg-[#F0EEF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] disabled:opacity-50">${iconoSvg('editar')}Editar</button>
+                <button type="button" data-publicacion="${id}" class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 ${producto.publicado ? 'border border-[#C81E5B] bg-white text-[#C81E5B] hover:bg-[#FCE8F0] focus-visible:ring-[#C81E5B]' : 'bg-[#4C4688] text-white hover:bg-[#423C76] focus-visible:ring-[#4C4688]'}">${producto.publicado ? 'Retirar del catálogo' : 'Publicar en catálogo'}</button>
               </div>
             </div>
           </article>
@@ -419,6 +423,9 @@ export async function iniciarProductos() {
   q('recargar').addEventListener('click', () => void cargarListado());
   q('reintentar').addEventListener('click', () => void cargarListado());
   q('buscar').addEventListener('input', renderizarListado);
+  q('limpiar').addEventListener('click', () => {
+    q<HTMLInputElement>('buscar').value = ''; q<HTMLSelectElement>('estado').value = 'todos'; renderizarListado();
+  });
   q('estado').addEventListener('change', renderizarListado);
   q('id_organizacion').addEventListener('change', mostrarPais);
   inputImagenes.addEventListener('change', agregarImagenes);

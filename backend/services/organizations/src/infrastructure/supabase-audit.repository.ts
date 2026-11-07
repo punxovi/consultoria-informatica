@@ -34,6 +34,7 @@ export function createSupabaseAuditRepository(options: Options): AuditRepository
               hasta: filters.hasta ?? null,
               operacion: filters.operacion ?? null,
               entidad: filters.entidad ?? null,
+              zona_horaria: filters.zonaHoraria ?? null,
               limit: filters.limit,
               cursor_fecha: filters.cursor?.fecha_hora ?? null,
               cursor_id: filters.cursor?.id ?? null,

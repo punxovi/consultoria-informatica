@@ -25,6 +25,7 @@ before(async () => {
     response.setHeader('content-type', 'application/json');
     response.end(JSON.stringify({
       path: request.url,
+      method: request.method,
       authorization: request.headers.authorization,
       requestId: request.headers['x-request-id'],
       body: Buffer.concat(chunks).toString('utf8'),
@@ -129,6 +130,27 @@ describe('API Gateway', () => {
     assert.equal(body.authorization, 'Bearer token-de-prueba');
     assert.equal(body.requestId, 'qa-123');
     assert.equal(body.body, '{"correo":"qa@example.com"}');
+  });
+
+  test('enruta las solicitudes de Invitado al servicio Auth conservando sesión y cuerpo', async () => {
+    const listed = await fetch(`${gatewayUrl}/api/v1/guests`, {
+      headers: { authorization: 'Bearer sesion-admin-invitados' },
+    });
+    const listBody = await listed.json();
+    assert.equal(listed.status, 200);
+    assert.equal(listBody.path, '/v1/guests');
+    assert.equal(listBody.authorization, 'Bearer sesion-admin-invitados');
+
+    const submitted = await fetch(`${gatewayUrl}/api/v1/guests/request`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ nombre: 'Persona invitada', correo: 'persona@example.com' }),
+    });
+    const submitBody = await submitted.json();
+    assert.equal(submitted.status, 200);
+    assert.equal(submitBody.path, '/v1/guests/request');
+    assert.equal(submitBody.method, 'POST');
+    assert.equal(submitBody.body, '{"nombre":"Persona invitada","correo":"persona@example.com"}');
   });
 
   test('enruta las imágenes públicas del catálogo a Organizaciones', async () => {

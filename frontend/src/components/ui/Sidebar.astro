@@ -6,6 +6,7 @@ interface NavItem {
   label: string;
   href: string;
   roles?: string[];
+  grupo?: string;
 }
 
 interface Props {
@@ -14,6 +15,18 @@ interface Props {
 
 const { items } = Astro.props;
 const currentPath = Astro.url.pathname;
+
+// Secciones del menú en el orden de aparición. Si todos los enlaces de una
+// sección exigen roles, su título usa la unión de esos roles: el mismo script
+// que oculta los enlaces oculta el título cuando el usuario no ve ninguno.
+const grupos: { nombre: string; roles: string[] | null; items: NavItem[] }[] = [];
+for (const item of items) {
+  const nombre = item.grupo ?? '';
+  let grupo = grupos.find((g) => g.nombre === nombre);
+  if (!grupo) { grupo = { nombre, roles: [], items: [] }; grupos.push(grupo); }
+  grupo.items.push(item);
+  grupo.roles = grupo.roles && item.roles ? [...new Set([...grupo.roles, ...item.roles])] : null;
+}
 ---
 
 <aside
@@ -78,7 +91,21 @@ const currentPath = Astro.url.pathname;
     aria-label="Navegación principal"
     class="sidebar-scroll flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-1"
   >
-    {items.map((item) => {
+    {grupos.map((grupo, indiceGrupo) => (
+      <Fragment>
+        {grupo.nombre && (
+          <p
+            hidden={grupo.roles ? true : undefined}
+            data-nav-roles={grupo.roles ? JSON.stringify(grupo.roles) : undefined}
+            class:list={[
+              'shrink-0 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#B9B3E3]',
+              indiceGrupo === 0 ? 'pt-1' : 'pt-4',
+            ]}
+          >
+            {grupo.nombre}
+          </p>
+        )}
+    {grupo.items.map((item) => {
       const isActive =
         currentPath === item.href ||
         (item.href !== '/dashboard' &&
@@ -229,6 +256,8 @@ const currentPath = Astro.url.pathname;
         </a>
       );
     })}
+      </Fragment>
+    ))}
   </nav>
 
   <!-- Cierre de sesión -->

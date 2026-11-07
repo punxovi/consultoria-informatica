@@ -1,4 +1,5 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
@@ -19,12 +20,13 @@ const control = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-w
   <Fragment slot="headerBreadcrumb"><span class="text-sm font-semibold text-neutral-900">Auditoría</span></Fragment>
   <section id="auditoria" class="space-y-6 min-w-0">
     <header>
-      <h1 class="text-3xl font-bold text-neutral-900 md:text-4xl">Historial de cambios</h1>
+      <p class="text-sm font-medium text-primary">Administración</p>
+      <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Historial de cambios</h1>
       <p class="mt-2 text-neutral-500">Revisa quién hizo cada cambio en el sistema, qué hizo y cuándo. Este historial es solo de consulta y no se puede modificar.</p>
     </header>
     <Card class="border-l-4 border-l-primary p-5">
       <h2 class="text-lg font-semibold">Buscar en el historial</h2>
-      <p class="mt-1 mb-5 text-sm text-neutral-500">Todos los filtros son opcionales y se pueden combinar. Las fechas incluyen ambos días.</p>
+      <p class="mt-1 mb-5 text-sm text-neutral-500">Todos los filtros son opcionales y se pueden combinar. Las fechas incluyen ambos días y se interpretan en tu hora local.</p>
       <form id="audit-form" novalidate>
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {campos.map(([id, label, tipo, placeholder]) => <div class="min-w-0">
@@ -43,7 +45,7 @@ const control = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-w
         </div>
         <div class="mt-5 flex flex-wrap gap-3">
           <Button type="submit" size="lg" id="audit-aplicar">Aplicar filtros</Button>
-          <Button type="button" variant="outline" size="lg" id="audit-limpiar">Limpiar filtros</Button>
+          <Button type="button" variant="outline" size="lg" id="audit-limpiar"> <Icono nombre="limpiar" />Limpiar filtros</Button>
         </div>
       </form>
     </Card>

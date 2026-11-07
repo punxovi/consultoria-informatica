@@ -1,4 +1,5 @@
 ---
+import Icono from '../ui/Icono.astro';
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
@@ -35,10 +36,7 @@ const { idOrganizacion } = Astro.props;
 
     <div class="flex flex-wrap gap-3 sm:justify-end">
       <Button id="comp-recargar" variant="outline" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5.5 9A7 7 0 0 1 17 5l3 2M4 17l3 2a7 7 0 0 0 11.5-4" />
-        </svg>
+        <Icono nombre="actualizar" />
         Recargar datos
       </Button>
       <Button id="comp-nuevo" type="button" disabled>
@@ -157,9 +155,7 @@ const { idOrganizacion } = Astro.props;
           Descargar PDF del acta
         </Button>
         <Button id="comp-editar" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m14 5 5 5M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
-          </svg>
+          <Icono nombre="editar" />
           Editar compromiso
         </Button>
       </div>

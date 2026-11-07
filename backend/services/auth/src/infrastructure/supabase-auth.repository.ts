@@ -54,6 +54,15 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
   const recordEvent=createAuthEventRecorder({...options,fetchImpl});
   const synchronize=createAuthAuditSynchronizer({...options,fetchImpl});
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
+  async function checkGuestAccess(accessToken: string): Promise<void> {
+    let response: Response;
+    try { response = await fetchImpl(`${baseUrl}/rest/v1/rpc/validar_acceso_invitado`, {
+      method: 'POST', headers: { apikey: options.anonKey, authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+      body: '{}', signal: AbortSignal.timeout(10000),
+    }); } catch { throw new ServiceError('SUPABASE_AUTH_NO_DISPONIBLE', 'No fue posible verificar la vigencia del acceso.', 503); }
+    if (!response.ok) throw new ServiceError('SUPABASE_AUTH_NO_DISPONIBLE', 'No fue posible verificar la vigencia del acceso.', 503);
+    if (await response.json() !== true) throw new ServiceError('SESION_INVALIDA', 'El acceso fue revocado o expiró.', 401);
+  }
 
   async function request(
     path: string,
@@ -89,6 +98,7 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
         const session = validSession(await request('/token?grant_type=password', {
           method: 'POST', body: JSON.stringify({ email: input.correo, password: input.password }),
         }));
+        await checkGuestAccess(session.access_token);
         await recordEvent('login_backend',session.user.id);
         await synchronize(session.user.id);
         return session;
@@ -132,7 +142,9 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
     },
 
     async getUser(accessToken: string) {
-      return validUser(await request('/user', { method: 'GET' }, accessToken));
+      const user = validUser(await request('/user', { method: 'GET' }, accessToken));
+      await checkGuestAccess(accessToken);
+      return user;
     },
 
     async refreshSession(refreshToken: string) {
@@ -140,6 +152,7 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
         method: 'POST',
         body: JSON.stringify({ refresh_token: refreshToken }),
       }));
+      await checkGuestAccess(session.access_token);
       await recordEvent('refresh_backend',session.user.id);
       await synchronize(session.user.id);
       return session;
