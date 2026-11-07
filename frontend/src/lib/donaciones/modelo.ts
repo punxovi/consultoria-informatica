@@ -241,6 +241,16 @@ export const donacionSchema = z.object({
 
 export type Donacion = z.infer<typeof donacionSchema>;
 
+// Conserva la perspectiva histórica del servicio: el movimiento pertenece a la organización.
+export function partesDonacion(
+  donacion: Pick<Donacion, 'tipo_movimiento' | 'contraparte_nombre'>,
+  organizacion: string,
+) {
+  return donacion.tipo_movimiento === 'recibida'
+    ? { entrega: donacion.contraparte_nombre, recibe: organizacion }
+    : { entrega: organizacion, recibe: donacion.contraparte_nombre };
+}
+
 export const respaldoSchema = z.object({
   id_archivo: z.string().uuid(),
   id_donacion: z.string().uuid(),

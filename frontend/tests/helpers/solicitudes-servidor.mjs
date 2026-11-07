@@ -1,7 +1,13 @@
 import {dev} from 'astro';
 import {createServer} from 'node:http';
 // Autenticación simulada solo para probar el middleware SSR sin usar una cuenta real.
-const auth=createServer((_req,res)=>{res.setHeader('content-type','application/json');res.end(JSON.stringify({id:'11111111-1111-4111-8111-111111111111',email:'qa@example.org'}));});
+const auth=createServer((req,res)=>{
+  if (req.url === '/rest/v1/rpc/get_user_roles') {
+    res.writeHead(200, {'content-type':'application/json'});
+    res.end(JSON.stringify([{codigo:'ADMIN',alcance:'global',id_pais:null}]));
+    return;
+  }
+  res.setHeader('content-type','application/json');res.end(JSON.stringify({id:'11111111-1111-4111-8111-111111111111',email:'qa@example.org'}));});
 await new Promise(resolve=>auth.listen(0,'127.0.0.1',resolve));
 process.env.ASTRO_TELEMETRY_DISABLED='1';
 process.env.PUBLIC_SUPABASE_URL=`http://127.0.0.1:${auth.address().port}`;
