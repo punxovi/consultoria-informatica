@@ -84,16 +84,16 @@ const tiposRespaldo = [
                 <label for="don-tipo-movimiento" class="text-sm font-semibold text-[#383165]">Tipo de movimiento <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
                 <select id="don-tipo-movimiento" name="tipo_movimiento" required class={claseSelect}>
                   <option value="recibida">Recibida (ingreso para la organización)</option>
-                  <option value="entregada">Entregada (aporte entregado)</option>
+                  <option value="entregada">Entregada (salida de la organización)</option>
                 </select>
               </div>
               <div>
                 <label for="don-pais" class="text-sm font-semibold text-[#383165]">País <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
                 <input id="don-pais" type="text" readonly aria-describedby="don-pais-ayuda" class={`mt-1.5 ${campoSoloLectura}`} />
-                <p id="don-pais-ayuda" class="mt-1 text-xs text-neutral-500">Corresponde al país de la organización receptora.</p>
+                <p id="don-pais-ayuda" class="mt-1 text-xs text-neutral-500">Corresponde al país de la organización del registro.</p>
               </div>
               <div>
-                <label for="don-organizacion" class="text-sm font-semibold text-[#383165]">Organización receptora <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-organizacion" class="text-sm font-semibold text-[#383165]">Organización del registro <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
                 <input id="don-organizacion" type="text" readonly class={`mt-1.5 ${campoSoloLectura}`} />
               </div>
               <div class="sm:col-span-2">
@@ -107,19 +107,20 @@ const tiposRespaldo = [
           </section>
 
           <section class="don-grupo don-grupo-verde" aria-labelledby="don-g-donante">
-            <h4 id="don-g-donante">Donante</h4>
+            <h4 id="don-g-donante">Quién entrega y quién recibe</h4>
+            <p id="don-sentido" role="status" class="mb-4 rounded-xl bg-white/70 p-3 text-sm text-neutral-700"></p>
             <div class="grid gap-5 sm:grid-cols-2">
               <div class="sm:col-span-2">
-                <Input id="don-contraparte" name="contraparte_nombre" label="Nombre o identificación del donante" placeholder="Ej. Empresa Alimentos del Sur" required maxlength={200} />
+                <Input id="don-contraparte" name="contraparte_nombre" label="Nombre o identificación de la contraparte" placeholder="Ej. Empresa Alimentos del Sur" required maxlength={200} />
               </div>
               <div>
-                <label for="don-tipo-donante" class="text-sm font-semibold text-[#383165]">Tipo de donante <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-tipo-donante" class="text-sm font-semibold text-[#383165]">Tipo de contraparte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
                 <select id="don-tipo-donante" name="tipo_donante" required class={claseSelect}>
                   <option value="">Selecciona un tipo</option>
                   {tiposDonante.map((t) => <option value={t.value}>{t.label}</option>)}
                 </select>
               </div>
-              <Input id="don-origen" name="origen" label="Origen del donante" placeholder="Ej. Campaña local, aporte corporativo" required maxlength={2000} />
+              <Input id="don-origen" name="origen" label="Origen o procedencia del aporte" placeholder="Ej. Campaña local, aporte corporativo" required maxlength={2000} />
             </div>
           </section>
 
@@ -203,10 +204,13 @@ const tiposRespaldo = [
       <dl class="don-detalle-grid mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {[
           { id: 'don-detalle-fecha', label: 'Fecha' },
-          { id: 'don-detalle-organizacion', label: 'Organización receptora' },
+          { id: 'don-detalle-organizacion', label: 'Organización del registro' },
+          { id: 'don-detalle-emisor', label: 'Quién entrega · origen' },
+          { id: 'don-detalle-receptor', label: 'Quién recibe · destino' },
+          { id: 'don-detalle-referencia', label: 'Referencia del registro' },
           { id: 'don-detalle-pais', label: 'País' },
           { id: 'don-detalle-programa', label: 'Programa Institucional' },
-          { id: 'don-detalle-donante', label: 'Tipo y origen del donante' },
+          { id: 'don-detalle-donante', label: 'Tipo de contraparte y procedencia del aporte' },
           { id: 'don-detalle-categoria', label: 'Categoría' },
           { id: 'don-detalle-aporte', label: 'Aporte' },
           { id: 'don-detalle-valor', label: 'Valorización estimada' },
@@ -237,6 +241,10 @@ const tiposRespaldo = [
         <Button id="don-adjuntar-respaldo" size="sm" class="solo-gestor shrink-0">
           + Adjuntar respaldo
         </Button>
+      </div>
+      <div class="mt-4 rounded-xl border border-[#DCD8EA] bg-[#F7F5FB] p-4">
+        <p class="text-sm text-neutral-600">Si el aporte de una empresa incluye un certificado de donación, adjúntalo aquí. Podrás consultarlo después con el filtro Certificados.</p>
+        <Button id="don-adjuntar-certificado" variant="outline" size="sm" class="solo-gestor mt-3">Adjuntar certificado de donación</Button>
       </div>
       <!-- Filtro por tipo de respaldo -->
       <div class="don-filtros mt-4 flex flex-wrap gap-2">

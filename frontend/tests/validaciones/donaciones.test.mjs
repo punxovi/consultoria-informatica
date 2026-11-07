@@ -200,3 +200,11 @@ test('validarRegistroDonacion: informa todos los errores a la vez, incluidas las
   }
   assert.ok(validarRegistroDonacion(registroBase).success);
 });
+
+
+test('partes: conserva el sentido histórico y no muta los registros', async () => {
+  const { partesDonacion } = await import('../../src/lib/donaciones/modelo.ts');
+  const recibida = Object.freeze({ tipo_movimiento: 'recibida', contraparte_nombre: 'Empresa solidaria' });
+  assert.deepEqual(partesDonacion(recibida, 'Comedor'), { entrega: 'Empresa solidaria', recibe: 'Comedor' });
+  assert.deepEqual(partesDonacion({ ...recibida, tipo_movimiento: 'entregada' }, 'Comedor'), { entrega: 'Comedor', recibe: 'Empresa solidaria' });
+});
