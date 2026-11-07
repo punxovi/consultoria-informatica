@@ -1,7 +1,8 @@
 import { ApiError } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteEvidencias } from './cliente';
-import { datosSchema, declaracion, tipoArchivo, type Evidencia } from './modelo';
+import { confirmar } from '../ui/confirmar';
+import { DECLARACION_RETIRADA, consentimientoOtorgado, datosSchema, declaracion, edicionSchema, personasDesde, tipoArchivo, type Cambios, type Evidencia } from './modelo';
 
 export function iniciarEvidencias() {
   const nodo = document.querySelector<HTMLElement>('#evidencias-accion');
@@ -17,7 +18,7 @@ export function iniciarEvidencias() {
     return data.session.access_token;
   });
   let ocupado = false, iniciado = false, habilitado = false, incierto = false;
-  let registros: Evidencia[] = [], seleccion: Evidencia | null = null, reserva: Evidencia | null = null;
+  let registros: Evidencia[] = [], seleccion: Evidencia | null = null, reserva: Evidencia | null = null, editando: Evidencia | null = null;
   let publicarAlCompletar = false;
   const valor = (id: string) => q<HTMLInputElement>(id).value;
   const marcado = (id: string) => q<HTMLInputElement>(id).checked;
@@ -27,7 +28,12 @@ export function iniciarEvidencias() {
     raiz.querySelectorAll<HTMLButtonElement>('button').forEach(b => { b.disabled = estado && b.id !== 'ev-detalle-cerrar'; });
     q<HTMLFieldSetElement>('campos').disabled = estado || !habilitado;
     q<HTMLButtonElement>('guardar').disabled = estado || incierto;
+    q<HTMLButtonElement>('nueva').disabled = estado || !habilitado;
     if (!estado && seleccion) controles();
+  }
+  // Igual que en Actas: el listado es la vista principal y el formulario se abre con «Agregar evidencia».
+  function vista(formulario: boolean) {
+    q('vista-lista').hidden = formulario; q('vista-form').hidden = !formulario; q('nueva').hidden = formulario;
   }
   function moverMensajes(alDetalle: boolean) {
     q(alDetalle ? 'detalle-mensajes' : 'mensajes').append(q('carga'), q('error'), q('exito'));
@@ -54,22 +60,39 @@ export function iniciarEvidencias() {
     const input = q(id); if (input.getAttribute('aria-invalid') === 'true') return;
     const error = document.createElement('p'); error.id = `${input.id}-error`; error.dataset.errorEvidencia = ''; error.className = 'mt-2 text-sm text-red-800'; error.textContent = mensaje;
     input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', `${id === 'archivo' ? 'ev-archivo-ayuda ' : ''}${error.id}`);
-    if (id === 'consentimiento' || id === 'tutor') input.parentElement!.after(error); else input.after(error);
+    if (id === 'consentimiento' || id === 'tutor') input.parentElement!.after(error);
+    else if (id === 'publicable') input.closest('label')!.after(error);
+    else input.after(error);
   }
   const estadoCarga = (e: Evidencia) => ({ reservado: 'Carga pendiente', disponible: 'Archivo disponible', fallido: 'Carga fallida' })[e.estado_carga];
   const estadoPublicacion = (e: Evidencia) => ({ no_publicada: 'Sin publicar', publicada: 'Publicada', retirada: 'Retirada' })[e.estado_publicacion];
   const fecha = (f?: string | null) => f && !Number.isNaN(Date.parse(f)) ? new Date(f).toLocaleString('es-CL') : 'No disponible';
   function render() {
-    q('cantidad').textContent = `${registros.length} ${registros.length === 1 ? 'archivo' : 'archivos'}`;
+    q('cantidad').textContent = `${registros.length} ${registros.length === 1 ? 'archivo registrado' : 'archivos registrados'}`;
     q('vacio').hidden = registros.length > 0; q('lista').replaceChildren();
     for (const item of registros) {
-      const card = document.createElement('article'); card.className = 'min-w-0 rounded-lg border border-neutral-200 p-4';
-      const nombre = document.createElement('h4'); nombre.className = 'break-words text-lg font-semibold'; nombre.textContent = item.nombre_original;
-      const descripcion = document.createElement('p'); descripcion.className = 'mt-2 line-clamp-2 break-words text-neutral-700'; descripcion.textContent = item.descripcion;
-      const estado = document.createElement('p'); estado.className = 'my-3 text-sm font-medium text-primary'; estado.textContent = `${estadoCarga(item)} · ${estadoPublicacion(item)}`;
-      const boton = document.createElement('button'); boton.type = 'button'; boton.className = 'min-h-[48px] font-medium text-primary underline'; boton.textContent = 'Ver evidencia';
+      const card = document.createElement('article'); card.className = 'min-w-0 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm';
+      const cabecera = document.createElement('div'); cabecera.className = 'flex min-w-0 items-start gap-3';
+      const tipo = document.createElement('span'); tipo.setAttribute('aria-hidden', 'true');
+      tipo.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0EAFE] text-[11px] font-bold uppercase text-[#7450D8]';
+      tipo.textContent = (item.nombre_original.split('.').pop() ?? '').slice(0, 4) || 'doc';
+      const textos = document.createElement('div'); textos.className = 'min-w-0 flex-1';
+      const nombre = document.createElement('h4'); nombre.className = 'break-words font-semibold text-neutral-900'; nombre.textContent = item.nombre_original;
+      const origen = document.createElement('p'); origen.className = 'mt-0.5 break-words text-xs text-neutral-500'; origen.textContent = `${item.origen} · ${fecha(item.incorporado_at)}`;
+      textos.append(nombre, origen); cabecera.append(tipo, textos);
+      const descripcion = document.createElement('p'); descripcion.className = 'mt-3 line-clamp-2 break-words text-sm text-neutral-700'; descripcion.textContent = item.descripcion;
+      const pie = document.createElement('div'); pie.className = 'mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-3';
+      const estados = document.createElement('p'); estados.className = 'flex flex-wrap gap-2 text-xs font-semibold';
+      const colorCarga = { reservado: 'bg-amber-50 text-amber-800', disponible: 'bg-emerald-50 text-emerald-800', fallido: 'bg-red-50 text-red-800' }[item.estado_carga];
+      const colorPublicacion = item.estado_publicacion === 'publicada' ? 'bg-[#EDEBFA] text-primary' : 'bg-neutral-100 text-neutral-600';
+      for (const [texto, color] of [[estadoCarga(item), colorCarga], [estadoPublicacion(item), colorPublicacion]]) {
+        const chip = document.createElement('span'); chip.className = `inline-flex rounded-full px-2.5 py-1 ${color}`; chip.textContent = texto; estados.append(chip);
+      }
+      const boton = document.createElement('button'); boton.type = 'button'; boton.className = 'inline-flex min-h-[40px] items-center rounded-lg border-2 border-primary px-3 text-sm font-medium text-primary hover:bg-primary/5'; boton.textContent = 'Ver detalle';
       boton.dataset.evidenciaId = item.id_evidencia; boton.setAttribute('aria-haspopup', 'dialog'); boton.setAttribute('aria-controls', 'ev-detalle');
-      boton.addEventListener('click', () => consultar(item)); card.append(nombre, descripcion, estado, boton); q('lista').append(card);
+      boton.setAttribute('aria-label', `Ver detalle de ${item.nombre_original}`);
+      boton.addEventListener('click', () => consultar(item)); pie.append(estados, boton);
+      card.append(cabecera, descripcion, pie); q('lista').append(card);
     }
   }
   function actualizar(item: Evidencia) {
@@ -82,14 +105,7 @@ export function iniciarEvidencias() {
     q('detalle-acciones').hidden = false;
     q('descargar').hidden = seleccion.estado_carga !== 'disponible';
     q('reintentar').hidden = seleccion.estado_carga !== 'reservado';
-    q('publicar').hidden = seleccion.estado_carga !== 'disponible';
-    q('publicar').textContent = seleccion.estado_publicacion === 'publicada' ? 'Retirar publicación' : 'Permitir publicación';
-    q<HTMLButtonElement>('publicar').disabled = ocupado || (seleccion.estado_publicacion !== 'publicada' && seleccion.consentimiento_declarado !== true);
-    q('revocar').hidden = seleccion.consentimiento_declarado !== true;
     q('sin-consentimiento').hidden = seleccion.consentimiento_declarado === true;
-    const enlace = q<HTMLAnchorElement>('enlace-publico');
-    enlace.hidden = seleccion.estado_publicacion !== 'publicada' || seleccion.consentimiento_declarado !== true || seleccion.estado_carga !== 'disponible';
-    if (enlace.hidden) enlace.removeAttribute('href'); else enlace.href = cliente.enlacePublico(seleccion);
   }
   function detalle(item: Evidencia) {
     seleccion = item; q('detalle-titulo').textContent = item.nombre_original;
@@ -116,8 +132,68 @@ export function iniciarEvidencias() {
     catch (error) { fallo(error); } finally { bloquear(false); }
   }
   function reset() {
-    reserva = null; publicarAlCompletar = false; form.reset(); q('metadatos').hidden = false; q('pendiente').hidden = true;
-    q('form-titulo').textContent = 'Adjuntar evidencia'; q('guardar').textContent = 'Guardar evidencia'; personas();
+    reserva = null; editando = null; publicarAlCompletar = false; form.reset(); q('metadatos').hidden = false; q('pendiente').hidden = true;
+    q('paso-archivo').hidden = false; q('edicion-archivo').hidden = true; q('edicion-consentimiento').hidden = true;
+    q<HTMLInputElement>('publicable').disabled = false;
+    q('publicable-ayuda').textContent = 'Se marcará como publicada solo después de completar la carga. Si no lo marcas, queda sin publicar.';
+    q('form-titulo').textContent = 'Adjuntar evidencia'; q('guardar-texto').textContent = 'Guardar evidencia';
+    q('form-ayuda').textContent = 'Los campos con * son obligatorios. El archivo queda vinculado a esta acción.';
+    personas();
+  }
+  function prepararEdicion(item: Evidencia) {
+    reset(); editando = item; vista(true);
+    q('paso-archivo').hidden = true; q('edicion-archivo').hidden = false; q('edicion-nombre').textContent = item.nombre_original;
+    q('edicion-consentimiento').hidden = false;
+    q('form-titulo').textContent = 'Editar evidencia'; q('guardar-texto').textContent = 'Guardar cambios';
+    q('form-ayuda').textContent = 'Modifica la información, el consentimiento o la publicación de esta evidencia.';
+    q<HTMLInputElement>('origen').value = item.origen; q<HTMLTextAreaElement>('descripcion').value = item.descripcion;
+    const eleccion = personasDesde(item);
+    q<HTMLSelectElement>('personas').value = eleccion; personas();
+    q<HTMLInputElement>('consentimiento').checked = eleccion === 'adultos' || eleccion === 'menores';
+    q<HTMLInputElement>('tutor').checked = eleccion === 'menores';
+    const publicable = q<HTMLInputElement>('publicable');
+    publicable.checked = item.estado_publicacion === 'publicada';
+    publicable.disabled = item.estado_carga !== 'disponible';
+    q('publicable-ayuda').textContent = item.estado_carga !== 'disponible'
+      ? 'Podrás publicarla cuando se complete la carga del archivo.'
+      : 'Si la desmarcas, la evidencia publicada se retira de la publicación.';
+    q<HTMLInputElement>('origen').focus();
+  }
+  async function guardarEdicion(item: Evidencia) {
+    const datos = edicionSchema.safeParse({ origen: valor('origen'), descripcion: valor('descripcion'), personas: valor('personas'),
+      consentimiento: marcado('consentimiento'), tutor: marcado('tutor'), publicable: marcado('publicable') });
+    if (!datos.success) {
+      for (const issue of datos.error.issues) errorCampo(String(issue.path[0]), issue.message);
+      form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return;
+    }
+    const d = datos.data, cambios: Cambios = {}, resumen: string[] = [];
+    if (d.origen !== item.origen) { cambios.origen = d.origen; resumen.push('Origen'); }
+    if (d.descripcion !== item.descripcion) { cambios.descripcion = d.descripcion; resumen.push('Descripción'); }
+    let retiraConsentimiento = false;
+    if (consentimientoOtorgado(d)) {
+      const nueva = declaracion({ ...d, publicable: false });
+      if (item.consentimiento_declarado !== true || nueva.declaracion_consentimiento !== item.declaracion_consentimiento) { cambios.consentimiento = nueva; resumen.push('Consentimiento'); }
+    } else if (item.consentimiento_declarado !== false) {
+      cambios.consentimiento = { consentimiento_declarado: false, declaracion_consentimiento: DECLARACION_RETIRADA };
+      resumen.push('Consentimiento (se retira)'); retiraConsentimiento = true;
+    }
+    let retiraPublicacion = false;
+    if (d.publicable && item.estado_publicacion !== 'publicada') { cambios.estado_publicacion = 'publicada'; resumen.push('Publicación (se publica)'); }
+    if (!d.publicable && item.estado_publicacion === 'publicada') { cambios.estado_publicacion = 'retirada'; resumen.push('Publicación (se retira)'); retiraPublicacion = true; }
+    if (!resumen.length) { reset(); vista(false); q('exito').textContent = 'No había cambios que guardar.'; q('exito').hidden = false; return; }
+    const delicado = retiraConsentimiento || retiraPublicacion;
+    const ok = await confirmar({
+      titulo: '¿Guardar los cambios de esta evidencia?',
+      mensaje: `Se actualizará «${item.nombre_original}».\nCambios: ${resumen.join(', ')}.`,
+      aviso: delicado ? 'La evidencia dejará de estar publicada. Revisa la información antes de confirmar.' : 'Esta operación modificará los registros del sistema. Revisa la información antes de confirmar.',
+      confirmar: 'Guardar cambios', tono: delicado ? 'peligro' : 'normal',
+    });
+    if (!ok) return;
+    bloquear(true, 'Guardando cambios…');
+    try {
+      const r = await cliente.actualizar(item, cambios); actualizar(r); reset(); vista(false);
+      q('exito').textContent = 'Evidencia actualizada correctamente.'; q('exito').hidden = false;
+    } catch (error) { fallo(error); } finally { bloquear(false); }
   }
   async function cargar() {
     if (ocupado) return; limpiar(); bloquear(true, 'Cargando evidencias…');
@@ -142,6 +218,7 @@ export function iniciarEvidencias() {
   q('personas').addEventListener('change', personas);
   form.addEventListener('submit', async evento => {
     evento.preventDefault(); if (ocupado || incierto || !habilitado) return; limpiar();
+    if (editando) { await guardarEdicion(editando); return; }
     const file = archivo.files?.[0]; let mime = '';
     try { if (!file) throw new Error('Selecciona un archivo.'); mime = tipoArchivo(file); }
     catch (error) { errorCampo('archivo', (error as Error).message); }
@@ -168,7 +245,7 @@ export function iniciarEvidencias() {
         reserva = await cliente.subir(reserva, file);
       }
       cargada = true;
-      let resultado = reserva; actualizar(resultado); detalle(resultado); reset();
+      let resultado = reserva; actualizar(resultado); detalle(resultado); reset(); vista(false);
       if (publicar) { q('carga').textContent = 'Actualizando publicación…'; resultado = await cliente.actualizar(resultado, { estado_publicacion: 'publicada' }); actualizar(resultado); detalle(resultado); }
       q('exito').textContent = publicar ? 'Archivo guardado y marcado como publicado.' : 'Archivo guardado correctamente. Puedes consultar su estado de publicación en el detalle.';
       q('exito').hidden = false;
@@ -183,9 +260,9 @@ export function iniciarEvidencias() {
     } finally { bloquear(false); }
   });
   function prepararReintento(item: Evidencia, limpiarArchivo = true) {
-    reserva = item; q('metadatos').hidden = true; q('pendiente').hidden = false;
+    reserva = item; vista(true); q('metadatos').hidden = true; q('pendiente').hidden = false;
     q('pendiente').textContent = `Completa la carga de «${item.nombre_original}». El origen, la descripción y el consentimiento ya están registrados. Selecciona el mismo archivo.`;
-    q('form-titulo').textContent = 'Completar carga pendiente'; q('guardar').textContent = 'Reintentar carga';
+    q('form-titulo').textContent = 'Completar carga pendiente'; q('guardar-texto').textContent = 'Reintentar carga';
     if (limpiarArchivo) archivo.value = ''; archivo.focus();
   }
   q('reintentar').addEventListener('click', () => {
@@ -194,29 +271,16 @@ export function iniciarEvidencias() {
     }
   });
   q('cancelar').addEventListener('click', () => {
-    if (ocupado) return; const pendiente = !!reserva; limpiar(); reset();
+    if (ocupado) return; const pendiente = !!reserva; limpiar(); reset(); vista(false); q('nueva').focus();
     if (pendiente) { q('exito').textContent = 'Se cerró el formulario. El registro pendiente se conserva y puedes completar su carga desde el listado.'; q('exito').hidden = false; }
   });
-  q('recargar').addEventListener('click', cargar);
-  q('publicar').addEventListener('click', async () => {
-    if (ocupado || !seleccion) return;
-    const retirar = seleccion.estado_publicacion === 'publicada';
-    if (!window.confirm(retirar ? '¿Retirar la publicación de esta evidencia?' : '¿Marcar esta evidencia como publicada? Podrá utilizarse en la publicación institucional.')) return;
-    limpiar(); bloquear(true, 'Actualizando publicación…');
-    try { const r = await cliente.actualizar(seleccion, { estado_publicacion: retirar ? 'retirada' : 'publicada' }); actualizar(r); detalle(r); q('exito').textContent = retirar ? 'Publicación retirada.' : 'Evidencia marcada como publicada.'; q('exito').hidden = false; }
-    catch (error) { fallo(error); } finally { bloquear(false); }
+  q('nueva').addEventListener('click', () => {
+    if (ocupado || !habilitado) return; limpiar(); reset(); vista(true); archivo.focus();
   });
-  q('revocar').addEventListener('click', async () => {
+  q('recargar').addEventListener('click', cargar);
+  q('editar').addEventListener('click', () => {
     if (ocupado || !seleccion) return;
-    const motivo = window.prompt('Indica el motivo de revocación del consentimiento. Si está publicada, también se retirará.');
-    if (motivo === null) return;
-    limpiar(); if (!motivo.trim() || motivo.trim().length > 5000) { fallo(new Error('Indica un motivo de entre 1 y 5000 caracteres.')); return; }
-    bloquear(true, 'Registrando revocación…');
-    try {
-      const r = await cliente.actualizar(seleccion, { consentimiento: { consentimiento_declarado: false, declaracion_consentimiento: motivo.trim() },
-        ...(seleccion.estado_publicacion === 'publicada' ? { estado_publicacion: 'retirada' as const } : {}) });
-      actualizar(r); detalle(r); q('exito').textContent = 'Consentimiento revocado. La evidencia no puede publicarse.'; q('exito').hidden = false;
-    } catch (error) { fallo(error); } finally { bloquear(false); }
+    const item = seleccion; limpiar(); focoAlCerrar = q('origen'); dialogo.close(); prepararEdicion(item);
   });
   q('descargar').addEventListener('click', async () => {
     if (ocupado || !seleccion) return; limpiar(); bloquear(true, 'Preparando descarga…');
