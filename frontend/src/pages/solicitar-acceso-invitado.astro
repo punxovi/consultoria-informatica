@@ -38,8 +38,7 @@ import Card from '../components/ui/Card.astro';
           </div>
 
           <div id="guest-info" class="info-alert hidden" role="status">
-            El formulario está validado, pero el envío estará disponible
-            cuando se integre el servicio de solicitudes.
+            Solicitud registrada. Un Administrador revisará tu acceso y recibirás un enlace por correo si se aprueba.
           </div>
 
           <form id="guest-request-form" class="auth-form" novalidate>
@@ -76,7 +75,6 @@ import Card from '../components/ui/Card.astro';
                 name="institucion"
                 type="text"
                 placeholder="Nombre de tu institución"
-                required
               />
             </div>
 
@@ -87,7 +85,6 @@ import Card from '../components/ui/Card.astro';
                 name="motivo"
                 rows="4"
                 placeholder="Cuéntanos por qué necesitas acceder a la intranet..."
-                required
               ></textarea>
             </div>
 
@@ -118,12 +115,13 @@ import Card from '../components/ui/Card.astro';
 </Layout>
 
 <script>
+  import { createAuthTransport } from '../lib/auth/transporte';
   const form = document.getElementById('guest-request-form') as HTMLFormElement;
   const error = document.getElementById('guest-error');
   const errorMessage = document.getElementById('guest-error-message');
   const info = document.getElementById('guest-info');
 
-  form?.addEventListener('submit', (event) => {
+  form?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     error?.classList.add('hidden');
@@ -134,9 +132,9 @@ import Card from '../components/ui/Card.astro';
     const institucion = (document.getElementById('guest-institution') as HTMLInputElement).value.trim();
     const motivo = (document.getElementById('guest-reason') as HTMLTextAreaElement).value.trim();
 
-    if (!nombre || !correo || !institucion || !motivo) {
+    if (!nombre || !correo) {
       if (errorMessage) {
-        errorMessage.textContent = 'Completa todos los campos para continuar.';
+        errorMessage.textContent = 'Completa el nombre y el correo para continuar.';
       }
       error?.classList.remove('hidden');
       return;
@@ -150,7 +148,17 @@ import Card from '../components/ui/Card.astro';
       return;
     }
 
-    info?.classList.remove('hidden');
+    const button = document.getElementById('guest-submit') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const transport = createAuthTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000');
+      await transport.request('/api/v1/guests/request', { method: 'POST', body: { nombre, correo, ...(institucion ? { institucion } : {}), ...(motivo ? { motivo } : {}) } });
+      info?.classList.remove('hidden');
+      form.reset();
+    } catch (cause) {
+      if (errorMessage) errorMessage.textContent = cause instanceof Error ? cause.message : 'No fue posible registrar la solicitud.';
+      error?.classList.remove('hidden');
+    } finally { button.disabled = false; }
   });
 </script>
 

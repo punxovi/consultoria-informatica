@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 
-const PUBLIC_PATHS = new Set(['/','/catalogo','/cotizar','/login','/recuperar-contrasena','/cambiar-contrasena','/solicitar-acceso-invitado']);
+const PUBLIC_PATHS = new Set(['/','/catalogo','/cotizar','/login','/recuperar-contrasena','/cambiar-contrasena','/solicitar-acceso-invitado','/invitado/acceso']);
 const PUBLIC_PREFIXES = ['/api/v1/public/','/_astro/','/favicon','/Logo-'];
 
 function isPublic(pathname: string) {
@@ -21,6 +21,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     try { accessToken = decodeURIComponent(token); } catch { return context.redirect('/login', 302); }
     const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, { headers: { apikey: anonKey, authorization: `Bearer ${accessToken}` } });
     if (!response.ok) return context.redirect('/login', 302);
+    const validity = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/get_user_roles`, {
+      method: 'POST', headers: { apikey: anonKey, authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' }, body: '{}',
+    });
+    if (!validity.ok) return context.redirect('/login', 302);
+    const roles = await validity.json();
+    if (!Array.isArray(roles) || roles.length === 0) return context.redirect('/login', 302);
   } catch {
     return context.redirect('/login', 302);
   }
