@@ -1,4 +1,5 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import Button from '../../components/ui/Button.astro';
 import Card from '../../components/ui/Card.astro';
 import EmptyState from '../../components/ui/EmptyState.astro';
@@ -78,8 +79,8 @@ const claseControl =
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         <p id="coord-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando cuentas…</p>
         <div class="flex flex-wrap gap-2">
-          <Button id="coord-limpiar" variant="outline" size="lg" disabled>Limpiar filtros</Button>
-          <Button id="coord-recargar" variant="outline" size="lg">Recargar</Button>
+          <Button id="coord-limpiar" variant="outline" size="lg" disabled> <Icono nombre="limpiar" />Limpiar filtros</Button>
+          <Button id="coord-recargar" variant="outline" size="lg"> <Icono nombre="actualizar" />Recargar</Button>
         </div>
       </div>
     </Card>

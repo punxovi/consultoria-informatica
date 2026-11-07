@@ -1,4 +1,5 @@
 ---
+import Icono from '../ui/Icono.astro';
 import Layout from '../../layouts/Layout.astro';
 import Button from '../ui/Button.astro';
 import EncabezadoPublico from '../publico/EncabezadoPublico.astro';
@@ -43,7 +44,7 @@ const pasos = [
               </span>
               <h2 id="catalogo-filtros-titulo" class="text-xl font-bold">Filtrar catálogo</h2>
             </div>
-            <Button id="catalogo-limpiar" variant="ghost" size="sm" disabled>Restablecer filtros</Button>
+            <Button id="catalogo-limpiar" variant="ghost" size="sm" disabled> <Icono nombre="limpiar" />Restablecer filtros</Button>
           </div>
           <div class="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-end">
             <fieldset class="min-w-0">

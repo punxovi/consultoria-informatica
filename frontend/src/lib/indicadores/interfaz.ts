@@ -1,3 +1,4 @@
+import { iconoSvg } from '../ui/iconos.ts';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteIndicadores } from './cliente';
@@ -73,7 +74,10 @@ export function iniciarIndicadores() {
     }
   }
   function boton(texto: string, accion: () => void) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'min-h-[48px] rounded-lg border-2 border-primary px-4 py-2 font-medium text-primary hover:bg-primary/5'; b.textContent = texto; b.addEventListener('click', accion); return b;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg border-2 border-primary px-4 py-2 font-medium text-primary hover:bg-primary/5'; b.textContent = texto;
+    // Mismo ícono de «Editar» que en el resto de la aplicación.
+    if (texto.startsWith('Editar')) b.insertAdjacentHTML('afterbegin', iconoSvg('editar'));
+    b.addEventListener('click', accion); return b;
   }
   function renderSeguimiento() {
     q('cantidad').textContent = `${indicadores.length} ${indicadores.length === 1 ? 'indicador' : 'indicadores'}`;

@@ -1,4 +1,5 @@
 ---
+import Icono from '../components/ui/Icono.astro';
 import AppLayout from '../layouts/AppLayout.astro';
 import { mainNavItems } from '../config/nav';
 import Card from '../components/ui/Card.astro';
@@ -67,48 +68,41 @@ import Button from '../components/ui/Button.astro';
     </section>
 
     <Card class="p-4 md:p-5">
-      <div class="flex items-start gap-3">
+      <div class="mb-4 flex items-start gap-3">
         <span class="rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M7 12h10m-7 6h4" />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" /></svg>
         </span>
         <div>
-          <h2 class="font-semibold text-neutral-900">Filtrar programas</h2>
-          <p class="mt-1 text-sm text-neutral-500">
-            Combina año, nombre y organización. Los filtros de año y organización consideran los planes asociados a cada programa.
-          </p>
+          <h2 class="text-lg font-semibold text-neutral-900">Filtrar programas</h2>
+          <p class="mt-1 text-sm text-neutral-500">Combina nombre, año y organización. El año y la organización consideran los planes asociados a cada programa.</p>
         </div>
       </div>
 
-      <div class="mt-5 grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+        <div class="min-w-0 space-y-1.5">
+          <label for="programas-busqueda" class="block text-sm font-medium text-neutral-800">Nombre del programa</label>
+          <input id="programas-busqueda" type="search" placeholder="Ej.: Donación de recursos…" autocomplete="off" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-neutral-400" />
+        </div>
         <div class="min-w-0 space-y-1.5">
           <label for="programas-filtro-anio" class="block text-sm font-medium text-neutral-800">Año del plan</label>
-          <select id="programas-filtro-anio" disabled class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+          <select id="programas-filtro-anio" disabled class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="">Todos los años</option>
           </select>
         </div>
         <div class="min-w-0 space-y-1.5">
-          <label for="programas-busqueda" class="block text-sm font-medium text-neutral-800">Nombre del programa</label>
-          <input
-            id="programas-busqueda"
-            type="search"
-            placeholder="Ej.: Donación de recursos…"
-            autocomplete="off"
-            class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div class="min-w-0 space-y-1.5">
           <label for="programas-filtro-organizacion" class="block text-sm font-medium text-neutral-800">Organización</label>
-          <select id="programas-filtro-organizacion" disabled class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+          <select id="programas-filtro-organizacion" disabled class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="">Todas las organizaciones</option>
           </select>
         </div>
       </div>
       <p id="programas-filtros-aviso" hidden role="status" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"></p>
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
-        <p id="programas-conteo-filtrado" class="text-sm text-neutral-500">Cargando programas…</p>
-        <Button id="limpiar-programas" variant="outline" disabled>Limpiar filtros</Button>
+        <p id="programas-conteo-filtrado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando programas…</p>
+        <Button id="limpiar-programas" variant="outline" disabled>
+          <Icono nombre="limpiar" />
+          Limpiar filtros
+        </Button>
       </div>
     </Card>
 
@@ -119,14 +113,12 @@ import Button from '../components/ui/Button.astro';
           <p class="mt-1 text-sm text-neutral-500">Selecciona un programa para consultar su información.</p>
         </div>
         <Button id="recargar-programas" variant="outline">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m-4.5-3A8 8 0 0 1 18 6l2 6M4 12l2 6a8 8 0 0 0 12.5-1" />
-          </svg>
+          <Icono nombre="actualizar" />
           Actualizar listado
         </Button>
       </div>
 
-      <p id="programas-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando programas…</p>
+      <p id="programas-estado" role="status" aria-live="polite" class="text-sm text-neutral-500 empty:hidden">Cargando programas…</p>
       <p id="programas-error" role="alert" hidden class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
       <div id="programas-listado" aria-busy="true" class="grid grid-cols-1 gap-4"></div>
       <div id="programas-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-10 text-center">
@@ -314,9 +306,8 @@ import Button from '../components/ui/Button.astro';
     conteoFiltrado.textContent = programas.length
       ? `${coincidencias.length} de ${programas.length} ${programas.length === 1 ? 'programa registrado' : 'programas registrados'}.`
       : 'No hay programas registrados actualmente.';
-    estado.textContent = programas.length
-      ? 'Programas cargados.'
-      : 'No hay programas registrados actualmente.';
+    // Con datos no se muestra un aviso: el conteo ya está en la tarjeta de filtros.
+    estado.textContent = programas.length ? '' : 'No hay programas registrados actualmente.';
     listado.setAttribute('aria-busy', 'false');
   }
 

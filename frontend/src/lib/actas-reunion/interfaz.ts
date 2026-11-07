@@ -1,3 +1,4 @@
+import { iconoSvg } from '../ui/iconos.ts';
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 import { getSupabaseClient } from '../supabase.ts';
 import { camposActaSchema, type AdjuntoActa, type ActaReunion, type CatalogoActas } from './modelo.ts';
@@ -177,7 +178,7 @@ export async function iniciarActasReunion() {
     boton.className = 'actas-adjunto-eliminar';
     boton.setAttribute('aria-label', `Eliminar ${nombreArchivo}`);
     boton.title = 'Eliminar archivo';
-    boton.innerHTML = `<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5.5 7l.8 13h11.4l.8-13M9 7V4h6v3"/></svg><span>${etiqueta}</span>`;
+    boton.innerHTML = `${iconoSvg('eliminar')}<span>${etiqueta}</span>`;
     boton.addEventListener('click', accion);
     return boton;
   }

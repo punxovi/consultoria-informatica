@@ -1,0 +1,14 @@
+---
+import { trazosIcono, type NombreIcono } from '../../lib/ui/iconos';
+
+// Ícono común de acción (Editar, Actualizar, Limpiar, Eliminar) para botones.
+interface Props {
+  nombre: NombreIcono;
+  class?: string;
+}
+
+const { nombre, class: clase = 'h-4 w-4' } = Astro.props;
+---
+<svg xmlns="http://www.w3.org/2000/svg" class={clase} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d={trazosIcono[nombre]} />
+</svg>

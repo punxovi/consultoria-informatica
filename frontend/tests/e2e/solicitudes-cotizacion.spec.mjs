@@ -32,7 +32,23 @@ test('estado permitido, validación, versión, confirmación y doble clic',async
  await page.locator('#sol-guardar').click();await expect(page.locator('#sol-estado-error')).toContainText('Selecciona');
  await page.locator('#sol-estado').selectOption('en_gestion');let liberar;actualizacion=new Promise(r=>liberar=r);await page.locator('#sol-guardar').click();await expect(page.locator('#sol-guardar')).toBeDisabled();await expect(page.locator('#sol-recargar')).toBeDisabled();
  await expect.poll(()=>requests.filter(r=>r.method()==='PATCH').length).toBe(1);expect(requests.find(r=>r.method()==='PATCH').postDataJSON()).toEqual({version_esperada:1,estado:'en_gestion'});
- liberar();await expect(page.locator('#sol-detalle-carga')).toHaveText('Estado actualizado correctamente.');await expect(page.locator('#sol-nuevas')).toHaveText('0');
+ liberar();
+ // Al guardar se cierra el detalle y el listado queda actualizado.
+ await expect(page.locator('#sol-dialogo')).not.toBeVisible();
+ await expect(page.locator('#sol-confirmacion')).toContainText('Solicitante 1 a «En gestión»');
+ await expect(page.locator('#sol-nuevas')).toHaveText('0');
+ await expect(page.locator('#sol-lista article').first()).toContainText('En gestión');
+});
+test('filtra por cada estado y no permite volver a «Nueva»',async({page})=>{
+ datos=[base('1','solicitada'),base('2','cotizada'),{...base('3','en_gestion'),estados_permitidos:['solicitada','cotizada','cerrada','rechazada']},base('4','cerrada'),base('5','rechazada')];
+ await abrir(page);
+ for(const [valor,nombre] of [['en_gestion','Solicitante 3'],['cotizada','Solicitante 2'],['cerrada','Solicitante 4'],['rechazada','Solicitante 5'],['nuevas','Solicitante 1']]){
+  await page.locator('#sol-filtro').selectOption(valor);await expect(page.locator('#sol-lista article')).toHaveCount(1);await expect(page.locator('#sol-lista')).toContainText(nombre);
+ }
+ await page.locator('#sol-filtro').selectOption('gestionadas');await expect(page.locator('#sol-lista article')).toHaveCount(4);
+ await page.locator('#sol-filtro').selectOption('en_gestion');await page.getByRole('button',{name:'Ver solicitud de Solicitante 3'}).click();
+ await expect(page.locator('#sol-form')).toBeVisible();
+ await expect(page.locator('#sol-estado option')).toHaveText(['Selecciona un nuevo estado','Cotizada','Cerrada','Rechazada']);
 });
 test('error de servicio, reintento y vacío',async({page})=>{
  error=404;await page.goto('/cotizaciones');await expect(page.locator('#sol-error')).toContainText('todavía no está disponible');error=0;datos=[];await page.locator('#sol-reintentar').click();await expect(page.locator('#sol-carga')).toContainText('No hay solicitudes');

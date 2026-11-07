@@ -1,4 +1,5 @@
 ---
+import Icono from '../ui/Icono.astro';
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
@@ -42,6 +43,7 @@ const tiposRespaldo = [
     </div>
     <div class="flex flex-wrap items-center gap-3">
       <Button id="don-recargar" variant="outline" size="sm">
+        <Icono nombre="actualizar" />
         Recargar
       </Button>
       <Button id="don-nueva" size="sm" class="solo-gestor">
@@ -194,7 +196,7 @@ const tiposRespaldo = [
           <h3 id="don-detalle-contraparte" class="mt-2 break-words text-xl font-semibold text-neutral-900"></h3>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button id="don-editar" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[#D8D2E8] bg-white px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F7F5FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">Editar datos</button>
+          <button id="don-editar" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#D8D2E8] bg-white px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F7F5FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"> <Icono nombre="editar" />Editar datos</button>
           <button id="don-avanzar-estado" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#4C4688] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#423C76] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"></button>
         </div>
       </div>
