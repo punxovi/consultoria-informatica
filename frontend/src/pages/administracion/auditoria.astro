@@ -26,7 +26,7 @@ const control = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-w
     </header>
     <Card class="border-l-4 border-l-primary p-5">
       <h2 class="text-lg font-semibold">Buscar en el historial</h2>
-      <p class="mt-1 mb-5 text-sm text-neutral-500">Todos los filtros son opcionales y se pueden combinar. Las fechas incluyen ambos días.</p>
+      <p class="mt-1 mb-5 text-sm text-neutral-500">Todos los filtros son opcionales y se pueden combinar. Las fechas incluyen ambos días y se interpretan en tu hora local.</p>
       <form id="audit-form" novalidate>
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {campos.map(([id, label, tipo, placeholder]) => <div class="min-w-0">

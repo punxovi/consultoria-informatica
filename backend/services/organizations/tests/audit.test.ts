@@ -23,6 +23,24 @@ test('consulta auditoría: valida tipos, rango y cursor opaco', () => {
     error => error instanceof AuditError && error.fields?.cursor?.length === 1);
 });
 
+test('consulta auditoría: acepta la zona horaria IANA y solo las categorías que muestra la pantalla', () => {
+  const filtros = parseAuditQuery(new URLSearchParams({ desde: '2026-11-06', hasta: '2026-11-06', zona_horaria: 'America/Santiago', operacion: 'crear' }));
+  assert.equal(filtros.zonaHoraria, 'America/Santiago');
+  assert.equal(filtros.operacion, 'crear');
+  for (const zona of ['America/Argentina/Buenos_Aires', 'America/Port-au-Prince', 'Etc/GMT+3', 'UTC']) {
+    assert.equal(parseAuditQuery(new URLSearchParams({ zona_horaria: zona })).zonaHoraria, zona);
+  }
+  for (const zona of ['../etc/passwd', 'America/Santiago;DROP', 'a b', 'x'.repeat(65)]) {
+    assert.throws(() => parseAuditQuery(new URLSearchParams({ zona_horaria: zona })),
+      error => error instanceof AuditError && error.fields?.zona_horaria?.length === 1, zona);
+  }
+  // Los valores técnicos mezclaban inicios de sesión con «Creó»; ya no se admiten.
+  for (const operacion of ['INSERT', 'UPDATE', 'cualquiera']) {
+    assert.throws(() => parseAuditQuery(new URLSearchParams({ operacion })),
+      error => error instanceof AuditError && error.fields?.operacion?.[0] === 'Selecciona una acción válida.', operacion);
+  }
+});
+
 test('repositorio auditoría: conserva los datos para describir el evento en lenguaje claro', async () => {
   const claro = { ...event, correo: 'admin@fge.test', nombre_usuario: 'Administradora QA', nombre_registro: 'Cooperativa QA',
     campos_modificados: ['telefono'], cambio_estado: null, accion_especial: null };
@@ -42,12 +60,12 @@ test('repositorio auditoría: usa RPC, JWT y cursor estable', async () => {
       return Response.json({ events: [event], next_cursor: { fecha_hora: event.fecha_hora, id: event.id } });
     },
   });
-  const page = await repository.list('jwt-qa', { usuario: 'Ana', limit: 50 });
+  const page = await repository.list('jwt-qa', { usuario: 'Ana', zonaHoraria: 'America/Santiago', limit: 50 });
   assert.equal(call?.url, 'https://project.example/rest/v1/rpc/consultar_eventos_auditoria');
   assert.equal(new Headers(call?.init?.headers).get('authorization'), 'Bearer jwt-qa');
   assert.deepEqual(JSON.parse(String(call?.init?.body)), { p_filtros: {
     usuario: 'Ana', pais: null, desde: null, hasta: null, operacion: null, entidad: null,
-    limit: 50, cursor_fecha: null, cursor_id: null,
+    zona_horaria: 'America/Santiago', limit: 50, cursor_fecha: null, cursor_id: null,
   } });
   assert.deepEqual(page.events, [event]);
   assert.ok(page.nextCursor);
