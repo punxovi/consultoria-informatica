@@ -148,8 +148,11 @@ import Button from '../components/ui/Button.astro';
   import { descargarImagenOrganizacion, listarOrganizaciones, listarPaisesOrganizaciones } from '../lib/organizaciones/cliente';
   import { IMAGEN_ORGANIZACION_PREDETERMINADA } from '../lib/organizaciones/imagen';
   import { listarProgramas } from '../lib/programas/cliente';
+  import { paisOperativo } from '../lib/territorio/contexto';
   import type { Organizacion, PaisResumen } from '../lib/modelos/organizaciones';
 
+  let territorio: string | null = null;
+  let territorial = false;
   type FiltrosListado = {
     q: string;
     id_pais: string;
@@ -184,7 +187,7 @@ import Button from '../components/ui/Button.astro';
   function obtenerFiltrosSeleccionados(): FiltrosListado {
     return {
       q: inputBusqueda.value.trim(),
-      id_pais: selectPais.value,
+      id_pais: territorio || selectPais.value,
       id_programa: selectPrograma.value,
     };
   }
@@ -480,7 +483,7 @@ import Button from '../components/ui/Button.astro';
           idPrograma: filtros.id_programa || undefined,
         }),
         // El total sin filtros se consulta solo si aún no se conoce.
-        hayFiltros && totalRegistradas === null ? listarOrganizaciones({}).catch(() => null) : Promise.resolve(null),
+        hayFiltros && totalRegistradas === null ? listarOrganizaciones({ idPais: territorio || undefined }).catch(() => null) : Promise.resolve(null),
       ]);
       if (solicitud !== solicitudActual) return;
       if (!hayFiltros) totalRegistradas = datos.length;
@@ -499,6 +502,7 @@ import Button from '../components/ui/Button.astro';
   }
 
   function aplicarFiltros(debounce = true) {
+    if (territorial && !territorio) return;
     const filtros = obtenerFiltrosSeleccionados();
     sincronizarFiltrosEnUrl(filtros);
     renderizarFiltrosActivos(filtros);
@@ -523,7 +527,7 @@ import Button from '../components/ui/Button.astro';
         cargarProgramasDisponibles(),
       ]);
       poblarFiltroPaises(paises);
-      selectPais.disabled = false;
+      selectPais.disabled = territorial;
       selectPais.value = parametrosIniciales.get('id_pais') ?? '';
       if (selectPais.value !== (parametrosIniciales.get('id_pais') ?? '')) selectPais.value = '';
       if (catalogoProgramasDisponible) {
@@ -531,6 +535,7 @@ import Button from '../components/ui/Button.astro';
         selectPrograma.value = parametrosIniciales.get('id_programa') ?? '';
         if (selectPrograma.value !== (parametrosIniciales.get('id_programa') ?? '')) selectPrograma.value = '';
       }
+      if (territorio) selectPais.value = territorio;
       catalogosListos = true;
       aplicarFiltros(false);
     } catch (fallo) {
@@ -561,7 +566,7 @@ import Button from '../components/ui/Button.astro';
 
   limpiarBoton.addEventListener('click', () => {
     inputBusqueda.value = '';
-    selectPais.value = '';
+    selectPais.value = territorio || '';
     selectPrograma.value = '';
     aplicarFiltros(false);
     inputBusqueda.focus();
@@ -569,5 +574,26 @@ import Button from '../components/ui/Button.astro';
 
   actualizarBoton.addEventListener('click', () => aplicarFiltros(false));
   renderizarFiltrosActivos();
-  void cargarCatalogos();
+  window.addEventListener('fge:territorio-cambiado', (event) => {
+    const id = (event as CustomEvent<{id_pais:string}>).detail.id_pais;
+    if (!territorial || id === territorio) return;
+    territorio = id;
+    solicitudActual += 1;
+    totalRegistradas = null;
+    if (temporizadorBusqueda !== undefined) window.clearTimeout(temporizadorBusqueda);
+    selectPais.value = id;
+    selectPrograma.value = '';
+    limpiarLista(); limpiarResumen();
+    if (!id) {
+      catalogosListos = false;
+      errorElement.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.';
+      errorElement.hidden = false;
+      return;
+    }
+    aplicarFiltros(false);
+  });
+  void (async () => {
+    try { territorio = await paisOperativo(); territorial = Boolean(territorio); await cargarCatalogos(); }
+    catch { errorElement.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.'; errorElement.hidden = false; }
+  })();
 </script>

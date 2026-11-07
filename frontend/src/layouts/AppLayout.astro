@@ -249,7 +249,7 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
     );
 
     // Mantener la inicial mientras no se haya cargado la bandera.
-    if (inicialEl) inicialEl.hidden = true;
+    if (inicialEl) inicialEl.hidden = false;
 
     if (banderaEl) {
       banderaEl.hidden = true;
@@ -285,7 +285,18 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
     }
 
     if (banderaDetalle) {
-      banderaDetalle.src = urlBanderaDetalle;
+      banderaDetalle.hidden = true;
+      banderaDetalle.classList.add('hidden');
+      banderaDetalle.removeAttribute('src');
+      banderaDetalle.onload = () => {
+        banderaDetalle.hidden = false;
+        banderaDetalle.classList.remove('hidden');
+      };
+      banderaDetalle.onerror = () => {
+        banderaDetalle.hidden = true;
+        banderaDetalle.classList.add('hidden');
+      };
+      if (urlBanderaDetalle) banderaDetalle.src = urlBanderaDetalle;
     }
 
     if (nombrePais) {

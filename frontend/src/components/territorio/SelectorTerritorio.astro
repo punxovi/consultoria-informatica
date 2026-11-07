@@ -75,12 +75,22 @@
     return [principal, ...adicionales.values()];
   }
 
+  let ultimoNotificado: string | undefined;
   function notificarTerritorioActivo(idPais: string) {
+    const cambio = ultimoNotificado !== undefined && ultimoNotificado !== idPais;
+    ultimoNotificado = idPais;
     window.dispatchEvent(
       new CustomEvent('fge:territorio-cambiado', {
         detail: { id_pais: idPais },
       }),
     );
+    // Las vistas con sus propios observadores descartan solicitudes anteriores.
+    // En las demás, una navegación limpia evita conservar datos del país anterior.
+    if (cambio && !['/organizaciones', '/planes', '/cotizaciones'].includes(location.pathname.replace(/\/$/, ''))) {
+      const destino = location.pathname.startsWith('/organizaciones/') ? '/organizaciones'
+        : location.pathname.startsWith('/planes/') ? '/planes' : location.pathname;
+      location.assign(destino);
+    }
   }
 
   function descripcion(territorio: Territorio) {
