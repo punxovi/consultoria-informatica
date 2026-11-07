@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+test.use({ timezoneId: 'America/Santiago' });
 const evento = { id: '1', usuario: 'Ana Pérez', rol: 'ADMIN', fecha_hora: '2026-10-28T14:00:00Z', pais: 'Chile', ip: '127.0.0.1', operacion: 'UPDATE', entidad: 'organizaciones', referencia: 'id_organizacion: abc' };
 let estado;
 test.beforeEach(async ({ context }) => {
@@ -31,16 +32,19 @@ test('tabla, datos recibidos, filtros combinados e individuales y limpieza', asy
   await page.locator('#audit-aplicar').click();
   await expect(page.locator('#audit-criterios')).toContainText('Persona: Ana');
   for(const [campo,valor] of Object.entries({pais:'Chile',desde:'2026-10-01',hasta:'2026-10-28'})) await page.locator(`#audit-${campo}`).fill(valor);
-  await page.locator('#audit-operacion').selectOption('UPDATE'); await page.locator('#audit-entidad').selectOption('organizaciones');
+  await page.locator('#audit-operacion').selectOption('modificar'); await page.locator('#audit-entidad').selectOption('organizaciones');
   await page.locator('#audit-aplicar').click();
   await expect(page.locator('#audit-estado')).toContainText('en esta página');
   const params = new URL(estado.requests.at(-1).url()).searchParams;
-  expect(params.get('usuario')).toBe('Ana'); expect(params.get('hasta')).toBe('2026-10-28'); expect(params.get('entidad')).toBe('organizaciones'); expect(params.get('operacion')).toBe('UPDATE');
+  expect(params.get('usuario')).toBe('Ana'); expect(params.get('hasta')).toBe('2026-10-28'); expect(params.get('entidad')).toBe('organizaciones'); expect(params.get('operacion')).toBe('modificar');
+  // Las fechas se envían con la zona del navegador (Chile en esta prueba).
+  expect(params.get('zona_horaria')).toBe('America/Santiago');
   await expect(page.locator('#audit-criterios')).toContainText('Sección: Organizaciones');
+  await expect(page.locator('#audit-criterios')).toContainText('Qué hizo: Modificó');
   await page.locator('#audit-limpiar').click();
   await expect(page.locator('#audit-criterios')).toContainText('Todos los eventos');
   await expect(page.locator('#audit-estado')).toContainText('en esta página');
-  expect([...new URL(estado.requests.at(-1).url()).searchParams.keys()]).toEqual(['limit']);
+  expect([...new URL(estado.requests.at(-1).url()).searchParams.keys()]).toEqual(['zona_horaria', 'limit']);
   expect(estado.requests.every(r=>r.method()==='GET')).toBe(true);
 });
 test('fechas inválidas bloquean consulta y muestran error junto al campo',async({page})=>{

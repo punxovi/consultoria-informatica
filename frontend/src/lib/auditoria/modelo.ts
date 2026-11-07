@@ -28,10 +28,23 @@ export const paginaSchema = z.object({
   nextCursor: z.string().min(1).nullable(),
 });
 export type Evento = z.infer<typeof paginaSchema>['events'][number];
-export function parametros(filtros: Filtros, cursor?: string): string {
+const formatoZona = /^[A-Za-z]+(?:[_+-]?[A-Za-z0-9]+)*(?:\/[A-Za-z0-9]+(?:[_+-]?[A-Za-z0-9]+)*)*$/;
+
+// Zona horaria del navegador: las fechas «Desde/Hasta» se interpretan en la misma hora que se muestra.
+export function zonaHorariaLocal(): string | undefined {
+  try {
+    const zona = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return zona && zona.length <= 64 && formatoZona.test(zona) ? zona : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function parametros(filtros: Filtros, cursor?: string, zona: string | null | undefined = zonaHorariaLocal()): string {
   const valores = filtrosSchema.parse(filtros);
   const query = new URLSearchParams();
   for (const [clave, valor] of Object.entries(valores)) if (valor) query.set(clave, valor);
+  if (zona) query.set('zona_horaria', zona);
   query.set('limit', '50');
   if (cursor) query.set('cursor', cursor);
   return query.toString();
