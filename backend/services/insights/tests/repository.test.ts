@@ -44,26 +44,26 @@ describe('repositorio Supabase de Insights', () => {
     });
     await assert.rejects(offline.load('token'), (error: any) => error.code === 'SUPABASE_NO_DISPONIBLE');
   });
-  test('carga indicadores y resultados visibles en el consolidado respetando el periodo', async () => {
-    const repository = createSupabaseInsightsRepository({
-      supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
-      fetchImpl: async input => {
-        const url = String(input);
-        if (url.includes('/organizaciones?')) return Response.json([{ id_organizacion: 'o', nombre: 'Organizacion QA', id_pais: 'p', numero_beneficiarios: 4 }]);
-        if (url.includes('/planes?')) return Response.json([{ id_plan: 'pl', nombre: 'Plan QA', id_organizacion: 'o', fecha_inicio: '2026-01-01', fecha_termino: '2026-12-31' }]);
-        if (url.includes('/acciones?')) return Response.json([{ id_accion: 'a', id_plan: 'pl', nombre: 'Accion QA', estado: 'cumplida', fecha_inicio: '2026-01-01', fecha_termino: '2026-02-01', plan: { nombre: 'Plan QA', id_organizacion: 'o' } }]);
-        if (url.includes('/compromisos?')) return Response.json([]);
-        if (url.includes('/donaciones?')) return Response.json([]);
-        if (url.includes('/indicadores?')) return Response.json([{ id_indicador: 'i', id_accion: 'a', nombre: 'Personas beneficiadas' }]);
-        if (url.includes('/resultados?')) return Response.json([{ id_resultado: 'r', id_indicador: 'i', valor_medido: 12, fecha_medicion: '2026-03-10', observaciones: 'Registro QA' }]);
-        throw new Error(`URL inesperada: ${url}`);
-      },
-    });
-    const report = await repository.loadConsolidated('access-token', {
-      startDate: '2026-01-01', endDate: '2026-12-31', indicatorIds: ['i'], resultIds: ['r'],
-    });
-    assert.deepEqual(report.sections.indicators, [{ id_indicador: 'i', nombre: 'Personas beneficiadas', valor_obtenido: 12, organizacion: 'Organizacion QA' }]);
-    assert.deepEqual(report.sections.results, [{ id_resultado: 'r', descripcion: 'Registro QA', fecha_obtencion: '2026-03-10', organizacion: 'Organizacion QA' }]);
+  test('consulta una RPC autenticada y valida el consolidado completo', async () => {
+    const filters = { startDate: '2026-01-01', endDate: '2026-12-31' };
+    const snapshot = { generatedAt: '2026-11-06T12:00:00Z', period: {start: filters.startDate, end: filters.endDate}, filters,
+      sections: {organizations: [], plans: [], actions: [], commitments: [], donations: [], indicators: [], results: []},
+      summary: {totalBeneficiaries: 0, totalDonationsAmount: 0, completedActions: 0} };
+    const repository = createSupabaseInsightsRepository({supabaseUrl: 'https://example.supabase.co', anonKey: 'anon',
+      fetchImpl: async (input, init) => {
+        assert.equal(String(input), 'https://example.supabase.co/rest/v1/rpc/consultar_reporte_consolidado');
+        assert.equal(init?.method, 'POST');
+        assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer access-token');
+        assert.deepEqual(JSON.parse(String(init?.body)), {p_filtros: filters});
+        return Response.json(snapshot);
+      }});
+    assert.deepEqual(await repository.loadConsolidated('access-token', filters), snapshot);
+    for (const [code, expected] of [['54000','REPORTE_DEMASIADO_GRANDE'],['PGRST202','MIGRACION_PENDIENTE'],['22023','DATOS_INVALIDOS'],['42501','SIN_PERMISO']]) {
+      const failing = createSupabaseInsightsRepository({supabaseUrl:'https://example.supabase.co',anonKey:'anon',fetchImpl:async()=>Response.json({code},{status:400})});
+      await assert.rejects(failing.loadConsolidated('token',filters), {code:expected});
+    }
+    const malformed = createSupabaseInsightsRepository({supabaseUrl:'https://example.supabase.co',anonKey:'anon',fetchImpl:async()=>Response.json([])});
+    await assert.rejects(malformed.loadConsolidated('token',filters), {code:'RESPUESTA_INVALIDA'});
   });
 
   test('registra la exportacion mediante la RPC autenticada y conserva destino/filtros', async () => {

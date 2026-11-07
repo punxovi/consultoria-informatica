@@ -1,6 +1,8 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import {
   AuditError,
   auditEventSchema,
+  cursorSchema,
   encodeAuditCursor,
   type AuditFilters,
   type AuditPage,
@@ -10,7 +12,7 @@ import {
 interface Options { url: string; anonKey: string; fetchImpl?: typeof fetch }
 
 export function createSupabaseAuditRepository(options: Options): AuditRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.url);
   const base = options.url.replace(/\/$/, '');
   return {
     async list(token: string, filters: AuditFilters): Promise<AuditPage> {
@@ -24,6 +26,8 @@ export function createSupabaseAuditRepository(options: Options): AuditRepository
           headers: { apikey: options.anonKey, authorization: `Bearer ${token}`, 'content-type': 'application/json' },
           body: JSON.stringify({
             p_filtros: {
+              ...(filters.id_usuario ? { id_usuario: filters.id_usuario } : {}),
+              ...(filters.id_pais ? { id_pais: filters.id_pais } : {}),
               usuario: filters.usuario ?? null,
               pais: filters.pais ?? null,
               desde: filters.desde ?? null,
@@ -41,20 +45,17 @@ export function createSupabaseAuditRepository(options: Options): AuditRepository
       } catch {
         throw new AuditError('AUDITORIA_NO_DISPONIBLE', 'No fue posible conectar con el servicio de auditoría.', 503);
       }
-      let body: unknown;
-      try { body = await response.json(); } catch {
-        throw new AuditError('RESPUESTA_INVALIDA', 'El servicio devolvió una respuesta inválida.', 502);
-      }
+      const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         const code = typeof (body as { code?: unknown })?.code === 'string' ? (body as { code: string }).code : '';
-        if (code === '42501') throw new AuditError('SIN_PERMISO', 'Solo un Administrador activo puede consultar la auditoría.', 403);
+        if (response.status === 401) throw new AuditError('SESION_INVALIDA', 'La sesión no es válida o ha expirado.', 401);
+        if (code === '42501' || response.status === 403) throw new AuditError('SIN_PERMISO', 'Solo un Administrador activo puede consultar la auditoría.', 403);
         if (code === '22023') throw new AuditError('DATOS_INVALIDOS', 'Los filtros de auditoría no son válidos.', 400);
         if (code === 'PGRST202') throw new AuditError('MIGRACION_AUDITORIA_PENDIENTE', 'Falta aplicar la migración de consulta de auditoría.', 503);
-        if (response.status === 401) throw new AuditError('SESION_INVALIDA', 'La sesión no es válida o ha expirado.', 401);
         throw new AuditError('AUDITORIA_NO_DISPONIBLE', 'No fue posible consultar el historial de auditoría.', 503);
       }
       const value = body as { events?: unknown; next_cursor?: unknown };
-      if (!value || !Array.isArray(value.events)) {
+      if (!value || !Array.isArray(value.events) || value.events.length > filters.limit) {
         throw new AuditError('RESPUESTA_INVALIDA', 'El servicio devolvió un historial inválido.', 502);
       }
       const events = value.events.map(event => {
@@ -64,10 +65,12 @@ export function createSupabaseAuditRepository(options: Options): AuditRepository
       });
       const next = value.next_cursor;
       if (next === null || next === undefined) return { events, nextCursor: null };
-      if (!next || typeof next !== 'object' || typeof (next as any).fecha_hora !== 'string' || typeof (next as any).id !== 'string') {
-        throw new AuditError('RESPUESTA_INVALIDA', 'El servicio devolvió una página de auditoría inválida.', 502);
+      const cursor = cursorSchema.safeParse(next);
+      const last = events.at(-1);
+      if (!cursor.success || !last || cursor.data.id !== last.id || cursor.data.fecha_hora !== last.fecha_hora) {
+        throw new AuditError('RESPUESTA_INVALIDA', 'El servicio devolvió un cursor de auditoría inválido.', 502);
       }
-      return { events, nextCursor: encodeAuditCursor(next as { fecha_hora: string; id: string }) };
+      return { events, nextCursor: encodeAuditCursor(cursor.data) };
     },
   };
 }

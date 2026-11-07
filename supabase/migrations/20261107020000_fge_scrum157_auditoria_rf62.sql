@@ -484,4 +484,3 @@ REVOKE ALL ON FUNCTION public.consultar_eventos_auditoria(jsonb) FROM PUBLIC, an
 GRANT EXECUTE ON FUNCTION public.consultar_eventos_auditoria(jsonb) TO authenticated;
 NOTIFY pgrst, 'reload schema';
 COMMIT;
-;

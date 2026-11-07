@@ -139,3 +139,11 @@ describe('rutas HTTP de coberturas', () => {
     assert.equal(body.data.history[0].accion_por_nombre, 'Administrador QA');
   });
 });
+
+test('repositorio valida historial, filas incompletas y prioridad de sesión inválida', async()=>{
+  const make=(body:unknown,status=200)=>createSupabaseCoveragesRepository({url:'https://qa.invalid',anonKey:'public',fetchImpl:async()=>Response.json(body,{status})});
+  assert.deepEqual(await make([]).execute('jwt','history',{}),[]);
+  await assert.rejects(make([{}]).execute('jwt','history',{}),{code:'RESPUESTA_INVALIDA'});
+  await assert.rejects(make({}).execute('jwt','create',{}),{code:'RESPUESTA_INVALIDA'});
+  await assert.rejects(make({code:'42501'},401).execute('jwt','list',{}),{code:'SESION_INVALIDA',status:401});
+});

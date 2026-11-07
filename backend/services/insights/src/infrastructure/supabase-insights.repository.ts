@@ -1,3 +1,5 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
+import { parseConsolidatedSnapshot, validateConsolidatedFilters } from '../domain/consolidated-report.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
   ActionInsight, CountryInsight, InsightsRepository, OrganizationInsight, PlanInsight, RawInsights, ReportAudit,
@@ -66,7 +68,7 @@ function action(value: unknown): ActionInsight {
 }
 
 export function createSupabaseInsightsRepository(options: RepositoryOptions): InsightsRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
   
   async function request(table: string, query: URLSearchParams, token: string): Promise<unknown> {
@@ -107,146 +109,27 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
     }
   }
 
-  async function loadConsolidated(token: string, filters: ConsolidatedReportFilters): Promise<ConsolidatedReportSnapshot> {
-    const orgParams = new URLSearchParams({ archived_at: 'is.null' });
-    let orgSelect = 'id_organizacion,nombre,numero_beneficiarios,pais:paises(nombre)';
-
-    if (filters.countryId) orgParams.set('id_pais', `eq.${filters.countryId}`);
-    if (filters.organizationId) orgParams.set('id_organizacion', `eq.${filters.organizationId}`);
-    if (filters.programId) {
-      orgSelect += ',planes!inner(id_programa)';
-      orgParams.set('planes.id_programa', `eq.${filters.programId}`);
+  async function loadConsolidated(token: string, input: ConsolidatedReportFilters): Promise<ConsolidatedReportSnapshot> {
+    const filters = validateConsolidatedFilters(input);
+    let response: Response;
+    try {
+      response = await fetchImpl(`${baseUrl}/rest/v1/rpc/consultar_reporte_consolidado`, {
+        method: 'POST',
+        headers: { apikey: options.anonKey, authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ p_filtros: filters }), signal: AbortSignal.timeout(30000),
+      });
+    } catch (error) {
+      throw new ServiceError('SUPABASE_NO_DISPONIBLE','No fue posible consultar el consolidado.',503,error);
     }
-    orgParams.set('select', orgSelect);
-
-    const orgsResponse = await request('organizaciones', orgParams, token);
-    const orgsRaw = Array.isArray(orgsResponse) ? orgsResponse : [];
-    const orgIds = orgsRaw.map(o => o.id_organizacion);
-
-    if (orgIds.length === 0) {
-      return {
-        generatedAt: new Date().toISOString(),
-        period: { start: filters.startDate, end: filters.endDate },
-        filters,
-        sections: { organizations: [], plans: [], actions: [], commitments: [], donations: [], indicators: [], results: [] },
-        summary: { totalBeneficiaries: 0, totalDonationsAmount: 0, completedActions: 0 }
-      };
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      const code = record(body).code;
+      if (['22023','22007','22008','22P02'].includes(String(code))) throw new ServiceError('DATOS_INVALIDOS','El rango o los filtros del consolidado no son válidos.',400);
+      if (code === '54000') throw new ServiceError('REPORTE_DEMASIADO_GRANDE','Reduce el período o los filtros del reporte.',413);
+      if (code === 'PGRST202' || code === '42883') throw new ServiceError('MIGRACION_PENDIENTE','Falta aplicar la migración HU22 del reporte consolidado.',503);
+      throw databaseError(response.status,body);
     }
-
-    const inOrgs = `in.(${orgIds.join(',')})`;
-
-    const donacionesParams = new URLSearchParams({ 
-      id_organizacion: inOrgs, 
-      select: 'id_donacion,fecha,tipo_aporte,monto,cantidad,id_organizacion', 
-      archived_at: 'is.null' 
-    });
-    donacionesParams.append('fecha', `gte.${filters.startDate}`);
-    donacionesParams.append('fecha', `lte.${filters.endDate}`);
-
-    const compromisosParams = new URLSearchParams({ 
-      select: 'id_compromiso,descripcion,estado,cumplido_at,id_acta', 
-      archived_at: 'is.null' 
-    });
-
-    const [planesRes, accionesRes, compromisosRes, donacionesRes] = await Promise.all([
-      request('planes', new URLSearchParams({ id_organizacion: inOrgs, select: 'id_plan,nombre,id_organizacion,fecha_inicio,fecha_termino,programa:programas(nombre)', archived_at: 'is.null' }), token),
-      request('acciones', new URLSearchParams({ select: 'id_accion,nombre,estado,fecha_inicio,fecha_termino,plan:planes!inner(id_organizacion,nombre)', archived_at: 'is.null' }), token),
-      request('compromisos', compromisosParams, token),
-      request('donaciones', donacionesParams, token)
-    ]);
-
-    const planesRaw = Array.isArray(planesRes) ? planesRes : [];
-    const accionesRaw = Array.isArray(accionesRes) ? accionesRes : [];
-    const compromisosRaw = Array.isArray(compromisosRes) ? compromisosRes : [];
-    const donacionesRaw = Array.isArray(donacionesRes) ? donacionesRes : [];
-
-    // Indicadores y resultados se consultan después de las acciones para
-    // limitar la consulta al alcance territorial visible para la sesión.
-    const actionIds = accionesRaw.map(item => item.id_accion).filter((id): id is string => typeof id === 'string');
-    const indicadoresRaw = actionIds.length
-      ? await request('indicadores', new URLSearchParams({
-        id_accion: `in.(${actionIds.join(',')})`,
-        archived_at: 'is.null',
-        select: 'id_indicador,nombre,id_accion',
-      }), token)
-      : [];
-    const indicadoresVisibles = Array.isArray(indicadoresRaw) ? indicadoresRaw : [];
-    const indicatorIds = indicadoresVisibles
-      .map(item => item.id_indicador)
-      .filter((id): id is string => typeof id === 'string');
-    const resultadosRaw = indicatorIds.length
-      ? await request('resultados', new URLSearchParams({
-        id_indicador: `in.(${indicatorIds.join(',')})`,
-        fecha_medicion: `gte.${filters.startDate}`,
-        archived_at: 'is.null',
-        select: 'id_resultado,id_indicador,valor_medido,fecha_medicion,observaciones',
-        order: 'fecha_medicion.desc,created_at.desc',
-      }), token)
-      : [];
-    const resultadosVisibles = Array.isArray(resultadosRaw) ? resultadosRaw : [];
-
-    const findOrgName = (id: string) => orgsRaw.find(o => o.id_organizacion === id)?.nombre || 'Desconocida';
-
-    const actionOrganization = new Map(
-      accionesRaw.map(action => [action.id_accion, action.plan?.id_organizacion]).filter((entry): entry is [string, string] =>
-        typeof entry[0] === 'string' && typeof entry[1] === 'string'),
-    );
-    const selectedIndicatorIds = filters.indicatorIds ? new Set(filters.indicatorIds) : null;
-    const selectedResultIds = filters.resultIds ? new Set(filters.resultIds) : null;
-    const scopedIndicators = indicadoresVisibles.filter(indicator =>
-      orgIds.includes(actionOrganization.get(indicator.id_accion) ?? '')
-      && (!selectedIndicatorIds || selectedIndicatorIds.has(indicator.id_indicador)),
-    );
-    const scopedIndicatorIds = new Set(scopedIndicators.map(indicator => indicator.id_indicador));
-    const scopedResults = resultadosVisibles.filter(result =>
-      scopedIndicatorIds.has(result.id_indicador)
-      && (!selectedResultIds || selectedResultIds.has(result.id_resultado))
-      && typeof result.fecha_medicion === 'string'
-      && result.fecha_medicion <= filters.endDate,
-    );
-    const resultByIndicator = new Map<string, Record<string, unknown>>();
-    for (const result of scopedResults) {
-      if (typeof result.id_indicador === 'string' && !resultByIndicator.has(result.id_indicador)) {
-        resultByIndicator.set(result.id_indicador, result);
-      }
-    }
-    const indicatorsWithResults = scopedIndicators.filter(indicator => resultByIndicator.has(indicator.id_indicador));
-
-    const completedActions = accionesRaw.filter(a => a.estado === 'cumplida' && orgIds.includes(a.plan?.id_organizacion)).length;
-    const totalDonations = donacionesRaw.reduce((acc, d) => acc + (Number(d.monto) || 0), 0);
-    const totalBeneficiaries = orgsRaw.reduce((acc, o) => acc + (Number(o.numero_beneficiarios) || 0), 0);
-
-    return {
-      generatedAt: new Date().toISOString(),
-      period: { start: filters.startDate, end: filters.endDate },
-      filters,
-      sections: {
-        organizations: orgsRaw.map(o => ({ id_organizacion: o.id_organizacion, nombre: o.nombre, numero_beneficiarios: o.numero_beneficiarios || 0, pais: o.pais?.nombre || 'N/A' })),
-        plans: planesRaw.map(p => ({ id_plan: p.id_plan, nombre: p.nombre || 'Plan', organizacion: findOrgName(p.id_organizacion), programa: p.programa?.nombre || 'N/A', fecha_inicio: p.fecha_inicio, fecha_termino: p.fecha_termino })),
-        actions: accionesRaw.filter(a => orgIds.includes(a.plan?.id_organizacion)).map(a => ({ id_accion: a.id_accion, nombre: a.nombre || 'Acción', estado: a.estado, fecha_inicio: a.fecha_inicio, fecha_termino: a.fecha_termino, plan: a.plan?.nombre || 'N/A' })),
-        commitments: compromisosRaw.map(c => ({ id_compromiso: c.id_compromiso, acuerdo: c.descripcion || 'Sin descripción', estado: c.estado, fecha_cumplimiento: c.cumplido_at || null, organizacion: 'Asociada a un acta' })),
-        donations: donacionesRaw.map(d => ({ id_donacion: d.id_donacion, fecha: d.fecha, tipo_aporte: d.tipo_aporte, monto: d.monto, cantidad: d.cantidad, organizacion: findOrgName(d.id_organizacion) })),
-        indicators: indicatorsWithResults.map(indicator => {
-          const result = resultByIndicator.get(indicator.id_indicador)!;
-          return {
-            id_indicador: indicator.id_indicador,
-            nombre: indicator.nombre || 'Indicador',
-            valor_obtenido: Number(result.valor_medido),
-            organizacion: findOrgName(actionOrganization.get(indicator.id_accion) ?? ''),
-          };
-        }),
-        results: scopedResults.map(result => {
-          const indicator = indicadoresVisibles.find(item => item.id_indicador === result.id_indicador);
-          return {
-            id_resultado: result.id_resultado,
-            descripcion: result.observaciones || `Resultado de ${indicator?.nombre || 'indicador'}`,
-            fecha_obtencion: result.fecha_medicion,
-            organizacion: findOrgName(actionOrganization.get(indicator?.id_accion) ?? ''),
-          };
-        })
-      },
-      summary: { totalBeneficiaries, totalDonationsAmount: totalDonations, completedActions }
-    };
+    return parseConsolidatedSnapshot(body,filters);
   }
 
   return {

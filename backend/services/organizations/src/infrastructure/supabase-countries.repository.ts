@@ -1,7 +1,8 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { CountryError, type CountriesRepository } from '../domain/countries.ts';
 interface Options { url: string; anonKey: string; fetchImpl?: typeof fetch }
 export function createSupabaseCountriesRepository(options: Options): CountriesRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.url);
   return {
     async execute(token, operation, input) {
       if (!options.url || !options.anonKey) throw new CountryError('CONFIGURACION_SUPABASE', 'El servicio no tiene configurada su conexión a Supabase.', 503);

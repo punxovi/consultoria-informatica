@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -203,7 +204,7 @@ function donationFile(value: unknown): DonationFile {
 }
 
 export function createSupabaseOrganizationsRepository(options: RepositoryOptions): OrganizationsRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
   async function request(
@@ -353,7 +354,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       await request('rpc/registrar_acceso_documento', accessToken, new URLSearchParams(), {
         method: 'POST',
         body: JSON.stringify({ p_id_documento: body[0].id_informacion_legal })
-      }).catch(() => null); // Silenciar error si falla la inserción de auditoría
+      }); // No entregar datos personales si falla su registro de acceso.
     }
 
     return body[0] ? legalRecord(body[0]) : null;
@@ -434,6 +435,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
   }
 
   return {
+    async auditCommitmentsExport(token, context) {
+      await request('rpc/registrar_exportacion_reporte',token,new URLSearchParams(),{method:'POST',
+        body:JSON.stringify({p_destino:'interno',p_filtros:{tipo:'compromisos',organizationId:context.id_organizacion,id_acta:context.id_acta??null,reportId:randomUUID()}})});
+    },
+
     async list(accessToken, filters) {
       if (await esInvitado(accessToken)) {
         const params = new URLSearchParams({ order: 'nombre.asc' });
@@ -925,6 +931,9 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         if (response.status === 401 || response.status === 403) throw new ServiceError('SIN_PERMISO', 'No tienes permiso para descargar este archivo.', response.status);
         throw new ServiceError('ERROR_STORAGE', 'No fue posible descargar el archivo.', 502);
       }
+      await request('rpc/registrar_acceso_archivo',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_tipo:'donacion',p_id:fileId}),
+      });
       const bytes = Buffer.from(await response.arrayBuffer());
       return {
         bytes,
@@ -1027,6 +1036,7 @@ function unconfiguredRepository(): OrganizationsRepository {
     reserveDonationFile: unavailable,
     uploadDonationFile: unavailable,
     downloadDonationFile: unavailable,
+    auditCommitmentsExport: unavailable,
     replaceOrganizationImage: unavailable,
     downloadOrganizationImage: unavailable,
   };

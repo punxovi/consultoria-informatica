@@ -16,6 +16,8 @@ describe('repositorio Supabase Auth', () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     const fetchImpl: typeof fetch = async (input, init) => {
       const url = String(input);
+      if(url.includes('/rpc/sincronizar_eventos_autenticacion')) return Response.json(0);
+      if(url.includes('/rpc/registrar_evento_autenticacion')) return Response.json(null);
       requests.push({ url, init });
       if (url.endsWith('/validar_acceso_invitado')) return Response.json(true);
       if (url.includes('/token')) return Response.json(session);
@@ -24,7 +26,7 @@ describe('repositorio Supabase Auth', () => {
     };
     const repository = createSupabaseAuthRepository({
       supabaseUrl: 'https://proyecto.supabase.co/',
-      anonKey: 'anon-key',
+      anonKey: 'anon-key',auditKey:'private-qa',
       fetchImpl,
     });
 
@@ -38,19 +40,18 @@ describe('repositorio Supabase Auth', () => {
     await repository.refreshSession('refresh-token');
     await repository.logout('access-token');
 
-    const authRequests = requests.filter(r => r.url.includes('/auth/v1/'));
-    assert.equal(authRequests.length, 6);
     assert.equal(requests.filter(r => r.url.endsWith('/validar_acceso_invitado')).length, 3);
-    assert.equal(requests.filter(r => r.url.endsWith('/registrar_evento_autenticacion')).length, 1);
+    const authRequests = requests.filter(r => r.url.includes('/auth/v1/'));
     assert.match(authRequests[0].url, /\/auth\/v1\/token\?grant_type=password$/);
     assert.match(authRequests[1].url, /\/auth\/v1\/recover\?redirect_to=/);
     assert.equal(
       new URL(authRequests[1].url).searchParams.get('redirect_to'),
       'http://127.0.0.1:4321/cambiar-contrasena',
     );
+    assert.equal(authRequests.length, 7);
     assert.match(authRequests[4].url, /grant_type=refresh_token$/);
-    assert.match(authRequests[5].url, /\/logout\?scope=local$/);
-    assert.equal(new Headers(requests[0].init?.headers).get('apikey'), 'anon-key');
+    assert.match(authRequests[6].url, /\/logout\?scope=local$/);
+    assert.equal(new Headers(authRequests[0].init?.headers).get('apikey'), 'anon-key');
     assert.equal(
       new Headers(authRequests[2].init?.headers).get('authorization'),
       'Bearer access-token',
@@ -62,7 +63,8 @@ describe('repositorio Supabase Auth', () => {
     const rejected = createSupabaseAuthRepository({
       supabaseUrl: 'https://proyecto.supabase.co',
       anonKey: 'anon-key',
-      fetchImpl: async () => Response.json({ error: 'invalid' }, { status: 400 }),
+      auditKey:'qa-audit-key',
+      fetchImpl: async input => String(input).includes('/rpc/registrar_intento_autenticacion')?Response.json(null):Response.json({ error: 'invalid' }, { status: 400 }),
     });
     await assert.rejects(
       rejected.login({ correo: 'qa@example.com', password: 'incorrecta' }),
@@ -81,13 +83,37 @@ describe('repositorio Supabase Auth', () => {
   });
 });
 
-test('no acepta sesión, login ni renovación de un Invitado revocado aunque Auth acepte el JWT', async () => {
-  const repository = createSupabaseAuthRepository({supabaseUrl:'https://qa.invalid',anonKey:'qa',fetchImpl:async input=>{
-    const url=String(input);
-    if(url.endsWith('/validar_acceso_invitado')) return Response.json(false);
+test('rechaza sesiones de invitados revocadas', async () => {
+  const repository = createSupabaseAuthRepository({ supabaseUrl: 'https://qa.invalid', anonKey: 'qa', fetchImpl: async input => {
+    const url = String(input);
+    if (url.endsWith('/validar_acceso_invitado')) return Response.json(false);
     return Response.json(url.includes('/token') ? session : session.user);
   }});
-  for(const op of [()=>repository.getUser('previous-jwt'),()=>repository.refreshSession('previous-refresh'),()=>repository.login({correo:'qa@example.com',password:'test-password'})]) {
-    await assert.rejects(op(),{code:'SESION_INVALIDA',status:401});
-  }
+  for (const op of [
+    () => repository.getUser('previous-jwt'),
+    () => repository.refreshSession('previous-refresh'),
+    () => repository.login({ correo: 'qa@example.com', password: 'test-password' }),
+  ]) await assert.rejects(op(), { code: 'SESION_INVALIDA', status: 401 });
+});
+
+test('login fallido se audita con credencial privada; si falla la auditoría no se informa como registrado',async()=>{
+ let event:Record<string,unknown>={};
+ const make=(status:number)=>createSupabaseAuthRepository({supabaseUrl:'https://qa.invalid',anonKey:'public',auditKey:'private',fetchImpl:async(input,init)=>{
+  if(String(input).includes('/auth/v1/token'))return Response.json({error:'invalid'},{status:400});
+  assert.equal(new Headers(init?.headers).get('authorization'),'Bearer private');event=JSON.parse(String(init?.body));return Response.json(null,{status});
+ }});
+ await assert.rejects(make(200).login({correo:'private@example.invalid',password:'password-never-log'}),{code:'SUPABASE_AUTH_ERROR'});
+ assert.equal(JSON.stringify(event).includes('password-never-log'),false);assert.equal(JSON.stringify(event).includes('private@example.invalid'),false);
+ await assert.rejects(make(500).login({correo:'private@example.invalid',password:'password-never-log'}),{code:'AUDITORIA_NO_DISPONIBLE',status:503});
+});
+
+test('login exitoso no entrega la sesión si falla su registro verificado',async()=>{
+ const repo=createSupabaseAuthRepository({supabaseUrl:'https://qa.invalid',anonKey:'public',auditKey:'private',fetchImpl:async(input,init)=>{
+  if(String(input).includes('/auth/v1/token'))return Response.json(session);
+  if(String(input).endsWith('/validar_acceso_invitado'))return Response.json(true);
+  assert.equal(new Headers(init?.headers).get('authorization'),'Bearer private');
+  assert.equal(JSON.stringify(JSON.parse(String(init?.body))).includes('access-token'),false);
+  return Response.json({code:'XX000'},{status:500});
+ }});
+ await assert.rejects(repo.login({correo:'qa@example.invalid',password:'secret'}),{code:'AUDITORIA_NO_DISPONIBLE',status:503});
 });

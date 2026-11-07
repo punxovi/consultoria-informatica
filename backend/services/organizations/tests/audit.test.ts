@@ -48,7 +48,8 @@ test('repositorio auditoría: conserva los datos para describir el evento en len
     url: 'https://project.example', anonKey: 'public-key',
     fetchImpl: async () => Response.json({ events: [claro], next_cursor: null }),
   });
-  assert.deepEqual((await repository.list('jwt', { limit: 50 })).events, [claro]);
+  const { correo: _correo, ...publico } = claro;
+  assert.deepEqual((await repository.list('jwt', { limit: 50 })).events, [publico]);
 });
 
 test('repositorio auditoría: usa RPC, JWT y cursor estable', async () => {
@@ -126,4 +127,18 @@ describe('ruta HTTP de auditoría', () => {
     assert.equal(invalid.status, 400);
     assert.equal((await invalid.json()).error.fields.entidad[0], 'La entidad no se puede consultar.');
   });
+});
+
+test('auditoría HTTP valida UUID y límites del cursor antes de consultar',()=>{
+  const id='17600000-0000-4000-8000-000000000001';
+  assert.equal(parseAuditQuery(new URLSearchParams({id_usuario:id,id_pais:id})).id_usuario,id);
+  const invalid=[{id_usuario:'1'},{id_pais:'00000000-0000-0000-0000-000000000001'},
+    {desde:'0000-01-01'},{hasta:'2026-02-30'},{operacion:'%'},{entidad:'paises*'},
+    {cursor:Buffer.from(JSON.stringify({id:'9223372036854775808',fecha_hora:'2026-11-07T10:00:00Z'})).toString('base64url')}];
+  for(const filters of invalid) assert.throws(()=>parseAuditQuery(new URLSearchParams(Object.entries(filters))),{code:'DATOS_INVALIDOS'});
+});
+test('repositorio rechaza un cursor que saltaría el último evento de la página',async()=>{
+  const repository=createSupabaseAuditRepository({url:'https://qa.invalid',anonKey:'public',
+    fetchImpl:async()=>Response.json({events:[event],next_cursor:{id:'11',fecha_hora:event.fecha_hora}})});
+  await assert.rejects(repository.list('jwt',{limit:1}),{code:'RESPUESTA_INVALIDA'});
 });

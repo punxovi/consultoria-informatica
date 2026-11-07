@@ -39,6 +39,7 @@ function repository(rows: unknown = [item]): OrganizationsRepository {
     supabaseUrl: 'https://database.invalid', anonKey: 'anon-key',
     fetchImpl: async input => {
       const url = new URL(String(input));
+      if (url.pathname.endsWith('/rpc/registrar_exportacion_reporte')) return Response.json(null);
       if (url.pathname.endsWith('/organizaciones')) return Response.json([organization]);
       if (url.pathname.endsWith('/rpc/consultar_compromisos')) return Response.json(rows);
       throw new Error(`Consulta inesperada en la prueba: ${url.pathname}`);
@@ -193,4 +194,9 @@ test('PDF: descarga binaria por Gateway, cabeceras, CORS y errores JSON sin adju
     await close(gateway);
     await close(server);
   }
+});
+
+test('PDF compromisos: fallo de auditoría impide entregar el binario',async()=>{
+ const repo=repository();repo.auditCommitmentsExport=async()=>{throw new ServiceError('AUDITORIA_NO_DISPONIBLE','Sin auditoría',503);};
+ await assert.rejects(createCommitmentsPdfService(repo,async()=>fakePdf)('jwt',context),{code:'AUDITORIA_NO_DISPONIBLE'});
 });

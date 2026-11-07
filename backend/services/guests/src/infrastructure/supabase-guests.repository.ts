@@ -1,9 +1,10 @@
-import { GuestError, type GuestRepository } from '../domain/guests.ts';
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
+import { GuestError, type GuestRepository, type CreateGuestInput } from '../domain/guests.ts';
 
-interface Options { url: string; anonKey: string; fetchImpl?: typeof fetch }
+interface Options { url: string; anonKey: string; adminKey?: string; redirectUrl: string; fetchImpl?: typeof fetch }
 
 export function createSupabaseGuestRepository(options: Options): GuestRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.url);
   const base = options.url.replace(/\/$/, '');
 
   async function request(path: string, key: string, token: string, body: unknown): Promise<any> {
@@ -88,5 +89,7 @@ export function createSupabaseGuestRepositoryFromEnv(): GuestRepository {
   return createSupabaseGuestRepository({
     url: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? '',
     anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+    adminKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    redirectUrl: process.env.GUEST_ACCESS_REDIRECT_URL ?? 'http://127.0.0.1:4321/invitado/acceso',
   });
 }

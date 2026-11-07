@@ -299,7 +299,7 @@ export interface ConsolidatedDonation {
 export interface ConsolidatedIndicator {
   id_indicador: string;
   nombre: string;
-  valor_obtenido: number;
+  valor_obtenido: number | null;
   organizacion: string;
 }
 
@@ -374,7 +374,7 @@ export function parseConsolidatedFilters(url: URL): ConsolidatedReportRequest {
   };
 
   const parseUuidsArray = (val: string | null, fieldName: string) => {
-    if (!val) return undefined;
+    if (val === null) return undefined;
     const ids = val.split(',').map(id => id.trim());
     if(ids.length>100)throw new ServiceError('DATOS_INVALIDOS','Selecciona como máximo 100 identificadores por filtro.',400);
     for (const id of ids) {

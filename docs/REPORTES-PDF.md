@@ -114,12 +114,9 @@ legales ni identidad de personas. Sus filtros indican las selecciones aplicadas
 sin exponer UUID. No se suman resultados de indicadores con unidades diferentes.
 
 El contrato actual de SCRUM-136 no entrega moneda ni unidad de los aportes, por
-lo que el PDF lo advierte y no presume CLP ni una unidad. Ese repositorio también
-entrega vacíos los arrays de Indicadores y Resultados: el PDF refleja esa
-ausencia; las pruebas usan además consolidaciones ficticias con esas secciones
-pobladas. La corrección/completitud de las consultas y sus relaciones sigue
-siendo responsabilidad de SCRUM-136; el generador no las reinterpreta ni consulta
-independientemente para completar o corregir sus datos.
+lo que el PDF lo advierte y no presume CLP ni una unidad. La consolidación HU22 ahora consulta indicadores y
+resultados persistidos, con las reglas temporales del contrato HU22. El PDF usa
+esa instantánea y no vuelve a consultar los módulos para completar datos.
 
 Se utiliza el PNG oficial disponible, los colores de la aplicación y fuentes
 Liberation Sans redistribuibles con su licencia. Los recursos se incluyen en
@@ -199,3 +196,9 @@ python scripts/inspeccionar-reportes-pdf.py <carpeta-de-QA>
 La inspección independiente requiere pypdf y pdfplumber; las imágenes se
 obtienen con `pdftoppm`. Estas herramientas son solo de QA: la operación Node
 de producción utiliza PDFKit y los recursos locales versionados.
+
+## Consolidación HU22
+
+La consulta de origen, sus filtros, permisos y reglas temporales están definidos
+en [CONTRATO-REPORTE-CONSOLIDADO-HU22.md](CONTRATO-REPORTE-CONSOLIDADO-HU22.md).
+Los indicadores sin medición se muestran como «No informado».

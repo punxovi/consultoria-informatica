@@ -39,7 +39,7 @@ export async function readMultipartBody(request: IncomingMessage): Promise<FormD
     return await new Request('http://organizations.local', {
       method: 'POST',
       headers: { 'content-type': contentType },
-      body,
+      body: new Uint8Array(body),
     }).formData();
   } catch {
     throw new ServiceError('MULTIPART_INVALIDO', 'No fue posible interpretar el formulario.', 400);

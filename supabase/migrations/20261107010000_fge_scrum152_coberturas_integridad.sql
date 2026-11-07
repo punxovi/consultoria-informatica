@@ -294,4 +294,3 @@ REVOKE ALL ON FUNCTION public.administrar_coberturas(text, jsonb) FROM PUBLIC, a
 GRANT EXECUTE ON FUNCTION public.administrar_coberturas(text, jsonb) TO authenticated;
 NOTIFY pgrst, 'reload schema';
 COMMIT;
-;

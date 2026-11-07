@@ -134,4 +134,3 @@ COMMENT ON FUNCTION public.consultar_reporte_consolidado(jsonb) IS
   'HU22: una instantánea por sentencia, sin truncamiento por max_rows y respetando RLS. Máximo 20000 filas y 4 MiB.';
 NOTIFY pgrst,'reload schema';
 COMMIT;
-;

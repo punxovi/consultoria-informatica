@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { ALLOWED_EVIDENCE_MIME_TYPES, MAX_EVIDENCE_BYTES, type EvidenceFile } from '../domain/evidences.ts';
 
@@ -12,7 +13,7 @@ const unavailable = () => new ServiceError('PUBLICACION_NO_ENCONTRADA', 'La publ
 /** Credencial exclusiva del servidor. Nunca se utiliza en las operaciones de gestión. */
 export function createSupabasePublicEvidencesRepository(options: Options): PublicEvidencesRepository {
   const base = options.supabaseUrl.replace(/\/$/, '');
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const headers: Record<string,string> = { apikey: options.publicationKey };
   // Las nuevas secret keys no son JWT. Las service_role legacy sí usan Bearer.
   if (!options.publicationKey.startsWith('sb_secret_')) headers.authorization = `Bearer ${options.publicationKey}`;

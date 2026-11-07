@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
   Program,
@@ -85,7 +86,7 @@ function completeProgram(value: unknown): ProgramWithLines {
 }
 
 export function createSupabaseProgramsRepository(options: RepositoryOptions): ProgramsRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
   async function request(path: string, accessToken: string, init: RequestInit = {}): Promise<unknown> {

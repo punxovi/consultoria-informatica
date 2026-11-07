@@ -6,7 +6,7 @@ import {
   type CommitmentsPdfContext, type CommitmentsPdfFile, type CommitmentsPdfRenderer,
 } from '../domain/commitments-pdf.ts';
 
-type Repository = Pick<OrganizationsRepository, 'getById' | 'listCommitments'> & Partial<Pick<OrganizationsRepository, 'listCommitmentOrigins'>>;
+type Repository = Pick<OrganizationsRepository, 'getById' | 'listCommitments' | 'auditCommitmentsExport'> & Partial<Pick<OrganizationsRepository, 'listCommitmentOrigins'>>;
 
 export function createCommitmentsPdfService(repository: Repository, render: CommitmentsPdfRenderer) {
   return async (token: string, input: CommitmentsPdfContext): Promise<CommitmentsPdfFile> => {
@@ -50,6 +50,7 @@ export function createCommitmentsPdfService(repository: Repository, render: Comm
       if (error instanceof ServiceError) throw error;
       throw new ServiceError('PDF_GENERACION_FALLIDA', 'No fue posible generar el PDF de compromisos.', 500, error);
     }
+    await repository.auditCommitmentsExport(token,context);
     return {
       bytes, mimeType: 'application/pdf',
       fileName: `compromisos-${context.id_organizacion}${context.id_acta ? `-acta-${context.id_acta}` : ''}.pdf`,

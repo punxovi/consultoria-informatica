@@ -1,4 +1,6 @@
-import { createServer, type Server } from 'node:http';
+import { startAuthAuditWorker } from './infrastructure/auth-audit.ts';
+import { createAuditedServer } from '../../../shared/observability/src/audit-context.ts';
+import { type Server } from 'node:http';
 import { readPort } from '../../../shared/config/src/index.ts';
 import { getRequestId, logEvent } from '../../../shared/observability/src/index.ts';
 import { createAuthApplication, type AuthApplication } from './application/auth-service.ts';
@@ -30,7 +32,7 @@ export function createAuthServer(options: AuthServerOptions = {}): Server {
   const coordinators = options.coordinators ?? createCoordinatorApplication(createSupabaseCoordinatorRepositoryFromEnv());
   const guests = options.guests ?? createGuestApplication(createSupabaseGuestRepositoryFromEnv());
 
-  return createServer((request, response) => {
+  const server = createAuditedServer((request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'auth.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://auth.local').pathname;
@@ -43,6 +45,8 @@ export function createAuthServer(options: AuthServerOptions = {}): Server {
       void routeAuth(request, response, requestId, application);
     }
   });
+  if(!options.application)startAuthAuditWorker(server);
+  return server;
 }
 
 export function authPort(): number {

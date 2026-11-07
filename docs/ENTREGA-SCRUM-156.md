@@ -54,3 +54,9 @@ El Backend requiere `SUPABASE_URL` y `SUPABASE_ANON_KEY` (o sus equivalentes
    adicional como máximo en el siguiente foco o ciclo visible de un minuto; el
    Backend lo rechaza de inmediato por sus propias reglas aunque el navegador
    conserve un valor antiguo.
+
+## Revisión SCRUM-152
+
+El contrato completo, las restricciones y la migración correctiva están en
+[CONTRATO-COBERTURAS-SCRUM152.md](CONTRATO-COBERTURAS-SCRUM152.md).
+Incluye la ruta administrativa `GET /:id/history` y mantiene `/mine` como contexto propio.
