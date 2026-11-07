@@ -24,7 +24,25 @@ import Card from '../components/ui/Card.astro';
     <section class="auth-panel">
       <Card class="auth-card">
         <div class="auth-content">
-          <header class="auth-header">
+          <!-- Confirmación: reemplaza al formulario cuando la solicitud se registra. -->
+          <div id="guest-success" class="success-panel hidden" role="status" aria-live="polite">
+            <span class="success-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.5 9.5 17 19 7.5" />
+              </svg>
+            </span>
+            <h1 id="guest-success-title" tabindex="-1">¡Solicitud enviada!</h1>
+            <p>
+              Registramos tu solicitud de acceso como invitado. Un Administrador la revisará y,
+              si se aprueba, recibirás un enlace de acceso en{' '}
+              <strong id="guest-success-email"></strong>.
+            </p>
+            <Button href="/login" variant="primary" size="lg" class="full" id="guest-back-login">
+              Volver al inicio de sesión
+            </Button>
+          </div>
+
+          <header id="guest-header" class="auth-header">
             <h1>Solicitar acceso</h1>
             <p>
               Completa el siguiente formulario para solicitar acceso como
@@ -35,10 +53,6 @@ import Card from '../components/ui/Card.astro';
           <div id="guest-error" class="error-alert hidden" role="alert">
             <span class="error-icon">!</span>
             <span id="guest-error-message"></span>
-          </div>
-
-          <div id="guest-info" class="info-alert hidden" role="status">
-            Solicitud registrada. Un Administrador revisará tu acceso y recibirás un enlace por correo si se aprueba.
           </div>
 
           <form id="guest-request-form" class="auth-form" novalidate>
@@ -99,7 +113,7 @@ import Card from '../components/ui/Card.astro';
             </Button>
           </form>
 
-          <div class="back">
+          <div id="guest-back" class="back">
             <Button href="/login" variant="ghost" size="sm">
               ← Volver al inicio de sesión
             </Button>
@@ -119,13 +133,23 @@ import Card from '../components/ui/Card.astro';
   const form = document.getElementById('guest-request-form') as HTMLFormElement;
   const error = document.getElementById('guest-error');
   const errorMessage = document.getElementById('guest-error-message');
-  const info = document.getElementById('guest-info');
+  const success = document.getElementById('guest-success');
+
+  // Tras registrar la solicitud se oculta el formulario y queda solo la confirmación con el botón al login.
+  function mostrarConfirmacion(correo: string) {
+    for (const id of ['guest-header', 'guest-request-form', 'guest-back', 'guest-error']) {
+      document.getElementById(id)?.classList.add('hidden');
+    }
+    const email = document.getElementById('guest-success-email');
+    if (email) email.textContent = correo;
+    success?.classList.remove('hidden');
+    document.getElementById('guest-success-title')?.focus();
+  }
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     error?.classList.add('hidden');
-    info?.classList.add('hidden');
 
     const nombre = (document.getElementById('guest-name') as HTMLInputElement).value.trim();
     const correo = (document.getElementById('guest-email') as HTMLInputElement).value.trim();
@@ -153,8 +177,8 @@ import Card from '../components/ui/Card.astro';
     try {
       const transport = createAuthTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000');
       await transport.request('/api/v1/guests/request', { method: 'POST', body: { nombre, correo, ...(institucion ? { institucion } : {}), ...(motivo ? { motivo } : {}) } });
-      info?.classList.remove('hidden');
       form.reset();
+      mostrarConfirmacion(correo);
     } catch (cause) {
       if (errorMessage) errorMessage.textContent = cause instanceof Error ? cause.message : 'No fue posible registrar la solicitud.';
       error?.classList.remove('hidden');
@@ -310,6 +334,58 @@ import Card from '../components/ui/Card.astro';
     display: flex;
     justify-content: center;
     margin-top: 1.5rem;
+  }
+
+  .auth-header.hidden,
+  .auth-form.hidden,
+  .back.hidden,
+  .success-panel.hidden {
+    display: none;
+  }
+
+  .success-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    background: #e6f6ee;
+    color: #18865a;
+  }
+
+  .success-icon svg {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .success-panel h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    outline: none;
+  }
+
+  .success-panel p {
+    margin: 0 0 .75rem;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .success-panel strong {
+    color: #383165;
+    overflow-wrap: anywhere;
   }
 
   .error-alert,
