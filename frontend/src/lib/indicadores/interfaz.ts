@@ -51,7 +51,7 @@ export function iniciarIndicadores() {
     if (api && (fallo.code === 'RUTA_NO_ENCONTRADA' || fallo.status === 501)) mensaje = 'El servicio de Indicadores todavía no está disponible. Revisa la configuración del Backend.';
     if (mutacion && api && (fallo.status === 409 || fallo.status === 0 || fallo.status >= 500)) {
       requiereRecarga = true;
-      mensaje += ' Conservamos los valores ingresados. Cierra el formulario y pulsa Actualizar indicadores antes de volver a guardar.';
+      mensaje += ' Conservamos los valores ingresados. Cierra el formulario y recarga la página antes de volver a guardar.';
     }
     const destino = dialogo.open ? q('dialogo-error') : q('error'); destino.textContent = mensaje; destino.hidden = false; destino.focus();
   }
@@ -145,7 +145,7 @@ export function iniciarIndicadores() {
     q<HTMLInputElement>('fecha').value = item.resultado?.fecha_medicion ?? hoyLocal(); q<HTMLTextAreaElement>('observaciones').value = item.resultado?.observaciones ?? '';
     q<HTMLButtonElement>('guardar').disabled = requiereRecarga;
     dialogo.showModal();
-    if (requiereRecarga) error(new Error('Cierra el formulario y pulsa Actualizar indicadores antes de volver a guardar.'));
+    if (requiereRecarga) error(new Error('Cierra el formulario y recarga la página antes de volver a guardar.'));
     else input.focus();
   }
   q('edicion').addEventListener('submit', async evento => {
@@ -168,7 +168,6 @@ export function iniciarIndicadores() {
   q('cancelar').addEventListener('click', () => { if (!ocupado) dialogo.close(); });
   dialogo.addEventListener('cancel', evento => { if (ocupado) evento.preventDefault(); });
   q('limpiar').addEventListener('click', () => { if (!ocupado) { limpiarErrores(); renderCatalogo(); } });
-  q('recargar').addEventListener('click', () => cargar());
   const iniciar = () => { if (!iniciado) { iniciado = true; void cargar(false); } };
   window.addEventListener('accion:detalle-cargado', iniciar);
   if (document.querySelector<HTMLElement>('#accion-detalle')?.dataset.cargada === 'true') iniciar();

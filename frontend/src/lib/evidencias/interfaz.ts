@@ -174,8 +174,8 @@ export function iniciarEvidencias() {
       q('exito').hidden = false;
     } catch (error) {
       if (creando && error instanceof ApiError && (error.status === 0 || error.status >= 500 || error.code === 'RESPUESTA_INVALIDA')) {
-        incierto = true; fallo(error, 'No se pudo confirmar el registro. Pulsa Actualizar evidencias y revisa si aparece antes de intentar crear otra. ');
-      } else if (cargada) fallo(error, 'El archivo se guardó, pero no se pudo confirmar la publicación. Actualiza las evidencias para comprobar su estado. ');
+        incierto = true; fallo(error, 'No se pudo confirmar el registro. Recarga la página y revisa si aparece antes de intentar crear otra. ');
+      } else if (cargada) fallo(error, 'El archivo se guardó, pero no se pudo confirmar la publicación. Recarga la página para comprobar su estado. ');
       else {
         if (reserva) prepararReintento(reserva, false);
         fallo(error, reserva ? 'El registro se conserva; no crees otra evidencia. Puedes reintentar la carga. ' : '');
@@ -197,7 +197,6 @@ export function iniciarEvidencias() {
     if (ocupado) return; const pendiente = !!reserva; limpiar(); reset();
     if (pendiente) { q('exito').textContent = 'Se cerró el formulario. El registro pendiente se conserva y puedes completar su carga desde el listado.'; q('exito').hidden = false; }
   });
-  q('recargar').addEventListener('click', cargar);
   q('publicar').addEventListener('click', async () => {
     if (ocupado || !seleccion) return;
     const retirar = seleccion.estado_publicacion === 'publicada';

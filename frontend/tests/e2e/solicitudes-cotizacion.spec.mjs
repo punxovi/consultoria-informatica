@@ -30,7 +30,7 @@ test('listado, detalle, filtros nuevas y gestionadas',async({page})=>{
 test('estado permitido, validación, versión, confirmación y doble clic',async({page})=>{
  await abrir(page);await page.getByRole('button',{name:'Ver solicitud de Solicitante 1'}).click();await expect(page.locator('#sol-form')).toBeVisible();
  await page.locator('#sol-guardar').click();await expect(page.locator('#sol-estado-error')).toContainText('Selecciona');
- await page.locator('#sol-estado').selectOption('en_gestion');let liberar;actualizacion=new Promise(r=>liberar=r);await page.locator('#sol-guardar').click();await expect(page.locator('#sol-guardar')).toBeDisabled();await expect(page.locator('#sol-recargar')).toBeDisabled();
+ await page.locator('#sol-estado').selectOption('en_gestion');let liberar;actualizacion=new Promise(r=>liberar=r);await page.locator('#sol-guardar').click();await expect(page.locator('#sol-guardar')).toBeDisabled();
  await expect.poll(()=>requests.filter(r=>r.method()==='PATCH').length).toBe(1);expect(requests.find(r=>r.method()==='PATCH').postDataJSON()).toEqual({version_esperada:1,estado:'en_gestion'});
  liberar();
  // Al guardar se cierra el detalle y el listado queda actualizado.

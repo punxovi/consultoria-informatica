@@ -1,5 +1,4 @@
 ---
-import Icono from '../components/ui/Icono.astro';
 import AppLayout from '../layouts/AppLayout.astro';
 import Card from '../components/ui/Card.astro';
 import Badge from '../components/ui/Badge.astro';
@@ -74,10 +73,6 @@ import { mainNavItems } from '../config/nav';
             </div>
             <p id="dashboard-anio-ayuda" class="mt-1 text-[10px] leading-4 text-[#77719E]">El resumen se consultará para el año seleccionado.</p>
           </div>
-          <Button id="recargar-dashboard" variant="outline" size="sm">
-            <Icono nombre="actualizar" />
-            Actualizar datos
-          </Button>
         </div>
       </div>
     </section>
@@ -92,7 +87,7 @@ import { mainNavItems } from '../config/nav';
         </div>
       </div>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Card class="border-t-4 border-t-[#4C4688] p-5">
+        <Card class="tarjeta-acento acento-morado p-5">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Organizaciones</p>
@@ -105,7 +100,7 @@ import { mainNavItems } from '../config/nav';
           <p class="mt-4 text-xs text-neutral-500">Registros del ámbito territorial</p>
         </Card>
 
-        <Card class="border-t-4 border-t-[#199D6B] p-5">
+        <Card class="tarjeta-acento acento-verde p-5">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Planes activos</p>
@@ -118,7 +113,7 @@ import { mainNavItems } from '../config/nav';
           <p class="mt-4 text-xs text-neutral-500">Planes vigentes durante el período consultado</p>
         </Card>
 
-        <Card class="border-t-4 border-t-[#1BAAC1] p-5">
+        <Card class="tarjeta-acento acento-celeste p-5">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Beneficiarios</p>
@@ -136,7 +131,7 @@ import { mainNavItems } from '../config/nav';
     </section>
 
     <!-- Alertas en franja horizontal para reducir el espacio vacío en las tarjetas inferiores -->
-    <Card class="border-t-4 border-t-[#D94F7D] p-5 md:p-6">
+    <Card class="tarjeta-acento acento-rosado p-5 md:p-6">
       <div class="flex flex-col gap-4 xl:flex-row xl:items-center">
         <div class="flex items-start gap-3 xl:w-56 xl:shrink-0">
           <span class="rounded-xl bg-[#FCE8F0] p-3 text-[#AD174F]" aria-hidden="true">
@@ -182,7 +177,7 @@ import { mainNavItems } from '../config/nav';
 
     <!-- Distribución inferior: avance a la izquierda y actividad mensual a la derecha -->
     <section class="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(310px,0.82fr)_minmax(0,1.38fr)]" aria-label="Avance general y actividad mensual">
-      <Card class="flex min-h-[360px] flex-col border-t-4 border-t-[#4C4688] p-5 md:p-6">
+      <Card class="flex min-h-[360px] flex-col tarjeta-acento acento-morado p-5 md:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-neutral-900">Avance general</h2>
@@ -213,7 +208,7 @@ import { mainNavItems } from '../config/nav';
         </div>
       </Card>
 
-      <Card class="flex min-h-[360px] flex-col border-t-4 border-t-[#4C4688] p-5 md:p-6">
+      <Card class="flex min-h-[360px] flex-col tarjeta-acento acento-morado p-5 md:p-6">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 class="text-lg font-bold text-neutral-900">Actividad mensual</h2>
@@ -304,7 +299,6 @@ import { mainNavItems } from '../config/nav';
 
   const contenedorPaises = document.querySelector<HTMLElement>('#dashboard-paises')!;
   const estado = document.querySelector<HTMLElement>('#dashboard-estado')!;
-  const recargar = document.querySelector<HTMLButtonElement>('#recargar-dashboard')!;
   const selectorAnio = document.querySelector<HTMLSelectElement>('#dashboard-anio')!;
   const ayudaAnio = document.querySelector<HTMLElement>('#dashboard-anio-ayuda')!;
   const estadoAtencion = document.querySelector<HTMLElement>('#dashboard-atencion-estado')!;
@@ -501,7 +495,6 @@ import { mainNavItems } from '../config/nav';
 
   async function cargar() {
     const idSolicitud = ++solicitudActual;
-    recargar.disabled = true;
     estado.textContent = 'Actualizando métricas…';
     estadoAtencion.textContent = 'Cargando acciones prioritarias…';
     listaAtencion.replaceChildren();
@@ -556,11 +549,9 @@ import { mainNavItems } from '../config/nav';
       const actualizado = document.querySelector<HTMLElement>('#dashboard-actualizado');
       if (actualizado) actualizado.textContent = '';
     } finally {
-      if (idSolicitud === solicitudActual) recargar.disabled = false;
     }
   }
 
-  recargar.addEventListener('click', () => void cargar());
   window.addEventListener('pageshow', (evento) => {
     if (evento.persisted) void cargar();
   });

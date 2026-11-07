@@ -82,8 +82,11 @@ export async function iniciarExpedienteLegal() {
       nodo.textContent = String(valores[nodo.dataset.legalResumen as keyof typeof valores] || 'Sin información');
     }
     const estados = { pendiente: 'Pendiente', no_aplica: 'No aplica', cargado: demo ? 'Cargado (demostración)' : 'Cargado' };
+    const tonos = { pendiente: 'amarillo', no_aplica: 'neutro', cargado: 'verde' } as const;
     for (const doc of registro.documentos) {
-      buscar(`[data-legal-estado="${doc.tipo}"]`).textContent = estados[doc.estado];
+      const insignia = buscar(`[data-legal-estado="${doc.tipo}"]`);
+      insignia.textContent = estados[doc.estado];
+      insignia.className = `registro-insignia registro-insignia--${tonos[doc.estado]}`;
       buscar(`[data-legal-archivo="${doc.tipo}"]`).textContent = doc.nombre_archivo || 'Sin archivo adjunto';
     }
     const fecha = new Date(registro.updated_at);

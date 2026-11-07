@@ -1,5 +1,4 @@
 ---
-import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Select from '../ui/Select.astro';
@@ -90,10 +89,6 @@ const opcionesUrgencia = [
         options={opcionesUrgencia}
       />
 
-      <Button id="recargar-acciones" variant="outline">
-        <Icono nombre="actualizar" />
-        Actualizar
-      </Button>
     </div>
   </Card>
 
@@ -180,7 +175,6 @@ const opcionesUrgencia = [
   const listado = document.querySelector<HTMLElement>('#acciones-listado')!;
   const estado = document.querySelector<HTMLElement>('#acciones-estado')!;
   const error = document.querySelector<HTMLElement>('#acciones-error')!;
-  const recargar = document.querySelector<HTMLButtonElement>('#recargar-acciones')!;
   const filtroEstado = document.querySelector<HTMLSelectElement>('#filtro-estado-plan')!;
   const filtroUrgencia = document.querySelector<HTMLSelectElement>('#filtro-urgencia-plan')!;
   const plantilla = document.querySelector<HTMLTemplateElement>('#plantilla-accion-plan')!;
@@ -236,11 +230,11 @@ const opcionesUrgencia = [
   };
 
   const estilosBorde: Record<NivelUrgencia, string> = {
-    baja: 'border-l-brand-green',
-    media: 'border-l-brand-yellow',
-    alta: 'border-l-brand-pink',
-    vencida: 'border-l-brand-pink',
-    sin_urgencia: 'border-l-primary',
+    baja: 'acento-verde',
+    media: 'acento-amarillo',
+    alta: 'acento-rosado',
+    vencida: 'acento-rosado',
+    sin_urgencia: 'acento-morado',
   };
 
   const formatoNumero = (numero: number) =>
@@ -307,7 +301,7 @@ const opcionesUrgencia = [
       const article = tarjeta.querySelector<HTMLElement>('article')!;
 
       article.className =
-        `min-w-0 rounded-xl border border-neutral-200 border-l-4 ${estilosBorde[nivel]} bg-white p-4 shadow-sm transition-shadow hover:shadow-md`;
+        `min-w-0 rounded-xl border border-neutral-200 tarjeta-acento ${estilosBorde[nivel]} bg-white p-4 shadow-sm transition-shadow hover:shadow-md`;
 
       tarjeta.querySelector<HTMLElement>('[data-nombre]')!.textContent = accion.nombre;
       tarjeta.querySelector<HTMLElement>('[data-descripcion]')!.textContent =
@@ -362,7 +356,6 @@ const opcionesUrgencia = [
     if (cargando) return;
 
     cargando = true;
-    recargar.disabled = true;
     listado.setAttribute('aria-busy', 'true');
     estado.textContent = 'Cargando acciones…';
     error.hidden = true;
@@ -381,7 +374,6 @@ const opcionesUrgencia = [
       listado.setAttribute('aria-busy', 'false');
     } finally {
       cargando = false;
-      recargar.disabled = false;
     }
   }
 
@@ -402,7 +394,6 @@ const opcionesUrgencia = [
 
   filtroEstado.addEventListener('change', renderizar);
   filtroUrgencia.addEventListener('change', renderizar);
-  recargar.addEventListener('click', () => void cargar());
   window.addEventListener('pageshow', (evento) => {
     if (evento.persisted) void cargar();
   });

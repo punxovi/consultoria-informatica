@@ -31,21 +31,21 @@ import { mainNavItems } from '../../config/nav';
       class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"></p>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Resumen de países">
-      <Card class="border-l-4 border-l-primary p-4">
+      <Card class="tarjeta-acento acento-morado p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
           Países registrados
         </p>
         <p id="paises-total" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
 
-      <Card class="border-l-4 border-l-brand-green p-4">
+      <Card class="tarjeta-acento acento-verde p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
           Códigos telefónicos
         </p>
         <p id="paises-codigos" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
 
-      <Card class="border-l-4 border-l-brand-yellow p-4">
+      <Card class="tarjeta-acento acento-amarillo p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">
           Zonas horarias
         </p>
@@ -87,10 +87,6 @@ import { mainNavItems } from '../../config/nav';
           </p>
         </div>
 
-        <Button id="paises-recargar" type="button" variant="outline" class="shrink-0">
-          <Icono nombre="actualizar" />
-          Actualizar listado
-        </Button>
       </header>
 
       <p id="paises-loading" role="status" aria-live="polite"
@@ -309,10 +305,8 @@ import { mainNavItems } from '../../config/nav';
       ocultarEstados();
       if (carga) carga.hidden = false;
 
-      const recargar = document.querySelector<HTMLButtonElement>('#paises-recargar');
       const reintentar = document.querySelector<HTMLButtonElement>('#paises-reintentar');
 
-      if (recargar) recargar.disabled = true;
       if (reintentar) reintentar.disabled = true;
 
       try {
@@ -325,7 +319,6 @@ import { mainNavItems } from '../../config/nav';
         ocultarEstados();
         mostrarError(mensajeErrorPaises(error, 'cargar los países'));
       } finally {
-        if (recargar) recargar.disabled = false;
         if (reintentar) reintentar.disabled = false;
       }
     }
@@ -335,7 +328,6 @@ import { mainNavItems } from '../../config/nav';
       if (busqueda) busqueda.value = '';
       renderizarPaises();
     });
-    document.querySelector('#paises-recargar')?.addEventListener('click', cargarPaises);
     document.querySelector('#paises-reintentar')?.addEventListener('click', cargarPaises);
 
     mostrarConfirmacionInicial();

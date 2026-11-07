@@ -123,7 +123,6 @@ export async function iniciarProductos() {
   async function cargarListado() {
     ocultarEstadosListado();
     q('cargando').hidden = false;
-    q<HTMLButtonElement>('recargar').disabled = true;
     q<HTMLButtonElement>('reintentar').disabled = true;
     q('listado').setAttribute('aria-busy', 'true');
     try {
@@ -138,7 +137,6 @@ export async function iniciarProductos() {
       q('error-texto').textContent = mensajeErrorProductos(error, 'cargar los productos');
       q('error').hidden = false;
     } finally {
-      q<HTMLButtonElement>('recargar').disabled = false;
       q<HTMLButtonElement>('reintentar').disabled = false;
       q('listado').setAttribute('aria-busy', 'false');
     }
@@ -420,7 +418,6 @@ export async function iniciarProductos() {
   // ---------- Eventos ----------
   q('nuevo').addEventListener('click', () => abrirFormulario(null));
   q('cancelar').addEventListener('click', () => { if (!ocupado) cerrarFormulario(); });
-  q('recargar').addEventListener('click', () => void cargarListado());
   q('reintentar').addEventListener('click', () => void cargarListado());
   q('buscar').addEventListener('input', renderizarListado);
   q('limpiar').addEventListener('click', () => {

@@ -74,7 +74,7 @@ export function mensajeErrorProductos(error: unknown, accion: string): string {
     if (error.status === 401) return 'Tu sesión expiró. Vuelve a iniciar sesión.';
     if (error.status === 403) return 'Solo el Administrador puede gestionar los productos de cotización.';
     if (error.status === 404) return 'El producto no existe o ya no está disponible.';
-    if (error.status === 409) return 'El producto cambió en otra sesión. Recarga el listado antes de volver a intentarlo.';
+    if (error.status === 409) return 'El producto cambió en otra sesión. Recarga la página antes de volver a intentarlo.';
     if (error.status === 413) return 'Las imágenes superan el tamaño permitido.';
     if (error.status === 0 || error.status >= 500) return `No fue posible ${accion}. Revisa tu conexión e inténtalo nuevamente.`;
     return error.message || `No fue posible ${accion}.`;

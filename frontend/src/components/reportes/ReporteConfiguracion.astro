@@ -56,7 +56,7 @@ const listas = [
   </div>
 
   <form id="rep-form" novalidate class="space-y-6">
-    <Card class="border-t-4 border-t-primary p-4 md:p-5">
+    <Card class="tarjeta-acento acento-morado p-4 md:p-5">
       <div class="mb-4">
         <h2 class="text-lg font-semibold text-neutral-900">Período del reporte</h2>
         <p class="mt-1 text-sm text-neutral-500">Ambas fechas son obligatorias para solicitar el reporte.</p>
@@ -71,7 +71,7 @@ const listas = [
       </div>
     </Card>
 
-    <Card class="border-t-4 border-t-brand-green p-4 md:p-5">
+    <Card class="tarjeta-acento acento-verde p-4 md:p-5">
       <div class="mb-4">
         <h2 class="text-lg font-semibold text-neutral-900">Filtros</h2>
         <p class="mt-1 text-sm text-neutral-500">Opcionales. Sin filtros se consideran todos los datos visibles para tu sesión.</p>
@@ -115,7 +115,7 @@ const listas = [
       </div>
     </Card>
 
-    <Card class="border-t-4 border-t-brand-yellow p-4 md:p-5">
+    <Card class="tarjeta-acento acento-amarillo p-4 md:p-5">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-neutral-900">Filtros seleccionados</h2>
@@ -169,8 +169,7 @@ const listas = [
 
   <div id="rep-paso-vista" hidden class="space-y-5">
     <!-- Barra superior de la vista previa: volver a los filtros y descargar el PDF. -->
-    <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
-      <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4C4688] via-brand-cyan to-brand-green"></span>
+    <div class="tarjeta-acento acento-morado relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="min-w-0">
           <Button id="rep-volver-configurar" type="button" variant="ghost" size="sm" class="-ml-2">

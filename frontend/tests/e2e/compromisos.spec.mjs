@@ -64,7 +64,7 @@ test('carga y error de catálogo son distintos de vacío y permiten reintentar',
   await page.route('**/commitments/origins',async ruta=>{await espera;await ruta.fulfill({status:503,json:{ok:false,error:{code:'SUPABASE_NO_DISPONIBLE',message:'No fue posible conectar con la base de datos.'}}});});
   await abrir(page);await expect(page.locator('#comp-carga')).toBeVisible();await expect(page.locator('#comp-nuevo')).toBeDisabled();
   liberar();await expect(page.locator('#comp-error')).toContainText('base de datos');await expect(page.locator('#comp-vacio')).toBeHidden();
-  await page.unroute('**/commitments/origins');await page.locator('#comp-recargar').click();await expect(page.locator('#comp-vacio')).toBeVisible();
+  await page.unroute('**/commitments/origins');await abrir(page);await expect(page.locator('#comp-vacio')).toBeVisible();
 });
 
 test('fallo de escritura conserva el borrador; reintenta sin falsa confirmación',async({page})=>{
@@ -82,9 +82,8 @@ test('conflicto real entre pestañas exige recarga incluso tras cancelar',async(
   await page.locator('#comp-guardar').click();await expect(page.locator('#comp-exito')).toContainText('actualizado');
   await otra.locator('#comp-guardar').click();await expect(otra.locator('#comp-error')).toContainText('otra sesión');
   await expect(otra.locator('#comp-descripcion')).toHaveValue('Mi borrador');await expect(otra.locator('#comp-guardar')).toBeDisabled();
-  otra.once('dialog',d=>d.dismiss());await otra.locator('#comp-recargar').click();await expect(otra.locator('#comp-descripcion')).toHaveValue('Mi borrador');
   await otra.locator('#comp-cancelar').click();await otra.locator('#comp-editar').click();await expect(otra.locator('#comp-guardar')).toBeDisabled();
-  otra.once('dialog',d=>d.accept());await otra.locator('#comp-recargar').click();await expect(otra.locator('#comp-lista')).toContainText('Primera versión');await otra.close();
+  await abrir(otra);await expect(otra.locator('#comp-lista')).toContainText('Primera versión');await otra.close();
 });
 
 test('sin actas impide crear y coordinador ajeno consulta sin editar',async({page,context,request})=>{

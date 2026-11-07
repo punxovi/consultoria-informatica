@@ -5,13 +5,13 @@ import { filtrosSchema, vacios, type Filtros, type Evento } from './modelo.ts';
 import { describirEvento, opcionesAccion, opcionesSeccion, type Tono } from './presentacion.ts';
 
 const tonos: Record<Tono, { insignia: string; borde: string }> = {
-  crear: { insignia: 'bg-[#E7F6EF] text-[#137A53]', borde: 'border-l-brand-green' },
-  modificar: { insignia: 'bg-[#E7F7FA] text-[#12798A]', borde: 'border-l-brand-cyan' },
-  eliminar: { insignia: 'bg-[#FCE8F0] text-[#AD174F]', borde: 'border-l-brand-pink' },
-  restaurar: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'border-l-primary' },
-  sesion: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'border-l-primary' },
-  alerta: { insignia: 'bg-[#FFF4DB] text-[#8A5A00]', borde: 'border-l-brand-yellow' },
-  consulta: { insignia: 'bg-neutral-100 text-neutral-700', borde: 'border-l-neutral-300' },
+  crear: { insignia: 'bg-[#E7F6EF] text-[#137A53]', borde: 'acento-verde' },
+  modificar: { insignia: 'bg-[#E7F7FA] text-[#12798A]', borde: 'acento-celeste' },
+  eliminar: { insignia: 'bg-[#FCE8F0] text-[#AD174F]', borde: 'acento-rosado' },
+  restaurar: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'acento-morado' },
+  sesion: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'acento-morado' },
+  alerta: { insignia: 'bg-[#FFF4DB] text-[#8A5A00]', borde: 'acento-amarillo' },
+  consulta: { insignia: 'bg-neutral-100 text-neutral-700', borde: 'acento-neutro' },
 };
 const textoOpcion = new Map<string, string>([...opcionesAccion, ...opcionesSeccion]);
 
@@ -105,7 +105,7 @@ export async function iniciarAuditoria() {
       for (const contenido of [cuando(legible), quien(legible), accion(evento, legible), crear('span', evento.pais ?? 'No disponible')]) {
         const celda = fila.insertCell(); celda.className = 'p-3 align-top border-b border-[#EEEAF5]'; celda.append(contenido);
       }
-      const tarjeta = crear('article', '', `min-w-0 rounded-xl border border-[#DCD8EA] border-l-4 ${tonos[legible.tono].borde} bg-white p-4`);
+      const tarjeta = crear('article', '', `min-w-0 rounded-xl border border-[#DCD8EA] tarjeta-acento ${tonos[legible.tono].borde} bg-white p-4`);
       const pie = crear('div', '', 'mt-3 grid gap-3 border-t border-[#EEEAF5] pt-3 sm:grid-cols-2');
       const pais = crear('div', '', 'min-w-0');
       pais.append(crear('p', 'País', 'text-xs text-neutral-500'), crear('p', evento.pais ?? 'No disponible', 'text-sm font-medium'));

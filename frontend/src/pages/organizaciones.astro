@@ -28,7 +28,7 @@ import Button from '../components/ui/Button.astro';
     </header>
 
     <section aria-label="Resumen de organizaciones" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Card class="border-l-4 border-l-primary p-4 md:p-5">
+      <Card class="tarjeta-acento acento-morado p-4 md:p-5">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -42,7 +42,7 @@ import Button from '../components/ui/Button.astro';
         </div>
       </Card>
 
-      <Card class="border-l-4 border-l-brand-green p-4 md:p-5">
+      <Card class="tarjeta-acento acento-verde p-4 md:p-5">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -56,7 +56,7 @@ import Button from '../components/ui/Button.astro';
         </div>
       </Card>
 
-      <Card class="border-l-4 border-l-brand-yellow p-4 md:p-5">
+      <Card class="tarjeta-acento acento-amarillo p-4 md:p-5">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-brand-yellow/20 p-3 text-[#946200]" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -130,10 +130,6 @@ import Button from '../components/ui/Button.astro';
           <h2 id="org-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de organizaciones</h2>
           <p class="mt-1 text-sm text-neutral-500">Selecciona una organización para consultar su información.</p>
         </div>
-        <Button id="actualizar-organizaciones" variant="outline" class="shrink-0">
-          <Icono nombre="actualizar" />
-          Actualizar listado
-        </Button>
       </div>
 
       <p id="organizaciones-error" role="alert" hidden class="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger"></p>
@@ -170,7 +166,6 @@ import Button from '../components/ui/Button.astro';
   const hintPrograma = document.querySelector<HTMLParagraphElement>('#filtro-programa-hint')!;
   const errorElement = document.querySelector<HTMLParagraphElement>('#organizaciones-error')!;
   const limpiarBoton = document.querySelector<HTMLButtonElement>('#limpiar-organizaciones')!;
-  const actualizarBoton = document.querySelector<HTMLButtonElement>('#actualizar-organizaciones')!;
 
   selectPais.disabled = true;
   selectPrograma.disabled = true;
@@ -330,10 +325,10 @@ import Button from '../components/ui/Button.astro';
 
   function crearMiniatura(organizacion: Organizacion): HTMLImageElement {
     const miniatura = document.createElement('img');
-    miniatura.className = 'h-12 w-12 shrink-0 rounded-xl border border-neutral-200 bg-white object-contain object-center p-0.5';
+    miniatura.className = 'registro-media';
     miniatura.alt = '';
-    miniatura.width = 48;
-    miniatura.height = 48;
+    miniatura.width = 44;
+    miniatura.height = 44;
     miniatura.src = IMAGEN_ORGANIZACION_PREDETERMINADA;
     if (organizacion.imagen) {
       miniatura.alt = `Imagen de ${organizacion.nombre}`;
@@ -346,73 +341,48 @@ import Button from '../components/ui/Button.astro';
   }
 
   function crearOrganizacion(organizacion: Organizacion): HTMLElement {
-    const tarjeta = document.createElement('article');
-    tarjeta.className = 'group rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-[#D8D3F2] hover:shadow-md sm:p-5';
+    const nodo = <K extends keyof HTMLElementTagNameMap>(etiqueta: K, clase: string, texto?: string) => {
+      const elemento = document.createElement(etiqueta);
+      elemento.className = clase;
+      if (texto !== undefined) elemento.textContent = texto;
+      return elemento;
+    };
+    const tarjeta = nodo('article', 'registro tarjeta-acento acento-morado');
 
-    const fila = document.createElement('div');
-    fila.className = 'flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between';
+    const cabecera = nodo('div', 'registro-cabecera');
+    const identidad = nodo('div', 'registro-identidad');
+    const textos = nodo('div', 'min-w-0');
+    textos.append(
+      nodo('p', 'registro-contexto', formatearTipoOrganizacion(organizacion)),
+      nodo('h3', 'registro-titulo', organizacion.nombre),
+    );
+    identidad.append(crearMiniatura(organizacion), textos);
+    cabecera.append(identidad);
 
-    const contenido = document.createElement('div');
-    contenido.className = 'min-w-0 flex-1';
-
-    const encabezado = document.createElement('div');
-    encabezado.className = 'flex flex-wrap items-center gap-3';
-
-    const icono = crearMiniatura(organizacion);
-
-    const nombre = document.createElement('h3');
-    nombre.className = 'min-w-0 break-words text-lg font-bold text-neutral-900';
-    nombre.textContent = organizacion.nombre;
-
-    const tipo = document.createElement('span');
-    tipo.className = 'inline-flex shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary';
-    tipo.textContent = formatearTipoOrganizacion(organizacion);
-    encabezado.append(icono, nombre, tipo);
-
-    const descripcion = document.createElement('p');
-    descripcion.className = 'mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600';
-    descripcion.textContent = organizacion.descripcion_breve?.trim() || 'Sin descripción registrada.';
-
-    const datos = document.createElement('dl');
-    datos.className = 'mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3';
+    const resumen = nodo('p', 'registro-resumen', organizacion.descripcion_breve?.trim() || 'Sin descripción registrada.');
 
     const ubicacion = [organizacion.comuna_municipio_ciudad, organizacion.region_departamento, organizacion.pais?.nombre]
       .filter((valor): valor is string => Boolean(valor?.trim()))
       .join(' · ');
-    const metadatos: [string, string][] = [
+    const datos = nodo('dl', 'registro-datos');
+    for (const [etiqueta, valor] of [
       ['Ubicación', ubicacion || 'Sin ubicación registrada'],
       ['Beneficiarios', `${new Intl.NumberFormat('es-CL').format(organizacion.numero_beneficiarios)} personas`],
-      ['País', organizacion.pais?.nombre || 'Sin país registrado'],
-    ];
-
-    for (const [etiqueta, valor] of metadatos) {
-      const bloque = document.createElement('div');
-      bloque.className = 'min-w-0';
-      const dt = document.createElement('dt');
-      dt.className = 'text-xs font-semibold uppercase tracking-wide text-neutral-500';
-      dt.textContent = etiqueta;
-      const dd = document.createElement('dd');
-      dd.className = 'mt-1 break-words text-sm font-medium text-neutral-800';
-      dd.textContent = valor;
-      bloque.append(dt, dd);
+    ]) {
+      const bloque = nodo('div', 'min-w-0');
+      bloque.append(nodo('dt', '', etiqueta), nodo('dd', '', valor));
       datos.append(bloque);
     }
 
-    contenido.append(encabezado, descripcion, datos);
-
-    const acciones = document.createElement('div');
-    acciones.className = 'flex shrink-0 justify-end border-t border-neutral-100 pt-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0';
-
-    const detalle = document.createElement('a');
-    const parametrosRetorno = new URLSearchParams(window.location.search);
-    const queryRetorno = parametrosRetorno.toString();
+    const pie = nodo('div', 'registro-pie');
+    const detalle = nodo('a', 'registro-enlace');
+    const queryRetorno = new URLSearchParams(window.location.search).toString();
     detalle.href = `/organizaciones/${encodeURIComponent(organizacion.id_organizacion)}${queryRetorno ? `?${queryRetorno}` : ''}`;
-    detalle.className = 'inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
-    detalle.textContent = 'Ver detalle →';
-    acciones.append(detalle);
+    detalle.innerHTML = 'Ver detalle <span aria-hidden="true">→</span>';
+    detalle.setAttribute('aria-label', `Ver detalle de ${organizacion.nombre}`);
+    pie.append(detalle);
 
-    fila.append(contenido, acciones);
-    tarjeta.append(fila);
+    tarjeta.append(cabecera, resumen, datos, pie);
     return tarjeta;
   }
 
@@ -452,7 +422,6 @@ import Button from '../components/ui/Button.astro';
     cargando.className = 'text-sm text-neutral-500';
     cargando.textContent = 'Cargando organizaciones…';
     lista.append(cargando);
-    actualizarBoton.disabled = true;
   }
 
   function mostrarErrorListado(fallo: unknown, solicitud: number) {
@@ -496,7 +465,6 @@ import Button from '../components/ui/Button.astro';
     } finally {
       if (solicitud === solicitudActual) {
         lista.setAttribute('aria-busy', 'false');
-        actualizarBoton.disabled = false;
       }
     }
   }
@@ -519,7 +487,6 @@ import Button from '../components/ui/Button.astro';
   async function cargarCatalogos() {
     catalogosListos = false;
     mostrarCargando();
-    actualizarBoton.disabled = true;
 
     try {
       const [paises] = await Promise.all([
@@ -555,7 +522,6 @@ import Button from '../components/ui/Button.astro';
     } finally {
       if (!catalogosListos) {
         lista.setAttribute('aria-busy', 'false');
-        actualizarBoton.disabled = false;
       }
     }
   }
@@ -572,7 +538,6 @@ import Button from '../components/ui/Button.astro';
     inputBusqueda.focus();
   });
 
-  actualizarBoton.addEventListener('click', () => aplicarFiltros(false));
   renderizarFiltrosActivos();
   window.addEventListener('fge:territorio-cambiado', (event) => {
     const id = (event as CustomEvent<{id_pais:string}>).detail.id_pais;

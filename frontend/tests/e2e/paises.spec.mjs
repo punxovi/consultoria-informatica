@@ -72,7 +72,7 @@ test('lista datos reales del cliente HTTP y muestra una autorización denegada',
   expect(requests[0]).toMatchObject({ method: 'GET', path: '/api/v1/countries', authorization: 'Bearer qa-admin' });
 
   denied = true;
-  await page.locator('#paises-recargar').click();
+  await page.reload();
   await expect(page.locator('#paises-error')).toContainText('Solo un Administrador puede administrar los países.');
   await expect(page.locator('#paises-total')).toHaveText('0');
   await expect(page.locator('#paises-lista')).toBeHidden();
