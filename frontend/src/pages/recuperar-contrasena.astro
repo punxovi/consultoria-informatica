@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../components/ui/AvisoObligatorios.astro';
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/ui/Button.astro';
 import Card from '../components/ui/Card.astro';
@@ -40,6 +41,7 @@ import Input from '../components/ui/Input.astro';
           </div>
 
           <form id="recovery-form" class="auth-form" novalidate>
+            <AvisoObligatorios />
             <Input
               label="Correo electrónico"
               id="email"

@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Icono from '../ui/Icono.astro';
 import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 import Card from '../ui/Card.astro';
@@ -68,7 +69,7 @@ const { idAccion } = Astro.props;
           <div id="ind-catalogo" class="grid items-start gap-3 lg:grid-cols-2"></div>
           <p id="ind-seleccion-error" hidden role="alert" class="rounded-lg bg-red-50 p-3 text-sm text-red-800"></p>
           <div class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-5 sm:flex-row sm:flex-wrap sm:justify-end">
-            <Button id="ind-volver" variant="outline">Cancelar</Button>
+            <Button id="ind-volver" data-descartar variant="outline">Cancelar</Button>
             <Button id="ind-limpiar" variant="outline"><Icono nombre="limpiar" />Limpiar selección</Button>
             <Button id="ind-asociar" type="submit">Asociar indicadores</Button>
           </div>
@@ -83,6 +84,7 @@ const { idAccion } = Astro.props;
     class="m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#E8E5EF] bg-white p-0 text-[#1A1A1A] shadow-[0_20px_60px_rgba(26,26,26,0.2)] backdrop:bg-[#1A1A1A]/50"
   >
     <form id="ind-edicion" novalidate>
+      <AvisoObligatorios />
       <fieldset id="ind-edicion-campos" class="min-w-0">
         <div class="border-b border-[#EEEAF5] px-6 py-5">
           <div class="flex items-start gap-4">
@@ -121,7 +123,7 @@ const { idAccion } = Astro.props;
         </div>
 
         <div class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] bg-[#FAF9FC] px-6 py-4 sm:flex-row sm:justify-end">
-          <Button id="ind-cancelar" variant="outline">Cancelar</Button>
+          <Button id="ind-cancelar" data-descartar variant="outline">Cancelar</Button>
           <Button id="ind-guardar" type="submit">Guardar resultado</Button>
         </div>
       </fieldset>

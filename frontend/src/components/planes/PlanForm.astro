@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -24,9 +25,7 @@ const textos = [
       </p>
   </header>
 
-  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
-    Los campos marcados con <span class="font-semibold text-danger">*</span> son obligatorios. Completa los datos generales y la definición de la intervención antes de guardar el plan.
-  </p>
+  <AvisoObligatorios />
 
   <p id="plan-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">
     Cargando organizaciones y programas…
@@ -48,19 +47,18 @@ const textos = [
             </span>
             <div>
               <h2 id="plan-datos-titulo" class="text-lg font-bold text-neutral-900">Datos generales del plan</h2>
-              <p class="mt-1 text-sm text-neutral-500">Todos los campos son obligatorios.</p>
             </div>
           </div>
 
           <div class="grid min-w-0 grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
             <div class="min-w-0 space-y-1.5">
-              <label for="id_organizacion" class="block text-sm font-medium text-neutral-800">Organización <span class="text-danger">*</span></label>
+              <label for="id_organizacion" class="block text-sm font-medium text-neutral-800">Organización<span class="marca-obligatorio" aria-hidden="true">*</span></label>
               <select id="id_organizacion" name="id_organizacion" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                 <option value="">Selecciona una organización</option>
               </select>
             </div>
             <div class="min-w-0 space-y-1.5">
-              <label for="id_programa" class="block text-sm font-medium text-neutral-800">Programa institucional <span class="text-danger">*</span></label>
+              <label for="id_programa" class="block text-sm font-medium text-neutral-800">Programa institucional<span class="marca-obligatorio" aria-hidden="true">*</span></label>
               <select id="id_programa" name="id_programa" required class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
                 <option value="">Selecciona un programa</option>
               </select>
@@ -95,14 +93,14 @@ const textos = [
           <div class="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
             {textos.map(({ id, label, max }) => (
               <div class="min-w-0 space-y-1.5">
-                <label for={id} class="block text-sm font-medium text-neutral-800">{label} <span class="text-danger">*</span></label>
+                <label for={id} class="block text-sm font-medium text-neutral-800">{label}<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <textarea id={id} name={id} required maxlength={max} rows="4" class="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
               </div>
             ))}
           </div>
 
           <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
-            <Button href="/planes" variant="outline">Cancelar</Button>
+            <Button href="/planes" variant="outline" data-descartar>Cancelar</Button>
             <Button id="guardar-plan" type="submit">{idPlan ? 'Guardar cambios' : 'Crear plan'}</Button>
           </div>
         </section>

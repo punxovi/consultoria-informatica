@@ -10,7 +10,7 @@ export function iniciarCompromisosEnActas(raiz: HTMLElement) {
     const grupo = document.createElement('fieldset'); grupo.className = 'rounded-lg border border-neutral-300 p-4 space-y-3';
     const leyenda = document.createElement('legend'); leyenda.textContent = `Compromiso ${++secuencia}`; grupo.append(leyenda);
     for (const [nombre, etiqueta] of Object.entries({ descripcion: 'Acuerdo', responsable_nombre: 'Responsable', responsable_contacto: 'Contacto del responsable', fecha_limite: 'Fecha límite', observaciones: 'Observaciones (opcional)' })) {
-      const label = document.createElement('label'); label.className = 'block text-sm font-medium'; label.textContent = `${etiqueta}${nombre !== 'observaciones' ? ' *' : ''}`;
+      const label = document.createElement('label'); label.className = 'etiqueta-campo block'; label.textContent = etiqueta; if (nombre !== 'observaciones') { const marca = document.createElement('span'); marca.className = 'marca-obligatorio'; marca.setAttribute('aria-hidden', 'true'); marca.textContent = '*'; label.append(marca); }
       const input = document.createElement('input'); input.type = nombre === 'fecha_limite' ? 'date' : 'text';
       input.dataset.campo = nombre; input.required = nombre !== 'observaciones';
       input.maxLength = nombre === 'responsable_nombre' ? 150 : nombre === 'responsable_contacto' ? 300 : 2000;

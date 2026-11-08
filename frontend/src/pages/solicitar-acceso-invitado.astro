@@ -1,5 +1,6 @@
 
 ---
+import AvisoObligatorios from '../components/ui/AvisoObligatorios.astro';
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/ui/Button.astro';
 import Card from '../components/ui/Card.astro';
@@ -45,8 +46,7 @@ import Card from '../components/ui/Card.astro';
           <header id="guest-header" class="auth-header">
             <h1>Solicitar acceso</h1>
             <p>
-              Completa el siguiente formulario para solicitar acceso como
-              invitado a la intranet de Fundación Gestionar Esperanzas.
+              Completa el formulario para solicitar acceso como invitado a la plataforma.
             </p>
           </header>
 
@@ -56,8 +56,9 @@ import Card from '../components/ui/Card.astro';
           </div>
 
           <form id="guest-request-form" class="auth-form" novalidate>
+            <AvisoObligatorios />
             <div>
-              <label for="guest-name">Nombre completo</label>
+              <label for="guest-name">Nombre completo<span class="marca-obligatorio" aria-hidden="true">*</span></label>
               <input
                 id="guest-name"
                 name="nombre"
@@ -69,7 +70,7 @@ import Card from '../components/ui/Card.astro';
             </div>
 
             <div>
-              <label for="guest-email">Correo electrónico</label>
+              <label for="guest-email">Correo electrónico<span class="marca-obligatorio" aria-hidden="true">*</span></label>
               <input
                 id="guest-email"
                 name="correo"
@@ -294,36 +295,17 @@ import Card from '../components/ui/Card.astro';
 
   .auth-form label {
     display: block;
-    margin-bottom: .5rem;
-    color: #383165;
-    font-size: .9rem;
-    font-weight: 600;
+    margin-bottom: .375rem;
   }
 
   .auth-form input,
   .auth-form textarea {
     width: 100%;
-    min-height: 48px;
-    padding: .8rem 1rem;
-    border: 1px solid #DCD8EA;
-    border-radius: .75rem;
-    background: #fff;
-    color: #383165;
-    font: inherit;
-    font-size: .9rem;
-    outline: none;
-    transition: border-color .2s, box-shadow .2s;
   }
 
   .auth-form textarea {
     min-height: 110px;
     resize: vertical;
-  }
-
-  .auth-form input:focus,
-  .auth-form textarea:focus {
-    border-color: #4C4688;
-    box-shadow: 0 0 0 3px rgba(76, 70, 136, .12);
   }
 
   .full {

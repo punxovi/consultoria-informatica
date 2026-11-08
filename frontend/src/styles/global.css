@@ -383,3 +383,155 @@ span.registro-media { border: 0; background: #f0edf8; padding: 0; }
  * sigue en Supabase (RLS); esto evita ofrecer acciones que fallarían.
  */
 html[data-solo-lectura] :is([data-gestion], [data-oculto-invitado]) { display: none !important; }
+
+/*
+ * Formularios: un único estilo para todos los campos de la plataforma
+ * (gestión, login, cotizaciones, catálogo…), igual al de components/ui/Input.astro.
+ * Va fuera de las capas de Tailwind para prevalecer sobre las clases de cada
+ * vista; así ningún formulario queda con otra letra, borde o color.
+ */
+.marca-obligatorio {
+  margin-left: 0.125rem;
+  color: #c81e5b;
+  font-weight: inherit;
+}
+
+.aviso-obligatorios {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-neutral-500);
+}
+
+label[for]:not(:has(input[type="checkbox"], input[type="radio"])),
+.etiqueta-campo {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #383165;
+}
+
+:is(
+  input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"], [type="image"]),
+  select,
+  textarea
+) {
+  border: 1px solid #dcd8e8;
+  border-radius: 0.75rem;
+  background-color: #fff;
+  color: #1a1a1a;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+  padding-left: 0.875rem;
+  transition: border-color 150ms, box-shadow 150ms, background-color 150ms;
+}
+
+:is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"], [type="image"]), select) {
+  min-height: 48px;
+}
+
+:is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"], [type="image"]), textarea):not(.pr-12) {
+  padding-right: 0.875rem;
+}
+
+textarea {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+:is(input, textarea)::placeholder {
+  color: #a09fa2;
+  opacity: 1;
+}
+
+:is(input, select, textarea):hover:not(:disabled, [readonly], :focus) {
+  border-color: #b8b1d2;
+}
+
+:is(input, select, textarea):not([type="checkbox"], [type="radio"], [type="file"]):focus {
+  border-color: #4c4688;
+  outline: none;
+  box-shadow: 0 0 0 2px #eae8f5;
+}
+
+:is(input, select, textarea)[aria-invalid="true"] {
+  border-color: #c81e5b;
+}
+
+:is(input, select, textarea)[aria-invalid="true"]:focus {
+  border-color: #c81e5b;
+  box-shadow: 0 0 0 2px #fce8f0;
+}
+
+:is(input, select, textarea):is(:disabled, [readonly]):not([type="checkbox"], [type="radio"], [type="file"]) {
+  cursor: not-allowed;
+  border-color: #e5e1ee;
+  background-color: #f5f3f9;
+  color: #706e78;
+}
+
+/*
+ * Selector de archivos: un único estilo para toda la plataforma (el de
+ * Programas). Botón con borde morado y, al lado, el nombre del archivo.
+ */
+input[type="file"]:not(.sr-only) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin-top: 0.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #1a1a1a;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  min-height: 48px;
+  margin-right: 0.75rem;
+  padding: 0.625rem 1rem;
+  border: 2px solid var(--color-primary);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+input[type="file"]:not(:disabled):hover::file-selector-button {
+  background: var(--color-neutral-100);
+}
+
+input[type="file"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+input[type="file"]:disabled {
+  cursor: not-allowed;
+}
+
+input[type="file"]:disabled::file-selector-button {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*
+ * Solo consulta por país: un Coordinador ve registros de otros países, pero
+ * solo gestiona su país principal y los países con cobertura temporal vigente.
+ * La vista marca <html data-solo-consulta> y aquí se ocultan las acciones de
+ * gestión (indicadores, evidencias…). La autorización efectiva sigue en RLS.
+ */
+html[data-solo-consulta] [data-gestion] { display: none !important; }

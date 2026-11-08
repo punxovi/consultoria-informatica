@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import { LIMITE_CORREO, LIMITE_NOMBRE } from '../../lib/coordinadores/modelo';
@@ -12,7 +13,7 @@ const { modo, idUsuario = '' } = Astro.props;
 const editar = modo === 'editar';
 const claseControl =
   'mt-1.5 min-h-12 w-full rounded-xl border border-[#DCD8E8] bg-white px-3.5 py-2.5 text-base text-[#1A1A1A] placeholder:text-[#A09FA2] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5] disabled:cursor-not-allowed disabled:bg-neutral-50 aria-[invalid=true]:border-[#C81E5B]';
-const obligatorio = '<span class="text-[#C81E5B]" aria-hidden="true">*</span>';
+const obligatorio = '<span class="marca-obligatorio" aria-hidden="true">*</span>';
 ---
 
 <section id="coordinador-form" data-modo={modo} data-id={idUsuario} class="w-full min-w-0 space-y-6">
@@ -22,10 +23,11 @@ const obligatorio = '<span class="text-[#C81E5B]" aria-hidden="true">*</span>';
     <p class="mt-2 max-w-3xl text-sm text-neutral-500">
       {editar
         ? 'Actualiza el nombre o el país principal de la cuenta. El correo identifica el inicio de sesión y no se modifica aquí.'
-        : 'Registra la cuenta con su nombre, correo y país principal. El Coordinador iniciará sesión con ese correo.'}{' '}
-      Los campos marcados con <span class="font-semibold text-[#C81E5B]">*</span> son obligatorios.
+        : 'Registra la cuenta con su nombre, correo y país principal. El Coordinador iniciará sesión con ese correo.'}
     </p>
   </header>
+
+  <AvisoObligatorios />
 
   <div id="cf-carga" hidden role="status" class="flex items-center justify-center gap-3 rounded-2xl border border-[#E4E0F2] bg-white p-6 text-sm text-neutral-500">
     <span class="h-4 w-4 animate-spin rounded-full border-2 border-[#D8D3E8] border-t-primary" aria-hidden="true"></span>
@@ -90,7 +92,7 @@ const obligatorio = '<span class="text-[#C81E5B]" aria-hidden="true">*</span>';
       <p id="cf-error-general" hidden role="alert" tabindex="-1" class="mt-5 rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger focus:outline-none"></p>
 
       <div class="mt-6 flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-5 sm:flex-row sm:justify-end">
-        <Button href="/administracion/coordinadores" variant="outline" size="lg" id="cf-cancelar">Cancelar</Button>
+        <Button href="/administracion/coordinadores" variant="outline" size="lg" id="cf-cancelar" data-descartar>Cancelar</Button>
         <Button id="cf-guardar" type="submit" size="lg">{editar ? 'Guardar cambios' : 'Crear coordinador'}</Button>
       </div>
     </Card>

@@ -135,7 +135,7 @@ export function iniciarEvidencias() {
     q<HTMLInputElement>('publicable').disabled = false;
     q('publicable-ayuda').textContent = 'Se marcará como publicada solo después de completar la carga. Si no lo marcas, queda sin publicar.';
     q('form-titulo').textContent = 'Adjuntar evidencia'; q('guardar-texto').textContent = 'Guardar evidencia';
-    q('form-ayuda').textContent = 'Los campos con * son obligatorios. El archivo queda vinculado a esta acción.';
+    q('form-ayuda').textContent = 'El archivo queda vinculado a esta acción.';
     personas();
   }
   function prepararEdicion(item: Evidencia) {

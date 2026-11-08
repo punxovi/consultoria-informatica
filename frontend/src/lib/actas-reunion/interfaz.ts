@@ -1,4 +1,6 @@
 import { iconoSvg } from '../ui/iconos.ts';
+import { confirmarDescarte } from '../ui/descartar-cambios';
+import { confirmar as confirmarAccion } from '../ui/confirmar';
 import { crearTarjetaRegistro } from '../ui/registro.ts';
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 import { getSupabaseClient } from '../supabase.ts';
@@ -265,11 +267,15 @@ export async function iniciarActasReunion() {
   async function eliminarAdjunto(adjunto: AdjuntoActa, boton: HTMLButtonElement) {
     if (!actual || !catalogo?.puede_gestionar || cargandoAdjuntos) return;
 
-    const confirmar = window.confirm(
-      `¿Eliminar definitivamente el archivo "${adjunto.nombre_original}"? Esta acción no se puede deshacer.`,
-    );
+    const confirmado = await confirmarAccion({
+      titulo: '¿Eliminar este archivo?',
+      mensaje: `Se eliminará definitivamente «${adjunto.nombre_original}».`,
+      aviso: 'Esta acción no se puede deshacer.',
+      confirmar: 'Eliminar archivo',
+      tono: 'peligro',
+    });
 
-    if (!confirmar) return;
+    if (!confirmado) return;
 
     cargandoAdjuntos = true;
     boton.disabled = true;
@@ -395,7 +401,7 @@ export async function iniciarActasReunion() {
   }
   async function cargar() {
     if (ocupado) return false;
-    if (!buscar('#actas-formulario-contenedor').hidden && !confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return false;
+    if (!buscar('#actas-formulario-contenedor').hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return false;
     limpiarMensajes(); cargado = false; buscar('#actas-catalogo-estado').hidden = true;
     buscar('#actas-recuperacion').hidden = true; cargarVista();
     try {

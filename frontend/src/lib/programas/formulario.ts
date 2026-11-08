@@ -1,4 +1,5 @@
 import { actualizarProgramaSchema, crearProgramaSchema, obtenerProgramaPorIdSchema } from '../validaciones/programas';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { getUserRoles } from '../supabase';
 import { actualizarPrograma, crearPrograma, obtenerPrograma } from './cliente';
 import { guardarImagen, obtenerImagen, optimizarImagen, quitarImagen } from './imagen';
@@ -133,10 +134,8 @@ function iniciar(form: HTMLFormElement) {
   });
 
   document.querySelector('#cancelar-programa')!.addEventListener('click', () => {
-    if (!modificado || confirm('¿Descartar los cambios sin guardar?')) {
-      modificado = false;
-      window.location.assign(id ? `/programas/${id}` : '/programas');
-    }
+    modificado = false;
+    window.location.assign(id ? `/programas/${id}` : '/programas');
   });
 
   window.addEventListener('beforeunload', evento => {
@@ -144,8 +143,8 @@ function iniciar(form: HTMLFormElement) {
   });
 
   if (recargar) {
-    recargar.addEventListener('click', () => {
-      if (!modificado || confirm('¿Descartar tus cambios y cargar la versión guardada?')) void cargar();
+    recargar.addEventListener('click', async () => {
+      if (!modificado || await confirmarDescarte('Se cargará la versión guardada y perderás tus cambios.')) void cargar();
     });
   }
 

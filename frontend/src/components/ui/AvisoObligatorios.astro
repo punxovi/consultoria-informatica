@@ -1,0 +1,11 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<p class:list={['aviso-obligatorios', className]}>
+  Los campos marcados con <span class="marca-obligatorio">*</span> son obligatorios.
+</p>

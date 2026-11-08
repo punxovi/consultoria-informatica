@@ -140,8 +140,10 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
       if (accion.id_plan !== seccion.dataset.idPlan) {
         throw new Error('La acción solicitada no pertenece a este plan.');
       }
-      document.querySelector<HTMLElement>('#gestion-accion')!.hidden =
-        !puedeGestionarPais(alcance, plan.organizacion.id_pais);
+      const gestionable = puedeGestionarPais(alcance, plan.organizacion.id_pais);
+      document.querySelector<HTMLElement>('#gestion-accion')!.hidden = !gestionable;
+      // Fuera del país propio o de una cobertura vigente, Indicadores y Evidencias quedan en solo consulta.
+      document.documentElement.toggleAttribute('data-solo-consulta', !gestionable);
 
       const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
       if (raizEliminar) raizEliminar.dataset.version = String(accion.version);

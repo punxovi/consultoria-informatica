@@ -148,6 +148,7 @@ if (!idValido) Astro.response.status = 404;
   import { obtenerPrograma, archivarPrograma } from '../../lib/programas/cliente';
   import { IMAGEN_PROGRAMA_PREDETERMINADA, obtenerImagen } from '../../lib/programas/imagen';
   import { getUserRoles } from '../../lib/supabase';
+  import { confirmar } from '../../lib/ui/confirmar';
   import { ErrorSolicitudPrograma } from '../../lib/programas/transporte';
   import { obtenerProgramaPorIdSchema } from '../../lib/validaciones/programas';
 
@@ -295,7 +296,14 @@ if (!idValido) Astro.response.status = 404;
         const boton = document.querySelector<HTMLButtonElement>('#eliminar-programa')!;
         boton.disabled = false;
         boton.onclick = async () => {
-          if (boton.disabled || !confirm(`¿Eliminar «${programa.nombre}» del catálogo activo? Sus planes y archivos se conservarán.`)) return;
+          if (boton.disabled) return;
+          const confirmado = await confirmar({
+            titulo: '¿Eliminar este programa?',
+            mensaje: `«${programa.nombre}» dejará de aparecer en el catálogo activo. Sus planes y archivos se conservarán.`,
+            confirmar: 'Eliminar programa',
+            tono: 'peligro',
+          });
+          if (!confirmado) return;
           boton.disabled = true;
           eliminarEstado.textContent = 'Eliminando programa…';
           eliminarEstado.hidden = false;

@@ -4,18 +4,9 @@
   --org-borde: #dcd8ea;
   color: #292536;
 }
-.organizaciones-ui :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
-  border-color: #c8c3db;
-  border-radius: .75rem;
-  background-color: #fff;
-}
-.organizaciones-ui :is(input,select,textarea)[aria-invalid=true] { border-color: #ba1652; }
-.organizaciones-ui label { font-weight: 600; }
 .organizaciones-ui :is(p,dd,span,a,h1,h2,h3) { overflow-wrap: anywhere; }
 .organizaciones-ui :is(.rounded-2xl,.rounded-xl).border { border-color: var(--org-borde); }
 .org-listado .org-listado-metricas > div { border-color: #e8e5ef; }
-.org-listado .org-filtros :is(input,select).border { min-height: 46px; border-color: var(--color-neutral-200); font-size: .875rem; padding: .5rem .75rem; }
-.org-listado .org-filtros label { font-weight: 500; }
 .org-hero {
   position: relative;
   padding: clamp(1.4rem,3vw,2.2rem);

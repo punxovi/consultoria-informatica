@@ -1,4 +1,5 @@
 import { ApiError, createApiTransport } from '../api/transporte';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteExpediente } from './cliente';
 import { camposLegalSchema, documentosVacios, tiposDocumento, validarPdf, type ExpedienteLegal, type GuardarExpediente, type TipoDocumento } from './modelo';
@@ -103,7 +104,7 @@ export async function iniciarExpedienteLegal() {
 
   async function cargar() {
     if (ocupado) return;
-    if (!formulario.hidden && !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
+    if (!formulario.hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return;
     iniciado = true;
     limpiarErrores();
     recarga.hidden = true;

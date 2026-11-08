@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
@@ -97,11 +98,12 @@ const camposResumen = [
         <div class="mb-5 border-b border-[#F0EDF6] pb-4">
           <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]">Información institucional</p>
           <h3 id="legal-form-titulo" class="mt-1 text-lg font-semibold">Registrar antecedentes legales</h3>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Los campos con * son obligatorios. Puedes completar los documentos más adelante.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Puedes completar los documentos más adelante.</p>
+          <AvisoObligatorios class="mt-1" />
         </div>
         <div class="grid min-w-0 gap-5 md:grid-cols-2">
           <div class="space-y-1.5">
-            <label for="legal-personalidad" class="block text-sm font-medium text-slate-800">¿Posee personalidad jurídica? <span class="text-rose-600">*</span></label>
+            <label for="legal-personalidad" class="block text-sm font-medium text-slate-800">¿Posee personalidad jurídica?<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <select id="legal-personalidad" name="estado_personalidad_juridica" required class="min-h-[48px] w-full rounded-xl border border-[#D9D4E8] bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15">
               <option value="">Selecciona una opción</option><option value="si">Sí</option><option value="no">No</option><option value="en_proceso">En proceso</option>
             </select>
@@ -139,7 +141,7 @@ const camposResumen = [
                 </div>
                 <div class="min-w-0 space-y-1.5">
                   <label for={`legal-pdf-${id}`} class="block text-sm font-medium text-slate-800">Adjuntar o reemplazar PDF <span class="text-slate-400">(opcional)</span></label>
-                  <input id={`legal-pdf-${id}`} data-documento-pdf={id} type="file" accept="application/pdf,.pdf" class="block min-h-[48px] w-full min-w-0 rounded-xl border border-[#D9D4E8] bg-white text-sm text-slate-500 file:mr-3 file:min-h-[46px] file:cursor-pointer file:border-0 file:bg-[#F0EDF8] file:px-3 file:text-sm file:font-medium file:text-[#4C4688] hover:file:bg-[#E8E3F5]" />
+                  <input id={`legal-pdf-${id}`} data-documento-pdf={id} type="file" accept="application/pdf,.pdf" />
                   <p class="text-xs text-slate-500">Solo PDF, máximo 10 MB.</p>
                   <button type="button" data-quitar-seleccion={id} hidden class="min-h-8 text-sm font-medium text-[#4C4688] underline underline-offset-2">Quitar archivo seleccionado</button>
                 </div>
@@ -150,7 +152,7 @@ const camposResumen = [
       </Card>
 
       <div class="flex flex-col-reverse gap-3 border-t border-[#E8E5EF] pt-5 sm:flex-row sm:justify-end">
-        <Button id="legal-cancelar" type="button" variant="outline">Cancelar</Button>
+        <Button id="legal-cancelar" data-descartar type="button" variant="outline">Cancelar</Button>
         <Button id="legal-guardar" type="submit">Guardar antecedentes</Button>
       </div>
     </fieldset>
@@ -171,11 +173,6 @@ const camposResumen = [
   }
   .legal-documentos li:first-child { border-top: 0; padding-top: 0; }
   .legal-documentos li:last-child { padding-bottom: 0; }
-  #expediente-legal input[aria-invalid="true"],
-  #expediente-legal select[aria-invalid="true"],
-  #expediente-legal textarea[aria-invalid="true"] {
-    border-color: #E11D48;
-  }
 </style>
 
 <script>

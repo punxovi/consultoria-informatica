@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -23,9 +24,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
     </div>
   </header>
 
-  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
-    Los campos marcados con <span class="font-semibold text-danger">*</span> son obligatorios. Las evidencias son opcionales y puedes adjuntarlas desde el detalle después de guardar la acción.
-  </p>
+  <AvisoObligatorios />
 
   <p id="accion-estado" role="status" aria-live="polite" class="sr-only">Cargando formulario…</p>
   <div id="accion-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-300 bg-red-50 p-4 text-red-800"></div>
@@ -62,7 +61,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
             <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
 
             <div class="space-y-1.5">
-              <label for="estado" class="block text-sm font-medium text-neutral-800">Estado <span class="text-danger">*</span></label>
+              <label for="estado" class="block text-sm font-medium text-neutral-800">Estado<span class="marca-obligatorio" aria-hidden="true">*</span></label>
               <select id="estado" name="estado" required class="min-h-[48px] w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
                 {estadosSeleccionables.map(({ valor, etiqueta }) => <option value={valor}>{etiqueta}</option>)}
               </select>
@@ -103,7 +102,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
         </section>
 
         <footer class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
-          <Button href={volver} variant="outline">Cancelar</Button>
+          <Button href={volver} variant="outline" data-descartar>Cancelar</Button>
           <Button id="guardar-accion" type="submit">{idAccion ? 'Guardar cambios' : 'Crear acción'}</Button>
         </footer>
       </Card>
