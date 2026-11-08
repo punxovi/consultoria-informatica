@@ -491,7 +491,7 @@ export function iniciarDonaciones() {
     q<HTMLInputElement>('pais').value = nombrePais();
     q<HTMLInputElement>('organizacion').value = nombreOrganizacion();
     q('form-titulo').textContent = 'Registrar nueva donaci\u00f3n';
-    q('form-ayuda').textContent = 'Los campos marcados con * son obligatorios. Una vez creada podr\u00e1s adjuntar sus respaldos documentales.';
+    q('form-ayuda').textContent = 'Una vez creada podr\u00e1s adjuntar sus respaldos documentales.';
     actualizarCamposAporte();
     cambiarVista('form-donacion');
     void cargarProgramas();

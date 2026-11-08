@@ -4,7 +4,7 @@ import { crearClienteIndicadores } from '../indicadores/cliente.ts';
 import { listarOrganizaciones, listarPaisesOrganizaciones } from '../organizaciones/cliente.ts';
 import { listarProgramas } from '../programas/cliente.ts';
 import { listarAcciones } from '../acciones/cliente.ts';
-import { cargarOpcionesIndicadoresYResultados } from './resultados.ts';
+import { cargarOpcionesIndicadoresYResultados, filtrarOpcionesReporte, type OpcionReporte } from './resultados.ts';
 import { crearControladorConsulta, type EstadoConsulta, type SolicitudReporte } from './consulta.ts';
 import { renderizarVistaPrevia } from './interfaz-vista-previa.ts';
 import { crearClienteReportesPdf, type ReportFilters, type ReportPreview } from './pdf.ts';
@@ -53,6 +53,9 @@ export function iniciarConfiguracionReporte() {
   let intentado = false;
   let secuenciaOrganizaciones = 0;
   let fallidos: NombreCatalogo[] = [];
+  // Todas las opciones visibles para la sesión; en pantalla solo se muestran las relacionadas con los filtros.
+  let opcionesTodas: { indicadores: OpcionReporte[]; resultados: OpcionReporte[] } = { indicadores: [], resultados: [] };
+  let opcionesCargadas = false;
 
   const selectores = {
     id_pais: q<HTMLSelectElement>('pais'),
@@ -141,6 +144,7 @@ export function iniciarConfiguracionReporte() {
         config = quitarFiltro(config, filtro);
         pintarFormulario();
         actualizar();
+        if (filtro.campo === 'id_organizacion' || filtro.campo === 'id_programa' || filtro.campo === 'indicadores') pintarRelacionados();
         if (filtro.campo === 'id_pais') void cargarOrganizaciones();
       });
       item.append(texto, quitar);
@@ -216,6 +220,48 @@ export function iniciarConfiguracionReporte() {
     }
   }
 
+  function hayFiltroContexto() {
+    return Boolean(config.id_pais || config.id_organizacion || config.id_programa);
+  }
+
+  function pintarIndicadores() {
+    if (!opcionesCargadas) return;
+    leerFormulario();
+    const { indicadores: opciones } = filtrarOpcionesReporte(opcionesTodas, config);
+    pintarLista('indicadores', opciones, hayFiltroContexto()
+      ? 'No hay indicadores relacionados con el país, la organización o el programa elegidos.'
+      : 'No hay indicadores disponibles para seleccionar.');
+    q('indicadores-ayuda').textContent = hayFiltroContexto()
+      ? 'Solo se muestran los relacionados con el país, la organización y el programa elegidos.'
+      : 'Elige un país, una organización o un programa para ver solo los relacionados.';
+    leerFormulario();
+  }
+
+  function pintarResultados() {
+    if (!opcionesCargadas) return;
+    leerFormulario();
+    const { resultados: opciones } = filtrarOpcionesReporte(opcionesTodas, config);
+    const conIndicadores = config.indicadores.length > 0;
+    pintarLista('resultados', opciones, conIndicadores
+      ? 'Los indicadores marcados todavía no tienen resultados registrados.'
+      : hayFiltroContexto()
+        ? 'No hay resultados relacionados con el país, la organización o el programa elegidos.'
+        : 'No hay resultados disponibles para seleccionar.');
+    q('resultados-ayuda').textContent = conIndicadores
+      ? 'Solo se muestran los resultados de los indicadores marcados.'
+      : hayFiltroContexto()
+        ? 'Solo se muestran los relacionados con el país, la organización y el programa elegidos.'
+        : 'Marca indicadores o elige filtros para ver solo los resultados relacionados.';
+    leerFormulario();
+  }
+
+  /** Repinta indicadores y resultados según los filtros; quita las selecciones que dejaron de corresponder. */
+  function pintarRelacionados() {
+    pintarIndicadores();
+    pintarResultados();
+    pintarSeleccion();
+  }
+
   async function cargarOrganizaciones() {
     const secuencia = ++secuenciaOrganizaciones;
     const select = selectores.id_organizacion;
@@ -236,6 +282,7 @@ export function iniciarConfiguracionReporte() {
       avisoSelect(select, 'No fue posible cargar las organizaciones.');
       if (!fallidos.includes('Organizaciones')) fallidos.push('Organizaciones');
     }
+    pintarRelacionados();
     pintarSeleccion();
   }
 
@@ -267,18 +314,23 @@ export function iniciarConfiguracionReporte() {
     }
     const necesitaIndicadoresOResultados = quiere('Indicadores') || quiere('Resultados');
     const opcionesIndicadoresYResultados = necesitaIndicadoresOResultados
-      ? cargarOpcionesIndicadoresYResultados(() => listarAcciones(), (accion) => indicadores.listar(accion))
+      ? cargarOpcionesIndicadoresYResultados(
+        () => listarAcciones(),
+        (accion) => indicadores.listar(accion),
+        () => listarOrganizaciones({}),
+      ).then((opciones) => {
+        opcionesTodas = opciones;
+        opcionesCargadas = true;
+        return opciones;
+      })
       : null;
     if (quiere('Indicadores') && opcionesIndicadoresYResultados) {
-      tareas.push(['Indicadores', opcionesIndicadoresYResultados.then(({ indicadores: opciones }) => {
-        pintarLista('indicadores', opciones, 'No hay indicadores disponibles para seleccionar.');
-      })]);
+      tareas.push(['Indicadores', opcionesIndicadoresYResultados.then(() => pintarIndicadores())]);
     }
     if (quiere('Organizaciones')) tareas.push(['Organizaciones', cargarOrganizaciones()]);
     if (quiere('Resultados')) {
-      tareas.push(['Resultados', opcionesIndicadoresYResultados!.then(({ resultados: opciones }) => {
-        pintarLista('resultados', opciones, 'No hay resultados disponibles para seleccionar.');
-      })]);
+      // Después de Indicadores: los resultados dependen de los indicadores marcados.
+      tareas.push(['Resultados', opcionesIndicadoresYResultados!.then(() => pintarResultados())]);
     }
 
     const resultados = await Promise.allSettled(tareas.map(([, tarea]) => tarea));
@@ -518,6 +570,7 @@ export function iniciarConfiguracionReporte() {
     pintarSeleccion();
     revalidar();
     if (paisAnterior) void cargarOrganizaciones();
+    else pintarRelacionados();
   });
 
   q('reintentar').addEventListener('click', () => {
@@ -558,7 +611,13 @@ export function iniciarConfiguracionReporte() {
   q('confirmar-pdf').addEventListener('click', () => { void descargarPdf(); });
   q('exportacion-reintentar').addEventListener('click', () => pintarExportacion('confirmacion'));
 
+  // Organización y programa acotan los indicadores y resultados que se ofrecen.
+  selectores.id_organizacion.addEventListener('change', () => { pintarRelacionados(); revalidar(); });
+  selectores.id_programa.addEventListener('change', () => { pintarRelacionados(); revalidar(); });
+
   q('indicadores-opciones').addEventListener('change', () => {
+    pintarResultados();
+    pintarSeleccion();
     if (marcados('indicadores').length > MAX_SELECCION) {
       q('error-general').textContent = `Puedes seleccionar hasta ${MAX_SELECCION} indicadores.`;
       q('error-general').hidden = false;

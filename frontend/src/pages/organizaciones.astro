@@ -114,6 +114,7 @@ import Button from '../components/ui/Button.astro';
 
       <!-- Solo se muestra si no se pudo cargar el catálogo de programas. -->
       <p id="filtro-programa-hint" role="status" hidden class="mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger"></p>
+      <p id="aviso-solo-consulta" role="status" aria-live="polite" hidden class="mt-3 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]"></p>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         <p id="contador-resultados" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando organizaciones…</p>
@@ -145,6 +146,7 @@ import Button from '../components/ui/Button.astro';
   import { IMAGEN_ORGANIZACION_PREDETERMINADA } from '../lib/organizaciones/imagen';
   import { listarProgramas } from '../lib/programas/cliente';
   import { paisOperativo } from '../lib/territorio/contexto';
+  import { actualizarAvisoConsulta } from '../lib/territorio/aviso-consulta';
   import type { Organizacion, PaisResumen } from '../lib/modelos/organizaciones';
 
   let territorio: string | null = null;
@@ -166,6 +168,7 @@ import Button from '../components/ui/Button.astro';
   const hintPrograma = document.querySelector<HTMLParagraphElement>('#filtro-programa-hint')!;
   const errorElement = document.querySelector<HTMLParagraphElement>('#organizaciones-error')!;
   const limpiarBoton = document.querySelector<HTMLButtonElement>('#limpiar-organizaciones')!;
+  const avisoConsulta = document.querySelector<HTMLElement>('#aviso-solo-consulta')!;
 
   selectPais.disabled = true;
   selectPrograma.disabled = true;
@@ -182,7 +185,7 @@ import Button from '../components/ui/Button.astro';
   function obtenerFiltrosSeleccionados(): FiltrosListado {
     return {
       q: inputBusqueda.value.trim(),
-      id_pais: territorio || selectPais.value,
+      id_pais: selectPais.value,
       id_programa: selectPrograma.value,
     };
   }
@@ -243,7 +246,7 @@ import Button from '../components/ui/Button.astro';
 
   // Igual que en Programas y Planes: sin bloque de «filtros activos»; solo se habilita «Limpiar filtros».
   function renderizarFiltrosActivos(filtros = obtenerFiltrosSeleccionados()) {
-    limpiarBoton.disabled = !catalogosListos || !(filtros.q || filtros.id_pais || filtros.id_programa);
+    limpiarBoton.disabled = !catalogosListos || !(filtros.q || filtros.id_pais !== (territorio ?? '') || filtros.id_programa);
   }
 
   function limpiarLista() {
@@ -452,7 +455,7 @@ import Button from '../components/ui/Button.astro';
           idPrograma: filtros.id_programa || undefined,
         }),
         // El total sin filtros se consulta solo si aún no se conoce.
-        hayFiltros && totalRegistradas === null ? listarOrganizaciones({ idPais: territorio || undefined }).catch(() => null) : Promise.resolve(null),
+        hayFiltros && totalRegistradas === null ? listarOrganizaciones({}).catch(() => null) : Promise.resolve(null),
       ]);
       if (solicitud !== solicitudActual) return;
       if (!hayFiltros) totalRegistradas = datos.length;
@@ -474,6 +477,7 @@ import Button from '../components/ui/Button.astro';
     const filtros = obtenerFiltrosSeleccionados();
     sincronizarFiltrosEnUrl(filtros);
     renderizarFiltrosActivos(filtros);
+    void actualizarAvisoConsulta(avisoConsulta, filtros.id_pais, selectPais.selectedOptions[0]?.text ?? '', 'organizaciones');
     if (!catalogosListos) return;
 
     if (temporizadorBusqueda !== undefined) window.clearTimeout(temporizadorBusqueda);
@@ -494,7 +498,7 @@ import Button from '../components/ui/Button.astro';
         cargarProgramasDisponibles(),
       ]);
       poblarFiltroPaises(paises);
-      selectPais.disabled = territorial;
+      selectPais.disabled = false;
       selectPais.value = parametrosIniciales.get('id_pais') ?? '';
       if (selectPais.value !== (parametrosIniciales.get('id_pais') ?? '')) selectPais.value = '';
       if (catalogoProgramasDisponible) {
@@ -502,7 +506,7 @@ import Button from '../components/ui/Button.astro';
         selectPrograma.value = parametrosIniciales.get('id_programa') ?? '';
         if (selectPrograma.value !== (parametrosIniciales.get('id_programa') ?? '')) selectPrograma.value = '';
       }
-      if (territorio) selectPais.value = territorio;
+      if (territorio && !parametrosIniciales.has('id_pais')) selectPais.value = territorio;
       catalogosListos = true;
       aplicarFiltros(false);
     } catch (fallo) {

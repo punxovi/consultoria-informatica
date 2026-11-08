@@ -75,11 +75,17 @@ import AppLayout from '../layouts/AppLayout.astro';
         </span>
         <div>
           <h2 class="text-lg font-semibold text-neutral-900">Filtrar planes</h2>
-          <p class="mt-1 text-sm text-neutral-500">Combina año, programa y organización para encontrar los planes que necesitas.</p>
+          <p class="mt-1 text-sm text-neutral-500">Combina país, año, programa y organización para encontrar los planes que necesitas.</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-1.5">
+          <label for="filtro-pais" class="block text-sm font-medium text-neutral-800">País</label>
+          <select id="filtro-pais" disabled class="w-full">
+            <option value="">Todos los países</option>
+          </select>
+        </div>
         <div class="space-y-1.5">
           <label for="filtro-anio" class="block text-sm font-medium text-neutral-800">Año del plan</label>
           <select id="filtro-anio" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
@@ -101,6 +107,7 @@ import AppLayout from '../layouts/AppLayout.astro';
       </div>
 
       <p id="planes-contexto-organizacion" hidden class="mt-4 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]" aria-live="polite"></p>
+      <p id="aviso-solo-consulta" role="status" aria-live="polite" hidden class="mt-4 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]"></p>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         <p id="planes-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando planes…</p>
@@ -159,7 +166,8 @@ import AppLayout from '../layouts/AppLayout.astro';
 <script>
   import { paisOperativo } from '../lib/territorio/contexto';
   import { listarPlanes } from '../lib/planes/cliente';
-  import { listarOrganizaciones } from '../lib/organizaciones/cliente';
+  import { listarOrganizaciones, listarPaisesOrganizaciones } from '../lib/organizaciones/cliente';
+  import { actualizarAvisoConsulta } from '../lib/territorio/aviso-consulta';
   import { agregarRetorno, hrefOrganizacion } from '../lib/navegacion/retorno-organizaciones';
 
   type PlanListado = Awaited<ReturnType<typeof listarPlanes>>[number];
@@ -168,6 +176,8 @@ import AppLayout from '../layouts/AppLayout.astro';
   const listado = document.querySelector<HTMLElement>('#planes-listado')!;
   const estado = document.querySelector<HTMLElement>('#planes-estado')!;
   const error = document.querySelector<HTMLElement>('#planes-error')!;
+  const filtroPais = document.querySelector<HTMLSelectElement>('#filtro-pais')!;
+  const avisoConsulta = document.querySelector<HTMLElement>('#aviso-solo-consulta')!;
   const filtroAnio = document.querySelector<HTMLSelectElement>('#filtro-anio')!;
   const filtroPrograma = document.querySelector<HTMLSelectElement>('#filtro-programa')!;
   const filtroOrganizacion = document.querySelector<HTMLSelectElement>('#filtro-organizacion')!;
@@ -182,6 +192,9 @@ import AppLayout from '../layouts/AppLayout.astro';
   const pendientes = document.querySelector<HTMLElement>('#planes-pendientes')!;
 
   let planes: PlanListado[] = [];
+  let planesTodos: PlanListado[] = [];
+  let organizacionesTodas: OrganizacionListado[] = [];
+  let paisesCargados = false;
   let organizacionesRegistradas: OrganizacionListado[] = [];
   let organizacionContextual: string | null = new URLSearchParams(window.location.search).get('id_organizacion');
   let cargando = false;
@@ -211,6 +224,38 @@ import AppLayout from '../layouts/AppLayout.astro';
     selector.replaceChildren(new Option(etiquetaInicial, ''));
     for (const opcion of opciones) selector.add(new Option(opcion.etiqueta, opcion.valor));
     if (opciones.some(opcion => opcion.valor === valorAnterior)) selector.value = valorAnterior;
+  }
+
+  // Un Coordinador consulta planes de todos los países; el filtro parte en su territorio activo.
+  function aplicarPais() {
+    const pais = filtroPais.value;
+    planes = pais ? planesTodos.filter(plan => plan.organizacion.id_pais === pais) : planesTodos;
+    organizacionesRegistradas = pais ? organizacionesTodas.filter(organizacion => organizacion.id_pais === pais) : organizacionesTodas;
+    void actualizarAvisoConsulta(avisoConsulta, pais, filtroPais.selectedOptions[0]?.text ?? '', 'planes');
+  }
+
+  async function cargarPaises() {
+    if (paisesCargados) return;
+    try {
+      const paises = await listarPaisesOrganizaciones();
+      filtroPais.replaceChildren(new Option('Todos los países', ''));
+      [...paises].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).forEach(pais => filtroPais.add(new Option(pais.nombre, pais.id_pais)));
+      paisesCargados = true;
+    } catch {
+      // Sin catálogo de países se listan todos los planes visibles.
+    }
+    filtroPais.disabled = false;
+  }
+
+  function paisInicial(parametros: URLSearchParams, territorioActivo: string | null): string {
+    if (parametros.has('id_pais')) return parametros.get('id_pais') ?? '';
+    const idOrganizacion = parametros.get('id_organizacion');
+    if (idOrganizacion) {
+      const paisOrganizacion = organizacionesTodas.find(organizacion => String(organizacion.id_organizacion) === idOrganizacion)?.id_pais
+        ?? planesTodos.find(plan => String(plan.id_organizacion) === idOrganizacion)?.organizacion.id_pais;
+      if (paisOrganizacion) return paisOrganizacion;
+    }
+    return territorioActivo ?? '';
   }
 
   function poblarFiltros() {
@@ -254,6 +299,7 @@ import AppLayout from '../layouts/AppLayout.astro';
   function sincronizarFiltrosEnUrl() {
     const url = new URL(window.location.href);
     const filtros: Array<[string, string]> = [
+      ['id_pais', filtroPais.value],
       ['anio', filtroAnio.value],
       ['id_programa', filtroPrograma.value],
       ['id_organizacion', idOrganizacionFiltro()],
@@ -333,7 +379,7 @@ import AppLayout from '../layouts/AppLayout.astro';
       ? `Mostrando los planes relacionados con ${nombreOrganizacion || 'la organización seleccionada'}.`
       : '';
 
-    const hayFiltros = Boolean(filtroAnio.value || filtroPrograma.value || idOrgActual);
+    const hayFiltros = Boolean(filtroAnio.value || filtroPrograma.value || idOrgActual || filtroPais.value !== (territorio ?? ''));
     limpiarFiltros.disabled = !hayFiltros;
     planesVacio.hidden = resultados.length !== 0;
     if (!resultados.length) {
@@ -374,19 +420,21 @@ import AppLayout from '../layouts/AppLayout.astro';
     try {
       const recibidos = await listarPlanes();
       if (solicitud !== solicitudActual) return;
-      planes = pais ? recibidos.filter(plan => plan.organizacion.id_pais === pais) : recibidos;
+      planesTodos = recibidos;
       try {
-        const organizaciones = await listarOrganizaciones({idPais: pais || undefined});
-        if (solicitud !== solicitudActual) return;
-        organizacionesRegistradas = organizaciones;
+        organizacionesTodas = await listarOrganizaciones({});
       } catch {
         // El listado de planes puede funcionar aunque falle la carga del catálogo de organizaciones.
-        organizacionesRegistradas = [];
+        organizacionesTodas = [];
       }
       if (solicitud !== solicitudActual) return;
-      poblarFiltros();
+      await cargarPaises();
+      if (solicitud !== solicitudActual) return;
 
       const parametros = new URLSearchParams(window.location.search);
+      filtroPais.value = paisInicial(parametros, pais);
+      aplicarPais();
+      poblarFiltros();
       filtroAnio.value = parametros.get('anio') ?? '';
       filtroPrograma.value = parametros.get('id_programa') ?? '';
       const idOrgInicial = parametros.get('id_organizacion');
@@ -407,6 +455,14 @@ import AppLayout from '../layouts/AppLayout.astro';
     }
   }
 
+  filtroPais.addEventListener('change', () => {
+    filtroOrganizacion.value = '';
+    organizacionContextual = null;
+    aplicarPais();
+    poblarFiltros();
+    sincronizarFiltrosEnUrl();
+    renderizar();
+  });
   filtroAnio.addEventListener('change', () => {
     sincronizarFiltrosEnUrl();
     renderizar();
@@ -421,6 +477,9 @@ import AppLayout from '../layouts/AppLayout.astro';
     renderizar();
   });
   limpiarFiltros.addEventListener('click', () => {
+    filtroPais.value = territorio ?? '';
+    aplicarPais();
+    poblarFiltros();
     filtroAnio.value = '';
     filtroPrograma.value = '';
     filtroOrganizacion.value = '';
@@ -434,7 +493,7 @@ import AppLayout from '../layouts/AppLayout.astro';
     if (!territorial || id === territorio) return;
     territorio = id; solicitudActual += 1;
     planes = []; organizacionesRegistradas = []; listado.replaceChildren(); actualizarContadores([]);
-    organizacionContextual = null; filtroOrganizacion.value = ''; filtroPrograma.value = ''; filtroAnio.value = '';
+    organizacionContextual = null; filtroOrganizacion.value = ''; filtroPrograma.value = ''; filtroAnio.value = ''; filtroPais.value = id;
     sincronizarFiltrosEnUrl();
     if (!id) { error.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.'; error.hidden = false; return; }
     void cargar();

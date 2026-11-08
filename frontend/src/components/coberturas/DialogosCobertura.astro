@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 ---
 
 <dialog
@@ -48,9 +49,10 @@
   </header>
 
   <form id="cobertura-extender-form" class="space-y-4 px-6 py-5" novalidate>
+    <AvisoObligatorios />
     <div class="space-y-1.5">
       <label for="cobertura-extender-fecha" class="block text-sm font-medium">
-        Nueva fecha de término *
+        Nueva fecha de término<span class="marca-obligatorio" aria-hidden="true">*</span>
       </label>
 
       <input
@@ -109,10 +111,11 @@
     <p class="text-sm leading-6 text-neutral-600">
       Esta acción debe ser confirmada por el servicio antes de considerar revocada la cobertura.
     </p>
+    <AvisoObligatorios />
 
     <div class="space-y-1.5">
       <label for="cobertura-revocar-motivo" class="block text-sm font-medium">
-        Motivo de la revocación *
+        Motivo de la revocación<span class="marca-obligatorio" aria-hidden="true">*</span>
       </label>
       <textarea
         id="cobertura-revocar-motivo"

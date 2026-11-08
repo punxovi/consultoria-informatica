@@ -1,5 +1,6 @@
 ﻿import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { crearClienteCompromisos } from './cliente';
 import { crearDescargaPdfCompromisos, guardarArchivo } from './pdf';
 import { guardarCompromisoSchema, vencido, type ActaOrigen, type Compromiso } from './modelo';
@@ -169,7 +170,7 @@ export function iniciarCompromisos() {
 
   async function cargar(confirmar = true) {
     if (ocupado) return;
-    if (confirmar && !form.hidden && !window.confirm('Se descartarán los cambios del formulario. ¿Recargar?')) return;
+    if (confirmar && !form.hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return;
 
     limpiar();
     ocupar(true);
@@ -357,7 +358,7 @@ export function iniciarCompromisos() {
 
   async function activarDemo() {
     if (ocupado || demo) return;
-    if (!form.hidden && !window.confirm('Se descartarán los cambios para entrar en la demostración. ¿Continuar?')) return;
+    if (!form.hidden && !(await confirmarDescarte('Al entrar en la demostración se perderán los cambios del formulario.'))) return;
 
     ocupar(true);
     try {

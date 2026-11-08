@@ -460,6 +460,8 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 </script>
 <script>
   import { iniciarCapitalizacionCampos } from '../lib/capitalizacion-campos';
+  import { iniciarAvisoDescarte } from '../lib/ui/descartar-cambios';
 
   iniciarCapitalizacionCampos();
+  iniciarAvisoDescarte();
 </script>

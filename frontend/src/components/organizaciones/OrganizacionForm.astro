@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
@@ -59,9 +60,7 @@ const tiposOrganizacion = [
     <a href="/login" class="inline-flex min-h-11 items-center text-primary underline">Iniciar sesión</a>
   </div>
 
-  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
-    Los campos marcados con <span class="font-semibold text-[#FF2471]">*</span> son obligatorios. Completa los datos generales antes de guardar.
-  </p>
+  <AvisoObligatorios />
 
   <form
     id="form-organizacion"
@@ -140,11 +139,11 @@ const tiposOrganizacion = [
 
         <div class="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
           <div class="min-w-0 space-y-1.5">
-            <label for="publico_objetivo" class="block text-sm font-medium text-neutral-800">Público objetivo <span class="text-[#FF2471]" aria-hidden="true">*</span></label>
+            <label for="publico_objetivo" class="block text-sm font-medium text-neutral-800">Público objetivo<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <textarea id="publico_objetivo" name="publico_objetivo" required maxlength="500" rows="4" placeholder="Describe a las personas o comunidades a las que apoya..." class="mt-1.5 block w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
           </div>
           <div class="min-w-0 space-y-1.5">
-            <label for="descripcion_breve" class="block text-sm font-medium text-neutral-800">Descripción general <span class="text-[#FF2471]" aria-hidden="true">*</span></label>
+            <label for="descripcion_breve" class="block text-sm font-medium text-neutral-800">Descripción general<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <textarea id="descripcion_breve" name="descripcion_breve" required maxlength="1000" rows="4" placeholder="Resume las actividades y el propósito de la organización..." class="mt-1.5 block w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
           </div>
           <div class="md:col-span-2 md:max-w-md">
@@ -166,16 +165,10 @@ const tiposOrganizacion = [
           </div>
         </div>
 
-        <div class="mt-5 flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start">
-          <img
-            id="imagen-organizacion-vista"
-            src="/images/organizacion-predeterminada.svg"
-            alt="Vista previa de la imagen de la organización"
-            class="aspect-[4/3] w-full max-w-[240px] shrink-0 rounded-xl border border-neutral-200 bg-white object-contain object-center p-2"
-          />
-          <div class="min-w-0 flex-1 space-y-2">
+        <div class="mt-5 min-w-0">
+          <div class="min-w-0 space-y-2">
             <label for="imagen-organizacion" class="block text-sm font-medium text-neutral-800">
-              <span id="imagen-organizacion-etiqueta">{esEdicion ? 'Reemplazar imagen' : 'Cargar imagen'}</span>
+              <span id="imagen-organizacion-etiqueta">{esEdicion ? 'Reemplazar imagen' : 'Cargar imagen'}</span>{' '}
               <span class="font-normal text-neutral-500">(opcional)</span>
             </label>
             <input
@@ -184,9 +177,9 @@ const tiposOrganizacion = [
               type="file"
               accept="image/jpeg,image/png,image/webp"
               aria-describedby="imagen-organizacion-ayuda imagen-organizacion-error"
-              class="block min-h-[48px] w-full max-w-full text-sm text-neutral-700 file:mr-3 file:min-h-[44px] file:rounded-xl file:border file:border-neutral-300 file:bg-white file:px-4 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/5"
             />
             <p id="imagen-organizacion-ayuda" class="text-sm leading-5 text-neutral-500">JPG, PNG o WebP, hasta 5 MB. Si no cargas una imagen se usará una predeterminada.</p>
+            <img id="imagen-organizacion-vista" alt="Vista previa de la imagen de la organización" hidden class="mt-4 max-h-64 max-w-full rounded-xl border border-neutral-200 object-contain" />
             <p id="imagen-organizacion-estado" role="status" aria-live="polite" class="text-sm text-neutral-600"></p>
             <p id="imagen-organizacion-error" role="alert" hidden class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"></p>
             <button id="imagen-organizacion-descartar" type="button" hidden class="inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Descartar selección</button>
@@ -195,7 +188,7 @@ const tiposOrganizacion = [
       </Card>
 
       <div class="flex flex-col-reverse gap-3 border-t border-neutral-100 pt-5 sm:flex-row sm:justify-end">
-        <Button id="cancelar-organizacion" variant="outline" href={esEdicion ? `/organizaciones/${encodeURIComponent(idOrganizacion)}` : '/organizaciones'}>Cancelar</Button>
+        <Button id="cancelar-organizacion" data-descartar variant="outline" href={esEdicion ? `/organizaciones/${encodeURIComponent(idOrganizacion)}` : '/organizaciones'}>Cancelar</Button>
         <Button id="guardar-organizacion" type="submit">{esEdicion ? 'Guardar cambios' : 'Crear organización'}</Button>
       </div>
     </fieldset>
@@ -216,7 +209,6 @@ const tiposOrganizacion = [
     subirImagenOrganizacion,
   } from '../../lib/organizaciones/cliente';
   import {
-    IMAGEN_ORGANIZACION_PREDETERMINADA,
     validarImagenOrganizacion,
   } from '../../lib/organizaciones/imagen';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
@@ -291,7 +283,9 @@ const tiposOrganizacion = [
   let urlImagenSeleccionada: string | null = null;
 
   function mostrarImagen(url: string | null) {
-    vistaImagen.src = url ?? IMAGEN_ORGANIZACION_PREDETERMINADA;
+    vistaImagen.hidden = !url;
+    if (url) vistaImagen.src = url;
+    else vistaImagen.removeAttribute('src');
   }
 
   function errorDeImagen(mensaje: string) {
