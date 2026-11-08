@@ -33,7 +33,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 <AppLayout
   title="Detalle de organización"
   navItems={mainNavItems}
-  allowedRoles={['ADMIN', 'COORD']}
+  allowedRoles={['ADMIN', 'COORD', 'INVIT']}
 >
   <Fragment slot="headerBreadcrumb">
     <BackButton href={hrefVolverOrganizaciones} />
@@ -101,7 +101,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </div>
 
       <!-- Visible solo si la sesión gestiona el país de la Organización. -->
-      <div id="gestion-organizacion" class="shrink-0" hidden>
+      <div id="gestion-organizacion" class="shrink-0" hidden data-gestion>
       <Button
         href={`/organizaciones/${encodeURIComponent(idOrganizacion)}/editar`}
         variant="outline"
@@ -370,17 +370,17 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       <div><h2 class="font-semibold">Intervenciones</h2><p class="mt-1 text-neutral-500">Accede a los planes, reuniones y acuerdos de trabajo.</p></div>
       <div class="org-accesos">
         <OrganizacionAcceso titulo="Planes de Intervención" descripcion="Consultar los planes asociados a esta organización." href={hrefPlanes} />
-        <OrganizacionAcceso titulo="Actas de Reunión" descripcion="Consultar reuniones y acuerdos de esta organización." destino="actas" tono="rosa" />
-        <OrganizacionAcceso titulo="Compromisos" descripcion="Revisar responsables, plazos y cumplimiento." destino="compromisos" tono="verde" />
-        <OrganizacionAcceso titulo="Diagnóstico" descripcion="Consultar necesidades y antecedentes de la comunidad." destino="diagnostico" tono="celeste" />
+        <OrganizacionAcceso soloEquipo titulo="Actas de Reunión" descripcion="Consultar reuniones y acuerdos de esta organización." destino="actas" tono="rosa" />
+        <OrganizacionAcceso soloEquipo titulo="Compromisos" descripcion="Revisar responsables, plazos y cumplimiento." destino="compromisos" tono="verde" />
+        <OrganizacionAcceso soloEquipo titulo="Diagnóstico" descripcion="Consultar necesidades y antecedentes de la comunidad." destino="diagnostico" tono="celeste" />
       </div>
     </div>
     <div id="tab-seguimiento" data-main-panel="seguimiento" role="tabpanel" aria-labelledby="tab-button-seguimiento" class="contenido-tab hidden space-y-5">
       <div><h2 class="font-semibold">Seguimiento</h2><p class="mt-1 text-neutral-500">Consulta los respaldos y resultados del trabajo con la organización.</p></div>
       <div class="org-accesos">
-        <OrganizacionAcceso titulo="Evidencias e indicadores" descripcion="Se consultan dentro de cada acción. Abre el listado de planes para acceder." href={hrefPlanes} tono="celeste" />
-        <OrganizacionAcceso titulo="Donaciones y recursos" descripcion="Consultar aportes y sus documentos de respaldo." destino="donaciones" tono="verde" />
-        <OrganizacionAcceso titulo="Expediente Legal" descripcion="Revisar antecedentes y documentos de la organización." destino="expediente-legal" />
+        <OrganizacionAcceso titulo="Indicadores" descripcion="Se consultan dentro de cada acción. Abre el listado de planes para acceder." href={hrefPlanes} tono="celeste" />
+        <OrganizacionAcceso soloEquipo titulo="Donaciones y recursos" descripcion="Consultar aportes y sus documentos de respaldo." destino="donaciones" tono="verde" />
+        <OrganizacionAcceso soloEquipo titulo="Expediente Legal" descripcion="Revisar antecedentes y documentos de la organización." destino="expediente-legal" />
       </div>
     </div>
   </section>

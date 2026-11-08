@@ -33,6 +33,26 @@ export function declaracion(datos: DatosFormulario): Consentimiento {
       ? 'Declaro contar con el consentimiento de las personas identificables y con el consentimiento del padre, madre o tutor legal de los menores que aparecen en esta evidencia.'
       : 'Declaro contar con el consentimiento de las personas identificables que aparecen en esta evidencia.' };
 }
+// Edición: el consentimiento puede quedar sin declarar (equivale a retirarlo), pero entonces no se puede publicar.
+export const edicionSchema = z.object({
+  origen: z.string().trim().min(1, 'Indica el origen de la evidencia.').max(200),
+  descripcion: z.string().trim().min(1, 'Describe qué respalda esta evidencia.').max(5000),
+  personas: z.enum(['sin_personas', 'adultos', 'menores'], { error: 'Indica si aparecen personas identificables.' }),
+  consentimiento: z.boolean(), tutor: z.boolean(), publicable: z.boolean(),
+}).superRefine((d, ctx) => {
+  if (d.publicable && !consentimientoOtorgado(d)) ctx.addIssue({ code: 'custom', path: ['publicable'], message: 'Para publicar debes declarar el consentimiento correspondiente.' });
+});
+export const DECLARACION_RETIRADA = 'Consentimiento retirado al editar la evidencia.';
+export function consentimientoOtorgado(d: Pick<DatosFormulario, 'personas' | 'consentimiento' | 'tutor'>) {
+  return d.personas === 'sin_personas' || (d.consentimiento && (d.personas !== 'menores' || d.tutor));
+}
+/** Deduce la opción de «personas» a partir de la declaración registrada; vacío si no se reconoce o fue retirada. */
+export function personasDesde(item: { consentimiento_declarado: boolean | null; declaracion_consentimiento: string | null }): DatosFormulario['personas'] | '' {
+  if (item.consentimiento_declarado !== true) return '';
+  const opciones = ['sin_personas', 'adultos', 'menores'] as const;
+  return opciones.find(p => declaracion({ personas: p, consentimiento: true, tutor: true, origen: '', descripcion: '', publicable: false }).declaracion_consentimiento === item.declaracion_consentimiento) ?? '';
+}
+
 export const evidenciaSchema = z.object({
   id_evidencia: z.uuid(), id_accion: z.uuid(), origen: z.string(), descripcion: z.string(),
   nombre_original: z.string(), mime_type: z.string(), tamano_bytes: z.number().int().positive(), version: z.number().int().positive(),

@@ -429,6 +429,11 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       enlace.hidden = !roles.some((role) => rolesItem.includes(role.codigo));
     });
 
+    // Invitado: solo consulta. Se ocultan todas las acciones de gestión (ver global.css).
+    const soloLectura = roles.some((role) => role.codigo === 'INVIT')
+      && !roles.some((role) => role.codigo === 'ADMIN' || role.codigo === 'COORD');
+    document.documentElement.toggleAttribute('data-solo-lectura', soloLectura);
+
     if (allowedRoles.length > 0) {
       const userHasRole = roles.some((role) => allowedRoles.includes(role.codigo));
 

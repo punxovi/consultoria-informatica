@@ -73,7 +73,7 @@ test('edita datos precargados con versión y conserva cambios ante conflicto', a
   await expect(page.locator('#nombre')).toHaveValue('Plan actualizado');
   await expect(page.locator('#guardar-plan')).toBeDisabled();
   fallo = '';
-  await page.getByRole('button', { name: 'Reintentar carga' }).click();
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
   await expect(page.locator('#nombre')).toHaveValue(datos.nombre);
   await page.locator('#nombre').fill('Plan actualizado');
   await page.getByRole('button', { name: 'Guardar plan' }).click();
@@ -93,7 +93,7 @@ test('carga fallida permite reintentar y el formulario cabe en móvil', async ({
   await expect(page.locator('#plan-errores')).toBeVisible();
   await expect(page.locator('#guardar-plan')).toBeDisabled();
   fallo = '';
-  await page.getByRole('button', { name: 'Reintentar carga' }).click();
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
   await expect(page.locator('#nombre')).toHaveValue(datos.nombre);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

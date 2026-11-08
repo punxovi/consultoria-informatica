@@ -6,11 +6,13 @@ import PanelSolicitud from '../components/cotizacion/PanelSolicitud.astro';
 <Layout title="Mi solicitud de cotización · Fundación Gestionar Esperanzas">
   <div class="min-h-screen bg-[#F7F6FA] text-neutral-900">
     <EncabezadoPublico actual="solicitud" />
-    <main class="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-5 md:py-8">
-      <a href="/catalogo" class="inline-flex min-h-11 items-center font-semibold text-primary">← Seguir explorando el catálogo</a>
-      <header>
-        <h1 class="text-3xl font-bold tracking-tight md:text-4xl">Solicitud de cotización</h1>
-        <p class="mt-2 max-w-3xl text-neutral-600">Revisa los productos de tu solicitud, ajusta las cantidades estimadas y completa tus datos de contacto para enviarla.</p>
+    <main class="mx-auto max-w-[1440px] space-y-4 px-4 py-5 md:space-y-6 md:px-8 md:py-8">
+      <header class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight md:text-4xl">Solicitud de cotización</h1>
+          <p class="mt-1 max-w-3xl text-sm text-neutral-600 md:mt-2 md:text-base">Revisa tus productos y completa tus datos de contacto.</p>
+        </div>
+        <a href="/catalogo" class="-mt-1 inline-flex min-h-9 w-fit shrink-0 items-center gap-1.5 text-sm font-semibold text-primary sm:mt-0 sm:min-h-10 sm:rounded-full sm:border sm:border-[#DCD8EA] sm:bg-white sm:px-4 sm:transition sm:hover:border-primary sm:hover:bg-[#F0EEF8]"><span aria-hidden="true">←</span> Volver al catálogo</a>
       </header>
       <PanelSolicitud />
     </main>

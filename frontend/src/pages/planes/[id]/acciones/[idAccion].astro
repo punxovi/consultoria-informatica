@@ -12,12 +12,12 @@ const idAccion = Astro.params.idAccion ?? '';
 const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(idAccion)}`;
 ---
 
-<AccionLayout idPlan={idPlan} title="Detalle de acción">
+<AccionLayout idPlan={idPlan} title="Detalle de acción" allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <section id="accion-detalle" data-id-plan={idPlan} data-id-accion={idAccion} class="-mt-3 w-full space-y-5">
     <p id="detalle-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando acción…</p>
     <p id="detalle-error" hidden role="alert" class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
     <div id="detalle-reintentar" hidden>
-      <Button id="recargar-accion" variant="outline">Reintentar carga</Button>
+      <Button id="recargar-accion" variant="outline">Reintentar</Button>
     </div>
 
     <div id="detalle-contenido" hidden class="space-y-5">
@@ -44,7 +44,7 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
         </div>
 
         <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
-        <div id="gestion-accion" hidden class="flex shrink-0 flex-wrap items-center gap-3">
+        <div id="gestion-accion" data-gestion hidden class="flex shrink-0 flex-wrap items-center gap-3">
           <EliminarRegistro
             tipo="accion"
             id={idAccion}
@@ -61,7 +61,7 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
         <div id="accion-tabs" class="flex min-w-max flex-wrap gap-2" role="tablist" aria-label="Secciones de la acción">
           <button id="tab-detalle" type="button" role="tab" aria-selected="true" aria-controls="panel-detalle" data-tab="detalle" class="shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors">Detalle de acción</button>
           <button id="tab-indicadores" type="button" role="tab" aria-selected="false" aria-controls="panel-indicadores" data-tab="indicadores" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Indicadores y resultados</button>
-          <button id="tab-evidencias" type="button" role="tab" aria-selected="false" aria-controls="panel-evidencias" data-tab="evidencias" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Evidencias</button>
+          <button id="tab-evidencias" data-oculto-invitado type="button" role="tab" aria-selected="false" aria-controls="panel-evidencias" data-tab="evidencias" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Evidencias</button>
         </div>
       </div>
 

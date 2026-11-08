@@ -5,7 +5,7 @@ import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Configurar reporte" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Configurar reporte" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <Fragment slot="headerBreadcrumb">
     <BackButton href="/reportes" />
     <a href="/reportes" class="truncate text-sm text-neutral-500 transition-colors hover:text-primary">

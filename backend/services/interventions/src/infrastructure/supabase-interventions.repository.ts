@@ -145,7 +145,32 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
     params.set('select', PLAN_FIELDS);
     const body = await request('plan', `planes?${params}`, token, init);
     if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió planes inválidos.', 502);
-    return body.map(plan);
+    return (await completarOrganizacionesInvitado(token, body)).map(plan);
+  }
+
+  // El Invitado no puede leer public.organizaciones (SCRUM-171), así que la
+  // organización embebida llega vacía. Se completa con la vista segura
+  // organizaciones_invitado (solo id, país y nombre). Para ADMIN y COORD la
+  // organización ya viene embebida y no se hace ninguna consulta adicional.
+  async function completarOrganizacionesInvitado(token: string, filas: unknown[]): Promise<unknown[]> {
+    const faltantes = [...new Set(filas.flatMap((fila) => {
+      const dato = record(fila);
+      return !dato.organizacion && typeof dato.id_organizacion === 'string' ? [dato.id_organizacion] : [];
+    }))];
+    if (faltantes.length === 0) return filas;
+    const params = new URLSearchParams({
+      select: 'id:id_organizacion,id_pais,nombre',
+      id_organizacion: `in.(${faltantes.join(',')})`,
+    });
+    const visibles = await request('plan', `organizaciones_invitado?${params}`, token);
+    if (!Array.isArray(visibles)) return filas;
+    const porId = new Map(visibles.map((organizacion) => [record(organizacion).id, organizacion]));
+    return filas.map((fila) => {
+      const dato = record(fila);
+      return dato.organizacion || typeof dato.id_organizacion !== 'string'
+        ? fila
+        : { ...dato, organizacion: porId.get(dato.id_organizacion) ?? null };
+    });
   }
 
   async function actionRows(token: string, params: URLSearchParams, init?: RequestInit): Promise<InterventionAction[]> {

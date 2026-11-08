@@ -1,6 +1,22 @@
 @import "tailwindcss";
 
+/*
+ * Tipografía de marca (Manual de marca FGE 2025):
+ *  - Títulos: Evolventa Bold. Evolventa no se distribuye por npm ni Google Fonts,
+ *    así que se usa Jost (geométrica y de formas redondas, licencia OFL) como equivalente.
+ *  - Textos: Lato.
+ */
+@import "@fontsource/lato/400.css";
+@import "@fontsource/lato/400-italic.css";
+@import "@fontsource/lato/700.css";
+@import "@fontsource/jost/500.css";
+@import "@fontsource/jost/600.css";
+@import "@fontsource/jost/700.css";
+
 @theme {
+  --font-sans: "Lato", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Jost", "Lato", ui-sans-serif, system-ui, sans-serif;
+
   /* Colores institucionales FGE */
   --color-primary: #4c4688;
   --color-secondary: #423c76;
@@ -37,8 +53,7 @@ body {
 body {
   background-color: #f7f6fa;
   color: #1a1a1a;
-  font-family: ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
 }
 
 button,
@@ -61,12 +76,25 @@ textarea {
   outline-offset: 2px;
 }
 
-#page-content h1 {
-  font-size: clamp(1.875rem, 2.4vw, 2.5rem);
-  line-height: 1.2;
-  letter-spacing: -0.025em;
-  font-weight: 700;
+/*
+ * Escala tipográfica única. Estas reglas no están en una capa de Tailwind,
+ * así que prevalecen sobre clases como text-lg o font-bold en los títulos:
+ * todos los títulos del mismo nivel se ven iguales en toda la aplicación.
+ * Las etiquetas pequeñas en mayúsculas (h3.uppercase) conservan su estilo.
+ */
+:where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
+:where(h1) { font-weight: 700; line-height: 1.15; }
+#page-content :where(h1) {
+  font-size: clamp(1.75rem, 2.4vw, 2.25rem);
+  letter-spacing: -0.02em;
+}
+:where(h2):not(.uppercase) { font-size: 1.25rem; line-height: 1.35; font-weight: 600; }
+:where(h3):not(.uppercase) { font-size: 1.0625rem; line-height: 1.4; font-weight: 600; }
+:where(h4, h5, h6):not(.uppercase) { font-size: 1rem; line-height: 1.45; font-weight: 600; }
+:where(h1, h2, h3, h4, h5, h6).uppercase { font-family: var(--font-sans); letter-spacing: 0.06em; }
 
 #page-content dl dd {
   font-size: 1rem;
@@ -129,6 +157,7 @@ textarea {
   font-size: 0.875rem;
   line-height: 1.5;
 }
+.modulo-descripcion--visible { display: block; }
 .modulo-acciones {
   display: flex;
   flex-wrap: wrap;
@@ -172,6 +201,7 @@ textarea {
   font-weight: 500;
 }
 .registro-titulo {
+  font-family: var(--font-display);
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
@@ -345,3 +375,11 @@ span.registro-media { border: 0; background: #f0edf8; padding: 0; }
   .modulo-acciones > * { flex: 0 0 auto; }
   .registro, .ficha-panel { padding: 1.25rem; }
 }
+
+/*
+ * Invitado (rol INVIT): solo consulta. AppLayout marca <html data-solo-lectura>
+ * y aquí se ocultan todas las acciones de gestión (crear, editar, eliminar…) y
+ * los accesos a secciones que su rol no puede ver. La autorización efectiva
+ * sigue en Supabase (RLS); esto evita ofrecer acciones que fallarían.
+ */
+html[data-solo-lectura] :is([data-gestion], [data-oculto-invitado]) { display: none !important; }

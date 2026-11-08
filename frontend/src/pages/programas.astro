@@ -6,7 +6,7 @@ import Card from '../components/ui/Card.astro';
 import Button from '../components/ui/Button.astro';
 ---
 
-<AppLayout title="Programas Institucionales" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Programas Institucionales" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <span slot="breadcrumb" class="font-medium text-primary">Gestión institucional</span>
 
   <section class="space-y-6">
@@ -27,7 +27,7 @@ import Button from '../components/ui/Button.astro';
           Consulta y administra el catálogo de programas institucionales disponibles para las organizaciones.
         </p>
       </div>
-      <div id="crear-programa-panel" hidden>
+      <div id="crear-programa-panel" hidden data-gestion>
         <Button href="/programas/nuevo">
           <span aria-hidden="true">+</span>
           Nuevo programa

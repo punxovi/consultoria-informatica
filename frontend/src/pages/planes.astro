@@ -6,7 +6,7 @@ import { mainNavItems } from '../config/nav';
 import AppLayout from '../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Planes de Intervención" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Planes de Intervención" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <Fragment slot="headerBreadcrumb">
     <span class="text-sm font-semibold text-neutral-900">Planes de Intervención</span>
   </Fragment>
@@ -27,7 +27,7 @@ import AppLayout from '../layouts/AppLayout.astro';
           Consulta, filtra y administra los planes asociados a organizaciones y programas institucionales.
         </p>
       </div>
-      <Button href="/planes/nuevo" class="shrink-0">
+      <Button href="/planes/nuevo" class="shrink-0" data-gestion>
         <span aria-hidden="true">+</span> Nuevo plan
       </Button>
     </header>

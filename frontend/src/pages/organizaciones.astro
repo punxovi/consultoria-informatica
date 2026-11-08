@@ -6,7 +6,7 @@ import Card from '../components/ui/Card.astro';
 import Button from '../components/ui/Button.astro';
 ---
 
-<AppLayout title="Organizaciones" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Organizaciones" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <Fragment slot="headerBreadcrumb">
     <span class="text-sm font-semibold text-neutral-900">Organizaciones</span>
   </Fragment>
@@ -22,7 +22,7 @@ import Button from '../components/ui/Button.astro';
           Consulta y administra las organizaciones asociadas a la fundación.
         </p>
       </div>
-      <Button href="/organizaciones/nueva" class="shrink-0">
+      <Button href="/organizaciones/nueva" class="shrink-0" data-gestion>
         <span aria-hidden="true">+</span> Nueva organización
       </Button>
     </header>

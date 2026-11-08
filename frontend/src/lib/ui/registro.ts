@@ -5,6 +5,10 @@ export interface OpcionesRegistro {
   acento?: AcentoRegistro;
   contexto?: string;
   titulo: string;
+  /** Imagen o ícono junto al título. */
+  media?: HTMLElement;
+  /** Texto breve bajo el título (máximo 2 líneas). */
+  resumen?: string;
   insignias?: { texto: string; tono: TonoInsignia; etiqueta?: string }[];
   datos?: [etiqueta: string, valor: string | null | undefined][];
   /** Enlace discreto «Ver detalle →». */
@@ -27,7 +31,14 @@ export function crearTarjetaRegistro(opciones: OpcionesRegistro): HTMLElement {
   const textos = nodo('div', 'min-w-0');
   if (opciones.contexto) textos.append(nodo('p', 'registro-contexto', opciones.contexto));
   textos.append(nodo('h4', 'registro-titulo', opciones.titulo));
-  cabecera.append(textos);
+  if (opciones.media) {
+    opciones.media.classList.add('registro-media');
+    const identidad = nodo('div', 'registro-identidad');
+    identidad.append(opciones.media, textos);
+    cabecera.append(identidad);
+  } else {
+    cabecera.append(textos);
+  }
 
   if (opciones.insignias?.length) {
     const grupo = nodo('div', 'registro-insignias');
@@ -39,6 +50,7 @@ export function crearTarjetaRegistro(opciones: OpcionesRegistro): HTMLElement {
     cabecera.append(grupo);
   }
   tarjeta.append(cabecera);
+  if (opciones.resumen) tarjeta.append(nodo('p', 'registro-resumen', opciones.resumen));
 
   if (opciones.datos?.length) {
     const lista = nodo('dl', 'registro-datos');

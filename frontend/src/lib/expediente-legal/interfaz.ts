@@ -202,7 +202,7 @@ export async function iniciarExpedienteLegal() {
       mostrarError(fallo); error.focus();
       if (fallo instanceof ApiError && fallo.status === 409) {
         conflicto = true; recarga.hidden = false;
-        buscar('#legal-reintentar').textContent = 'Recargar datos del servidor';
+        buscar('#legal-reintentar').textContent = 'Reintentar';
       }
     } finally { ocupar(false); guardar.disabled = conflicto; }
   });

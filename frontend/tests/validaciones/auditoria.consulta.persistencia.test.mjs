@@ -19,6 +19,8 @@ test('Consulta de auditoría: filtros, seguridad, paginación y medición RNF14'
  try {
   await instalarAuditoriaRF62(db);
   await db.exec(await readFile(new URL('../../../supabase/migrations/20261107022000_fge_consulta_auditoria_segura.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../../../supabase/migrations/20261107230000_fge_auditoria_cursor_zona_horaria.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../../../supabase/migrations/20261107233000_fge_auditoria_filtro_que_hizo.sql',import.meta.url),'utf8'));
   await db.exec("INSERT INTO public.paises(codigo_iso,nombre,zona_horaria) VALUES ('CL','Chile','America/Santiago'),('AR','Argentina','America/Argentina/Buenos_Aires')");
   const countries=(await db.query("SELECT id_pais FROM public.paises WHERE codigo_iso IN ('CL','AR') ORDER BY codigo_iso")).rows;
   const ar=countries[0].id_pais,cl=countries[1].id_pais;

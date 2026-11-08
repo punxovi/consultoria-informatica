@@ -14,7 +14,7 @@ if (!idValido) Astro.response.status = 404;
 
 ---
 
-<AppLayout title="Detalle de programa" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Detalle de programa" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <Fragment slot="headerBreadcrumb">
     <div class="flex min-w-0 items-center gap-2 md:gap-3">
       <BackButton href="/programas" />
@@ -59,13 +59,13 @@ if (!idValido) Astro.response.status = 404;
           </div>
         </div>
         <div class="flex shrink-0 flex-wrap items-center gap-3">
-          <div id="editar-programa-enlace" hidden>
+          <div id="editar-programa-enlace" hidden data-gestion>
             <Button href={`/programas/${encodeURIComponent(id ?? '')}/editar`} variant="outline">
               <Icono nombre="editar" />
               Editar programa
             </Button>
           </div>
-          <div id="eliminar-programa-panel" hidden>
+          <div id="eliminar-programa-panel" hidden data-gestion>
             <Button id="eliminar-programa" variant="danger">
               <Icono nombre="eliminar" />
               Eliminar programa

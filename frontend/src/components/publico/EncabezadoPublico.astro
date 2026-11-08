@@ -5,14 +5,13 @@ interface Props {
 const { actual } = Astro.props;
 ---
 <header class="bg-[#423C76] text-white">
-  <nav aria-label="Navegación pública" class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3">
-    <a href="/catalogo" class="inline-flex min-h-12 items-center" aria-label="Fundación Gestionar Esperanzas · Catálogo">
-      <img src="/images/logo-fge-blanco.png" alt="Fundación Gestionar Esperanzas" width="820" height="248" class="h-11 w-auto object-contain md:h-12" />
+  <nav aria-label="Navegación pública" class="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-2.5 md:px-8 md:py-3">
+    <a href="/catalogo" class="inline-flex min-h-11 shrink-0 items-center" aria-label="Fundación Gestionar Esperanzas · Catálogo">
+      <img src="/images/logo-fge-blanco.png" alt="Fundación Gestionar Esperanzas" width="820" height="248" class="h-9 w-auto object-contain md:h-11" />
     </a>
-    <div class="flex flex-wrap items-center gap-x-5 gap-y-1">
-      <a href="/catalogo" aria-current={actual === 'catalogo' ? 'page' : undefined} class:list={['inline-flex min-h-12 items-center font-semibold', actual === 'catalogo' ? 'text-white underline decoration-white/50 underline-offset-8' : 'text-[#E5E2F8] hover:text-white']}>Catálogo</a>
-      <a href="/login?returnTo=%2Fdashboard" class="inline-flex min-h-12 items-center font-semibold text-[#E5E2F8] hover:text-white">Iniciar sesión</a>
-      <a href="/cotizar" aria-current={actual === 'solicitud' ? 'page' : undefined} class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-[#423C76] shadow-sm transition hover:bg-[#F0EEF8] focus-visible:outline-2 focus-visible:outline-white">
+    <div class="flex items-center gap-x-5">
+      <a href="/catalogo" aria-current={actual === 'catalogo' ? 'page' : undefined} class:list={['hidden min-h-12 items-center font-semibold sm:inline-flex', actual === 'catalogo' ? 'text-white underline decoration-white/50 underline-offset-8' : 'text-[#E5E2F8] hover:text-white']}>Catálogo</a>
+      <a href="/cotizar" aria-current={actual === 'solicitud' ? 'page' : undefined} class="inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-[#423C76] shadow-sm transition hover:bg-[#F0EEF8] focus-visible:outline-2 focus-visible:outline-white md:min-h-11 md:text-base">
         Mi solicitud <span data-contador aria-label="productos seleccionados" class="inline-flex min-w-6 items-center justify-center rounded-full bg-brand-pink px-1.5 text-xs font-bold text-white">0</span>
       </a>
     </div>
@@ -25,6 +24,8 @@ const { actual } = Astro.props;
     let total = 0;
     try { total = leerSeleccion().length; } catch { total = 0; }
     document.querySelectorAll<HTMLElement>('[data-contador]').forEach((nodo) => { nodo.textContent = String(total); });
+    // Accesos flotantes a «Mi solicitud»: solo cuando ya hay productos elegidos.
+    document.querySelectorAll<HTMLElement>('[data-solo-con-seleccion]').forEach((nodo) => { nodo.hidden = total === 0; });
   }
   window.addEventListener(EVENTO_SELECCION, actualizar);
   actualizar();
