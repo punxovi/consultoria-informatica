@@ -6,8 +6,11 @@ export const solicitudInvitadoSchema = z.object({
   institucion: z.string().nullish(), motivo: z.string().nullish(),
   estado: z.enum(['pendiente', 'aprobado', 'rechazado', 'revocado']),
   version: z.number().int().positive(), created_at: z.string(),
+  utilizado_en: z.string().nullish(), expira_en: z.string().nullish(),
 });
 export type SolicitudInvitado = z.infer<typeof solicitudInvitadoSchema>;
+export type AccionInvitado = 'approve' | 'reject' | 'revoke';
+const estadoEsperado = { approve: 'aprobado', reject: 'rechazado', revoke: 'revocado' } as const;
 export function crearClienteInvitados(base: string, token: () => Promise<string>, fetchImpl: typeof fetch = fetch) {
   const http = createApiTransport(base, fetchImpl);
   function validar(value: unknown) {
@@ -21,13 +24,16 @@ export function crearClienteInvitados(base: string, token: () => Promise<string>
       if (!Array.isArray(data?.guests)) throw new ApiError('RESPUESTA_INVALIDA', 'No fue posible interpretar el listado.', 502);
       return data.guests.map(validar);
     },
-    async resolver(solicitud: SolicitudInvitado, accion: 'approve' | 'reject') {
+    async resolver(solicitud: SolicitudInvitado, accion: AccionInvitado) {
       const { data } = await http.request<{ guest: unknown }>(`/api/v1/guests/${encodeURIComponent(solicitud.id_invitado)}/${accion}`, {
         method: 'POST', accessToken: await token(), body: { version_esperada: solicitud.version },
       });
       const resultado = validar(data?.guest);
-      if (resultado.id_invitado !== solicitud.id_invitado || resultado.estado !== (accion === 'approve' ? 'aprobado' : 'rechazado') || resultado.version <= solicitud.version)
-        throw new ApiError('RESPUESTA_INVALIDA', 'El servicio no confirmó la decisión. Actualiza el listado antes de reintentar.', 502);
+      // Reenviar el enlace (aprobar una solicitud ya aprobada) puede no cambiar la versión.
+      const reenvio = accion === 'approve' && solicitud.estado === 'aprobado';
+      if (resultado.id_invitado !== solicitud.id_invitado || resultado.estado !== estadoEsperado[accion]
+        || (reenvio ? resultado.version < solicitud.version : resultado.version <= solicitud.version))
+        throw new ApiError('RESPUESTA_INVALIDA', 'El servicio no confirmó la decisión. Recarga la página antes de reintentar.', 502);
       return resultado;
     },
   };

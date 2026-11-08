@@ -5,7 +5,7 @@ import { ApiError } from '../api/transporte.ts';
 import { caracteristicasPublicas, filtrarCatalogo, fuenteImagen, imagenPredeterminada, urlImagen, type ItemPublico } from './modelo.ts';
 
 const numero = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 10 });
-const claseChip = (activo: boolean) => `min-h-11 rounded-full border px-5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60 ${
+const claseChip = (activo: boolean) => `min-h-10 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60 ${
   activo ? 'border-[#4C4688] bg-[#4C4688] text-white' : 'border-[#DCD8EA] bg-white text-neutral-700 hover:border-[#4C4688] hover:text-[#4C4688]'}`;
 
 export async function iniciarCatalogo() {
@@ -36,14 +36,18 @@ export async function iniciarCatalogo() {
     window.clearTimeout(avisoTimer);
     avisoTimer = window.setTimeout(() => aviso.toggleAttribute('data-visible', false), 3500);
   }
-  function imagen(item: ItemPublico, url?: string | null) {
+  function imagen(item: ItemPublico, url?: string | null, enTarjeta = false) {
     // Marco neutro con la imagen contenida y centrada: los logos y fotos no se recortan.
     const marco = document.createElement('div');
-    marco.className = 'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#F4F2FB] to-[#E9F6F8]';
+    marco.className = enTarjeta
+      ? 'flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-[#F7F6FA]'
+      : 'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F7F6FA]';
     const img = document.createElement('img');
     img.src = urlImagen(url); img.alt = img.src.endsWith(imagenPredeterminada) ? `Fotografía no disponible: ${item.nombre}` : item.nombre;
     img.width = 640; img.height = 480; img.loading = 'lazy';
-    img.className = 'h-full w-full object-contain object-center p-3';
+    img.className = enTarjeta
+      ? 'h-full w-full object-contain object-center p-5 transition duration-300 group-hover:scale-[1.03]'
+      : 'h-full w-full object-contain object-center p-3';
     img.addEventListener('error', () => { img.src = imagenPredeterminada; img.alt = `Fotografía no disponible: ${item.nombre}`; }, { once: true });
     marco.append(img);
     return marco;
@@ -64,7 +68,7 @@ export async function iniciarCatalogo() {
   }
   function botonCantidad(simbolo: string, etiqueta: string) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = simbolo; b.setAttribute('aria-label', etiqueta);
-    b.className = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#DCD8EA] bg-white text-lg font-bold text-primary transition hover:bg-[#F0EEF8] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40';
+    b.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DCD8EA] bg-white text-lg font-semibold text-primary transition hover:bg-[#F0EEF8] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40';
     return b;
   }
   // Acciones de una tarjeta: agregar, o ajustar la cantidad si ya está en la solicitud.
@@ -72,8 +76,12 @@ export async function iniciarCatalogo() {
     const elegido = seleccion.find(i => i.id_producto === item.id_producto);
     contenedor.replaceChildren();
     if (!elegido) {
+      const compacto = contenedor.dataset.compacto !== undefined;
+      contenedor.classList.toggle('w-full', !compacto);
       const agregar = document.createElement('button'); agregar.type = 'button'; agregar.textContent = 'Agregar a cotización';
-      agregar.className = 'min-h-12 w-full rounded-xl bg-primary px-4 py-3 font-semibold text-white transition hover:bg-[#423C76] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+      agregar.className = compacto
+        ? 'inline-flex min-h-10 items-center justify-center rounded-full border border-primary bg-white px-4 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+        : 'registro-boton registro-boton--primario min-h-12 w-full';
       agregar.addEventListener('click', () => {
         try {
           const total = agregarProducto(item.id_producto);
@@ -84,19 +92,20 @@ export async function iniciarCatalogo() {
       if (enfocar) agregar.focus();
       return;
     }
-    const etiqueta = texto('p', 'En tu solicitud', 'mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-success');
+    if (contenedor.dataset.compacto !== undefined) contenedor.classList.add('w-full');
+    const etiqueta = texto('p', 'En tu solicitud', 'mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#137A53]');
     etiqueta.prepend(texto('span', '✓', ''));
     const fila = texto('div', '', 'flex items-center gap-2');
     const restar = botonCantidad('−', `Disminuir cantidad de ${item.nombre}`); restar.disabled = !(elegido.cantidad > 1);
     const sumar = botonCantidad('+', `Aumentar cantidad de ${item.nombre}`); sumar.dataset.sumar = '';
-    const cantidad = texto('output', `${numero.format(elegido.cantidad)} ${item.unidad_medida}`, 'flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl bg-[#F0EEF8] px-2 text-center text-sm font-semibold tabular-nums text-[#423C76]');
+    const cantidad = texto('output', `${numero.format(elegido.cantidad)} ${item.unidad_medida}`, 'flex min-h-10 min-w-0 flex-1 items-center justify-center rounded-full bg-[#F4F2FA] px-2 text-center text-sm font-semibold tabular-nums text-[#423C76]');
     cantidad.setAttribute('aria-live', 'polite'); cantidad.setAttribute('aria-label', `Cantidad estimada de ${item.nombre}`);
     const cambiar = (delta: number) => { try { cambiarCantidad(item.id_producto, delta); } catch { avisar('No se pudo actualizar la cantidad.'); } };
     restar.addEventListener('click', () => cambiar(-1));
     sumar.addEventListener('click', () => cambiar(1));
     fila.append(restar, cantidad, sumar);
     const quitar = document.createElement('button'); quitar.type = 'button'; quitar.textContent = 'Quitar de la solicitud';
-    quitar.className = 'mt-2 min-h-10 w-full rounded-xl text-sm font-semibold text-[#AD174F] hover:bg-[#FCE8F0] focus-visible:outline-2 focus-visible:outline-primary';
+    quitar.className = 'mt-1.5 min-h-9 w-full rounded-full text-xs font-semibold text-[#AD174F] hover:bg-[#FCE8F0] focus-visible:outline-2 focus-visible:outline-primary';
     quitar.addEventListener('click', () => {
       try { quitarProducto(item.id_producto); avisar(`${item.nombre} se quitó de tu solicitud.`); } catch { avisar('No se pudo actualizar la selección.'); }
     });
@@ -109,11 +118,18 @@ export async function iniciarCatalogo() {
     if (!teniaFoco) return;
     (contenedor.querySelector<HTMLButtonElement>('[data-sumar]') ?? contenedor.querySelector<HTMLButtonElement>('button'))?.focus();
   }
+  // Producto ya elegido: borde verde suave; el resto, borde neutro.
+  function marcarElegido(tarjeta: HTMLElement, elegido: boolean) {
+    tarjeta.classList.toggle('border-[#9ED3BC]', elegido);
+    tarjeta.classList.toggle('shadow-[0_0_0_1px_#9ED3BC]', elegido);
+    tarjeta.classList.toggle('border-[#ECE9F3]', !elegido);
+    tarjeta.classList.toggle('shadow-[0_1px_3px_rgba(47,39,83,0.04)]', !elegido);
+  }
   function actualizarSeleccion() {
     const seleccion = seleccionActual();
     for (const { contenedor, item, tarjeta } of acciones.values()) {
       repintar(contenedor, item, seleccion);
-      tarjeta.classList.toggle('ring-2', seleccion.some(i => i.id_producto === item.id_producto));
+      marcarElegido(tarjeta, seleccion.some(i => i.id_producto === item.id_producto));
     }
     const accionesDetalle = q('detalle-acciones');
     const itemDetalle = accionesDetalle.dataset.producto ? items.find(i => i.id_producto === accionesDetalle.dataset.producto) : undefined;
@@ -180,22 +196,36 @@ export async function iniciarCatalogo() {
     q('criterios').textContent = [pais && `País: ${nombrePais()}`, organizacion.value && `Organización: ${organizacion.selectedOptions[0].textContent}`].filter(Boolean).join(' · ') || 'Mostrando todos los productos publicados';
     q<HTMLButtonElement>('limpiar').disabled = !pais && !organizacion.value;
     for (const item of visibles) {
-      const tarjeta = document.createElement('article');
-      tarjeta.className = 'flex min-w-0 flex-col gap-3 rounded-2xl border border-[#E4E0F0] bg-white p-4 shadow-sm ring-[#4C4688]/40 transition hover:shadow-md';
-      const cuerpo = texto('div', '', 'flex min-w-0 flex-1 flex-col gap-2');
+      const tarjeta = texto('article', '', 'group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-white transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(47,39,83,0.08)]');
+      marcarElegido(tarjeta, seleccion.some(i => i.id_producto === item.id_producto));
+      const cuerpo = texto('div', '', 'flex min-w-0 flex-1 flex-col gap-2 px-4 pb-4 pt-3.5 sm:px-5');
+      const contexto = [item.organizacion?.nombre || 'No informada', item.organizacion?.pais?.nombre].filter(Boolean).join(' · ');
       cuerpo.append(
-        texto('span', item.tipo_item === 'servicio' ? 'Servicio' : 'Producto', 'text-xs font-semibold uppercase tracking-wide text-primary'),
-        texto('h3', item.nombre, 'break-words text-lg font-bold leading-snug'),
-        texto('p', item.descripcion, 'line-clamp-3 break-words text-sm leading-relaxed text-neutral-600'),
-        datos(item),
+        texto('p', contexto, 'truncate text-xs text-neutral-500'),
+        texto('h3', item.nombre, 'line-clamp-2 break-words text-neutral-900'),
       );
-      const boton = document.createElement('button'); boton.type = 'button'; boton.textContent = 'Ver detalle'; boton.setAttribute('aria-label', `Ver detalle de ${item.nombre}`);
-      boton.className = 'min-h-11 rounded-xl border border-primary px-4 py-2 font-semibold text-primary hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-primary';
+      // La descripción solo se muestra si aporta algo distinto del nombre.
+      const descripcion = item.descripcion?.trim();
+      if (descripcion && descripcion.toLocaleLowerCase('es') !== item.nombre.trim().toLocaleLowerCase('es')) {
+        cuerpo.append(texto('p', descripcion, 'line-clamp-2 break-words text-sm leading-relaxed text-neutral-600'));
+      }
+      const etiquetas = texto('ul', '', 'mt-1 flex flex-wrap gap-1.5');
+      for (const [etiqueta, valor] of caracteristicasPublicas(item) as [string, string][]) {
+        const chip = texto('li', valor, 'rounded-full bg-[#F4F2FA] px-2.5 py-1 text-xs text-[#4C4688]');
+        chip.title = etiqueta;
+        etiquetas.append(chip);
+      }
+      if (etiquetas.childElementCount) cuerpo.append(etiquetas);
+      const pie = texto('div', '', 'mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[#F0EDF6] px-4 py-3 sm:px-5');
+      const boton = document.createElement('button'); boton.type = 'button'; boton.setAttribute('aria-label', `Ver detalle de ${item.nombre}`);
+      boton.className = 'inline-flex min-h-10 items-center gap-1 rounded-full px-1 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary';
+      boton.innerHTML = '<span>Ver detalle</span><span aria-hidden="true">→</span>';
       boton.addEventListener('click', () => abrir(item, boton));
-      const contenedor = texto('div', '', 'mt-auto');
+      const contenedor = texto('div', '', '');
+      contenedor.dataset.compacto = '';
       pintarAcciones(contenedor, item, seleccion);
-      tarjeta.classList.toggle('ring-2', seleccion.some(i => i.id_producto === item.id_producto));
-      tarjeta.append(imagen(item, fuenteImagen(item.imagenes?.[0], apiBase)), cuerpo, boton, contenedor);
+      pie.append(boton, contenedor);
+      tarjeta.append(imagen(item, fuenteImagen(item.imagenes?.[0], apiBase), true), cuerpo, pie);
       acciones.set(item.id_producto, { contenedor, item, tarjeta });
       q('lista').append(tarjeta);
     }

@@ -3,15 +3,17 @@ import { ApiError } from '../api/transporte.ts';
 import { crearClienteAuditoria, mensajeError } from './cliente.ts';
 import { filtrosSchema, vacios, type Filtros, type Evento } from './modelo.ts';
 import { describirEvento, opcionesAccion, opcionesSeccion, type Tono } from './presentacion.ts';
+import { clientePaisesNavegador } from '../paises/cliente.ts';
 
-const tonos: Record<Tono, { insignia: string; borde: string }> = {
-  crear: { insignia: 'bg-[#E7F6EF] text-[#137A53]', borde: 'border-l-brand-green' },
-  modificar: { insignia: 'bg-[#E7F7FA] text-[#12798A]', borde: 'border-l-brand-cyan' },
-  eliminar: { insignia: 'bg-[#FCE8F0] text-[#AD174F]', borde: 'border-l-brand-pink' },
-  restaurar: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'border-l-primary' },
-  sesion: { insignia: 'bg-[#F0EDF8] text-[#4C4688]', borde: 'border-l-primary' },
-  alerta: { insignia: 'bg-[#FFF4DB] text-[#8A5A00]', borde: 'border-l-brand-yellow' },
-  consulta: { insignia: 'bg-neutral-100 text-neutral-700', borde: 'border-l-neutral-300' },
+// Mismos colores de marca que el resto de las tarjetas (ver global.css).
+const tonos: Record<Tono, { insignia: string; acento: string }> = {
+  crear: { insignia: 'verde', acento: 'verde' },
+  modificar: { insignia: 'morado', acento: 'celeste' },
+  eliminar: { insignia: 'rosado', acento: 'rosado' },
+  restaurar: { insignia: 'morado', acento: 'morado' },
+  sesion: { insignia: 'morado', acento: 'morado' },
+  alerta: { insignia: 'amarillo', acento: 'amarillo' },
+  consulta: { insignia: 'neutro', acento: 'neutro' },
 };
 const textoOpcion = new Map<string, string>([...opcionesAccion, ...opcionesSeccion]);
 
@@ -30,18 +32,21 @@ export async function iniciarAuditoria() {
   let siguiente: string | null = null;
   let objetivo = 0;
   let autorizado = false;
+  // Si se cambia un filtro mientras se consulta, se vuelve a consultar al terminar.
+  let repetir = false;
+  let espera: ReturnType<typeof setTimeout> | undefined;
   const cliente = crearClienteAuditoria(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000', async () => {
     const { data, error } = await getSupabaseClient().auth.getSession();
     if (error || !data.session) throw new ApiError('SESION_REQUERIDA', 'Sesión requerida.', 401);
     return data.session.access_token;
   });
   function controles() {
-    q<HTMLButtonElement>('aplicar').disabled = curso || !autorizado;
-    q<HTMLButtonElement>('limpiar').disabled = curso || !autorizado;
+    q<HTMLButtonElement>('limpiar').disabled = !autorizado || campos.every(c => !q<HTMLInputElement | HTMLSelectElement>(c).value);
     q<HTMLButtonElement>('anterior').disabled = curso || numero === 0;
     q<HTMLButtonElement>('siguiente').disabled = curso || !siguiente;
     q<HTMLButtonElement>('reintentar').disabled = curso || !autorizado;
-    for (const campo of campos) q<HTMLInputElement | HTMLSelectElement>(campo).disabled = curso || !autorizado;
+    // Los filtros no se bloquean mientras se consulta para no interrumpir la escritura.
+    for (const campo of campos) q<HTMLInputElement | HTMLSelectElement>(campo).disabled = !autorizado;
     q('resultados').setAttribute('aria-busy', String(curso));
   }
   function errores() {
@@ -52,70 +57,31 @@ export async function iniciarAuditoria() {
   }
   const leer = () => Object.fromEntries(campos.map(campo => [campo, q<HTMLInputElement | HTMLSelectElement>(campo).value])) as Filtros;
   const crear = (tag: string, texto = '', clase = '') => { const n = document.createElement(tag); n.textContent = texto; n.className = clase; return n; };
-  // Detalle técnico (para soporte): operación, tabla, registro e IP tal como los guarda el sistema.
-  function detalles(evento: Evento) {
-    const caja = document.createElement('details'); caja.className = 'mt-2 text-xs text-neutral-500';
-    const resumen = crear('summary', 'Ver detalles técnicos', 'inline-flex min-h-8 cursor-pointer items-center font-medium text-primary hover:underline');
-    const dl = crear('dl', '', 'mt-2 grid gap-x-4 gap-y-1 rounded-lg bg-neutral-50 p-3 sm:grid-cols-2');
-    const pares: [string, string | null][] = [['Operación', evento.operacion], ['Tabla', evento.entidad], ['Registro afectado', evento.referencia], ['IP', evento.ip], ['Usuario', evento.usuario], ['Rol', evento.rol]];
-    for (const [etiqueta, valor] of pares) {
-      const grupo = crear('div', '', 'min-w-0');
-      grupo.append(crear('dt', etiqueta, 'font-medium text-neutral-600'), crear('dd', valor ?? 'No disponible', '[overflow-wrap:anywhere]'));
-      dl.append(grupo);
-    }
-    caja.append(resumen, dl);
-    return caja;
-  }
-  type Legible = ReturnType<typeof describirEvento>;
-  function accion(evento: Evento, legible: Legible) {
-    const bloque = crear('div', '', 'min-w-0');
-    bloque.append(
-      crear('span', legible.accion, `inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tonos[legible.tono].insignia}`),
-      crear('p', legible.descripcion, 'mt-1.5 text-sm leading-relaxed text-neutral-800 [overflow-wrap:anywhere]'),
-      detalles(evento),
-    );
-    return bloque;
-  }
-  function quien(legible: Legible) {
-    const bloque = crear('div', '', 'min-w-0');
-    bloque.append(crear('p', legible.persona, 'font-medium text-neutral-900 [overflow-wrap:anywhere]'));
-    if (legible.detallePersona) bloque.append(crear('p', legible.detallePersona, 'mt-0.5 text-xs text-neutral-500 [overflow-wrap:anywhere]'));
-    return bloque;
-  }
-  function cuando(legible: Legible) {
-    const bloque = crear('div', '', 'min-w-0');
-    bloque.append(crear('p', legible.fecha, 'text-sm font-medium text-neutral-800 first-letter:uppercase'), crear('p', `${legible.hora} h`, 'mt-0.5 text-xs text-neutral-500'));
-    return bloque;
+  function dato(etiqueta: string, valor: string, extra?: string) {
+    const grupo = crear('div', '', 'min-w-0');
+    const dd = crear('dd', valor);
+    if (extra) dd.append(crear('span', extra, 'block text-xs font-normal text-neutral-500'));
+    grupo.append(crear('dt', etiqueta), dd);
+    return grupo;
   }
   function pintar(eventos: Evento[]) {
-    const tabla = document.createElement('table');
-    tabla.className = 'hidden xl:table w-full table-fixed text-left text-sm';
-    const caption = tabla.createCaption(); caption.textContent = 'Historial de cambios'; caption.className = 'sr-only';
-    const columnas: [string, string][] = [['Cuándo', 'w-52'], ['Quién', 'w-64'], ['Qué hizo', ''], ['País', 'w-32']];
-    const head = tabla.createTHead().insertRow();
-    for (const [titulo, ancho] of columnas) {
-      const th = document.createElement('th'); th.scope = 'col'; th.textContent = titulo;
-      th.className = `p-3 bg-primary/5 border-b border-[#DCD8EA] font-semibold ${ancho}`; head.append(th);
-    }
-    const body = tabla.createTBody();
-    const tarjetas = crear('div', '', 'grid gap-3 xl:hidden');
-    for (const evento of eventos) {
+    const tarjetas = eventos.map(evento => {
       const legible = describirEvento(evento);
-      const fila = body.insertRow();
-      for (const contenido of [cuando(legible), quien(legible), accion(evento, legible), crear('span', evento.pais ?? 'No disponible')]) {
-        const celda = fila.insertCell(); celda.className = 'p-3 align-top border-b border-[#EEEAF5]'; celda.append(contenido);
-      }
-      const tarjeta = crear('article', '', `min-w-0 rounded-xl border border-[#DCD8EA] border-l-4 ${tonos[legible.tono].borde} bg-white p-4`);
-      const pie = crear('div', '', 'mt-3 grid gap-3 border-t border-[#EEEAF5] pt-3 sm:grid-cols-2');
-      const pais = crear('div', '', 'min-w-0');
-      pais.append(crear('p', 'País', 'text-xs text-neutral-500'), crear('p', evento.pais ?? 'No disponible', 'text-sm font-medium'));
-      pie.append(quien(legible), pais);
-      const cuerpo = crear('div', '', 'mt-3');
-      cuerpo.append(accion(evento, legible));
-      tarjeta.append(cuando(legible), cuerpo, pie);
-      tarjetas.append(tarjeta);
-    }
-    q('resultados').replaceChildren(tabla, tarjetas);
+      const tono = tonos[legible.tono];
+      const tarjeta = crear('article', '', `registro tarjeta-acento acento-${tono.acento}`);
+      const cabecera = crear('div', '', 'registro-cabecera');
+      const textos = crear('div', '', 'min-w-0');
+      const fecha = legible.fecha.charAt(0).toUpperCase() + legible.fecha.slice(1);
+      textos.append(crear('p', `${fecha} · ${legible.hora} h`, 'registro-contexto'), crear('h3', legible.descripcion, 'registro-titulo'));
+      const insignias = crear('div', '', 'registro-insignias');
+      insignias.append(crear('span', legible.accion, `registro-insignia registro-insignia--${tono.insignia}`));
+      cabecera.append(textos, insignias);
+      const datos = crear('dl', '', 'registro-datos');
+      datos.append(dato('Persona', legible.persona, legible.detallePersona || undefined), dato('País', evento.pais ?? 'No disponible'));
+      tarjeta.append(cabecera, datos);
+      return tarjeta;
+    });
+    q('resultados').replaceChildren(...tarjetas);
   }
   async function cargar(pagina = 0) {
     if (curso || !autorizado) return;
@@ -142,10 +108,15 @@ export async function iniciarAuditoria() {
           q(campo).setAttribute('aria-invalid', 'true');
         }
       }
-    } finally { curso = false; controles(); }
+    } finally {
+      curso = false; controles();
+      if (repetir) { repetir = false; aplicar(); }
+    }
   }
-  form.addEventListener('submit', event => {
-    event.preventDefault(); if (curso || !autorizado) return;
+  // Los filtros se aplican solos: al elegir una opción o fecha, y en «Persona» al dejar de escribir.
+  function aplicar() {
+    if (!autorizado) return;
+    if (curso) { repetir = true; return; }
     errores();
     const resultado = filtrosSchema.safeParse(leer());
     if (!resultado.success) {
@@ -154,18 +125,18 @@ export async function iniciarAuditoria() {
         q(`error-${campo}`).textContent = issue.message; q(`error-${campo}`).hidden = false;
         q(campo).setAttribute('aria-invalid', 'true');
       }
-      q(String(resultado.error.issues[0].path[0])).focus(); return;
+      return;
     }
+    if (campos.every(c => resultado.data[c] === filtros[c])) return;
     filtros = resultado.data; cursores = [undefined]; numero = 0; siguiente = null;
-    q('pendientes').hidden = true; void cargar();
-  });
-  form.addEventListener('input', () => {
-    q('pendientes').hidden = campos.every(c => leer()[c].trim() === filtros[c]);
-  });
+    void cargar();
+  }
+  form.addEventListener('submit', event => { event.preventDefault(); clearTimeout(espera); aplicar(); });
+  form.addEventListener('change', () => { clearTimeout(espera); controles(); aplicar(); });
+  q('usuario').addEventListener('input', () => { controles(); clearTimeout(espera); espera = setTimeout(aplicar, 500); });
   q('limpiar').addEventListener('click', () => {
-    if (curso || !autorizado) return;
-    form.reset(); errores(); filtros = { ...vacios }; cursores = [undefined]; numero = 0; siguiente = null;
-    q('pendientes').hidden = true; void cargar();
+    if (!autorizado) return;
+    clearTimeout(espera); form.reset(); controles(); aplicar();
   });
   q('siguiente').addEventListener('click', () => {
     if (!siguiente || curso) return;
@@ -173,11 +144,19 @@ export async function iniciarAuditoria() {
   });
   q('anterior').addEventListener('click', () => { if (numero > 0) void cargar(numero - 1); });
   q('reintentar').addEventListener('click', () => void cargar(objetivo));
+  // País como lista: se usan los países registrados; si no cargan, se puede filtrar por los demás campos.
+  async function cargarPaises() {
+    try {
+      const paises = await clientePaisesNavegador().listar();
+      const selector = q<HTMLSelectElement>('pais');
+      for (const pais of [...paises].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))) selector.add(new Option(pais.nombre, pais.nombre));
+    } catch { /* El selector queda con «Todos los países». */ }
+  }
   controles();
   try {
     autorizado = (await getUserRoles()).some(rol => rol.codigo === 'ADMIN');
     if (!autorizado) return;
-    await cargar();
+    await Promise.all([cargarPaises(), cargar()]);
   } catch {
     q('error').textContent = 'No se pudo verificar el acceso. Recarga la página para volver a intentarlo.';
     q('error').hidden = false;

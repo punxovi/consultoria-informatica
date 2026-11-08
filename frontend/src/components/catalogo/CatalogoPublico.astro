@@ -4,81 +4,70 @@ import Layout from '../../layouts/Layout.astro';
 import Button from '../ui/Button.astro';
 import EncabezadoPublico from '../publico/EncabezadoPublico.astro';
 
-const pasos = [
-  ['1', 'País', 'bg-brand-green'],
-  ['2', 'Organización', 'bg-brand-cyan'],
-  ['3', 'Productos', 'bg-brand-pink'],
-  ['4', 'Contacto', 'bg-brand-yellow'],
-] as const;
 ---
 <Layout title="Catálogo público · Fundación Gestionar Esperanzas">
   <div class="min-h-screen bg-[#F7F6FA] text-neutral-900">
     <EncabezadoPublico actual="catalogo" />
 
-    <main id="catalogo-publico" class="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-5 md:py-8">
-      <header class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#4C4688] via-[#463F80] to-[#5B54A0] p-6 text-white shadow-sm md:p-9">
-        <span aria-hidden="true" class="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10"></span>
-        <span aria-hidden="true" class="pointer-events-none absolute -bottom-24 right-40 h-48 w-48 rounded-full bg-brand-cyan/20"></span>
-        <p class="relative text-xs font-bold uppercase tracking-[0.14em] text-[#D2CFF0]">Catálogo público · Sin necesidad de crear una cuenta</p>
-        <h1 class="relative mt-3 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">Productos con propósito</h1>
-        <p class="relative mt-4 max-w-3xl text-base leading-relaxed text-[#ECEAF8] md:text-lg">
-          Selecciona productos de nuestras organizaciones y solicita una cotización manual. La Fundación revisará tu solicitud y te contactará con precio, plazos, condiciones y forma de entrega.
+    <main id="catalogo-publico" class="mx-auto max-w-[1440px] space-y-5 px-4 py-4 md:space-y-6 md:px-8 md:py-6">
+      <header class="relative overflow-hidden rounded-2xl border border-[#ECE9F3] bg-gradient-to-br from-[#F4F2FA] via-white to-[#EEF7F8] px-5 py-6 text-neutral-900 md:rounded-3xl md:px-10 md:py-9">
+        <span aria-hidden="true" class="pointer-events-none absolute -right-20 -top-24 hidden h-72 w-72 rounded-full bg-[#4C4688]/[0.05] md:block"></span>
+        <span aria-hidden="true" class="pointer-events-none absolute -bottom-28 right-32 hidden h-56 w-56 rounded-full bg-brand-cyan/10 md:block"></span>
+        <p class="relative text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4C4688] md:text-xs">Catálogo público</p>
+        <h1 class="relative mt-2 max-w-3xl text-[1.75rem] font-bold leading-tight tracking-tight md:mt-3 md:text-5xl">Productos con propósito</h1>
+        <p class="relative mt-2 max-w-2xl text-sm leading-relaxed text-neutral-600 md:mt-3 md:text-base">
+          Elige productos de nuestras organizaciones y solicita una cotización.
         </p>
-        <ol class="relative mt-6 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Pasos para solicitar una cotización">
-          {pasos.map(([numero, texto, color]) => (
-            <li class="flex min-h-12 items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold backdrop-blur-sm">
-              <span class={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#2B2654] ${color}`}>{numero}</span>
-              <span class="min-w-0 break-words">{texto}</span>
-            </li>
-          ))}
-        </ol>
       </header>
 
-      <section aria-labelledby="catalogo-filtros-titulo" class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:px-6">
-        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4C4688] via-brand-cyan to-brand-green"></span>
+      <section aria-labelledby="catalogo-filtros-titulo" class="rounded-2xl border border-[#E8E5EF] bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5">
         <form id="catalogo-filtros">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <span aria-hidden="true" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 8v5l-4 2v-7L4 5Z"/></svg>
-              </span>
-              <h2 id="catalogo-filtros-titulo" class="text-xl font-bold">Filtrar catálogo</h2>
+          <div class="mb-4 flex items-start gap-3">
+            <span class="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" />
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <h2 id="catalogo-filtros-titulo" class="text-lg font-semibold text-neutral-900">Filtrar catálogo</h2>
+              <p class="mt-1 text-sm text-neutral-500">Elige un país y, si quieres, una organización.</p>
             </div>
-            <Button id="catalogo-limpiar" variant="ghost" size="sm" disabled> <Icono nombre="limpiar" />Restablecer filtros</Button>
           </div>
-          <div class="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-end">
+          <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-end">
             <fieldset class="min-w-0">
-              <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">País</legend>
-              <div id="catalogo-paises" class="flex flex-wrap gap-2">
-                <button type="button" data-pais="" aria-pressed="true" disabled class="min-h-11 rounded-full border border-[#4C4688] bg-[#4C4688] px-5 text-sm font-semibold text-white disabled:opacity-60">Todos</button>
+              <legend class="mb-1.5 block text-sm font-medium text-neutral-800">País</legend>
+              <div id="catalogo-paises" class="-mx-1 flex gap-2 overflow-x-auto px-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+                <button type="button" data-pais="" aria-pressed="true" disabled class="min-h-11 rounded-full border border-[#4C4688] bg-[#4C4688] px-4 text-sm font-semibold text-white disabled:opacity-60">Todos</button>
               </div>
             </fieldset>
-            <div class="min-w-0">
-              <label for="catalogo-organizacion" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-600">Organización</label>
-              <select id="catalogo-organizacion" disabled class="min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 focus:ring-2 focus:ring-primary"><option value="">Todas las organizaciones</option></select>
+            <div class="min-w-0 space-y-1.5">
+              <label for="catalogo-organizacion" class="block text-sm font-medium text-neutral-800">Organización</label>
+              <select id="catalogo-organizacion" disabled class="min-h-12 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-neutral-50"><option value="">Todas las organizaciones</option></select>
             </div>
           </div>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+            <p id="catalogo-criterios" class="min-w-0 break-words text-sm text-neutral-500"></p>
+            <Button id="catalogo-limpiar" variant="outline" size="lg" disabled class="w-full sm:w-auto"><Icono nombre="limpiar" />Limpiar filtros</Button>
+          </div>
         </form>
-        <p id="catalogo-criterios" class="mt-4 break-words text-sm font-medium text-primary"></p>
       </section>
 
       <section aria-labelledby="catalogo-titulo">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="catalogo-titulo" class="text-2xl font-bold">Productos disponibles</h2>
-          <p id="catalogo-estado" role="status" class="text-sm text-neutral-600">Cargando catálogo…</p>
+          <h2 id="catalogo-titulo" class="text-lg font-semibold text-neutral-900">Productos disponibles</h2>
+          <p id="catalogo-estado" role="status" class="modulo-conteo">Cargando catálogo…</p>
         </div>
         <div id="catalogo-error" hidden role="alert" class="mt-4 rounded-2xl border border-danger/20 bg-white p-5"><p id="catalogo-error-texto">No fue posible cargar el catálogo. Inténtalo nuevamente.</p><Button id="catalogo-reintentar" variant="outline" size="lg" class="mt-3">Reintentar</Button></div>
-        <div id="catalogo-lista" aria-busy="true" class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <div id="catalogo-lista" aria-busy="true" class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5"></div>
       </section>
 
       <p id="catalogo-seleccion" role="status" aria-live="polite" class="pointer-events-none fixed inset-x-4 bottom-20 z-30 mx-auto max-w-md rounded-2xl bg-[#2B2654] px-5 py-3 text-center text-sm font-medium text-white opacity-0 shadow-lg transition-opacity duration-300 md:bottom-6 data-[visible]:opacity-100"></p>
 
-      <a href="/cotizar" class="fixed inset-x-4 bottom-4 z-20 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#4C4688] px-5 font-semibold text-white shadow-lg md:hidden">
+      <a href="/cotizar" data-solo-con-seleccion hidden class="fixed inset-x-4 bottom-4 z-20 flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#4C4688] px-5 font-semibold text-white shadow-[0_8px_24px_rgba(47,39,83,0.25)] md:hidden">
         Ver mi solicitud <span data-contador class="inline-flex min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-[#4C4688]">0</span>
       </a>
 
       <dialog id="catalogo-detalle" aria-labelledby="catalogo-detalle-titulo" class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-2xl border border-[#E2DDED] p-0 backdrop:bg-black/40">
-        <span aria-hidden="true" class="block h-1 bg-gradient-to-r from-[#4C4688] via-brand-cyan to-brand-green"></span>
         <div class="p-5 md:p-6">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">

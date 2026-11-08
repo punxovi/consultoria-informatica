@@ -66,8 +66,8 @@ test('invitados permite rechazar; muestra carga, vacío y error recuperable',asy
   await page.getByRole('button',{name:'Rechazar',exact:true}).click();await page.locator('#invitados-confirmar').click();
   await expect(page.locator('#invitados-exito')).toContainText('rechazada');
   await page.route('**/api/v1/guests',r=>r.fulfill({status:503,json:{ok:false,error:{code:'ERROR',message:'Servicio no disponible'}}}));
-  await page.locator('#invitados-recargar').click();await expect(page.locator('#invitados-error')).toContainText('no disponible');
-  await page.unroute('**/api/v1/guests');solicitudes=[];await page.locator('#invitados-recargar').click();await expect(page.locator('#invitados-vacio')).toContainText('Todavía no hay');
+  await page.reload();await expect(page.locator('#invitados-error')).toContainText('no disponible');
+  await page.unroute('**/api/v1/guests');solicitudes=[];await page.locator('#invitados-reintentar').click();await expect(page.locator('#invitados-vacio')).toContainText('Todavía no hay');
 });
 test('no administrador no consulta invitados',async({page})=>{
   rol='COORD';let consultas=0;page.on('request',r=>{if(r.url().includes('/api/v1/guests'))consultas++;});

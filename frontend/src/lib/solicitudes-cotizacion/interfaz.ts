@@ -14,7 +14,7 @@ export async function iniciarSolicitudes(){
  const nodo=(tag:string,texto:string,clase='')=>{const e=document.createElement(tag);e.textContent=texto;e.className=clase;return e;};
  const fecha=(valor:string)=>new Intl.DateTimeFormat('es-CL',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(valor))+' UTC';
  function controles(){
-  for(const id of ['recargar','reintentar'])q<HTMLButtonElement>(id).disabled=!autorizado||cargando||guardando||detalleCargando;
+  for(const id of ['reintentar'])q<HTMLButtonElement>(id).disabled=!autorizado||cargando||guardando||detalleCargando;
   q<HTMLButtonElement>('guardar').disabled=guardando||detalleCargando||!actual;
   q<HTMLSelectElement>('estado').disabled=guardando||detalleCargando;
   q<HTMLButtonElement>('cerrar').disabled=guardando;
@@ -34,7 +34,7 @@ export async function iniciarSolicitudes(){
   q('lista').replaceChildren();q<HTMLButtonElement>('limpiar').disabled=filtro.value==='todas';
   q('carga').textContent=filas.length?`${visibles.length} de ${filas.length} ${filas.length===1?'solicitud registrada':'solicitudes registradas'}.`:'No hay solicitudes en tu alcance territorial.';
   for(const s of visibles){
-   const card=nodo('article','','rounded-2xl border border-[#DCD8EA] border-l-4 border-l-primary bg-white p-5 space-y-3 min-w-0');
+   const card=nodo('article','','rounded-2xl border border-[#DCD8EA] tarjeta-acento acento-morado bg-white p-5 space-y-3 min-w-0');
    card.append(nodo('span',etiquetas[s.estado],s.estado==='solicitada'?'inline-block rounded-full bg-brand-yellow/20 px-3 py-1 text-sm font-semibold':'inline-block rounded-full bg-brand-green/10 px-3 py-1 text-sm font-semibold'),nodo('h2',s.nombre_solicitante,'text-xl font-bold break-words'),nodo('p',s.correo,'text-sm break-all text-neutral-600'),nodo('p',`Recibida: ${fecha(s.created_at)}`,'text-sm text-neutral-600'),items(s));
    const b=document.createElement('button');b.type='button';b.className='min-h-12 rounded-xl border border-primary px-4 font-semibold text-primary';b.textContent='Ver solicitud';b.setAttribute('aria-label',`Ver solicitud de ${s.nombre_solicitante}`);b.addEventListener('click',()=>void abrir(s.id_solicitud));card.append(b);q('lista').append(card);
   }controles();
@@ -61,7 +61,7 @@ export async function iniciarSolicitudes(){
   q('detalle-carga').textContent='Cargando detalle…';dialogo.showModal();q('cerrar').focus();controles();
   try{const s=await cliente.obtener(id);if(turno!==epoca||ventana!==apertura)return;mostrarDetalle(s);}
   catch(error){if(turno!==epoca||ventana!==apertura)return;q('detalle-error').textContent=mensajeError(error);q('detalle-error').hidden=false;
-   if(error instanceof ApiError && [401,403].includes(error.status)){filas=[];q('lista').replaceChildren();for(const id of ['total','nuevas','gestionadas'])q(id).textContent='—';q('carga').textContent='Actualiza el listado para verificar tu acceso.';}
+   if(error instanceof ApiError && [401,403].includes(error.status)){filas=[];q('lista').replaceChildren();for(const id of ['total','nuevas','gestionadas'])q(id).textContent='—';q('carga').textContent='Recarga la página para verificar tu acceso.';}
   }
   finally{if(turno===epoca&&ventana===apertura){detalleCargando=false;q('detalle-carga').textContent='';controles();}}
  }
@@ -79,7 +79,7 @@ export async function iniciarSolicitudes(){
    q('confirmacion').scrollIntoView({block:'nearest'});
   }
   catch(error){if(turno!==epoca)return;q('estado-error').textContent=mensajeError(error);q('estado-error').hidden=false;q('detalle-carga').textContent='';
-   if(error instanceof ApiError && [401,403,404,409].includes(error.status)){actual=null;q('form').hidden=true;if(error.status!==409){q('detalle').replaceChildren();filas=[];q('lista').replaceChildren();for(const id of ['total','nuevas','gestionadas'])q(id).textContent='—';q('carga').textContent='Actualiza el listado para verificar tu acceso.';}}
+   if(error instanceof ApiError && [401,403,404,409].includes(error.status)){actual=null;q('form').hidden=true;if(error.status!==409){q('detalle').replaceChildren();filas=[];q('lista').replaceChildren();for(const id of ['total','nuevas','gestionadas'])q(id).textContent='—';q('carga').textContent='Recarga la página para verificar tu acceso.';}}
   }finally{if(turno===epoca){guardando=false;controles();}}
  });
  q('cerrar').addEventListener('click',()=>{if(!guardando)dialogo.close();});
@@ -87,7 +87,7 @@ export async function iniciarSolicitudes(){
  dialogo.addEventListener('close',()=>{++apertura;detalleCargando=false;actual=null;q('detalle').replaceChildren();controles();});
   filtro.addEventListener('change',()=>{if(!cargando)pintar();});
   q('limpiar').addEventListener('click',()=>{filtro.value='todas';if(!cargando)pintar();});
- for(const id of ['recargar','reintentar'])q(id).addEventListener('click',()=>{if(!guardando&&!cargando)void cargar();});
+ for(const id of ['reintentar'])q(id).addEventListener('click',()=>{if(!guardando&&!cargando)void cargar();});
  window.addEventListener('fge:territorio-cambiado',()=>void cargar());
  controles();
  try{autorizado=(await getUserRoles()).some(r=>['ADMIN','COORD'].includes(r.codigo));if(autorizado)await cargar();}

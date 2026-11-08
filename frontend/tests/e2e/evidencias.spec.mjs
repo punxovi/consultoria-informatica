@@ -81,9 +81,9 @@ test('errores de lista y reserva incierta no muestran falso vacío ni permiten d
   errorList={status:403,code:'SIN_PERMISO',message:'No tienes permiso para consultar evidencias.'};
   await page.goto(`/planes/${id}/acciones/${id}`);await expect(page.locator('#ev-error')).toContainText('No tienes permiso');
   await expect(page.locator('#ev-vacio')).toBeHidden();await expect(page.locator('#ev-archivo')).toBeDisabled();
-  errorList=null;await page.locator('#ev-recargar').click();await expect(page.locator('#ev-archivo')).toBeEnabled();
+  errorList=null;await page.reload();await expect(page.locator('#ev-archivo')).toBeEnabled();
   await llenar(page);errorPost={status:502,code:'ERROR_BASE_DATOS',message:'No se confirmó la operación.'};
-  await page.locator('#ev-guardar').click();await expect(page.locator('#ev-error')).toContainText('Actualiza');
+  await page.locator('#ev-guardar').click();await expect(page.locator('#ev-error')).toContainText('Recarga la página');
   await expect(page.locator('#ev-guardar')).toBeDisabled();
 });
 test('conflicto al publicar requiere versión actual; cancelar no registra archivos',async({page})=>{

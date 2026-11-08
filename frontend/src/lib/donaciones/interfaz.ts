@@ -16,6 +16,7 @@ import {
   type RespaldoDonacion,
   type TipoRespaldo,
 } from './modelo.ts';
+import { crearTarjetaRegistro, type TonoInsignia } from '../ui/registro.ts';
 
 export function iniciarDonaciones() {
   const contenedor = document.querySelector<HTMLElement>('#seccion-donaciones');
@@ -118,12 +119,6 @@ export function iniciarDonaciones() {
     return f;
   }
 
-  const claseEstado: Record<string, string> = {
-    Comprometida: 'bg-[#FFF3DC] text-[#925500]',
-    Recibida: 'bg-violet-100 text-violet-900',
-    Entregada: 'bg-[#E5F6ED] text-[#14784D]',
-    Cerrada: 'bg-[#F0EDF8] text-[#4C4688]',
-  };
 
   function describirAporte(item: Donacion) {
     if (item.tipo_aporte === 'dinero') {
@@ -149,48 +144,44 @@ export function iniciarDonaciones() {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
   }
 
-  const entidadesHtml: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  const htmlSeguro = (valor: unknown) => String(valor ?? '').replace(/[&<>"']/g, c => entidadesHtml[c]);
+
+  const tonoEstado: Record<string, TonoInsignia> = {
+    Comprometida: 'amarillo',
+    Recibida: 'verde',
+    Entregada: 'verde',
+    Cerrada: 'morado',
+  };
 
   function renderListadoDonaciones() {
     const lista = q('lista');
     lista.replaceChildren();
     q('vacio').hidden = donaciones.length > 0;
+    q('cantidad').hidden = donaciones.length === 0;
+    q('cantidad').textContent = `${donaciones.length} ${donaciones.length === 1 ? 'donación registrada' : 'donaciones registradas'}`;
     for (const item of donaciones) {
       const recibida = item.tipo_movimiento === 'recibida';
       const partes = partesDonacion(item, nombreOrganizacion());
-      const aporte = `${describirCategoria(item)} · ${describirAporte(item)}`;
-      const estado = item.estado ?? 'Sin estado';
-      const card = document.createElement('article');
-      card.innerHTML = `
-        <div class="h-1.5 ${recibida ? 'bg-emerald-600' : 'bg-violet-600'}"></div>
-        <div class="don-card-layout flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-stretch">
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div class="flex min-w-0 items-center gap-3">
-                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 .75-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h6"/></svg>
-                </span>
-                <div class="min-w-0">
-                  <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#77719F]">${recibida ? '↓ Entrada a la organización' : '↑ Salida de la organización'}</p>
-                  <h3 class="mt-1 break-words text-base font-semibold text-neutral-900">${htmlSeguro(item.contraparte_nombre)}</h3>
-                </div>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${recibida ? 'bg-[#E5F6ED] text-[#14784D]' : 'bg-violet-100 text-violet-900'}">${recibida ? 'Recibida por la organización' : 'Entregada por la organización'}</span>
-                <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium ${claseEstado[estado] ?? 'bg-neutral-100 text-neutral-600'}">${htmlSeguro(estado)}</span>
-              </div>
-            </div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              ${[['Fecha', formatearFecha(item.fecha)], ['Quién entrega · origen', partes.entrega], ['Quién recibe · destino', partes.recibe], ['País de la organización', nombrePais()], ['Procedencia', item.origen ?? 'No registrada'], ['Tipo de aporte', aporte], ['Descripción', item.descripcion]].map(([label, value]) => `<div class="min-w-0 rounded-xl border border-[#E5E0EF] bg-[#F7F5FB] p-3"><p class="text-[11px] font-semibold uppercase tracking-wide text-[#77718F]">${htmlSeguro(label)}</p><p class="mt-1.5 break-words text-sm font-medium text-[#282435]">${htmlSeguro(value || 'Sin información')}</p></div>`).join('')}
-            </div>
-          </div>
-          <div class="flex items-center justify-end border-t border-[#F0EDF6] pt-3 lg:min-w-[190px] lg:justify-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-            <button type="button" data-ver-detalle class="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#4C4688] transition hover:bg-[#F5F3FA] focus:outline-none focus:ring-2 focus:ring-[#4C4688]/25" aria-label="Ver detalle y respaldos de ${htmlSeguro(item.contraparte_nombre)}">Ver detalle y respaldos →</button>
-          </div>
-        </div>`;
-      card.querySelector<HTMLButtonElement>('[data-ver-detalle]')?.addEventListener('click', () => { void abrirDetalle(item); });
-      lista.append(card);
+      const insignias: { texto: string; tono: TonoInsignia }[] = [
+        { texto: recibida ? '↓ Recibida por la organización' : '↑ Entregada por la organización', tono: recibida ? 'verde' : 'morado' },
+      ];
+      if (item.estado) insignias.push({ texto: item.estado, tono: tonoEstado[item.estado] ?? 'neutro' });
+      lista.append(crearTarjetaRegistro({
+        acento: recibida ? 'verde' : 'morado',
+        contexto: formatearFecha(item.fecha),
+        titulo: item.contraparte_nombre,
+        insignias,
+        datos: [
+          ['Aporte', `${describirCategoria(item)} · ${describirAporte(item)}`],
+          [recibida ? 'Entrega' : 'Recibe', recibida ? partes.entrega : partes.recibe],
+          ['Procedencia', item.origen ?? 'No registrada'],
+        ],
+        accion: {
+          texto: 'Ver detalle',
+          etiquetaAccesible: `Ver detalle y respaldos de ${item.contraparte_nombre}`,
+          atributos: { 'data-ver-detalle': '' },
+          alPulsar: () => { void abrirDetalle(item); },
+        },
+      }));
     }
   }
 
@@ -790,29 +781,6 @@ export function iniciarDonaciones() {
   q('detalle-volver').addEventListener('click', () => {
     cambiarVista('listado');
     renderListadoDonaciones();
-  });
-
-  q('recargar').addEventListener('click', async () => {
-    if (ocupado) return;
-    if (!donacionActual || q('detalle').hidden) {
-      void cargarDonaciones();
-      return;
-    }
-    // En el detalle se vuelve a consultar la donación, no solo sus respaldos, para recuperar estado y versión.
-    limpiarAlertas();
-    bloquear(true, 'Actualizando donación...');
-    try {
-      const vigente = await cliente.obtenerDonacion(idOrganizacion, donacionActual.id_donacion);
-      const idx = donaciones.findIndex((d) => d.id_donacion === vigente.id_donacion);
-      if (idx >= 0) donaciones[idx] = vigente;
-      donacionActual = vigente;
-    } catch (err) {
-      mostrarError(err, 'No fue posible actualizar la donación. ');
-      bloquear(false);
-      return;
-    }
-    bloquear(false);
-    await abrirDetalle(donacionActual);
   });
 
   // La ficha entrega el nombre de la organización y del país después de montar la sección.

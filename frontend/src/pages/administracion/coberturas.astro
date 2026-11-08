@@ -63,23 +63,23 @@ import { mainNavItems } from '../../config/nav';
         {
           id: 'total',
           titulo: 'Total de coberturas',
-          acento: 'border-l-primary',
+          acento: 'acento-morado',
           icono: 'bg-primary/10 text-primary',
         },
         {
           id: 'vigentes',
           titulo: 'Vigentes',
-          acento: 'border-l-brand-green',
+          acento: 'acento-verde',
           icono: 'bg-brand-green/10 text-brand-green',
         },
         {
           id: 'futuras-vencidas',
           titulo: 'Futuras o vencidas',
-          acento: 'border-l-brand-yellow',
+          acento: 'acento-amarillo',
           icono: 'bg-brand-yellow/20 text-[#946200]',
         },
       ].map((metrica, indice) => (
-        <Card class={`border-l-4 ${metrica.acento} p-4`}>
+        <Card class={`tarjeta-acento ${metrica.acento} p-4`}>
           <div class="flex items-center gap-3">
             <span
               class={`rounded-xl p-3 ${metrica.icono}`}

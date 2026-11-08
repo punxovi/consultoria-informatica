@@ -3,22 +3,22 @@ import Button from '../components/ui/Button.astro';
 import { mainNavItems } from '../config/nav';
 import AppLayout from '../layouts/AppLayout.astro';
 
-// Marcos con franja superior de color, como las tarjetas de la ficha de organización.
+// Tarjetas con acento lateral de color (estilo común definido en global.css).
 const pasos = [
   { numero: '1', titulo: 'Configura', texto: 'Elige el período y, si quieres, país, organización, programa, indicadores y destino.', color: 'bg-[#4C4688]' },
   { numero: '2', titulo: 'Revisa la vista previa', texto: 'Comprueba la información en pantalla antes de generar el documento.', color: 'bg-brand-cyan' },
   { numero: '3', titulo: 'Descarga el PDF', texto: 'Obtén el reporte institucional con el mismo contenido de la vista previa.', color: 'bg-brand-green' },
 ];
 const contenido = [
-  { titulo: 'Organizaciones y beneficiarios', texto: 'Organizaciones atendidas y personas beneficiadas.', franja: 'bg-[#4C4688]', fondo: 'bg-[#F0EDF8] text-[#4C4688]',
+  { titulo: 'Organizaciones y beneficiarios', texto: 'Organizaciones atendidas y personas beneficiadas.', acento: 'acento-morado', fondo: 'bg-[#F0EDF8] text-[#4C4688]',
     icono: '<path d="M3 21h18M5 21V5h14v16M9 9h1m4 0h1m-6 4h1m4 0h1"/>' },
-  { titulo: 'Planes y Acciones', texto: 'Planes de intervención y acciones registradas.', franja: 'bg-brand-cyan', fondo: 'bg-[#E7F7FA] text-[#1BAAC1]',
+  { titulo: 'Planes y Acciones', texto: 'Planes de intervención y acciones registradas.', acento: 'acento-celeste', fondo: 'bg-[#E7F7FA] text-[#1BAAC1]',
     icono: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 12 3 3 5-6"/>' },
-  { titulo: 'Acciones ejecutadas y Compromisos cumplidos', texto: 'Avance de lo comprometido durante el período.', franja: 'bg-brand-yellow', fondo: 'bg-[#FFF4DB] text-[#B07800]',
+  { titulo: 'Acciones ejecutadas y Compromisos cumplidos', texto: 'Avance de lo comprometido durante el período.', acento: 'acento-amarillo', fondo: 'bg-[#FFF4DB] text-[#B07800]',
     icono: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>' },
-  { titulo: 'Donaciones y recursos', texto: 'Aportes recibidos y entregados.', franja: 'bg-brand-pink', fondo: 'bg-[#FCE8F0] text-[#C81E5B]',
+  { titulo: 'Donaciones y recursos', texto: 'Aportes recibidos y entregados.', acento: 'acento-rosado', fondo: 'bg-[#FCE8F0] text-[#C81E5B]',
     icono: '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z"/>' },
-  { titulo: 'Indicadores y resultados obtenidos', texto: 'Metas y resultados de los indicadores seleccionados.', franja: 'bg-brand-green', fondo: 'bg-[#E7F6EF] text-[#199D6B]',
+  { titulo: 'Indicadores y resultados obtenidos', texto: 'Metas y resultados de los indicadores seleccionados.', acento: 'acento-verde', fondo: 'bg-[#E7F6EF] text-[#199D6B]',
     icono: '<path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/>' },
 ];
 ---
@@ -66,8 +66,7 @@ const contenido = [
       <p class="mt-1 text-sm text-neutral-500">El reporte consolida, según los filtros que elijas:</p>
       <ul class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {contenido.map((item) => (
-          <li class="relative flex min-w-0 gap-4 overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm">
-            <span aria-hidden="true" class={`pointer-events-none absolute inset-x-0 top-0 h-1 ${item.franja}`}></span>
+          <li class={`tarjeta-acento ${item.acento} relative flex min-w-0 gap-4 overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm`}>
             <span aria-hidden="true" class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.fondo}`}>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" set:html={item.icono} />
             </span>

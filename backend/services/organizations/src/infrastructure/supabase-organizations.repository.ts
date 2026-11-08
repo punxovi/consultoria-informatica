@@ -276,7 +276,48 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     if (!Array.isArray(body)) {
       throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolviÃ³ una organizaciÃ³n invÃ¡lida.', 502);
     }
-    return body.map(organization);
+    return adjuntarImagenesInvitado(accessToken, body.map(organization));
+  }
+
+  // La vista segura no incluye la imagen. El Invitado puede ver solo la imagen
+  // de organización (migración 20261108010000); si aún no está permitido, se
+  // conserva el listado y la interfaz muestra la imagen predeterminada.
+  async function adjuntarImagenesInvitado(accessToken: string, filas: Organization[]): Promise<Organization[]> {
+    const ids = filas.map((fila) => fila.id_organizacion).filter((id): id is string => typeof id === 'string');
+    if (ids.length === 0) return filas;
+    let imagenes: unknown;
+    try {
+      imagenes = await request('archivos', accessToken, new URLSearchParams({
+        select: `id_organizacion,${ORGANIZATION_IMAGE_FIELDS}`,
+        id_organizacion: `in.(${ids.join(',')})`,
+        categoria: 'eq.imagen_organizacion',
+        estado_carga: 'eq.disponible',
+        archived_at: 'is.null',
+      }));
+    } catch {
+      return filas;
+    }
+    if (!Array.isArray(imagenes)) return filas;
+    const porOrganizacion = new Map(imagenes.map((imagen) => [record(imagen).id_organizacion, organizationImage(imagen)]));
+    return filas.map((fila) => ({ ...fila, imagen: porOrganizacion.get(fila.id_organizacion) ?? null }));
+  }
+
+  async function paisesDeOrganizacionesVisibles(accessToken: string): Promise<CountrySummary[]> {
+    let filas: unknown;
+    try {
+      filas = await request('organizaciones_invitado', accessToken, new URLSearchParams({ select: 'pais' }));
+    } catch {
+      return [];
+    }
+    if (!Array.isArray(filas)) return [];
+    const porId = new Map<string, CountrySummary>();
+    for (const fila of filas) {
+      const pais = record(record(fila).pais);
+      if (typeof pais.id_pais === 'string' && typeof pais.nombre === 'string' && typeof pais.codigo_iso === 'string') {
+        porId.set(pais.id_pais, country(pais));
+      }
+    }
+    return [...porId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }
 
   async function esInvitado(accessToken: string): Promise<boolean> {
@@ -523,7 +564,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body)) {
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
       }
-      return body.map(country);
+      if (body.length > 0) return body.map(country);
+      // Si el catálogo llega vacío (caso del Invitado), se usan los países de las
+      // organizaciones que la sesión puede consultar en la vista segura.
+      return paisesDeOrganizacionesVisibles(accessToken);
     },
 
     getLegalRecord,

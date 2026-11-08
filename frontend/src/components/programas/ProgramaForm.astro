@@ -33,14 +33,14 @@ const campos = [
   <div id="programa-errores" role="alert" tabindex="-1" class="hidden rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800"></div>
 
   <div id="programa-recuperacion" hidden class="flex flex-wrap gap-3">
-    <Button id="recargar-programa" variant="outline">Volver a cargar datos</Button>
+    <Button id="recargar-programa" variant="outline">Reintentar</Button>
     <a href="/login" class="inline-flex min-h-[48px] items-center text-primary underline">Iniciar sesión</a>
   </div>
 
   <form id="programa-form" data-id={idPrograma} novalidate aria-busy="true" class="w-full space-y-5">
     <fieldset id="programa-campos" disabled class="min-w-0 space-y-5">
       <!-- Información principal -->
-      <Card class="w-full border-t-4 border-t-[#4C4688] p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-morado p-5 md:p-6">
         <section class="space-y-5" aria-labelledby="programa-info-titulo">
           <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EEF9] text-[#4C4688]" aria-hidden="true">
@@ -79,7 +79,7 @@ const campos = [
       </Card>
 
       <!-- Líneas de acción -->
-      <Card class="w-full border-t-4 border-t-[#199D6B] p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-verde p-5 md:p-6">
         <section class="space-y-5" aria-labelledby="programa-lineas-titulo">
           <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F6EF] text-[#199D6B]" aria-hidden="true">
@@ -111,7 +111,7 @@ const campos = [
       </Card>
 
       <!-- Información complementaria -->
-      <Card class="w-full border-t-4 border-t-[#1BAAC1] p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-celeste p-5 md:p-6">
         <section class="space-y-5" aria-labelledby="programa-complementaria-titulo">
           <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F5F8] text-[#16899B]" aria-hidden="true">

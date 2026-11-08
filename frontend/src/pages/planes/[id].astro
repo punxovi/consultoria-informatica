@@ -26,7 +26,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
 <AppLayout
   title="Detalle del plan"
   navItems={mainNavItems}
-  allowedRoles={['ADMIN', 'COORD']}
+  allowedRoles={['ADMIN', 'COORD', 'INVIT']}
 >
   <Fragment slot="headerBreadcrumb">
     <BackButton href={hrefVolverPlanes} />
@@ -72,7 +72,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
         </div>
 
         <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
-        <div data-gestion-plan hidden class="flex flex-wrap items-center gap-3">
+        <div data-gestion-plan data-gestion hidden class="flex flex-wrap items-center gap-3">
           <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
             <Icono nombre="editar" />
             Editar plan

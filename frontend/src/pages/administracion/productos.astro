@@ -36,15 +36,15 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
       class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"></p>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Resumen de productos">
-      <Card class="border-l-4 border-l-primary p-4">
+      <Card class="tarjeta-acento acento-morado p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Productos registrados</p>
         <p id="productos-total" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
-      <Card class="border-l-4 border-l-brand-green p-4">
+      <Card class="tarjeta-acento acento-verde p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Publicados en catálogo</p>
         <p id="productos-publicados" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
-      <Card class="border-l-4 border-l-brand-yellow p-4">
+      <Card class="tarjeta-acento acento-amarillo p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Sin publicar</p>
         <p id="productos-no-publicados" class="mt-1 text-2xl font-bold text-neutral-900">—</p>
       </Card>
@@ -52,7 +52,7 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
 
     <!-- Formulario de alta y edición -->
     <div id="productos-panel" hidden>
-      <Card class="border-l-4 border-l-primary p-5">
+      <Card class="tarjeta-acento acento-morado p-5">
         <h2 id="productos-form-titulo" class="text-lg font-semibold text-neutral-900">Nuevo producto</h2>
         <p id="productos-form-nota" class="mt-1 text-sm text-neutral-500">
           El producto se guarda sin publicar. Podrás publicarlo en el catálogo desde el listado.
@@ -176,7 +176,6 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
           <h2 id="productos-listado-titulo" class="text-lg font-semibold text-neutral-900">Productos registrados</h2>
           <p class="mt-1 text-sm text-neutral-500">Nombre, Organización, país y estado de publicación de cada producto.</p>
         </div>
-        <Button id="productos-recargar" variant="outline" class="shrink-0"> <Icono nombre="actualizar" />Actualizar listado</Button>
       </header>
 
       <p id="productos-cargando" role="status" aria-live="polite"

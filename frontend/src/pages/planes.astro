@@ -6,7 +6,7 @@ import { mainNavItems } from '../config/nav';
 import AppLayout from '../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Planes de Intervención" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Planes de Intervención" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <Fragment slot="headerBreadcrumb">
     <span class="text-sm font-semibold text-neutral-900">Planes de Intervención</span>
   </Fragment>
@@ -27,13 +27,13 @@ import AppLayout from '../layouts/AppLayout.astro';
           Consulta, filtra y administra los planes asociados a organizaciones y programas institucionales.
         </p>
       </div>
-      <Button href="/planes/nuevo" class="shrink-0">
+      <Button href="/planes/nuevo" class="shrink-0" data-gestion>
         <span aria-hidden="true">+</span> Nuevo plan
       </Button>
     </header>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Card class="border-l-4 border-l-primary p-4">
+      <Card class="tarjeta-acento acento-morado p-4">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" /></svg>
@@ -44,7 +44,7 @@ import AppLayout from '../layouts/AppLayout.astro';
           </div>
         </div>
       </Card>
-      <Card class="border-l-4 border-l-brand-green p-4">
+      <Card class="tarjeta-acento acento-verde p-4">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" /></svg>
@@ -55,7 +55,7 @@ import AppLayout from '../layouts/AppLayout.astro';
           </div>
         </div>
       </Card>
-      <Card class="border-l-4 border-l-brand-yellow p-4">
+      <Card class="tarjeta-acento acento-amarillo p-4">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-brand-yellow/20 p-3 text-[#946200]" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" /></svg>
@@ -118,10 +118,6 @@ import AppLayout from '../layouts/AppLayout.astro';
           <h2 id="planes-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de planes</h2>
           <p class="mt-1 text-sm text-neutral-500">Selecciona un plan para consultar su información y sus acciones.</p>
         </div>
-        <Button id="recargar-planes" variant="outline" class="shrink-0">
-          <Icono nombre="actualizar" />
-          Actualizar listado
-        </Button>
       </div>
       <div id="planes-listado" aria-busy="true" class="grid grid-cols-1 gap-3"></div>
       <div id="planes-vacio" hidden class="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center">
@@ -136,42 +132,26 @@ import AppLayout from '../layouts/AppLayout.astro';
 </AppLayout>
 
 <template id="plantilla-plan">
-  <article class="group rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-[#D8D3F2] hover:shadow-md sm:p-5">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div class="min-w-0 flex-1">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" /></svg>
-          </span>
-          <h3 data-nombre class="min-w-0 break-words text-lg font-bold text-neutral-900"></h3>
-          <span data-estado class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold"></span>
+  <article class="registro tarjeta-acento">
+    <div class="registro-cabecera">
+      <div class="registro-identidad">
+        <span class="registro-media" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" /></svg>
+        </span>
+        <div class="min-w-0">
+          <p data-anio class="registro-contexto"></p>
+          <h3 data-nombre class="registro-titulo"></h3>
         </div>
-
-        <dl class="mt-4 grid grid-cols-1 gap-4 pl-0 sm:grid-cols-2 xl:grid-cols-4">
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Organización</dt>
-            <dd class="mt-1 break-words text-sm font-medium"><a data-organizacion class="text-neutral-800 underline decoration-neutral-300 underline-offset-2 transition hover:text-primary hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="#">—</a></dd>
-          </div>
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Programa</dt>
-            <dd class="mt-1 break-words text-sm font-medium"><a data-programa class="text-neutral-800 underline decoration-neutral-300 underline-offset-2 transition hover:text-primary hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="#">—</a></dd>
-          </div>
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Año del plan</dt>
-            <dd data-anio class="mt-1 text-sm font-medium text-neutral-800"></dd>
-          </div>
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Vigencia</dt>
-            <dd data-vigencia class="mt-1 text-sm font-medium text-neutral-800"></dd>
-          </div>
-        </dl>
       </div>
-
-      <div class="flex shrink-0 justify-end border-t border-neutral-100 pt-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-        <a data-detalle class="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          Ver detalle <span aria-hidden="true">→</span>
-        </a>
-      </div>
+      <div class="registro-insignias"><span data-estado class="registro-insignia"></span></div>
+    </div>
+    <dl class="registro-datos">
+      <div class="min-w-0"><dt>Organización</dt><dd><a data-organizacion href="#">—</a></dd></div>
+      <div class="min-w-0"><dt>Programa</dt><dd><a data-programa href="#">—</a></dd></div>
+      <div class="min-w-0"><dt>Vigencia</dt><dd data-vigencia></dd></div>
+    </dl>
+    <div class="registro-pie">
+      <a data-detalle class="registro-enlace">Ver detalle <span aria-hidden="true">→</span></a>
     </div>
   </article>
 </template>
@@ -188,7 +168,6 @@ import AppLayout from '../layouts/AppLayout.astro';
   const listado = document.querySelector<HTMLElement>('#planes-listado')!;
   const estado = document.querySelector<HTMLElement>('#planes-estado')!;
   const error = document.querySelector<HTMLElement>('#planes-error')!;
-  const recargar = document.querySelector<HTMLButtonElement>('#recargar-planes')!;
   const filtroAnio = document.querySelector<HTMLSelectElement>('#filtro-anio')!;
   const filtroPrograma = document.querySelector<HTMLSelectElement>('#filtro-programa')!;
   const filtroOrganizacion = document.querySelector<HTMLSelectElement>('#filtro-organizacion')!;
@@ -212,9 +191,9 @@ import AppLayout from '../layouts/AppLayout.astro';
 
   function obtenerEstado(inicio: string, termino: string) {
     const hoy = new Date().toISOString().slice(0, 10);
-    if (termino < hoy) return { texto: 'Finalizado', clase: 'bg-neutral-100 text-neutral-600', clave: 'finalizado' };
-    if (inicio > hoy) return { texto: 'Pendiente', clase: 'bg-brand-yellow/20 text-[#946200]', clave: 'pendiente' };
-    return { texto: 'En ejecución', clase: 'bg-brand-green/10 text-[#16794F]', clave: 'ejecucion' };
+    if (termino < hoy) return { texto: 'Finalizado', tono: 'neutro', clave: 'finalizado' };
+    if (inicio > hoy) return { texto: 'Pendiente', tono: 'amarillo', clave: 'pendiente' };
+    return { texto: 'En ejecución', tono: 'verde', clave: 'ejecucion' };
   }
 
   function periodo(inicio: string, termino: string) {
@@ -321,13 +300,14 @@ import AppLayout from '../layouts/AppLayout.astro';
       enlacePrograma.textContent = plan.programa.nombre;
       enlacePrograma.href = `/programas/${encodeURIComponent(plan.id_programa)}`;
       enlacePrograma.setAttribute('aria-label', `Ver programa institucional ${plan.programa.nombre}`);
-      tarjeta.querySelector<HTMLElement>('[data-anio]')!.textContent = String(plan.periodo_anual);
+      tarjeta.querySelector<HTMLElement>('[data-anio]')!.textContent = `Plan ${plan.periodo_anual}`;
       tarjeta.querySelector<HTMLElement>('[data-vigencia]')!.textContent = periodo(plan.fecha_inicio, plan.fecha_termino);
 
       const etiqueta = tarjeta.querySelector<HTMLElement>('[data-estado]')!;
       const calculado = obtenerEstado(plan.fecha_inicio, plan.fecha_termino);
       etiqueta.textContent = calculado.texto;
-      etiqueta.classList.add(...calculado.clase.split(' '));
+      etiqueta.classList.add(`registro-insignia--${calculado.tono}`);
+      tarjeta.querySelector('article')!.classList.add(`acento-${calculado.tono}`);
 
       const enlace = tarjeta.querySelector<HTMLAnchorElement>('[data-detalle]')!;
       const parametrosRetorno = new URLSearchParams();
@@ -387,7 +367,6 @@ import AppLayout from '../layouts/AppLayout.astro';
     planes = [];
     actualizarContadores([]);
     cargando = true;
-    recargar.disabled = true;
     listado.setAttribute('aria-busy', 'true');
     error.hidden = true;
     estado.textContent = 'Cargando planes…';
@@ -424,7 +403,6 @@ import AppLayout from '../layouts/AppLayout.astro';
     } finally {
       if (solicitud !== solicitudActual) return;
       cargando = false;
-      recargar.disabled = false;
       listado.setAttribute('aria-busy', 'false');
     }
   }
@@ -450,7 +428,6 @@ import AppLayout from '../layouts/AppLayout.astro';
     sincronizarFiltrosEnUrl();
     renderizar();
   });
-  recargar.addEventListener('click', () => void cargar());
   window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
   window.addEventListener('fge:territorio-cambiado', (event) => {
     const id = (event as CustomEvent<{id_pais:string}>).detail.id_pais;

@@ -157,9 +157,29 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
         request('acciones', new URLSearchParams({ select: 'id_accion,nombre,id_plan,fecha_inicio,fecha_termino,estado', archived_at: 'is.null' }), token),
       ]);
       
+      // El Invitado no puede leer public.organizaciones (SCRUM-171): recibe una
+      // lista vacía. En ese caso se usa la vista segura organizaciones_invitado,
+      // que expone justo los campos que necesita el panel.
+      const organizacionesVisibles = Array.isArray(organizations) && organizations.length === 0
+        ? await request('organizaciones_invitado', new URLSearchParams({ select: 'id_organizacion,nombre,id_pais,numero_beneficiarios' }), token)
+        : organizations;
+
+      // Si el catálogo de países llega vacío (caso del Invitado), se usan los
+      // países de las organizaciones visibles en la vista segura.
+      let paisesVisibles = countries;
+      if (Array.isArray(countries) && countries.length === 0) {
+        const filas = await request('organizaciones_invitado', new URLSearchParams({ select: 'pais' }), token).catch(() => []);
+        const porId = new Map<string, unknown>();
+        for (const fila of Array.isArray(filas) ? filas : []) {
+          const pais = record(record(fila).pais);
+          if (typeof pais.id_pais === 'string') porId.set(pais.id_pais, pais);
+        }
+        paisesVisibles = [...porId.values()].sort((a, b) => String(record(a).nombre).localeCompare(String(record(b).nombre), 'es'));
+      }
+
       return {
-        countries: rows(countries, country), 
-        organizations: rows(organizations, organization),
+        countries: rows(paisesVisibles, country), 
+        organizations: rows(organizacionesVisibles, organization),
         plans: rows(plans, plan), 
         actions: rows(actions, action),
       };

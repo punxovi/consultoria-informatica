@@ -5,65 +5,94 @@ import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 import { mainNavItems } from '../../config/nav';
 import { opcionesAccion, opcionesSeccion } from '../../lib/auditoria/presentacion';
-const campos = [
-  ['usuario', 'Persona', 'search', 'Correo o nombre'],
-  ['pais', 'País', 'search', 'Ej. Chile'],
-  ['desde', 'Desde', 'date', ''], ['hasta', 'Hasta', 'date', ''],
-] as const;
+
+const control =
+  'min-h-12 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-neutral-50';
 const listas = [
   ['operacion', 'Qué hizo', 'Todas las acciones', opcionesAccion],
   ['entidad', 'Sección', 'Todas las secciones', opcionesSeccion],
 ] as const;
-const control = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8EA] bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-primary';
 ---
 <AppLayout title="Auditoría" navItems={mainNavItems} allowedRoles={['ADMIN']}>
   <Fragment slot="headerBreadcrumb"><span class="text-sm font-semibold text-neutral-900">Auditoría</span></Fragment>
-  <section id="auditoria" class="space-y-6 min-w-0">
+  <section id="auditoria" class="min-w-0 space-y-6">
     <header>
       <p class="text-sm font-medium text-primary">Administración</p>
       <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Historial de cambios</h1>
-      <p class="mt-2 text-neutral-500">Revisa quién hizo cada cambio en el sistema, qué hizo y cuándo. Este historial es solo de consulta y no se puede modificar.</p>
+      <p class="mt-2 max-w-2xl text-sm text-neutral-500">Revisa quién hizo cada cambio en el sistema, qué hizo y cuándo. Es solo de consulta.</p>
     </header>
-    <Card class="border-l-4 border-l-primary p-5">
-      <h2 class="text-lg font-semibold">Buscar en el historial</h2>
-      <p class="mt-1 mb-5 text-sm text-neutral-500">Todos los filtros son opcionales y se pueden combinar. Las fechas incluyen ambos días y se interpretan en tu hora local.</p>
-      <form id="audit-form" novalidate>
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {campos.map(([id, label, tipo, placeholder]) => <div class="min-w-0">
-            <label for={`audit-${id}`} class="block mb-2 text-sm font-medium">{label}</label>
-            <input id={`audit-${id}`} name={id} type={tipo} placeholder={placeholder} aria-describedby={`audit-error-${id}`} class={control} />
-            <p id={`audit-error-${id}`} hidden class="mt-1 text-sm text-danger"></p>
-          </div>)}
-          {listas.map(([id, label, todas, opciones]) => <div class="min-w-0">
-            <label for={`audit-${id}`} class="block mb-2 text-sm font-medium">{label}</label>
-            <select id={`audit-${id}`} name={id} aria-describedby={`audit-error-${id}`} class={control}>
-              <option value="">{todas}</option>
-              {opciones.map(([valor, texto]) => <option value={valor}>{texto}</option>)}
-            </select>
-            <p id={`audit-error-${id}`} hidden class="mt-1 text-sm text-danger"></p>
-          </div>)}
+
+    <Card class="p-4 md:p-5">
+      <div class="mb-4 flex items-start gap-3">
+        <span class="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" />
+          </svg>
+        </span>
+        <div class="min-w-0">
+        <h2 class="text-lg font-semibold text-neutral-900">Filtrar historial</h2>
+        <p class="mt-1 text-sm text-neutral-500">Los resultados se actualizan al elegir un filtro. Las fechas incluyen ambos días y usan tu hora local.</p>
         </div>
-        <div class="mt-5 flex flex-wrap gap-3">
-          <Button type="submit" size="lg" id="audit-aplicar">Aplicar filtros</Button>
-          <Button type="button" variant="outline" size="lg" id="audit-limpiar"> <Icono nombre="limpiar" />Limpiar filtros</Button>
+      </div>
+      <form id="audit-form" novalidate>
+        <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div class="min-w-0 space-y-1.5">
+            <label for="audit-usuario" class="block text-sm font-medium text-neutral-800">Persona</label>
+            <input id="audit-usuario" name="usuario" type="search" autocomplete="off" placeholder="Correo o nombre" aria-describedby="audit-error-usuario" class={control} />
+            <p id="audit-error-usuario" hidden class="text-sm text-danger"></p>
+          </div>
+          <div class="min-w-0 space-y-1.5">
+            <label for="audit-pais" class="block text-sm font-medium text-neutral-800">País</label>
+            <select id="audit-pais" name="pais" aria-describedby="audit-error-pais" class={control}>
+              <option value="">Todos los países</option>
+            </select>
+            <p id="audit-error-pais" hidden class="text-sm text-danger"></p>
+          </div>
+          {listas.map(([id, label, todas, opciones]) => (
+            <div class="min-w-0 space-y-1.5">
+              <label for={`audit-${id}`} class="block text-sm font-medium text-neutral-800">{label}</label>
+              <select id={`audit-${id}`} name={id} aria-describedby={`audit-error-${id}`} class={control}>
+                <option value="">{todas}</option>
+                {opciones.map(([valor, texto]) => <option value={valor}>{texto}</option>)}
+              </select>
+              <p id={`audit-error-${id}`} hidden class="text-sm text-danger"></p>
+            </div>
+          ))}
+          <div class="grid min-w-0 grid-cols-2 gap-3 md:col-span-2 xl:col-span-1">
+            {[['desde', 'Desde'], ['hasta', 'Hasta']].map(([id, label]) => (
+              <div class="min-w-0 space-y-1.5">
+                <label for={`audit-${id}`} class="block text-sm font-medium text-neutral-800">{label}</label>
+                <input id={`audit-${id}`} name={id} type="date" aria-describedby={`audit-error-${id}`} class={control} />
+                <p id={`audit-error-${id}`} hidden class="text-sm text-danger"></p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+          <div class="min-w-0">
+            <p id="audit-criterios" class="break-words text-sm text-neutral-500"></p>
+          </div>
+          <div class="flex w-full sm:w-auto">
+            <Button type="button" variant="outline" size="lg" id="audit-limpiar" class="w-full sm:w-auto"><Icono nombre="limpiar" />Limpiar filtros</Button>
+          </div>
         </div>
       </form>
     </Card>
-    <Card class="p-5 min-w-0">
-      <h2 class="text-xl font-semibold">Cambios registrados</h2>
-      <p class="mt-1 text-sm text-neutral-500">Fecha y hora según tu zona horaria. Los datos técnicos de cada cambio están en «Ver detalles técnicos».</p>
-      <p id="audit-criterios" class="mt-3 break-words text-sm text-primary"></p>
-      <p id="audit-pendientes" hidden class="mt-2 text-sm text-neutral-500">Hay cambios sin aplicar en los filtros.</p>
-      <p id="audit-estado" role="status" class="my-4 text-neutral-500"></p>
-      <div id="audit-error" hidden role="alert" class="my-4 rounded-xl bg-danger/5 p-4 text-danger"></div>
-      <div id="audit-reintento" hidden><Button id="audit-reintentar" variant="outline" size="lg" class="mb-4">Reintentar consulta</Button></div>
-      <div id="audit-resultados" aria-busy="false"></div>
-      <div class="mt-4 flex flex-wrap items-center gap-3">
-        <Button id="audit-anterior" variant="outline" size="lg" disabled>Anterior</Button>
-        <span id="audit-pagina" class="text-sm text-neutral-500"></span>
-        <Button id="audit-siguiente" variant="outline" size="lg" disabled>Siguiente</Button>
+
+    <section aria-labelledby="audit-listado-titulo" class="min-w-0 space-y-3">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="audit-listado-titulo" class="text-lg font-semibold text-neutral-900">Cambios registrados</h2>
+        <p id="audit-estado" role="status" class="modulo-conteo"></p>
       </div>
-    </Card>
+      <div id="audit-error" hidden role="alert" class="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger"></div>
+      <div id="audit-reintento" hidden><Button id="audit-reintentar" variant="outline" size="lg">Reintentar</Button></div>
+      <div id="audit-resultados" aria-busy="false" class="grid min-w-0 gap-3 lg:grid-cols-2"></div>
+      <nav aria-label="Páginas del historial" class="flex items-center justify-between gap-3 pt-1">
+        <Button id="audit-anterior" variant="outline" size="lg" disabled>← Anterior</Button>
+        <span id="audit-pagina" class="text-sm text-neutral-500"></span>
+        <Button id="audit-siguiente" variant="outline" size="lg" disabled>Siguiente →</Button>
+      </nav>
+    </section>
   </section>
 </AppLayout>
 <script>

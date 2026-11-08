@@ -4,6 +4,7 @@ import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 import { accept } from '../../lib/donaciones/modelo';
 interface Props {
   idOrganizacion: string;
@@ -36,25 +37,12 @@ const tiposRespaldo = [
   { value: 'fotografia', label: 'Fotografía (evidencia visual de la entrega/recepción)' },
 ];
 ---
-<section id="seccion-donaciones" data-organizacion={idOrganizacion} class="space-y-6 fge-donaciones">
-  <!-- Encabezado de la sección -->
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 class="text-xl font-semibold text-neutral-900">Donaciones y recursos</h2>
-      <p class="mt-1 text-sm text-neutral-500">
-        Consulta los aportes recibidos y entregados, registra nuevas donaciones y adjunta sus documentos de respaldo.
-      </p>
-    </div>
-    <div class="flex flex-wrap items-center gap-3">
-      <Button id="don-recargar" variant="outline" size="sm">
-        <Icono nombre="actualizar" />
-        Recargar
-      </Button>
-      <Button id="don-nueva" size="sm" class="solo-gestor">
-        + Registrar donación
-      </Button>
-    </div>
-  </div>
+<section id="seccion-donaciones" data-organizacion={idOrganizacion} aria-labelledby="don-titulo" class="space-y-6 fge-donaciones">
+  <EncabezadoModulo id="don-titulo" titulo="Donaciones y recursos" descripcion="Aportes recibidos y entregados, con sus respaldos.">
+    <Button id="don-nueva" class="solo-gestor">
+      <span aria-hidden="true">＋</span> Registrar donación
+    </Button>
+  </EncabezadoModulo>
   <!-- Notificaciones y estados -->
   <div id="don-carga" hidden role="status" class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-sm font-medium text-blue-800 animate-pulse">
     Cargando información...
@@ -62,14 +50,15 @@ const tiposRespaldo = [
   <div id="don-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 focus:outline-none"></div>
   <div id="don-exito" hidden role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"></div>
   <!-- Vista 1: Listado de Donaciones -->
-  <div id="don-listado" class="space-y-4">
+  <div id="don-listado" class="space-y-3">
     <EmptyState
       id="don-vacio"
       hidden
       title="Todavía no hay donaciones"
       description="Cuando registres una donación para esta organización, aparecerá aquí con sus aportes y respaldos documentales."
     />
-    <div id="don-lista" class="grid gap-4"></div>
+    <p id="don-cantidad" class="modulo-conteo" hidden></p>
+    <div id="don-lista" class="grid gap-3"></div>
   </div>
   <!-- Vista 2: Formulario Nueva Donación -->
   <div id="don-form-donacion" hidden>
@@ -340,14 +329,6 @@ const tiposRespaldo = [
   #seccion-donaciones :global(button) {
     font-family: inherit;
   }
-  #seccion-donaciones :global(#don-lista > article) {
-    overflow: hidden; border: 1px solid var(--don-borde); border-radius: 16px;
-    background: #fff; box-shadow: 0 2px 8px rgb(38 28 76 / 4%);
-    transition: box-shadow 160ms ease, border-color 160ms ease;
-  }
-  #seccion-donaciones :global(#don-lista > article:hover) {
-    border-color: #D5CFE8; box-shadow: 0 5px 16px rgb(38 28 76 / 7%);
-  }
   #seccion-donaciones :global(#don-detalle .don-detalle-grid > div) {
     min-width: 0; border: 1px solid #E5E0EF; border-radius: 12px;
     background: #F7F5FB; padding: 14px 15px;
@@ -385,16 +366,13 @@ const tiposRespaldo = [
   }
   #seccion-donaciones :global(#don-respaldo-pendiente-alerta) { border: 1px solid #F1D5A2; background: #FFF8E9; }
   #seccion-donaciones :global(.don-grupo) {
-    border: 1px solid #E8E5EF; border-top-width: 3px; border-radius: 16px; background: #fff; padding: 18px 18px 20px;
+    border: 1px solid #E8E5EF; border-left-width: 3px; border-radius: 16px; background: #fff; padding: 18px 18px 20px;
   }
   #seccion-donaciones :global(.don-grupo h4) { margin-bottom: 14px; color: #292536; font-size: 1rem; font-weight: 600; }
-  #seccion-donaciones :global(.don-grupo-morado) { border-top-color: #8C81BC; }
-  #seccion-donaciones :global(.don-grupo-verde) { border-top-color: #6CBA9B; }
-  #seccion-donaciones :global(.don-grupo-amarillo) { border-top-color: #E4B93F; }
+  #seccion-donaciones :global(.don-grupo-morado) { border-left-color: var(--color-primary); }
+  #seccion-donaciones :global(.don-grupo-verde) { border-left-color: var(--color-brand-green); }
+  #seccion-donaciones :global(.don-grupo-amarillo) { border-left-color: var(--color-brand-yellow); }
   #seccion-donaciones :global([aria-invalid='true']) { border-color: #C81E5B; }
-  @media (max-width: 640px) {
-    #seccion-donaciones :global(#don-lista > article .don-card-layout) { padding: 14px; }
-  }
 </style>
 
 <script>

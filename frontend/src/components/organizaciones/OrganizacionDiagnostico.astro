@@ -4,6 +4,7 @@ import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 
 const campoTexto = 'mt-1.5 block w-full rounded-xl border border-[#D8D2E8] bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15';
 
@@ -45,26 +46,16 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
 ---
 
 <section id="diagnostico-organizacion" class="space-y-6" aria-labelledby="diagnostico-titulo">
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex items-start gap-3">
-      <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
-        <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.75h7l5 5V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 6 20V4.5a.75.75 0 0 1 1-.75Z"/><path d="M14 4v5h5M9 13h6M9 16.5h6"/></svg>
-      </span>
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]">Gestión de la organización</p>
-        <h2 id="diagnostico-titulo" class="mt-1 text-xl font-semibold text-neutral-900">Diagnóstico de la organización</h2>
-        <p class="mt-1 text-sm leading-6 text-neutral-500">Situación actual, infraestructura, recursos y necesidades de la organización.</p>
-      </div>
-    </div>
+  <EncabezadoModulo id="diagnostico-titulo" titulo="Diagnóstico" descripcion="Situación, infraestructura, recursos y necesidades de la organización.">
     <Button id="btn-registrar-diagnostico" type="button" variant="primary" disabled>
-      <svg viewBox="0 0 24 24" class="mr-2 inline h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+      <Icono nombre="editar" />
       <span id="btn-registrar-diagnostico-texto">Registrar diagnóstico</span>
     </Button>
-  </header>
+  </EncabezadoModulo>
 
   <p id="diagnostico-carga" hidden role="status" aria-live="polite" class="rounded-xl border border-[#E3DFF0] bg-white p-4 text-sm text-neutral-600">Cargando diagnóstico…</p>
   <p id="diagnostico-error" hidden role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></p>
-  <div id="diagnostico-recuperacion" hidden><Button id="btn-recargar-diagnostico" variant="outline"> <Icono nombre="actualizar" />Recargar diagnóstico</Button></div>
+  <div id="diagnostico-recuperacion" hidden><Button id="btn-recargar-diagnostico" variant="outline">Reintentar</Button></div>
   <p id="diagnostico-confirmacion" hidden role="status" aria-live="polite" class="rounded-xl border border-[#B8E3D1] bg-[#EDF8F2] p-4 text-sm text-[#16784F]"></p>
 
   <EmptyState
@@ -76,7 +67,7 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
 
   <form id="form-diagnostico" hidden novalidate class="space-y-5" aria-labelledby="form-diagnostico-titulo">
     <fieldset id="diagnostico-campos" class="min-w-0 space-y-5">
-      <section class="diagnostico-panel diagnostico-panel--morado">
+      <section class="ficha-panel tarjeta-acento acento-morado">
         <h3 id="form-diagnostico-titulo" class="text-lg font-semibold text-neutral-900">Información institucional</h3>
         <p class="mt-1 text-sm text-neutral-500">Completa la misión y visión de la organización. Los campos marcados con * son obligatorios.</p>
         <div class="mt-5 grid gap-5 md:grid-cols-2">
@@ -91,7 +82,7 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
         </div>
       </section>
 
-      <section class="diagnostico-panel diagnostico-panel--celeste">
+      <section class="ficha-panel tarjeta-acento acento-celeste">
         <h3 class="text-lg font-semibold text-neutral-900">Infraestructura y espacios</h3>
         <p class="mt-1 text-sm text-neutral-500">Información sobre las condiciones físicas y los espacios disponibles.</p>
         <div class="mt-5 space-y-5">
@@ -120,7 +111,7 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
         </div>
       </section>
 
-      <section class="diagnostico-panel diagnostico-panel--verde">
+      <section class="ficha-panel tarjeta-acento acento-verde">
         <h3 class="text-lg font-semibold text-neutral-900">Recursos, daños y necesidades</h3>
         <p class="mt-1 text-sm text-neutral-500">Describe los recursos disponibles, los daños identificados y las principales necesidades.</p>
         <div class="mt-5 grid gap-5 md:grid-cols-2">
@@ -135,7 +126,7 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
         </div>
       </section>
 
-      <section class="diagnostico-panel diagnostico-panel--morado">
+      <section class="ficha-panel tarjeta-acento acento-morado">
         <h3 class="text-lg font-semibold text-neutral-900">Observaciones generales</h3>
         <p class="mt-1 text-sm text-neutral-500">Agrega cualquier información adicional relevante para el diagnóstico.</p>
         <div class="mt-5">
@@ -146,7 +137,7 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
         </div>
       </section>
 
-      <section class="diagnostico-panel diagnostico-panel--celeste">
+      <section class="ficha-panel tarjeta-acento acento-celeste">
         <h3 class="text-lg font-semibold text-neutral-900">Información de raciones</h3>
         <p class="mt-1 text-sm text-neutral-500">Completa esta información cuando corresponda a un comedor solidario o merendero.</p>
         <div class="mt-5 grid gap-5 md:grid-cols-2">
@@ -169,30 +160,20 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
   </form>
 
   <div id="diagnostico-registrado" hidden class="space-y-5">
-    <div class="flex flex-col gap-3 rounded-2xl border border-[#C7E8D9] bg-[#F0F8F4] p-5 sm:flex-row sm:items-center sm:justify-between">
-      <div class="flex items-start gap-3">
-        <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#199D6B]" aria-hidden="true">
-          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
-        </span>
-        <div>
-          <p class="font-semibold text-neutral-900">Diagnóstico registrado</p>
-          <p class="mt-1 text-sm text-neutral-500">Última actualización: <span id="fecha-actualizacion-diagnostico">Pendiente</span></p>
-        </div>
-      </div>
-    </div>
+    <p class="modulo-conteo">Última actualización: <span id="fecha-actualizacion-diagnostico">Pendiente</span></p>
 
-    <div class="grid gap-5 xl:grid-cols-2">
+    <div class="grid gap-4 xl:grid-cols-2">
       {resumen.map((seccion) => (
-        <section class={`diagnostico-panel diagnostico-panel--${seccion.tono} ${seccion.titulo === 'Recursos, daños y necesidades' ? 'xl:col-span-2' : ''}`}>
-          <h3 class="text-lg font-semibold text-neutral-900">{seccion.titulo}</h3>
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <section class={`ficha-panel tarjeta-acento acento-${seccion.tono} ${seccion.titulo === 'Recursos, daños y necesidades' ? 'xl:col-span-2' : ''}`}>
+          <h3 class="ficha-panel-titulo">{seccion.titulo}</h3>
+          <dl class="ficha-datos">
             {seccion.campos.map((campo) => (
-              <div class={`diagnostico-dato ${campo.ancho ? 'sm:col-span-2' : ''}`}>
-                <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500">{campo.label}</p>
-                <p id={campo.id} class="mt-2 whitespace-pre-line break-words text-sm leading-6 text-neutral-800">—</p>
+              <div class={campo.ancho ? 'ficha-dato-ancho' : ''}>
+                <dt>{campo.label}</dt>
+                <dd id={campo.id}>—</dd>
               </div>
             ))}
-          </div>
+          </dl>
         </section>
       ))}
     </div>
@@ -200,40 +181,6 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
 </section>
 
 <style>
-  #diagnostico-organizacion {
-    --diagnostico-borde: #E3DFF0;
-    --diagnostico-morado: #D8D3E8;
-    --diagnostico-celeste: #B8E4EB;
-    --diagnostico-verde: #C1E6D5;
-  }
-  #diagnostico-organizacion .diagnostico-panel {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--diagnostico-borde);
-    border-radius: 16px;
-    background: #fff;
-    padding: 22px;
-    box-shadow: 0 3px 12px rgb(38 28 76 / 4%);
-  }
-  #diagnostico-organizacion .diagnostico-panel::before {
-    position: absolute;
-    inset: 0 0 auto;
-    height: 2px;
-    background: var(--diagnostico-morado);
-    content: '';
-  }
-  #diagnostico-organizacion .diagnostico-panel--morado::before { background: var(--diagnostico-morado); }
-  #diagnostico-organizacion .diagnostico-panel--celeste::before { background: var(--diagnostico-celeste); }
-  #diagnostico-organizacion .diagnostico-panel--verde::before { background: var(--diagnostico-verde); }
-  #diagnostico-organizacion .diagnostico-dato {
-    min-width: 0;
-    border: 1px solid #E9E5F1;
-    border-radius: 12px;
-    background: #F7F5FB;
-    padding: 14px 15px;
-  }
-  #diagnostico-organizacion .diagnostico-panel--celeste .diagnostico-dato { border-color: #DDEFF2; background: #EFF8F9; }
-  #diagnostico-organizacion .diagnostico-panel--verde .diagnostico-dato { border-color: #DCEFE5; background: #F0F8F4; }
   #diagnostico-organizacion textarea,
   #diagnostico-organizacion input:not([type='radio']),
   #diagnostico-organizacion select {
@@ -248,9 +195,6 @@ const resumen: { titulo: string; tono: 'morado' | 'celeste' | 'verde'; campos: {
     outline-offset: 1px;
   }
   #diagnostico-organizacion [aria-invalid='true'] { border-color: #DC2626; }
-  @media (max-width: 640px) {
-    #diagnostico-organizacion .diagnostico-panel { padding: 17px; }
-  }
 </style>
 
 <script>

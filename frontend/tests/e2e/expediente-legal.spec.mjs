@@ -75,7 +75,7 @@ test('ruta no disponible y errores no se presentan como expediente vacío ni éx
   await expect(page.locator('#legal-error')).toContainText('todavía no está disponible');
   await expect(page.locator('#legal-vacio')).toBeHidden();
   fallo=null;
-  await page.getByRole('button',{name:'Reintentar carga'}).click();
+  await page.getByRole('button',{name:'Reintentar',exact:true}).click();
   await page.getByRole('button',{name:'Registrar antecedente legal'}).click();
   await page.locator('#legal-personalidad').selectOption('no');
   fallo={status:403,code:'SIN_PERMISO',message:'No tienes permiso para guardar.'};
@@ -98,7 +98,7 @@ test('conflicto conserva cambios y exige recargar antes de guardar nuevamente',a
   await expect(page.locator('#legal-guardar')).toBeDisabled();
   fallo=null;registro.numero_registro='Versión del servidor';
   page.once('dialog',dialog=>dialog.accept());
-  await page.getByRole('button',{name:'Recargar datos del servidor'}).click();
+  await page.getByRole('button',{name:'Reintentar',exact:true}).click();
   await expect(page.locator('[data-legal-resumen="numero_registro"]')).toHaveText('Versión del servidor');
 });
 

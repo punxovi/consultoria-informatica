@@ -5,6 +5,7 @@ import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 
 interface Props {
   idOrganizacion: string;
@@ -20,24 +21,11 @@ const { idOrganizacion } = Astro.props;
   class="relative space-y-6"
   aria-labelledby="actas-titulo"
 >
-  <!-- Encabezado del módulo -->
-  <div class="flex flex-col gap-4 border-l-4 border-[#4C4688] pl-4 sm:flex-row sm:items-center sm:justify-between sm:pl-5">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[#77719F]">
-        Gestión de la organización
-      </p>
-      <h2 id="actas-titulo" class="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
-        Actas de reunión
-      </h2>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
-        Historial de reuniones, participantes y acuerdos registrados para esta organización.
-      </p>
-    </div>
-
+  <EncabezadoModulo id="actas-titulo" titulo="Actas de reunión" descripcion="Reuniones, participantes y acuerdos de la organización.">
     <Button id="actas-nueva" disabled>
-      <span aria-hidden="true" class="mr-1.5">＋</span> Registrar acta
+      <span aria-hidden="true">＋</span> Registrar acta
     </Button>
-  </div>
+  </EncabezadoModulo>
 
   <!-- Error general -->
   <p
@@ -50,7 +38,7 @@ const { idOrganizacion } = Astro.props;
   <p id="actas-mensaje" hidden role="status" aria-live="polite"></p>
   <p id="actas-catalogo-estado" hidden class="rounded-lg bg-neutral-100 p-4 text-sm"></p>
   <div id="actas-recuperacion" hidden>
-    <Button id="actas-recargar" variant="outline"> <Icono nombre="actualizar" />Recargar actas</Button>
+    <Button id="actas-recargar" variant="outline">Reintentar</Button>
   </div>
 
   <!-- Carga -->
@@ -78,23 +66,9 @@ const { idOrganizacion } = Astro.props;
   />
 
   <!-- Historial -->
-  <div id="actas-historial" hidden class="space-y-4">
-    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]">Registro histórico</p>
-        <h3 class="mt-1 text-lg font-semibold text-neutral-900">Historial de reuniones</h3>
-      </div>
-
-      <p
-        id="cantidad-actas"
-        class="text-sm text-neutral-500"
-      ></p>
-    </div>
-
-    <div
-      id="lista-actas"
-      class="space-y-4"
-    ></div>
+  <div id="actas-historial" hidden class="space-y-3">
+    <p id="cantidad-actas" class="modulo-conteo"></p>
+    <div id="lista-actas" class="space-y-3"></div>
   </div>
 
   <!-- Formulario -->
@@ -410,30 +384,9 @@ const { idOrganizacion } = Astro.props;
     box-shadow: 0 4px 14px rgb(38 28 76 / 5%);
   }
 
-  /* El historial lo construye interfaz.ts; estos estilos también se aplican a los nodos dinámicos. */
-  #actas-reunion :global(#lista-actas > *) {
-    box-sizing: border-box;
-    border: 1px solid var(--actas-border) !important;
-    border-radius: 16px !important;
-    background: #fff !important;
-    padding: 0 !important;
-    box-shadow: 0 2px 8px rgb(38 28 76 / 4%);
-    transition: border-color 150ms ease, box-shadow 150ms ease;
-  }
-
-  #actas-reunion :global(#lista-actas > *:hover) {
-    border-color: #C9C2E5 !important;
-    box-shadow: 0 4px 12px rgb(38 28 76 / 6%);
-  }
-
-  #actas-reunion :global(#lista-actas button),
-  #actas-reunion :global(#lista-actas a) {
-    border-radius: 10px;
-  }
-
   #actas-reunion :global(#actas-compromisos-detalle > *) {
     border: 1px solid #E2DEED !important;
-    border-left: 4px solid #1BAAC1 !important;
+    border-left: 3px solid var(--color-brand-cyan) !important;
     border-radius: 12px !important;
     background: #FCFBFE !important;
     padding: 14px 16px !important;
@@ -588,7 +541,7 @@ const { idOrganizacion } = Astro.props;
 
   :global(#actas-reunion .actas-adjunto-guardado) {
     border-color: #DCEFE4;
-    border-left: 4px solid #36BD8A;
+    border-left: 3px solid var(--color-brand-green);
     background: linear-gradient(100deg, #F3FBF6 0%, #F8FCF9 100%);
     padding: 11px 14px;
   }
@@ -654,11 +607,6 @@ const { idOrganizacion } = Astro.props;
     padding-top: 14px;
   }
 
-  @media (max-width: 640px) {
-    #actas-reunion :global(#lista-actas > *) {
-      padding: 0 !important;
-    }
-  }
 </style>
 
 <script>

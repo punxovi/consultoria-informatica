@@ -167,10 +167,13 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
   // Excluyendo explÃcitamente cumplidas y canceladas.
   const pendingActions: DashboardPendingAction[] = actions
     .filter(a => ['no_iniciada', 'en_desarrollo', 'atrasada'].includes(a.estado))
-    .map(action => {
-      const plan = plans.find(p => p.id_plan === action.id_plan)!; 
-      const org = organizations.find(o => o.id_organizacion === plan.id_organizacion)!;
-      return {
+    // Si el plan o la organización no son visibles para la sesión (por ejemplo,
+    // un Invitado), la acción se omite en vez de romper todo el panel.
+    .flatMap(action => {
+      const plan = plans.find(p => p.id_plan === action.id_plan);
+      const org = plan && organizations.find(o => o.id_organizacion === plan.id_organizacion);
+      if (!plan || !org) return [];
+      return [{
         id_accion: action.id_accion,
         nombre: action.nombre || 'Sin nombre',
         estado: action.estado,
@@ -178,7 +181,7 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
         plan: { id_plan: plan.id_plan, nombre: plan.nombre || 'Sin nombre' },
         organizacion: { id_organizacion: org.id_organizacion, nombre: org.nombre || 'Desconocida' },
         programa: plan.id_programa && plan.programa_nombre ? { id_programa: plan.id_programa, nombre: plan.programa_nombre } : null
-      };
+      }];
     })
     .sort((a, b) => a.fecha_termino.localeCompare(b.fecha_termino)); // Las más urgentes primero
 

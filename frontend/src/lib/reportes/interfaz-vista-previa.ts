@@ -7,7 +7,7 @@ export interface ContextoVistaPrevia {
   criterios: [string, string][];
 }
 
-const acentos = ['border-l-primary', 'border-l-brand-green', 'border-l-brand-yellow'];
+const acentos = ['acento-morado', 'acento-verde', 'acento-amarillo'];
 
 function crear<K extends keyof HTMLElementTagNameMap>(etiqueta: K, clase = '', texto?: string): HTMLElementTagNameMap[K] {
   const nodo = document.createElement(etiqueta);
@@ -25,7 +25,7 @@ const contarRegistros = (total: number) => `${total} ${total === 1 ? 'registro' 
 
 function pintarEncabezado(vista: ReportPreview, contexto: ContextoVistaPrevia) {
   const documento = vista.document;
-  const tarjeta = crear('header', 'rep-vp-encabezado rounded-2xl border border-[#E8E5EF] border-t-4 border-t-primary bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5');
+  const tarjeta = crear('header', 'rep-vp-encabezado rounded-2xl border border-[#E8E5EF] tarjeta-acento acento-morado bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5');
   const fila = crear('div', 'flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between');
   const textos = crear('div', 'min-w-0');
   textos.append(
@@ -68,7 +68,7 @@ function pintarEncabezado(vista: ReportPreview, contexto: ContextoVistaPrevia) {
 function pintarResumen(vista: ReportPreview) {
   const lista = crear('dl', 'rep-vp-resumen grid grid-cols-1 gap-3 sm:grid-cols-3');
   vista.document.summary.forEach((item, indice) => {
-    const caja = crear('div', `rounded-2xl border border-[#E8E5EF] border-l-4 ${acentos[indice % acentos.length]} bg-white p-4`);
+    const caja = crear('div', `rounded-2xl border border-[#E8E5EF] tarjeta-acento ${acentos[indice % acentos.length]} bg-white p-4`);
     caja.append(
       crear('dt', 'text-xs font-semibold uppercase tracking-wide text-neutral-500', item.label),
       crear('dd', 'mt-1 text-2xl font-bold text-neutral-900', item.value),
@@ -136,7 +136,7 @@ function pintarTabla(seccion: NonNullable<Extract<SeccionVista, { informada: tru
 }
 
 function pintarSeccion(item: SeccionVista, indice: number) {
-  const articulo = crear('section', `rep-vp-seccion rounded-2xl border border-[#E8E5EF] border-l-4 ${acentos[indice % acentos.length]} bg-white shadow-[0_2px_10px_rgba(47,39,83,0.06)]`);
+  const articulo = crear('section', `rep-vp-seccion rounded-2xl border border-[#E8E5EF] tarjeta-acento ${acentos[indice % acentos.length]} bg-white shadow-[0_2px_10px_rgba(47,39,83,0.06)]`);
   articulo.id = `rep-seccion-${item.key}`;
   articulo.dataset.seccion = item.key;
   articulo.setAttribute('aria-labelledby', `rep-seccion-${item.key}-titulo`);

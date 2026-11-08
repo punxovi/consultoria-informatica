@@ -192,10 +192,6 @@ test('donaciones: listado, validación del formulario y avance de estado',async(
   await page.locator('#don-avanzar-estado').click();
   await expect(page.locator('#don-detalle-estado')).toHaveText('Recibida');
   expect(cuerpos[2]).toEqual({version_esperada:2,cambios:{estado:'Recibida'}});
-  await page.locator('#don-recargar').click();
-  await expect(page.locator('#don-detalle-estado')).toHaveText('Entregada');
-  await expect(page.locator('#don-avanzar-estado')).toHaveText('Avanzar a Cerrada');
-  expect(consultasDetalle).toBe(1);
   await page.setViewportSize({width:390,height:844});
   await captura(page,info,'donaciones-detalle-movil');
   expect(errores).toEqual([]);

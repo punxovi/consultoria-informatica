@@ -71,8 +71,8 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
   }
 
   function tarjeta(c: Coordinador) {
-    const li = crear('li', 'coord-tarjeta flex flex-col gap-4 rounded-2xl border border-[#E8E5EF] border-l-4 bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5');
-    li.classList.add(c.activo ? 'border-l-brand-green' : 'border-l-brand-yellow');
+    const li = crear('li', 'coord-tarjeta flex flex-col gap-4 rounded-2xl border border-[#E8E5EF] tarjeta-acento bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5');
+    li.classList.add(c.activo ? 'acento-verde' : 'acento-amarillo');
     li.dataset.id = c.id_usuario;
 
     const cabecera = crear('div', 'flex items-start gap-3');
@@ -122,7 +122,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
   }
 
   function pintar() {
-    q<HTMLButtonElement>('recargar').disabled = cargando || enCurso !== null;
     q<HTMLButtonElement>('reintentar').disabled = cargando || enCurso !== null;
     pintarMetricas();
     q('limpiar').toggleAttribute('disabled', !hayFiltros());
@@ -158,7 +157,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     mostrarError(null);
     q('carga').hidden = false;
     lista.setAttribute('aria-busy', 'true');
-    q<HTMLButtonElement>('recargar').disabled = true;
     q<HTMLButtonElement>('reintentar').disabled = true;
     q('estado').textContent = 'Cargando cuentas…';
     pintar();
@@ -178,7 +176,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
       cargando = false;
       q('carga').hidden = true;
       lista.setAttribute('aria-busy', 'false');
-      q<HTMLButtonElement>('recargar').disabled = false;
       q<HTMLButtonElement>('reintentar').disabled = false;
       pintar();
     }
@@ -254,7 +251,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     pintar();
     buscar.focus();
   });
-  q('recargar').addEventListener('click', () => void cargar());
   q('reintentar').addEventListener('click', () => void cargar());
 
   const resultado = new URLSearchParams(window.location.search).get('resultado');

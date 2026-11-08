@@ -133,7 +133,7 @@ test('errores de listado y detalle permiten reintentar; rechaza otra asociación
   await page.goto(rutaAccion);
   await expect(page.locator('#detalle-error')).toBeVisible();
   fallo = '';
-  await page.getByRole('button', { name: 'Reintentar carga' }).click();
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
   await expect(page.locator('#detalle-contenido')).toBeVisible();
   acciones[0].id_plan = '17600000-0000-4000-8000-000000000003';
   await page.goto(`${rutaAccion}/editar`);
