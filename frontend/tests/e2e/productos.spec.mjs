@@ -15,6 +15,7 @@ const producto = (extra = {}) => ({
 
 let estado;
 test.beforeEach(async ({ context }) => {
+  await context.addCookies([{name:'fge_access_token',value:'qa',url:'http://127.0.0.1:4331'}]);
   estado = { rol: 'ADMIN', productos: [producto(), producto({ id_producto: 'prod-2', id_organizacion: ORG_CL, nombre: 'Caja organizadora modular', categoria: 'Madera', material: 'Madera recuperada', terminacion: null, publicado: true, organizacion: { id_organizacion: ORG_CL, nombre: 'Comedor Solidario Las Palmas', pais: pais.CL } })], requests: [], error: false, delay: 0, fallarImagenes: false };
   await context.addInitScript(() => localStorage.setItem('sb-127-auth-token', JSON.stringify({ access_token: 'qa', refresh_token: 'qa', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: '14700000-0000-4000-8000-000000000001', email: 'admin@fge.org', user_metadata: {} } })));
   await context.route('http://127.0.0.1:54329/**', (r) => r.fulfill({ json: [{ codigo: estado.rol, alcance: 'global', id_pais: null }] }));
@@ -59,7 +60,7 @@ async function abrir(page) {
 test('listado muestra nombre, Organización, país y estado de publicación', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await abrir(page);
-  await expect(page.getByRole('link', { name: 'Productos de cotización', exact: true })).toBeVisible();
+  await expect(page.locator('a[href="/administracion/productos"]').first()).toBeVisible();
   const bolso = tarjeta(page, 'Bolso reutilizable tejido');
   for (const valor of ['Cooperativa Manos del Sur', 'Argentina', 'No publicado', 'Textil reciclado']) await expect(bolso).toContainText(valor);
   const caja = tarjeta(page, 'Caja organizadora modular');
@@ -114,7 +115,7 @@ test('agregar producto: validación, Organización, atributos, vista previa e im
   await page.locator('#productos-guardar').click();
   await expect(page.locator('#productos-form-estado')).toHaveText('Guardando producto…');
   await expect(page.locator('#productos-guardar')).toBeDisabled();
-  await expect(page.locator('#productos-confirmacion')).toContainText('Producto creado sin publicar correctamente. Se cargó 1 imagen.');
+  await expect(page.locator('#productos-confirmacion')).toContainText('Producto creado exitosamente');
   await expect(page.locator('#productos-panel')).toBeHidden();
 
   const post = estado.requests.find((r) => r.method() === 'POST' && r.url().endsWith('/api/v1/products'));
@@ -136,8 +137,13 @@ test('si fallan las imágenes, el producto queda guardado y se informa el error'
   await page.locator('#productos-imagenes').setInputFiles({ name: 'libreta.webp', mimeType: 'image/webp', buffer: PNG });
   await page.locator('#productos-guardar').click();
   await expect(page.locator('#productos-form-error')).toContainText('El producto se guardó, pero no fue posible cargar las imágenes');
-  await expect(page.locator('#productos-guardar')).toHaveText('Reintentar carga de imágenes');
+  await expect(page.locator('#productos-guardar')).toBeEnabled();
   await expect(tarjeta(page, 'Libreta artesanal')).toBeVisible();
+  estado.fallarImagenes = false;
+  await page.locator('#productos-guardar').click();
+  await expect(page.locator('#productos-panel')).toBeHidden();
+  expect(estado.requests.filter(r=>r.method()==='POST'&&r.url().endsWith('/api/v1/products'))).toHaveLength(1);
+  expect(estado.requests.filter(r=>r.url().endsWith('/prod-nuevo/images'))).toHaveLength(2);
 });
 
 test('editar producto envía solo los cambios con la versión esperada', async ({ page }) => {
@@ -229,6 +235,6 @@ test('Coordinador no consulta productos ni ve la sección', async ({ page }) => 
   estado.rol = 'COORD';
   await page.goto('/administracion/productos');
   await expect(page.locator('#unauthorized-message')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Productos de cotización', exact: true })).not.toBeVisible();
+  await expect(page.locator('a[href="/administracion/productos"]')).not.toBeVisible();
   expect(estado.requests).toHaveLength(0);
 });

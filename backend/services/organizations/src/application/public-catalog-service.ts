@@ -1,6 +1,7 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { createQuoteRepository } from '../infrastructure/supabase-quote-requests.repository.ts';
 import type { PublicQuoteRequest } from '../domain/quote-requests.ts';
+import { parseCatalogFilters } from '../domain/products.ts';
 export type { PublicQuoteRequest } from '../domain/quote-requests.ts';
 
 export interface PublicCatalogItem {
@@ -30,10 +31,11 @@ export function createPublicCatalogApplication(options: { supabaseUrl: string; a
   const base = options.supabaseUrl.replace(/\/$/, '');
   const quotes=createQuoteRepository(options);
   async function call(path: string, init: RequestInit = {}): Promise<unknown> {
-    const response = await fetchImpl(`${base}/rest/v1/${path}`, {
+    let response: Response;
+    try { response = await fetchImpl(`${base}/rest/v1/${path}`, {
       ...init,
       headers: { apikey: options.anonKey, 'content-type': 'application/json', ...init.headers },
-    });
+    }); } catch { throw new ServiceError('SUPABASE_NO_DISPONIBLE', 'No fue posible consultar el catálogo.', 503); }
     let body: unknown = null;
     try { body = await response.json(); } catch { /* respuesta vacía */ }
     if (!response.ok) {
@@ -43,18 +45,24 @@ export function createPublicCatalogApplication(options: { supabaseUrl: string; a
   }
   return {
     async list(filters = {}) {
+      const valid = parseCatalogFilters(new URLSearchParams(Object.entries(filters).filter(([,value]) => value !== undefined) as [string,string][]));
+      const query = (select: string) => {
+        const params = new URLSearchParams({ select, order: 'nombre.asc,id_producto.asc' });
+        // PostgREST aplica los predicados en SQL antes de max-rows/Range.
+        if (valid.id_organizacion) params.set('organizacion->>id_organizacion', `eq.${valid.id_organizacion}`);
+        if (valid.id_pais) params.set('organizacion->pais->>id_pais', `eq.${valid.id_pais}`);
+        return `catalogo_cotizacion_publico?${params}`;
+      };
       const campos = 'id_producto,nombre,descripcion,unidad_medida,tipo_item,caracteristicas,organizacion';
       let body: unknown;
       // Sin la migración de imágenes la columna no existe: el catálogo sigue disponible sin fotos.
-      try { body = await call(`catalogo_cotizacion_publico?select=${campos},imagenes&order=nombre.asc`); }
+      try { body = await call(query(`${campos},imagenes`)); }
       catch (error) {
         if (!(error instanceof ServiceError) || error.status !== 400) throw error;
-        body = await call(`catalogo_cotizacion_publico?select=${campos}&order=nombre.asc`);
+        body = await call(query(campos));
       }
       if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'El catálogo no está disponible.', 502);
-      return (body as PublicCatalogItem[]).filter((item) =>
-        (!filters.id_organizacion || item.organizacion?.id_organizacion === filters.id_organizacion) &&
-        (!filters.id_pais || item.organizacion?.pais?.id_pais === filters.id_pais));
+      return body as PublicCatalogItem[];
     },
     async image(id) {
       const unavailable = () => new ServiceError('IMAGEN_NO_ENCONTRADA', 'La imagen no está disponible.', 404);

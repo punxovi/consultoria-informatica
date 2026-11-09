@@ -28,6 +28,10 @@ export function crearClienteProductos(baseUrl: string, token: () => Promise<stri
   }
 
   return {
+    async consultar(idProducto: string): Promise<Producto> {
+      const respuesta = await http.request<{ product: unknown }>(ruta(idProducto), { accessToken: await token() });
+      return leerProducto(respuesta.data?.product);
+    },
     async listar(): Promise<Producto[]> {
       const respuesta = await http.request<{ products: unknown }>(ruta(), { accessToken: await token() });
       if (!Array.isArray(respuesta.data?.products)) throw respuestaInvalida();

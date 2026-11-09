@@ -4,6 +4,7 @@ import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { readJsonBody } from './body.ts';
 import type { PublicCatalogApplication } from '../application/public-catalog-service.ts';
 import { publicQuoteSchema,parseQuote as validateQuote } from '../domain/quote-requests.ts';
+import { parseCatalogFilters } from '../domain/products.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string) {
   response.statusCode = status;
@@ -17,9 +18,7 @@ export async function routePublicCatalog(request: IncomingMessage, response: Ser
   try {
     const url = new URL(request.url ?? '/', 'http://organizations.local');
     if (request.method === 'GET' && url.pathname === '/v1/public/catalog') {
-      const idPais = url.searchParams.get('id_pais')?.trim() || undefined;
-      const idOrganizacion = url.searchParams.get('id_organizacion')?.trim() || undefined;
-      respond(response, 200, success('CATALOGO_PUBLICO_LISTADO', 'Catálogo disponible.', { items: await application.list({ id_pais: idPais, id_organizacion: idOrganizacion }) }), requestId);
+      respond(response, 200, success('CATALOGO_PUBLICO_LISTADO', 'Catálogo disponible.', { items: await application.list(parseCatalogFilters(url.searchParams)) }), requestId);
       return;
     }
     const imagen = /^\/v1\/public\/catalog\/images\/([^/]+)$/.exec(url.pathname);
