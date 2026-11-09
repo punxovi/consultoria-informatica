@@ -20,7 +20,7 @@ test('Invitados: ciclo real SQL, permisos, primer uso, vencimiento y revocación
     await db.exec(`CREATE ROLE qa_storage_owner;
       CREATE TABLE storage.buckets_vectors(id text); ALTER TABLE storage.buckets_vectors ENABLE ROW LEVEL SECURITY;
       ALTER TABLE storage.buckets_vectors OWNER TO qa_storage_owner;`);
-    await db.exec(await readFile(new URL('../../../supabase/migrations/20261106120000_fge_scrum171_ciclo_invitados.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../../supabase/migrations/20261106120200_fge_scrum171_ciclo_invitados.sql',import.meta.url),'utf8'));
     assert.equal((await db.query("SELECT count(*)::int n FROM pg_policies WHERE schemaname='storage' AND tablename='buckets_vectors'")).rows[0].n,0);
     assert.equal((await db.query("SELECT count(*)::int n FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='acceso_invitado_vigente'")).rows[0].n,1);
     const as = (id, operation, data={}, sid=session) => db.transaction(async tx => {
