@@ -16,7 +16,7 @@ BEGIN
     items:=items||jsonb_build_array(jsonb_build_object('id_producto',producto,'cantidad',2.5));
   END LOOP;
   IF numero<2 THEN RAISE EXCEPTION 'La prueba requiere dos países activos sin asignaciones ambiguas de Coordinador'; END IF;
-  envio:=public.registrar_solicitud_cotizacion(jsonb_build_object('nombre','Persona QA','apellido','Prueba','correo','qa@example.invalid','mensaje','Antecedentes sintéticos','items',items));
+  envio:=public.registrar_solicitud_cotizacion(jsonb_build_object('nombre','Persona QA','apellido','Prueba','correo','qa@example.invalid','telefono','+56 912345678','mensaje','Antecedentes sintéticos','items',items));
   IF jsonb_array_length(envio->'solicitudes')<>numero OR (SELECT count(*) FROM public.solicitudes_cotizacion WHERE id_envio=(envio->>'id_envio')::uuid)<>numero THEN
     RAISE EXCEPTION 'No se generó una solicitud por país'; END IF;
   IF EXISTS(SELECT 1 FROM public.solicitudes_cotizacion s WHERE s.id_envio=(envio->>'id_envio')::uuid AND

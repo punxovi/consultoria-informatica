@@ -4,6 +4,7 @@ import { ApiError } from '../api/transporte.ts';
 import { crearClienteCotizacion } from './cliente.ts';
 import { cantidadSchema, formularioSchema, type Seleccion, type Contacto } from './modelo.ts';
 import { leerSeleccion, guardarSeleccion, EVENTO_SELECCION } from './seleccion.ts';
+import { leerBorrador, guardarBorrador, limpiarBorrador } from './borrador.ts';
 
 const numero = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 10 });
 
@@ -18,6 +19,27 @@ export function iniciarCotizacion() {
   const catalogo = crearClienteCatalogo(baseUrl); const cliente = crearClienteCotizacion(baseUrl);
   let seleccion: Seleccion = []; let productos = new Map<string,ItemPublico>();
   let ocupado = false; let listo = false; let confirmado = false; let guardandoPropio = false;
+  const contactoActual = () => Object.fromEntries(campos.map(c=>[c,q<HTMLInputElement|HTMLTextAreaElement>(c).value])) as Contacto;
+  function conservarContacto() {
+    if (confirmado) return;
+    try { guardarBorrador(contactoActual()); }
+    catch { q('error-envio').textContent='No se pudieron conservar tus datos en esta pestaña. Mantén esta página abierta para continuar.'; q('error-envio').hidden=false; }
+  }
+  function restaurarContacto() {
+    try {
+      const borrador = leerBorrador();
+      campos.forEach(c=>{q<HTMLInputElement|HTMLTextAreaElement>(c).value=borrador?.[c] ?? '';});
+    } catch { /* Si el navegador bloquea Storage, se conservan los valores visibles. */ }
+  }
+  restaurarContacto();
+  campos.forEach(c=>{
+    q(c).addEventListener('input',conservarContacto);
+    q(c).addEventListener('change',conservarContacto);
+  });
+  window.addEventListener('pagehide',conservarContacto);
+  window.addEventListener('pageshow',event=>{
+    if (event.persisted && !confirmado) { restaurarContacto(); void cargar(); }
+  });
   const crear = (tag: string, texto: string, clase = '') => { const e = document.createElement(tag); e.textContent = texto; e.className = clase; return e; };
   function controles() {
     q<HTMLFieldSetElement>('campos').disabled = confirmado;
@@ -155,7 +177,8 @@ export function iniciarCotizacion() {
     event.preventDefault();if(ocupado||confirmado)return;
     campos.forEach(c=>{q(`error-${c}`).hidden=true;q(c).removeAttribute('aria-invalid');});
     q('error-envio').hidden=true;q('error-items').hidden=true;
-    const contacto=Object.fromEntries(campos.map(c=>[c,q<HTMLInputElement|HTMLTextAreaElement>(c).value])) as Contacto;
+    const contacto=contactoActual();
+    conservarContacto();
     const validacion=formularioSchema.safeParse(contacto);
     if(!validacion.success){for(const error of validacion.error.issues){const c=String(error.path[0]);q(`error-${c}`).textContent=error.message;q(`error-${c}`).hidden=false;q(c).setAttribute('aria-invalid','true');}q(String(validacion.error.issues[0].path[0])).focus();return;}
     if(!listo){q('error-items').textContent='No fue posible confirmar los productos. Reintenta la carga del catálogo antes de enviar.';q('error-items').hidden=false;q<HTMLButtonElement>('reintentar').focus();return;}
@@ -171,10 +194,11 @@ export function iniciarCotizacion() {
       const respuesta=await cliente.enviar(validacion.data,seleccion);
       confirmado=true;
       const confirmacion=q('confirmacion');const cantidad=respuesta.solicitudes?.length??1;
-      confirmacion.textContent=`${cantidad>1?`Se registraron ${cantidad} solicitudes, una por país.`:'Solicitud registrada correctamente.'} Referencia: ${respuesta.id_envio??respuesta.id_solicitud}. La Fundación revisará tu solicitud y te contactará para preparar la cotización final.`;confirmacion.hidden=false;confirmacion.focus();
+      confirmacion.textContent=`${cantidad>1?`Se registraron ${cantidad} solicitudes, una por país.`:'Solicitud registrada correctamente.'} La Fundación revisará tu solicitud y te contactará para preparar la cotización final.`;confirmacion.hidden=false;confirmacion.focus();
       form.hidden=true;q('restablecer').hidden=true;
       try {guardarSeleccion([]);}catch {confirmacion.append(crear('p','No se pudo limpiar la selección del navegador. Tu solicitud ya está registrada; no vuelvas a enviarla.','mt-3'));}
       seleccion=[];form.reset();
+      try { limpiarBorrador(); } catch {confirmacion.append(crear('p','No se pudo limpiar el borrador en este navegador. Tu solicitud ya está registrada; no vuelvas a enviarla.','mt-3'));}
     } catch(error) {
       // Solo una caída de conexión o una respuesta ilegible deja dudas sobre si quedó registrada;
       // los rechazos del servidor explican el motivo y no registraron nada.
