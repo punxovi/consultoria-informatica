@@ -13,7 +13,8 @@ test('SCRUM-152: ciclo real PostgreSQL, autorización, trazabilidad y revocació
     await db.exec('ALTER TABLE auth.users ADD COLUMN email text');
     for(const name of ['20261027150000_fge_scrum149_paises.sql','20261029_permisos_temporales_historial.sql','20261029100000_fge_autorizacion_territorial_caducidad.sql',
       '20261031120000_fge_administrar_coberturas.sql','20261102150000_fge_coberturas_unicas_historial.sql',
-      '20261102170000_fge_coberturas_historial_esquema_existente.sql','20261107010000_fge_scrum152_coberturas_integridad.sql'])
+      '20261102170000_fge_coberturas_historial_esquema_existente.sql','20261107010000_fge_scrum152_coberturas_integridad.sql',
+      '20261109150000_fge_scrum183_historial_coberturas_combinacion.sql'])
       await db.exec(await readFile(new URL('../../../supabase/migrations/'+name,import.meta.url),'utf8'));
     await db.exec("INSERT INTO public.paises(codigo_iso,nombre,zona_horaria,codigo_area_telefonica) VALUES ('NZ','Nueva Zelanda','Pacific/Auckland','+64')");
     const countries=(await db.query("SELECT * FROM public.paises WHERE codigo_iso IN ('CL','NZ') ORDER BY codigo_iso")).rows;
@@ -58,8 +59,8 @@ test('SCRUM-152: ciclo real PostgreSQL, autorización, trazabilidad y revocació
       coverage=await rpc('extend',{id_permiso_temporal:coverage.id_permiso_temporal,version_esperada:1,nueva_fin_at:'2090-01-15',motivo:'Extensión QA válida'});
       assert.equal(coverage.version,2);
       const h=await rpc('history',{id_permiso_temporal:coverage.id_permiso_temporal});
-      assert.equal(h.length,2); const e=h.find(x=>x.tipo_evento==='EXTENDER');
-      assert.equal(e.fin_at_anterior,h.find(x=>x.tipo_evento==='OTORGAR').fin_at_nuevo); assert.equal(e.fin_at_nuevo,coverage.fin_at);
+      assert.equal(h.length,3); const e=h.find(x=>x.tipo_evento==='EXTENDER');
+      assert.equal(e.fin_at_anterior,h.find(x=>x.tipo_evento==='OTORGAR'&&x.id_permiso_temporal===coverage.id_permiso_temporal).fin_at_nuevo); assert.equal(e.fin_at_nuevo,coverage.fin_at);
       await assert.rejects(rpc('revoke',{id_permiso_temporal:coverage.id_permiso_temporal,version_esperada:1,motivo_revocacion:'Obsoleta QA'}),{code:'P0161'});
     });
     await t.test('un fallo al insertar el evento revierte también el cambio de cobertura',async()=>{
@@ -75,7 +76,7 @@ test('SCRUM-152: ciclo real PostgreSQL, autorización, trazabilidad y revocació
       assert.equal(coverage.condicion,'revocada'); assert.equal(coverage.fin_at,previous); assert.equal(coverage.version,3);
       assert.equal((await rpc('mine',{},'COORD')).length,0);
       assert.equal((await comoUsuario(db,'COORD',tx=>tx.query('SELECT fge_private.usuario_tiene_cobertura_pais($1) AS autorizado',[target]))).rows[0].autorizado,false);
-      const h=await rpc('history',{id_permiso_temporal:coverage.id_permiso_temporal}); assert.equal(h.length,3);
+      const h=await rpc('history',{id_permiso_temporal:coverage.id_permiso_temporal}); assert.equal(h.length,4);
       const e=h.find(x=>x.tipo_evento==='REVOCAR'); assert.equal(e.fin_at_anterior,previous); assert.equal(e.fin_at_nuevo,previous);
       await assert.rejects(rpc('extend',{id_permiso_temporal:coverage.id_permiso_temporal,version_esperada:3,nueva_fin_at:'2090-01-16'}),{code:'P0162'});
     });
@@ -114,7 +115,7 @@ test('SCRUM-152: ciclo real PostgreSQL, autorización, trazabilidad y revocació
         response=await fetch(base,{headers:{authorization:'Bearer expired'}}); assert.equal(response.status,401); assert.equal((await response.json()).error.code,'SESION_INVALIDA');
         response=await fetch(`${base}/${randomUUID()}/history`,{headers:{authorization:'Bearer admin'}}); assert.equal(response.status,404);
         assert.equal((await response.json()).error.code,'COBERTURA_NO_ENCONTRADA');
-        response=await fetch(`${base}/${coverage.id_permiso_temporal}/history`,{headers:{authorization:'Bearer admin'}}); assert.equal(response.status,200); assert.equal((await response.json()).data.history.length,3);
+        response=await fetch(`${base}/${coverage.id_permiso_temporal}/history`,{headers:{authorization:'Bearer admin'}}); assert.equal(response.status,200); assert.equal((await response.json()).data.history.length,5);
         response=await fetch(`${base}/%ZZ/history`,{headers:{authorization:'Bearer admin'}}); assert.equal(response.status,400);
         response=await fetch(`${base}/${coverage.id_permiso_temporal}/extend`,{method:'PATCH',headers:{authorization:'Bearer admin','content-type':'application/json'},body:JSON.stringify({nueva_fin_at:'2090-02-01'})}); assert.equal(response.status,400);
       } finally {server.closeAllConnections(); await new Promise(resolve=>server.close(resolve));}
@@ -126,7 +127,18 @@ test('SCRUM-152: ciclo real PostgreSQL, autorización, trazabilidad y revocació
         const body=JSON.parse(init.body); return Response.json(await rpc(body.p_operacion,body.p_datos));
       }});
       const h=await repo.execute('qa-admin','history',{id_permiso_temporal:coverage.id_permiso_temporal});
-      assert.equal(h.length,3); assert.ok(h.every(e=>e.id_historial&&e.accion_at));
+      assert.equal(h.length,5); assert.ok(h.every(e=>e.id_historial&&e.accion_at));
+    });
+    await t.test('SCRUM-183: el historial conserva coberturas reemplazadas de la misma combinación',async()=>{
+      const anterior=await rpc('create',{...input,inicio_at:'2091-01-01',fin_at:'2091-01-10',motivo:'Cobertura anterior QA'});
+      await rpc('revoke',{id_permiso_temporal:anterior.id_permiso_temporal,version_esperada:1,motivo_revocacion:'Reemplazo QA'});
+      const reemplazo=await rpc('create',{...input,inicio_at:'2091-02-01',fin_at:'2091-02-10',motivo:'Cobertura reemplazo QA'});
+      const listado=await rpc('list');
+      assert.equal(listado.filter(x=>x.id_usuario_beneficiario===usuarios.COORD&&x.id_pais===target).length,1);
+      const historial=await rpc('history',{id_permiso_temporal:reemplazo.id_permiso_temporal});
+      assert.ok(historial.some(x=>x.id_permiso_temporal===anterior.id_permiso_temporal));
+      assert.ok(historial.some(x=>x.id_permiso_temporal===reemplazo.id_permiso_temporal));
+      assert.equal(historial.find(x=>x.id_permiso_temporal===anterior.id_permiso_temporal).accion_por,usuarios.ADMIN);
     });
     await t.test('script de verificación remoto ejecuta el ciclo completo y revierte fixtures',async()=>{
       await db.exec(await readFile(new URL('../../../supabase/checks/coberturas-scrum152.sql',import.meta.url),'utf8'));

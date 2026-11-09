@@ -12,6 +12,7 @@ interface Props {
 }
 
 const { title, navItems, allowedRoles = [] } = Astro.props;
+const sessionValidationIssue = (Astro.locals as { sessionValidationIssue?: string }).sessionValidationIssue;
 const hasBreadcrumb = Astro.slots.has('breadcrumb');
 const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 ---
@@ -57,7 +58,7 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 
         <div
           id="session-error"
-          hidden
+          hidden={!sessionValidationIssue || sessionValidationIssue === 'permisos'}
           role="alert"
           class="mx-auto mt-8 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
         >
@@ -343,12 +344,20 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 
     let roles: RolSesion[] = [];
     let rolesDisponibles = false;
+    let rolesErrorTemporal = false;
+    let rolesDenegados = false;
 
     try {
       roles = (await getUserRoles()) as RolSesion[];
       rolesDisponibles = true;
     } catch (error) {
       console.error('Error obteniendo los roles del usuario:', error);
+      const status = typeof error === 'object' && error !== null && 'status' in error
+        ? Number((error as { status?: unknown }).status)
+        : 0;
+      rolesDenegados = status === 403;
+      rolesErrorTemporal = !rolesDenegados;
+      if (rolesErrorTemporal) document.getElementById('session-error')?.removeAttribute('hidden');
     }
 
     // Completar el perfil del encabezado con los datos de la sesión autenticada.
@@ -437,12 +446,14 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
     if (allowedRoles.length > 0) {
       const userHasRole = roles.some((role) => allowedRoles.includes(role.codigo));
 
-      if (!rolesDisponibles || !userHasRole) {
+      if ((rolesDisponibles && !userHasRole) || rolesDenegados) {
         pageContent?.classList.add('hidden');
         unauthorizedMsg?.classList.remove('hidden');
         unauthorizedMsg?.classList.add('flex');
       }
     }
+
+    if (rolesErrorTemporal) pageContent?.classList.remove('hidden');
 
     mainContent?.classList.remove('opacity-0');
   }

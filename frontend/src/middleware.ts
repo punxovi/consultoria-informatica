@@ -15,20 +15,33 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
   const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey) return context.redirect('/login', 302);
+  if (!supabaseUrl || !anonKey) {
+    (context.locals as { sessionValidationIssue?: string }).sessionValidationIssue = 'configuracion';
+    return next();
+  }
   try {
     let accessToken: string;
     try { accessToken = decodeURIComponent(token); } catch { return context.redirect('/login', 302); }
     const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, { headers: { apikey: anonKey, authorization: `Bearer ${accessToken}` } });
-    if (!response.ok) return context.redirect('/login', 302);
+    if (response.status === 401) return context.redirect('/login', 302);
+    if (!response.ok) {
+      (context.locals as { sessionValidationIssue?: string }).sessionValidationIssue = response.status === 403 ? 'permisos' : 'temporal';
+      return next();
+    }
     const validity = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/get_user_roles`, {
       method: 'POST', headers: { apikey: anonKey, authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' }, body: '{}',
     });
-    if (!validity.ok) return context.redirect('/login', 302);
+    if (validity.status === 401) return context.redirect('/login', 302);
+    if (!validity.ok) {
+      (context.locals as { sessionValidationIssue?: string }).sessionValidationIssue = validity.status === 403 ? 'permisos' : 'temporal';
+      return next();
+    }
     const roles = await validity.json();
-    if (!Array.isArray(roles) || roles.length === 0) return context.redirect('/login', 302);
+    if (!Array.isArray(roles)) {
+      (context.locals as { sessionValidationIssue?: string }).sessionValidationIssue = 'temporal';
+    }
   } catch {
-    return context.redirect('/login', 302);
+    (context.locals as { sessionValidationIssue?: string }).sessionValidationIssue = 'temporal';
   }
   return next();
 });
