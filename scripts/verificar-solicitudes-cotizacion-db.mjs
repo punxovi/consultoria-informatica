@@ -15,7 +15,7 @@ export async function verifyQuotes(db,f){
   await db.query("INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,id_pais,otorgado_por) SELECT $1,id_rol,'pais',$2,$3 FROM public.roles WHERE codigo='COORD'",[coordAR,f.ar,f.admin]);
   await db.query('INSERT INTO fge_private.cuentas_coordinadores VALUES($1,$2,$2,$3)',[coordAR,f.ar,f.admin]);
   await db.query("INSERT INTO public.productos(id_producto,id_organizacion,nombre,descripcion,unidad_medida,publicado) VALUES($1,$3,'Producto CL','Descripción','unidad',true),($2,$3,'Segundo CL','Descripción','kg',true)",[productCL,productCL2,f.orgCL]);
-  const input={nombre:'Ana María',apellido:'Pérez López',correo:'ana@example.invalid',mensaje:'Antecedentes de prueba',items:[{id_producto:productCL,cantidad:2.5},{id_producto:productCL2,cantidad:1},{id_producto:f.service,cantidad:3}]};
+  const input={nombre:'Ana María',apellido:'Pérez López',correo:'ana@example.invalid',telefono:'+56 912345678',mensaje:'Antecedentes de prueba',items:[{id_producto:productCL,cantidad:2.5},{id_producto:productCL2,cantidad:1},{id_producto:f.service,cantidad:3}]};
   await anonymous();
   const group=await create(input);check(group.estado,'solicitada');check(group.solicitudes.length,2);
   check(Object.keys(group).sort(),['id_envio','id_solicitud','solicitudes','estado'].sort());
@@ -23,7 +23,8 @@ export async function verifyQuotes(db,f){
   await denied(db.query('SELECT * FROM public.solicitudes_cotizacion'),'42501');
   await denied(db.query('SELECT * FROM public.solicitud_cotizacion_destinatarios'),'42501');
   await denied(manage('list'),'42501');
-  for(const field of ['nombre','apellido','correo','items']){const bad={...input};delete bad[field];await denied(create(bad),'22023');}
+  for(const field of ['nombre','apellido','correo','telefono','items']){const bad={...input};delete bad[field];await denied(create(bad),'22023');}
+  for(const telefono of ['', '   ', null])await denied(create({...input,telefono}),'22023');
   for(const bad of [{...input,nombre:' '},{...input,correo:'incorrecto'},{...input,items:[]},{...input,items:[input.items[0],input.items[0]]},
     {...input,items:[{id_producto:productCL,cantidad:0}]},{...input,items:[{id_producto:productCL,cantidad:-1}]},
     {...input,items:[{id_producto:productCL,cantidad:'1'}]},{...input,id_coordinador:f.coord},{...input,estado:'cerrada'},

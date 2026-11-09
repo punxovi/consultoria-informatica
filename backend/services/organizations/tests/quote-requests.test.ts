@@ -8,7 +8,7 @@ import { createQuoteRequestsApplication } from '../src/application/quote-request
 import { createOrganizationsServer } from '../src/server.ts';
 import { createGatewayServer } from '../../../gateway/src/server.ts';
 const id=(n:number)=>`16300000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const input={nombre:' Ana María ',apellido:' Pérez López ',correo:'ana@example.org',items:[{id_producto:id(1),cantidad:2.5}]};
+const input={nombre:' Ana María ',apellido:' Pérez López ',correo:'ana@example.org',telefono:'+56 912345678',items:[{id_producto:id(1),cantidad:2.5}]};
 const confirmation={id_solicitud:id(2),estado:'solicitada',id_envio:id(3),solicitudes:[{id_solicitud:id(2),estado:'solicitada'},{id_solicitud:id(4),estado:'solicitada'}]};
 const requestData={id_solicitud:id(2),nombre:'Ana María',apellido:'Pérez López',nombre_solicitante:'Ana María Pérez López',correo:'ana@example.org',telefono:null,mensaje:null,
   id_envio:id(3),id_pais:id(5),id_coordinador:id(6),sin_coordinador_al_recibir:false,solo_informativa:false,
@@ -16,7 +16,8 @@ const requestData={id_solicitud:id(2),nombre:'Ana María',apellido:'Pérez Lópe
   items:[{id_producto:id(1),nombre:'Producto',nombre_producto:'Producto',unidad_medida:'unidad',cantidad:2.5,organizacion:{id_organizacion:id(7),nombre:'Organización',pais:{id_pais:id(5),nombre:'Chile'}}}]};
 test('cotizaciones: valida nombres independientes, cantidades estrictas, duplicados y campos internos',()=>{
   const parsed=parseQuote(publicQuoteSchema,input);assert.equal(parsed.nombre_solicitante,'Ana María Pérez López');
-  for(const field of['nombre','apellido','correo','items']){const bad:Record<string,unknown>={...input};delete bad[field];assert.throws(()=>parseQuote(publicQuoteSchema,bad));}
+  for(const field of['nombre','apellido','correo','telefono','items']){const bad:Record<string,unknown>={...input};delete bad[field];assert.throws(()=>parseQuote(publicQuoteSchema,bad));}
+  for(const telefono of ['', '   ', null, 123])assert.throws(()=>parseQuote(publicQuoteSchema,{...input,telefono}));
   for(const bad of[{...input,nombre:''},{...input,correo:'bad'},{...input,items:[]},{...input,items:[...input.items,...input.items]},
     {...input,items:[{id_producto:id(1),cantidad:'2'}]},{...input,items:[{id_producto:'bad',cantidad:1}]},{...input,id_coordinador:id(6)},{...input,estado:'cerrada'},
     {...input,items:[{id_producto:id(1),cantidad:NaN}]},{...input,items:[{id_producto:id(1),cantidad:Infinity}]},{...input,items:[{id_producto:id(1),cantidad:0}]}])assert.throws(()=>parseQuote(publicQuoteSchema,bad));

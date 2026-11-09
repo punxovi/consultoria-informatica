@@ -148,7 +148,11 @@ try {
     await load('20261104100000_fge_scrum170_superficie_publica_cotizacion.sql');
     await load('20261104140000_fge_cotizaciones_coordinadores.sql');
     await load('20261105120000_fge_scrum163_solicitudes_cotizacion.sql');
+    await load('20261109130000_fge_cotizacion_telefono_obligatorio.sql');
     const {verifyQuotes}=await import('./verificar-solicitudes-cotizacion-db.mjs');
     console.log(JSON.stringify({scrum163:true,...await verifyQuotes(db,{admin,coord,guest,noRole,cl,ar,orgCL,orgAR,service})}));
+    await db.exec('RESET ROLE');
+    await db.exec(await readFile(new URL('../supabase/checks/cotizacion-telefono-obligatorio.sql',import.meta.url),'utf8'));
+    console.log(JSON.stringify({telefonoObligatorio:true,verificacionRemota:'PASS',datosPrueba:'revertidos'}));
   }
 } finally { await db.close(); }

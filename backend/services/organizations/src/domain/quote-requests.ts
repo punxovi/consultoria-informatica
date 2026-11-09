@@ -5,7 +5,7 @@ export const quoteState = z.enum(['solicitada','en_gestion','cotizada','cerrada'
 export const publicQuoteSchema = z.strictObject({
   nombre: text(80), apellido: text(80), nombre_solicitante: text(161).optional(),
   correo: z.email().max(320).transform(v => v.toLowerCase()),
-  telefono: z.string().trim().max(60).optional(), mensaje: z.string().trim().max(2000).optional(),
+  telefono: text(60), mensaje: z.string().trim().max(2000).optional(),
   items: z.array(z.strictObject({ id_producto: z.uuid(), cantidad: z.number().finite().positive().max(Number.MAX_SAFE_INTEGER) }))
     .min(1).max(100).refine(items => new Set(items.map(i => i.id_producto)).size === items.length),
 }).refine(v => !v.nombre_solicitante || v.nombre_solicitante === `${v.nombre} ${v.apellido}`)

@@ -6,7 +6,7 @@ const campos = [
   ['nombre', 'Nombre', 'text', 79, 'given-name', 'Tu nombre'],
   ['apellido', 'Apellido', 'text', 80, 'family-name', 'Tu apellido'],
   ['correo', 'Correo electrónico', 'email', 320, 'email', 'contacto@empresa.cl'],
-  ['telefono', 'Teléfono (opcional)', 'tel', 60, 'tel', '+56 9 1234 5678'],
+  ['telefono', 'Teléfono', 'tel', 60, 'tel', '+56 9 1234 5678'],
 ] as const;
 const etiqueta = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-neutral-600';
 const control = 'min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 text-neutral-900 placeholder:text-neutral-500 focus:outline-2 focus:outline-primary';
@@ -67,8 +67,8 @@ const icono = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl md:h
         <div class="grid gap-4 sm:grid-cols-2">
           {campos.map(([id, label, tipo, max, autocompletar, ejemplo]) => (
             <div>
-              <label for={`cot-${id}`} class={etiqueta}>{label}{id !== 'telefono' && <span class="marca-obligatorio" aria-hidden="true">*</span>}</label>
-              <input id={`cot-${id}`} name={id} type={tipo} maxlength={max} required={id !== 'telefono'} autocomplete={autocompletar} placeholder={ejemplo} aria-describedby={`cot-error-${id}`} class={control} />
+              <label for={`cot-${id}`} class={etiqueta}>{label}<span class="marca-obligatorio" aria-hidden="true">*</span></label>
+              <input id={`cot-${id}`} name={id} type={tipo} maxlength={max} required autocomplete={autocompletar} placeholder={ejemplo} aria-describedby={`cot-error-${id}`} class={control} />
               <p id={`cot-error-${id}`} hidden class="mt-1 text-sm text-danger"></p>
             </div>
           ))}
