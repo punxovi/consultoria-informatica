@@ -75,13 +75,15 @@ BEGIN
     RAISE EXCEPTION 'El catálogo público no devuelve la proyección esperada';
   END IF;
   SELECT public.registrar_solicitud_cotizacion(jsonb_build_object(
-    'nombre_solicitante', 'Visitante SCRUM-170',
+    'nombre', 'Visitante',
+    'apellido', 'SCRUM-170',
     'correo', 'scrum170@example.invalid',
     'telefono', '+56900000000',
     'mensaje', 'Solicitud sintética de validación',
     'items', jsonb_build_array(jsonb_build_object('id_producto', producto, 'cantidad', 2))
   )) INTO solicitud;
-  IF solicitud->>'id_solicitud' IS NULL OR solicitud->>'estado' <> 'solicitada' THEN
+  IF solicitud->>'id_solicitud' IS NULL OR solicitud->>'estado' <> 'solicitada'
+     OR solicitud->>'id_envio' IS NULL THEN
     RAISE EXCEPTION 'La RPC no devolvió una solicitud válida: %', solicitud;
   END IF;
 
@@ -103,11 +105,19 @@ BEGIN
   INSERT INTO scrum170_resultados VALUES ('bloqueo de escritura directa', 'OK', 'INSERT directo rechazado');
 
   IF NOT EXISTS (
-    SELECT 1 FROM public.solicitudes_cotizacion s
+    SELECT 1
+    FROM public.solicitudes_cotizacion s
     JOIN public.solicitud_cotizacion_detalles d USING (id_solicitud)
-    WHERE s.correo = 'scrum170@example.invalid' AND d.id_producto = producto AND d.cantidad = 2
+    WHERE s.id_solicitud = (solicitud->>'id_solicitud')::uuid
+      AND s.id_envio = (solicitud->>'id_envio')::uuid
+      AND s.nombre = 'Visitante'
+      AND s.apellido = 'SCRUM-170'
+      AND s.nombre_solicitante = 'Visitante SCRUM-170'
+      AND s.correo = 'scrum170@example.invalid'
+      AND d.id_producto = producto
+      AND d.cantidad = 2
   ) THEN
-    RAISE EXCEPTION 'La solicitud o su detalle no fueron persistidos por la RPC';
+    RAISE EXCEPTION 'La cabecera o el detalle no fueron persistidos por la RPC';
   END IF;
   INSERT INTO scrum170_resultados VALUES ('integridad solicitud-detalle', 'OK', 'Cabecera y detalle creados');
 END $$;
