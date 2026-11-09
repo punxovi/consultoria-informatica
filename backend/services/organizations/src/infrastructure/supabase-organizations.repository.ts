@@ -56,8 +56,7 @@ const INVITED_ORGANIZATION_FIELDS = [
   'id_organizacion', 'id_pais', 'nombre', 'region_departamento',
   'comuna_municipio_ciudad', 'publico_objetivo', 'descripcion_breve',
   'tipo_organizacion', 'numero_beneficiarios', 'pais', 'archived_at', 'version',
-  // Datos de contacto visibles para el Invitado (migración 20261108020000).
-  'nombre_representante', 'telefono', 'correo', 'direccion', 'tipo_organizacion_otro',
+  // La vista segura excluye los datos de contacto del Invitado (SCRUM-173).
 ].join(',');
 
 function withImageFilters(params: URLSearchParams): URLSearchParams {
