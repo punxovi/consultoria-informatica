@@ -1,19 +1,18 @@
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { randomUUID } from 'node:crypto';
+import { parseProductCreate, parseProductUpdate, productId, type ProductInput, type ProductChanges } from '../domain/products.ts';
+export type { ProductInput } from '../domain/products.ts';
 
-export interface ProductInput {
-  id_organizacion: string; nombre: string; descripcion: string; unidad_medida: string;
-  categoria: string | null; material: string | null; terminacion: string | null;
-}
 export interface ProductUpload { name: string; mimeType: string; bytes: Buffer }
 export interface ProductsApplication {
   list(token: string): Promise<unknown[]>;
+  get(token: string, id: string): Promise<unknown>;
   create(token: string, input: ProductInput): Promise<unknown>;
-  update(token: string, id: string, version: number, changes: Partial<ProductInput> & { publicado?: boolean }): Promise<unknown>;
+  update(token: string, id: string, version: number, changes: ProductChanges): Promise<unknown>;
   uploadImages(token: string, id: string, files: ProductUpload[]): Promise<unknown[]>;
 }
 
-const PRODUCT_FIELDS = 'id_producto,id_organizacion,nombre,descripcion,unidad_medida,categoria,material_terminacion,publicado,version,updated_at';
+const PRODUCT_FIELDS = 'id_producto,id_organizacion,nombre,descripcion,unidad_medida,categoria,material,terminacion,material_terminacion,tipo_item,caracteristicas,informacion_adicional,publicado,version,updated_at';
 const IMAGE_TYPES = new Map([['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp']]);
 function imageSignatureMatches(bytes: Buffer, mimeType: string): boolean {
   if (mimeType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
@@ -38,7 +37,9 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
     if (!response.ok) {
       const detail = body && typeof body === 'object' ? body as Record<string, unknown> : {};
       if (response.status === 401 || response.status === 403) throw new ServiceError('SIN_PERMISO', 'No tienes permiso para gestionar productos.', response.status);
-      if (detail.code === '23505' || detail.code === 'P0001') throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El producto cambió en otra sesión. Recarga antes de volver a intentarlo.', 409);
+      if (detail.code === '23505') throw new ServiceError('PRODUCTO_DUPLICADO', 'Ya existe un registro con esos identificadores.', 409);
+      if (detail.code === 'P0001') throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El producto cambió en otra sesión. Recarga antes de volver a intentarlo.', 409);
+      if (detail.code === '42703') throw new ServiceError('MIGRACION_PRODUCTOS_PENDIENTE', 'Falta aplicar la migración de corrección de productos.', 503);
       if (['23502', '23503', '23514', '22P02'].includes(String(detail.code))) {
         if (path.startsWith('archivos?')) {
           const motivo = typeof detail.message === 'string' ? detail.message : 'la base de datos rechazó sus metadatos';
@@ -78,11 +79,26 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
     return products.map((p) => {
       const org = orgById.get(String(p.id_organizacion));
       const country = org ? countryById.get(String(org.id_pais)) : null;
-      return { ...p, material: p.material_terminacion ?? null, terminacion: null,
+      return { ...p, material: p.material ?? null, terminacion: p.terminacion ?? null,
         organizacion: org ? { id_organizacion: org.id_organizacion, nombre: org.nombre,
           pais: country ? { id_pais: country.id_pais, codigo_iso: country.codigo_iso, nombre: country.nombre } : null } : null,
         imagenes: imagesByProduct.get(String(p.id_producto)) ?? [] };
     });
+  }
+  async function find(token: string, id: string): Promise<unknown[]> {
+    const rows = await call(`productos?select=${PRODUCT_FIELDS}&id_producto=eq.${id}&archived_at=is.null`, token);
+    if (!Array.isArray(rows)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un producto inválido.', 502);
+    if (!rows.length) throw new ServiceError('PRODUCTO_NO_ENCONTRADO', 'El producto no existe o fue archivado.', 404);
+    return rows;
+  }
+  async function requireActiveOrganization(token: string, id: string) {
+    const rows = await call(`organizaciones?select=id_organizacion,id_pais&id_organizacion=eq.${id}&archived_at=is.null`,token);
+    if (!Array.isArray(rows)) throw new ServiceError('RESPUESTA_INVALIDA','No fue posible verificar la Organización.',502);
+    if (!rows.length) throw new ServiceError('ORGANIZACION_NO_DISPONIBLE','La Organización no existe o no está activa.',400);
+    const country = (rows[0] as Record<string,unknown>).id_pais;
+    const countries = await call(`paises?select=id_pais&id_pais=eq.${country}&archived_at=is.null`,token);
+    if (!Array.isArray(countries)) throw new ServiceError('RESPUESTA_INVALIDA','No fue posible verificar el país.',502);
+    if (!countries.length) throw new ServiceError('ORGANIZACION_NO_DISPONIBLE','El país de la Organización no está activo.',400);
   }
   return {
     async list(token) {
@@ -91,32 +107,48 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
       if (!Array.isArray(rows)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió productos inválidos.', 502);
       return enrich(token, rows);
     },
+    async get(token, id) {
+      await requireAdmin(token);
+      return (await enrich(token, await find(token, productId(id))))[0];
+    },
     async create(token, input) {
       await requireAdmin(token);
+      input = parseProductCreate(input);
+      await requireActiveOrganization(token,input.id_organizacion);
       const rows = await call(`productos?select=${PRODUCT_FIELDS}`, token, { method: 'POST', headers: { prefer: 'return=representation' }, body: JSON.stringify({
         id_organizacion: input.id_organizacion, nombre: input.nombre, descripcion: input.descripcion, unidad_medida: input.unidad_medida,
-        categoria: input.categoria, material_terminacion: [input.material, input.terminacion].filter(Boolean).join(' · ') || null, publicado: false,
+        categoria: input.categoria, material: input.material, terminacion: input.terminacion,
+        ...(input.tipo_item !== undefined ? { tipo_item: input.tipo_item } : {}),
+        ...(input.caracteristicas !== undefined ? { caracteristicas: input.caracteristicas } : {}),
+        ...(input.informacion_adicional !== undefined ? { informacion_adicional: input.informacion_adicional } : {}), publicado: false,
       }) });
       if (!Array.isArray(rows) || !rows[0]) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos no confirmó el producto.', 502);
       return (await enrich(token, rows))[0];
     },
     async update(token, id, version, changes) {
       await requireAdmin(token);
-      const body: Record<string, unknown> = {};
-      for (const key of ['nombre', 'descripcion', 'unidad_medida', 'categoria'] as const) if (key in changes) body[key] = changes[key];
-      if ('material' in changes || 'terminacion' in changes) {
-        const material = changes.material ?? null; const terminacion = changes.terminacion ?? null;
-        body.material_terminacion = [material, terminacion].filter(Boolean).join(' · ') || null;
+      id = productId(id);
+      ({ version, changes } = parseProductUpdate({version_esperada:version,cambios:changes}));
+      if (changes.publicado === true) {
+        const [current] = await find(token,id);
+        await requireActiveOrganization(token,String((current as Record<string,unknown>).id_organizacion));
       }
+      const body: Record<string, unknown> = {};
+      for (const key of ['nombre', 'descripcion', 'unidad_medida', 'categoria', 'material', 'terminacion', 'tipo_item', 'caracteristicas', 'informacion_adicional'] as const) if (Object.hasOwn(changes,key)) body[key] = changes[key];
       if ('publicado' in changes) body.publicado = changes.publicado;
       if (!Object.keys(body).length) throw new ServiceError('DATOS_INVALIDOS', 'Indica al menos un cambio.', 400);
       body.version = version + 1;
       const rows = await call(`productos?id_producto=eq.${encodeURIComponent(id)}&version=eq.${version}&archived_at=is.null&select=${PRODUCT_FIELDS}`, token, { method: 'PATCH', headers: { prefer: 'return=representation' }, body: JSON.stringify(body) });
-      if (!Array.isArray(rows) || !rows[0]) throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El producto cambió o ya no está disponible. Recarga antes de volver a intentarlo.', 409);
+      if (!Array.isArray(rows)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un producto inválido.', 502);
+      if (!rows.length) {
+        await find(token,id); // Si no existe, 404. Si existe con otra versión, 409.
+        throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El producto cambió en otra sesión. Recarga antes de volver a intentarlo.', 409);
+      }
       return (await enrich(token, rows))[0];
     },
     async uploadImages(token, id, files) {
       await requireAdmin(token);
+      id = productId(id);
       if (!files.length || files.length > 6) throw new ServiceError('DATOS_INVALIDOS', 'Selecciona entre 1 y 6 imágenes.', 400);
       const result = [];
       for (const file of files) {
