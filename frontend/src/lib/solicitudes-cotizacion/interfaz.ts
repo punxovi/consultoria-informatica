@@ -71,7 +71,7 @@ export async function iniciarSolicitudes(){
   if(!actual.estados_permitidos.includes(estado)||estado===actual.estado||estado==='solicitada'){q('estado-error').textContent='Selecciona un estado permitido.';q('estado-error').hidden=false;q('estado').focus();return;}
   const turno=epoca;guardando=true;q('confirmacion').hidden=true;controles();q('detalle-carga').textContent='Guardando estado…';
   try{
-   const s=await cliente.actualizar(actual,estado);if(turno!==epoca)return;
+   const s=await cliente.actualizar(actual,estado);window.dispatchEvent(new Event('fge:cotizaciones-actualizadas'));if(turno!==epoca)return;
    filas=filas.map(f=>f.id_solicitud===s.id_solicitud?s:f);
    // Al guardar se cierra el detalle y el listado queda actualizado con el nuevo estado.
    guardando=false;dialogo.close();pintar();

@@ -41,7 +41,7 @@ const tiposRespaldo = [
 <section id="seccion-donaciones" data-organizacion={idOrganizacion} aria-labelledby="don-titulo" class="space-y-6 fge-donaciones">
   <EncabezadoModulo id="don-titulo" titulo="Donaciones y recursos" descripcion="Aportes recibidos y entregados, con sus respaldos.">
     <Button id="don-nueva" class="solo-gestor">
-      <span aria-hidden="true">＋</span> Registrar donación
+      <span aria-hidden="true">＋</span> Registrar ofrecimiento o donación
     </Button>
   </EncabezadoModulo>
   <!-- Notificaciones y estados -->
@@ -165,7 +165,15 @@ const tiposRespaldo = [
                 <select id="don-estado" name="estado" required class={claseSelect}>
                   {estados.map((e) => <option value={e}>{e}</option>)}
                 </select>
-                <p class="mt-1 text-xs text-neutral-500">Después solo podrá avanzar en orden: Comprometida, Recibida, Entregada y Cerrada.</p>
+                <p class="mt-1 text-xs text-neutral-500">Si el aporte se acordó de palabra o por correo, elige Comprometida. Cuando se haga efectivo, actualiza este mismo registro.</p>
+              </div>
+              <div>
+                <label for="don-entrega-certificado" class="text-sm font-semibold">Entrega del certificado al donante</label>
+                <select id="don-entrega-certificado" name="entrega_certificado" class={claseSelect}>
+                  <option value="">Sin registrar</option>
+                  <option value="pendiente">Pendiente de entrega</option>
+                  <option value="entregado">Entregado al donante</option>
+                </select>
               </div>
             </div>
           </section>
@@ -210,6 +218,7 @@ const tiposRespaldo = [
           { id: 'don-detalle-aporte', label: 'Aporte' },
           { id: 'don-detalle-valor', label: 'Valorización estimada' },
           { id: 'don-detalle-estado', label: 'Estado' },
+          { id: 'don-detalle-certificado', label: 'Entrega del certificado al donante' },
           { id: 'don-detalle-descripcion', label: 'Descripción', wide: true },
         ].map((campo) => (
           <div class={campo.wide ? 'sm:col-span-2 xl:col-span-3' : ''}>
