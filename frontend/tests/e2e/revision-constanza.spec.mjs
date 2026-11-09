@@ -5,11 +5,12 @@ const paises=[pais(id,'Chile','CL'),pais(otro,'Argentina','AR')];
 const org=(id_pais,nombre)=>({id_organizacion:id_pais,id_pais,nombre,nombre_representante:'Ana',telefono:'123456789',publico_objetivo:'Familias',descripcion_breve:'Comunidad',tipo_organizacion:'comedor_merendero',numero_beneficiarios:10,pais:paises.find(p=>p.id_pais===id_pais),version:1,archived_at:null});
 const organizaciones=[org(id,'Comedor Chile'),org(otro,'Comedor Argentina')];
 const plan=(o)=>({id_plan:o.id_organizacion,id_organizacion:o.id_organizacion,id_programa:id,nombre:`Plan ${o.nombre}`,organizacion:{id:o.id_organizacion,nombre:o.nombre,id_pais:o.id_pais},programa:{id,nombre:'Programa'},periodo_anual:2026,fecha_inicio:'2026-01-01',fecha_termino:'2026-12-31',version:1});
-let rol, solicitudes, decision, cargaInvitados;
+let rol, solicitudes, decision, cargaInvitados, coberturas;
 test.beforeEach(async({context})=>{
   rol='ADMIN';decision=null;cargaInvitados=null;
+  coberturas=[{id_permiso_temporal:otro,id_pais:otro,inicio_at:'2026-01-01',fin_at:'2099-12-31'}];
   solicitudes=[{id_invitado:id,nombre:'Persona Solicitante',correo:'persona@example.org',institucion:'Universidad',motivo:'Investigación',estado:'pendiente',version:2,created_at:'2026-11-01'}];
-  await context.addCookies([{name:'fge_access_token',value:'qa',url:'http://127.0.0.1:4331'}]);
+  await context.addCookies([{name:'fge_access_token',value:'qa-admin',url:'http://127.0.0.1:4326'}]);
   await context.addInitScript(()=>localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:'qa',refresh_token:'qa',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'11111111-1111-4111-8111-111111111111',email:'qa@example.org',user_metadata:{}}})));
   await context.route('**/rest/v1/rpc/get_user_roles',r=>r.fulfill({json:[{codigo:rol,alcance:rol==='ADMIN'?'global':'pais',id_pais:rol==='ADMIN'?null:id}]}));
   await context.route('**/auth/v1/user',r=>r.fulfill({json:{id,email:'qa@example.org'}}));
@@ -27,7 +28,7 @@ test.beforeEach(async({context})=>{
     }
     const data=path.endsWith('/session')?{authenticated:true,user:{id}}:
       path.endsWith('/countries')?{countries:paises}:
-      path.endsWith('/temporary-coverages/mine')?{coverages:[{id_permiso_temporal:otro,id_pais:otro,inicio_at:'2026-01-01',fin_at:'2099-12-31'}]}:
+      path.endsWith('/temporary-coverages/mine')?{coverages:coberturas}:
       path.endsWith('/coordinators')?{coordinators:[{id_usuario:id,nombre:'Ana',correo:'ana@example.org',id_pais:id,activo:true,version:1}]}:
       path.endsWith('/organizations')?{organizations:organizaciones.filter(o=>!url.searchParams.get('id_pais')||o.id_pais===url.searchParams.get('id_pais'))}:
       path.endsWith('/plans')?{plans:organizaciones.map(plan)}:path.endsWith('/programs')?{programs:[]}:{organization:organizaciones[0]};
@@ -94,4 +95,26 @@ test('bandera fallida conserva país y alternativa; invitados es legible en móv
   await expect(page.locator('#invitados-lista article')).toHaveCount(1);
   expect(await page.locator('#solicitudes-invitado').evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true);
   await page.screenshot({path:info.outputPath('invitados-movil.png'),fullPage:true});
+});
+
+test('al revocar cobertura vuelve el contexto territorial al país principal',async({page})=>{
+  rol='COORD';await page.goto('/planes/nuevo');
+  await expect(page.locator('#id_organizacion option')).toHaveCount(3);
+  coberturas=[];await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(page.locator('#selector-territorio button[data-pais="22222222-2222-4222-8222-222222222222"]')).toHaveCount(0);
+  await expect(page.locator('#selector-territorio button[data-pais="11111111-1111-4111-8111-111111111111"][aria-checked="true"]')).toBeVisible();
+  await expect(page.locator('#id_organizacion option')).toHaveCount(2);
+  await expect(page.locator('#id_organizacion')).not.toContainText('Comedor Argentina');
+});
+test('selector territorial distingue sesión vencida, permisos y conexión',async({page})=>{
+  rol='COORD';let status=401;
+  await page.route('**/api/v1/organizations/temporary-coverages/mine',r=>r.fulfill({status,json:{ok:false,error:{code:status===401?'SESION_REQUERIDA':'ERROR',message:'Fallo de prueba'},data:null}}));
+  await page.goto('/organizaciones');
+  const aviso=page.locator('#selector-territorio-ayuda');
+  await expect(aviso).toContainText('Tu sesión venció');
+  status=403;await page.evaluate(()=>window.dispatchEvent(new Event('fge:territorio-refrescar')));
+  await expect(aviso).toContainText('no tiene permisos');
+  status=503;await page.evaluate(()=>window.dispatchEvent(new Event('fge:territorio-refrescar')));
+  await expect(aviso).toContainText('No fue posible conectar');
+  await expect(page.locator('#selector-territorio-reintentar')).toBeVisible();
 });

@@ -25,6 +25,9 @@
   >
     Consultando los territorios disponibles para tu sesión.
   </p>
+  <button id="selector-territorio-reintentar" type="button" class="mt-2 rounded-lg px-2 py-1 text-xs font-semibold text-white underline" hidden>
+    Reintentar
+  </button>
 </div>
 
 <script>
@@ -33,6 +36,7 @@
     listarMisCoberturasVigentes,
     listarPaisesOrganizaciones,
   } from '../../lib/organizaciones/cliente';
+  import { invalidarAlcanceGestion } from '../../lib/territorio/permisos';
 
   type Territorio = {
     id_pais: string;
@@ -46,11 +50,13 @@
   const contenedor = document.querySelector<HTMLElement>('#selector-territorio');
   const opciones = document.querySelector<HTMLElement>('#selector-territorio-opciones');
   const ayuda = document.querySelector<HTMLElement>('#selector-territorio-ayuda');
+  const reintentar = document.querySelector<HTMLButtonElement>('#selector-territorio-reintentar');
 
   const CLAVE_TERRITORIO = 'fge.territorio.activo';
 
   let principal: Territorio | undefined;
   let coberturasRecibidas: Territorio[] = [];
+  let firmaCoberturas: string | undefined;
 
   /**
    * El backend ya devuelve únicamente coberturas vigentes y no revocadas.
@@ -184,6 +190,7 @@
       ...territorios.map((territorio) => tarjeta(territorio, territorio.id_pais === activo, seleccionable)),
     );
     contenedor.hidden = false;
+    if (reintentar) reintentar.hidden = true;
     sessionStorage.setItem(CLAVE_TERRITORIO, activo);
 
     ayuda.textContent = seleccionable
@@ -277,14 +284,34 @@
         }];
       });
 
+      const firmaNueva = coberturasRecibidas
+        .map(({ id_pais, inicio_at, fin_at }) => `${id_pais}:${inicio_at ?? ''}:${fin_at ?? ''}`)
+        .sort()
+        .join('|');
+      if (firmaCoberturas !== undefined && firmaCoberturas !== firmaNueva) {
+        invalidarAlcanceGestion();
+        window.dispatchEvent(new CustomEvent('fge:alcance-gestion-cambiado'));
+      }
+      firmaCoberturas = firmaNueva;
+
       renderizarSelector(true);
     } catch (error) {
       // Fallo cerrado: no mostrar opciones territoriales cuya autorización
       // no se pudo verificar. El servidor valida igualmente cada operación.
       sessionStorage.removeItem(CLAVE_TERRITORIO);
       notificarTerritorioActivo('');
-      contenedor.hidden = true;
+      contenedor.hidden = false;
       opciones.replaceChildren();
+      const fallo = error as { status?: number; code?: string };
+      const mensaje = fallo.status === 401 || fallo.code === 'SESION_REQUERIDA'
+        ? 'Tu sesión venció. Inicia sesión nuevamente para consultar tus territorios.'
+        : fallo.status === 403
+          ? 'Tu cuenta no tiene permisos para consultar coberturas territoriales.'
+          : error instanceof TypeError || fallo.status === 0 || (fallo.status !== undefined && fallo.status >= 500)
+            ? 'No fue posible conectar con el servicio de territorios. Revisa tu conexión e inténtalo otra vez.'
+            : 'No fue posible verificar tus territorios. Inténtalo nuevamente.';
+      ayuda.textContent = mensaje;
+      if (reintentar) reintentar.hidden = false;
       console.error(
         'No fue posible preparar el selector territorial:',
         error,
@@ -293,6 +320,8 @@
   }
 
   void iniciar();
+  reintentar?.addEventListener('click', () => void iniciar());
+  window.addEventListener('fge:alcance-gestion-cambiado', () => location.reload());
 
   // Una cobertura puede vencer o ser revocada desde otra sesión. Al volver a
   // enfocar la aplicación y, como respaldo, cada minuto visible, se vuelve a

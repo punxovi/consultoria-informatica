@@ -17,6 +17,11 @@ const SIN_ALCANCE: AlcanceGestion = { todos: false, paises: new Set() };
 
 let alcanceEnCurso: Promise<AlcanceGestion> | undefined;
 
+/** Descarta el alcance memoizado cuando cambia una cobertura o la sesión. */
+export function invalidarAlcanceGestion(): void {
+  alcanceEnCurso = undefined;
+}
+
 function esRol(rol: UserRole, codigo: string): boolean {
   return rol.codigo.toLocaleUpperCase('es-CL').includes(codigo);
 }

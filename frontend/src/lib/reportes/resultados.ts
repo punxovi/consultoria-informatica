@@ -27,7 +27,7 @@ export async function cargarOpcionesIndicadoresYResultados(
 ) {
   const [acciones, organizaciones] = await Promise.all([
     listarAcciones(),
-    listarOrganizaciones().catch(() => []),
+    listarOrganizaciones(),
   ]);
   const paisDe = new Map(organizaciones.map((o) => [o.id_organizacion, o.id_pais]));
   const indicadores = new Map<string, OpcionReporte>();

@@ -36,7 +36,7 @@ test('Consulta de auditoría: filtros, seguridad, paginación y medición RNF14'
     FROM generate_series(1,20000) n`,[cl,ar,usuarios.COORD,usuarios.ADMIN]);
   await db.exec('ANALYZE fge_private.historial_cambios');
   const rpc=(f,role='ADMIN')=>comoUsuario(db,role,async tx=>(await tx.query('SELECT public.consultar_eventos_auditoria($1::jsonb) AS j',[JSON.stringify(f)])).rows[0].j);
-  const combined={id_usuario:usuarios.COORD,id_pais:cl,usuario:'actor@example.invalid',pais:'CL',desde:'2026-10-31',hasta:'2026-10-31',operacion:'INSERT',entidad:'reportes'};
+  const combined={id_usuario:usuarios.COORD,id_pais:cl,usuario:'actor@example.invalid',pais:'CL',desde:'2026-10-31',hasta:'2026-10-31',operacion:'crear',entidad:'reportes'};
   await t.test('intersección real de filtros y país del evento prevalece sobre la asignación',async()=>{
     const result=await rpc({...combined,limit:5});
     assert.equal(result.events.length,5);
@@ -88,6 +88,7 @@ test('Consulta de auditoría: filtros, seguridad, paginación y medición RNF14'
     const base=gateway+'/api/v1/audit/events';
     const headers={authorization:'Bearer qa-admin'};
     const query=new URLSearchParams({...combined,limit:'20'});
+  assert.equal(query.get('operacion'),'crear');
     const first=await fetch(base+'?'+query,{headers});
     assert.equal(first.status,200);
     const cursor=(await first.json()).data.nextCursor;

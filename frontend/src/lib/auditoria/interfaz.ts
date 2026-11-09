@@ -32,6 +32,7 @@ export async function iniciarAuditoria() {
   let siguiente: string | null = null;
   let objetivo = 0;
   let autorizado = false;
+  let revision = 0;
   // Si se cambia un filtro mientras se consulta, se vuelve a consultar al terminar.
   let repetir = false;
   let espera: ReturnType<typeof setTimeout> | undefined;
@@ -85,6 +86,7 @@ export async function iniciarAuditoria() {
   }
   async function cargar(pagina = 0) {
     if (curso || !autorizado) return;
+    const revisionConsulta = revision;
     curso = true; objetivo = pagina; controles();
     q('error').hidden = true; q('reintento').hidden = true;
     q('estado').textContent = 'Consultando historial…';
@@ -92,11 +94,13 @@ export async function iniciarAuditoria() {
     q('criterios').textContent = `Filtros aplicados: ${campos.filter(c => filtros[c]).map(c => `${etiquetas[c]}: ${textoOpcion.get(filtros[c]) ?? filtros[c]}`).join(' · ') || 'Todos los eventos'}`;
     try {
       const respuesta = await cliente.consultar(filtros, cursores[pagina]);
+      if (!autorizado || revisionConsulta !== revision) return;
       numero = pagina; siguiente = respuesta.nextCursor;
       pintar(respuesta.events);
       q('estado').textContent = respuesta.events.length ? `${respuesta.events.length} ${respuesta.events.length === 1 ? 'cambio' : 'cambios'} en esta página.` : 'No hay eventos para los criterios aplicados.';
       q('pagina').textContent = `Página ${numero + 1}`;
     } catch (error) {
+      if (!autorizado || revisionConsulta !== revision) return;
       siguiente = null;
       q('estado').textContent = '';
       q('error').textContent = mensajeError(error); q('error').hidden = false; q('reintento').hidden = false;
@@ -110,16 +114,23 @@ export async function iniciarAuditoria() {
       }
     } finally {
       curso = false; controles();
-      if (repetir) { repetir = false; aplicar(); }
+      if (repetir && autorizado) { repetir = false; void cargar(0); }
     }
   }
   // Los filtros se aplican solos: al elegir una opción o fecha, y en «Persona» al dejar de escribir.
   function aplicar() {
     if (!autorizado) return;
-    if (curso) { repetir = true; return; }
     errores();
     const resultado = filtrosSchema.safeParse(leer());
+    const cambioValido = resultado.success && campos.some(c => resultado.data[c] !== filtros[c]);
+    if (!resultado.success || cambioValido) {
+      revision++;
+      q('resultados').replaceChildren(); q('pagina').textContent = '';
+      q('estado').textContent = ''; q('criterios').textContent = '';
+      siguiente = null; numero = 0; cursores = [undefined];
+    }
     if (!resultado.success) {
+      repetir = false;
       for (const issue of resultado.error.issues) {
         const campo = String(issue.path[0]);
         q(`error-${campo}`).textContent = issue.message; q(`error-${campo}`).hidden = false;
@@ -127,8 +138,10 @@ export async function iniciarAuditoria() {
       }
       return;
     }
-    if (campos.every(c => resultado.data[c] === filtros[c])) return;
+    if (!cambioValido) return;
     filtros = resultado.data; cursores = [undefined]; numero = 0; siguiente = null;
+    if (curso) { repetir = true; return; }
+    repetir = false;
     void cargar();
   }
   form.addEventListener('submit', event => { event.preventDefault(); clearTimeout(espera); aplicar(); });
@@ -144,6 +157,13 @@ export async function iniciarAuditoria() {
   });
   q('anterior').addEventListener('click', () => { if (numero > 0) void cargar(numero - 1); });
   q('reintentar').addEventListener('click', () => void cargar(objetivo));
+  function retirarHistorialPorSesionPerdida() {
+    autorizado = false; revision++; repetir = false; siguiente = null;
+    q('resultados').replaceChildren(); q('pagina').textContent = '';
+    q('criterios').textContent = ''; q('estado').textContent = 'Tu sesión expiró. Vuelve a iniciar sesión.';
+    q('error').hidden = true; q('reintento').hidden = true; controles();
+  }
+  window.addEventListener('fge:sesion-perdida', retirarHistorialPorSesionPerdida);
   // País como lista: se usan los países registrados; si no cargan, se puede filtrar por los demás campos.
   async function cargarPaises() {
     try {
@@ -153,6 +173,10 @@ export async function iniciarAuditoria() {
     } catch { /* El selector queda con «Todos los países». */ }
   }
   controles();
+  getSupabaseClient().auth.onAuthStateChange((evento, sesion) => {
+    if (sesion || evento !== 'SIGNED_OUT') return;
+    retirarHistorialPorSesionPerdida();
+  });
   try {
     autorizado = (await getUserRoles()).some(rol => rol.codigo === 'ADMIN');
     if (!autorizado) return;
