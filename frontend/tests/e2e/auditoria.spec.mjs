@@ -14,10 +14,16 @@ test.beforeEach(async ({ context }) => {
   await context.route('**/api/v1/countries', r => r.fulfill({json:{ok:true,data:{countries:[pais('p-ar','Argentina','AR'),pais('p-cl','Chile','CL')]}}}));
   await context.route('**/api/v1/audit/events?**', async r => {
     estado.requests.push(r.request());
+    const query = new URL(r.request().url()).searchParams;
     if(estado.delay) await new Promise(resolve=>setTimeout(resolve,estado.delay));
     if(estado.error) return r.fulfill({status:404,json:{ok:false,error:{code:'RUTA_NO_ENCONTRADA',message:'No existe'},data:null}});
-    const cursor = new URL(r.request().url()).searchParams.get('cursor');
-    return r.fulfill({json:{ok:true,data:{events:estado.events,nextCursor:cursor ? null : 'pagina2'}}});
+    const cursor = query.get('cursor');
+    const events = estado.late && query.get('pais') === 'Chile'
+      ? [{ ...evento, id: 'stale', usuario: 'Respuesta antigua' }]
+      : estado.late && query.get('pais') === 'Argentina'
+        ? [{ ...evento, id: 'latest', usuario: 'Respuesta vigente' }]
+        : estado.events;
+    return r.fulfill({json:{ok:true,data:{events,nextCursor:cursor ? null : 'pagina2'}}});
   });
 });
 async function abrir(page) { await page.goto('/administracion/auditoria'); await expect(page.locator('#audit-estado')).toContainText('en esta página'); }
@@ -122,4 +128,35 @@ test('describe en lenguaje claro altas, cambios, eliminaciones e inicios de sesi
   await expect(tabla).toContainText('Eliminó el producto «Bolso». Queda archivado en el historial.');
   await expect(tabla).toContainText('Intento de inicio de sesión fallido');
   await expect(tabla).not.toContainText('127.0.0.1');
+});
+
+test('descarta una respuesta tardía cuando cambian los filtros', async ({ page }) => {
+  await abrir(page);
+  estado.late = true; estado.delay = 350;
+  await page.locator('#audit-pais').selectOption('Chile');
+  await page.locator('#audit-pais').selectOption('Argentina');
+  await expect(page.locator('#audit-resultados')).toContainText('Respuesta vigente');
+  await expect(page.locator('#audit-resultados')).not.toContainText('Respuesta antigua');
+  await expect(page.locator('#audit-criterios')).toContainText('País: Argentina');
+});
+
+test('un filtro inválido limpia las tarjetas que ya estaban cargadas', async ({ page }) => {
+  await abrir(page);
+  await expect(page.locator('#audit-resultados article')).toHaveCount(1);
+  await page.locator('#audit-desde').fill('2026-10-29');
+  await page.locator('#audit-hasta').fill('2026-10-28');
+  await expect(page.locator('#audit-error-hasta')).toBeVisible();
+  await expect(page.locator('#audit-resultados article')).toHaveCount(0);
+  await expect(page.locator('#audit-pagina')).toBeEmpty();
+});
+
+test('al perder la sesión se retira el historial y la respuesta pendiente no lo restaura', async ({ page }) => {
+  await abrir(page);
+  estado.delay = 350;
+  await page.locator('#audit-pais').selectOption('Chile');
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('fge:sesion-perdida')));
+  await expect(page.locator('#audit-resultados article')).toHaveCount(0);
+  await expect(page.locator('#audit-estado')).toContainText('Tu sesión expiró');
+  await page.waitForTimeout(450);
+  await expect(page.locator('#audit-resultados article')).toHaveCount(0);
 });

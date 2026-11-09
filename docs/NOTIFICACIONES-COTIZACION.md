@@ -10,11 +10,12 @@ El correo de Coordinación incluye referencia, contacto, teléfono, mensaje,
 país, productos, cantidades, unidades y organizaciones. La confirmación informa
 que la solicitud fue recibida y enumera sus productos.
 
-## Configuración requerida
+## Proveedores y configuración requerida
 
-El flujo que ya existía en el proyecto usa SMTP de Supabase Auth para enlaces de
-acceso. Ese mecanismo no permite enviar mensajes arbitrarios de cotización. El
-Backend usa Resend para estos correos; se requiere:
+Los correos de cotización se envían con Resend desde el Backend. SMTP de
+Supabase Auth se usa exclusivamente para los enlaces de inicio de sesión,
+recuperación y acceso; no envía cotizaciones ni confirmaciones de solicitudes.
+Se requiere:
 
 1. Aplicar `supabase/migrations/20261107120000_fge_notificaciones_email_cotizacion.sql`.
 2. Crear una API key en Resend y verificar el dominio o remitente que se usará.

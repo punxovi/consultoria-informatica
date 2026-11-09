@@ -35,7 +35,7 @@ test.beforeEach(async ({ context }) => {
   await context.route('**/api/v1/auth/session', (r) => r.fulfill({ json: { ok: true, data: { authenticated: true, user: { id } } } }));
   await context.route('**/api/v1/programs', (r) => r.fulfill({ json: { ok: true, data: { programs: programas } } }));
   await context.route('**/api/v1/indicators/catalog', (r) => r.fulfill({ json: { ok: true, data: { catalogo } } }));
-  await context.route('**/api/v1/actions', (r) => r.fulfill({ json: { ok: true, data: { actions: [{ id_accion: accionDemo, nombre: 'Acción de prueba' }] } } }));
+  await context.route('**/api/v1/actions', (r) => r.fulfill({ json: { ok: true, data: { actions: [{ id_accion: accionDemo, nombre: 'Acción de prueba', plan: { id_organizacion: organizaciones[1].id_organizacion, id_programa: programas[0].id_programa } }] } } }));
   await context.route(`**/api/v1/actions/${accionDemo}/indicators`, (r) => r.fulfill({ json: { ok: true, data: { indicadores: indicadoresAsociados } } }));
   await context.route('**/api/v1/reports/consolidated**', (r) => {
     const query = new URL(r.request().url()).searchParams;
@@ -127,7 +127,7 @@ test('filtros: etiquetas seleccionadas, país acota organizaciones, quitar y res
   await page.locator('#rep-programa').selectOption({ label: 'Programa Alimentación' });
   await page.locator('#rep-indicadores-opciones label', { hasText: 'Familias atendidas' }).click();
   const etiquetas = page.locator('#rep-seleccion .rep-chip span');
-  await expect(etiquetas).toHaveText(['País: Chile', 'Organización: Centro Esperanza', 'Programa: Programa Alimentación', 'Indicador: Familias atendidas']);
+  await expect(etiquetas).toHaveText(['País: Chile', 'Organización: Centro Esperanza', 'Programa: Programa Alimentación', 'Indicador: Acción de prueba · Familias atendidas']);
   await expect(page.locator('#rep-seleccion-resumen')).toHaveText('4 filtros seleccionados.');
   await captura(page, info, 'reporte-filtros');
 
@@ -142,6 +142,7 @@ test('filtros: etiquetas seleccionadas, país acota organizaciones, quitar y res
     id_pais: id, id_organizacion: organizaciones[1].id_organizacion, indicadores: [indicadoresAsociados[1].id_indicador],
   });
 
+  await page.locator('#rep-volver-configurar').click();
   await page.locator('#rep-restablecer').click();
   await expect(page.locator('#rep-consulta-listo')).toBeHidden();
   await expect(etiquetas).toHaveCount(0);
@@ -175,14 +176,21 @@ test('resultados reales: carga, error recuperable y parámetros de selección', 
   const indicador = '13700000-0000-4000-8000-0000000000e1';
   const resultado = '13700000-0000-4000-8000-0000000000f1';
   let falla = true;
-  await context.route('**/api/v1/actions', r => r.fulfill({ json: { ok: true, data: { actions: [{id_accion:accion,nombre:'Entrega de alimentos'}] } } }));
+  await context.route('**/api/v1/actions', r => r.fulfill({ json: { ok: true, data: { actions: [{id_accion:accion,nombre:'Entrega de alimentos',plan:{id_organizacion:organizaciones[1].id_organizacion,id_programa:programas[0].id_programa}}] } } }));
   await context.route(`**/api/v1/actions/${accion}/indicators`, r => falla
     ? r.fulfill({status:500,json:{ok:false,error:{code:'ERROR',message:'Error temporal'}}})
     : r.fulfill({json:{ok:true,data:{indicadores:[{id_indicador:indicador,id_accion:accion,id_catalogo:catalogo[0].id_indicador,meta:100,version:1,nombre:'Raciones',unidad_medida:'raciones',resultado:{id_resultado:resultado,id_indicador:indicador,valor_medido:80,fecha_medicion:'2026-06-01',observaciones:null,version:1}}]}}}));
-  await abrir(page);
+  await page.goto('/reportes/nuevo');
   await expect(page.locator('#rep-catalogos-error')).toContainText('Resultados');
+  await expect(page.locator('#rep-catalogos-error-texto')).toContainText('No fue posible cargar');
   falla = false;
   await page.locator('#rep-reintentar').click();
+  await page.locator('#rep-pais').selectOption(id);
+  await page.locator('#rep-organizacion').selectOption(organizaciones[1].id_organizacion);
+  await page.locator('#rep-programa').selectOption(programas[0].id_programa);
+  await expect(page.locator('#rep-indicadores-opciones')).toContainText('Entrega de alimentos');
+  await expect(page.locator('#rep-resultados-opciones')).toContainText('80 raciones');
+  await page.locator('#rep-indicadores-opciones input').check();
   await expect(page.locator('#rep-resultados-opciones')).toContainText('Entrega de alimentos · Raciones: 80 raciones');
   await page.locator('#rep-resultados-opciones input').check();
   await expect(page.locator('#rep-seleccion')).toContainText('Resultado: Entrega de alimentos');
@@ -190,7 +198,32 @@ test('resultados reales: carga, error recuperable y parámetros de selección', 
   await page.locator('#rep-fecha-inicio').fill('2026-01-01');
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await page.locator('#rep-solicitar').click();
-  expect((await page.evaluate(()=>window.detalleSolicitud)).resultados).toEqual([resultado]);
+  expect(await page.evaluate(()=>window.detalleSolicitud)).toMatchObject({
+    id_pais: id,
+    id_organizacion: organizaciones[1].id_organizacion,
+    id_programa: programas[0].id_programa,
+    indicadores: [indicador],
+    resultados: [resultado],
+  });
+});
+
+test('un fallo al cargar Organizaciones se informa y permite reintentar', async ({ page, context }) => {
+  let falla = true;
+  await context.route('**/api/v1/organizations**', async (r) => {
+    const url = new URL(r.request().url());
+    if (url.pathname.endsWith('/countries')) return r.fulfill({ json: { ok: true, data: { countries: paises } } });
+    if (falla) return r.fulfill({ status: 500, json: { ok: false, error: { code: 'ERROR', message: 'Fallo temporal' }, data: null } });
+    return r.fulfill({ json: { ok: true, data: { organizations: organizaciones } } });
+  });
+  await page.goto('/reportes/nuevo');
+  await expect(page.locator('#rep-catalogos-error')).toBeVisible();
+  await expect(page.locator('#rep-catalogos-error-texto')).toContainText('Organizaciones');
+  await page.locator('#rep-pais').selectOption(id);
+  await expect(page.locator('#rep-indicadores-opciones')).not.toContainText('No hay indicadores relacionados');
+  falla = false;
+  await page.locator('#rep-reintentar').click();
+  await expect(page.locator('#rep-catalogos-error')).toBeHidden();
+  await expect(page.locator('#rep-organizacion option')).toHaveCount(3);
 });
 
 test('error al cargar un catálogo: informa, mantiene los demás filtros y permite reintentar', async ({ page, context }) => {
@@ -281,7 +314,7 @@ test('(respuesta simulada) vista previa: período, criterios, secciones de HU22 
 
   // Período y criterios aplicados, con los nombres elegidos por el usuario.
   await expect(vista.locator('[data-vp-periodo] dd')).toHaveText('01/01/2026 al 31/12/2026');
-  await expect(vista.locator('[data-vp-criterio]')).toHaveText(['PaísChile', 'IndicadorFamilias atendidas']);
+  await expect(vista.locator('[data-vp-criterio]')).toHaveText(['PaísChile', 'IndicadorAcción de prueba · Familias atendidas']);
   await expect(vista.locator('header')).toContainText('Uso interno');
 
   // Las 8 secciones diferenciadas, en el orden del contrato, con su cantidad de registros.
@@ -310,15 +343,13 @@ test('(respuesta simulada) vista previa: período, criterios, secciones de HU22 
   expect(await page.evaluate(() => window.inyectado)).toBeUndefined();
 
   // Navegación por el índice y secciones plegables.
-  await vista.locator('.rep-vp-indice-enlace', { hasText: 'Donaciones y recursos' }).click();
-  await expect(page).toHaveURL(/#rep-seccion-donations$/);
-  await expect(vista.locator('#rep-seccion-donations')).toBeInViewport();
   const plegar = vista.locator('#rep-seccion-actions .rep-vp-plegar');
   await plegar.click();
   await expect(vista.locator('#rep-seccion-actions-cuerpo')).toBeHidden();
   await expect(plegar).toHaveAttribute('aria-expanded', 'false');
   await plegar.click();
   await expect(vista.locator('#rep-seccion-actions-cuerpo')).toBeVisible();
+  await expect(vista.locator('.rep-vp-indice-enlace', { hasText: 'Donaciones y recursos' })).toHaveAttribute('href', '#rep-seccion-donations');
 
   expect(parametros.id_pais).toBe(id);
   await captura(page, info, 'vista-previa-escritorio');
@@ -451,7 +482,7 @@ test('(respuesta simulada) cambiar criterios durante la carga descarta la respue
   await expect(page.locator('#rep-consulta-inactivo')).toBeVisible();
   await page.locator('#rep-solicitar').click();
   const segunda = await parametrosSimulados(page, 1);
-  expect(segunda.indicadores).toEqual([catalogo[0].id_indicador]);
+  expect(segunda.indicadores).toEqual([indicadoresAsociados[0].id_indicador]);
   await responderSimulado(page, 1);
   await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
 });
@@ -529,4 +560,30 @@ test('integración HTTP: un error del PDF se informa sin mostrar una descarga ex
   await page.locator('#rep-confirmar-pdf').click();
   await expect(page.locator('#rep-exportacion-error')).toContainText('No fue posible generar el PDF');
   await expect(page.locator('#rep-exportacion-exito')).toBeHidden();
+});
+
+test('vista previa combina territorio, Organización, Programa, Indicador y Resultado del mismo Plan', async ({ page }) => {
+  const indicador = indicadoresAsociados[0];
+  await page.route(`**/api/v1/actions/${accionDemo}/indicators`, (r) => r.fulfill({ json: { ok: true, data: { indicadores: [{ ...indicador, resultado: { id_resultado: '13700000-0000-4000-8000-0000000000f9', id_indicador: indicador.id_indicador, valor_medido: 8, fecha_medicion: '2026-06-01', observaciones: null, version: 1 } }] } } }));
+  await page.goto('/reportes/nuevo');
+  await expect(page.locator('#rep-programa option')).toHaveCount(2);
+  await expect(page.locator('#rep-indicadores-opciones input')).toHaveCount(1);
+  await simularIntegracion(page);
+  await page.locator('#rep-pais').selectOption(id);
+  await page.locator('#rep-organizacion').selectOption(organizaciones[1].id_organizacion);
+  await page.locator('#rep-programa').selectOption(programas[0].id_programa);
+  await page.locator('#rep-indicadores-opciones input').first().check();
+  await page.locator('#rep-resultados-opciones input').check();
+  await completarPeriodo(page);
+  await page.locator('#rep-solicitar').click();
+  await responderSimulado(page, 0);
+  const criterios = page.locator('#rep-vista-previa [data-vp-criterio]');
+  await expect(criterios).toContainText(['PaísChile', 'OrganizaciónCentro Esperanza', 'ProgramaPrograma Alimentación', 'IndicadorAcción de prueba · Raciones entregadas', 'ResultadoAcción de prueba · Raciones entregadas']);
+  expect(await parametrosSimulados(page, 0)).toMatchObject({
+    id_pais: id,
+    id_organizacion: organizaciones[1].id_organizacion,
+    id_programa: programas[0].id_programa,
+    indicadores: [indicador.id_indicador],
+    resultados: ['13700000-0000-4000-8000-0000000000f9'],
+  });
 });
