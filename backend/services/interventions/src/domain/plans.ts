@@ -32,6 +32,9 @@ const FIELDS = [
 ] as const;
 type Field = typeof FIELDS[number];
 
+export const ANNUAL_PERIOD_MIN = 2000;
+export const ANNUAL_PERIOD_MAX = 2100;
+
 function parseField(name: Field, value: unknown): PlanFields[Field] {
   switch (name) {
     case 'id_organizacion': return uuid(value, 'La organización');
@@ -43,8 +46,11 @@ function parseField(name: Field, value: unknown): PlanFields[Field] {
     case 'resultado_esperado': return requiredText(value, 'El resultado esperado', 5000);
     case 'responsable_nombre': return requiredText(value, 'El responsable', 150);
     case 'periodo_anual': {
-      if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 9999) {
-        return invalid('El período anual debe ser un entero entre 1 y 9999.');
+      if (
+        typeof value !== 'number' || !Number.isInteger(value)
+        || value < ANNUAL_PERIOD_MIN || value > ANNUAL_PERIOD_MAX
+      ) {
+        return invalid(`El período anual debe ser un año de 4 dígitos entre ${ANNUAL_PERIOD_MIN} y ${ANNUAL_PERIOD_MAX}.`);
       }
       return value;
     }

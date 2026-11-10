@@ -3,9 +3,33 @@ import { getSupabaseClient, getUserRoles } from '../supabase';
 import { crearTarjetaRegistro, type AcentoRegistro, type OpcionesRegistro, type TonoInsignia } from '../ui/registro.ts';
 import { crearClienteInvitados, type AccionInvitado, type SolicitudInvitado } from './cliente.ts';
 
-const estados = { pendiente: 'Pendiente', aprobado: 'Aprobada', rechazado: 'Rechazada', revocado: 'Revocada' } as const;
-const tonos: Record<SolicitudInvitado['estado'], TonoInsignia> = { pendiente: 'amarillo', aprobado: 'verde', rechazado: 'rosado', revocado: 'neutro' };
-const acentos: Record<SolicitudInvitado['estado'], AcentoRegistro> = { pendiente: 'amarillo', aprobado: 'verde', rechazado: 'rosado', revocado: 'neutro' };
+/** Estado visible: la base mantiene 'aprobado' aunque el plazo de 24 h ya haya vencido. */
+type EstadoVisible = SolicitudInvitado['estado'] | 'expirado';
+const estados: Record<EstadoVisible, string> = { pendiente: 'Pendiente', aprobado: 'Aprobada', rechazado: 'Rechazada', revocado: 'Revocada', expirado: 'Expirada' };
+const tonos: Record<EstadoVisible, TonoInsignia> = { pendiente: 'amarillo', aprobado: 'verde', rechazado: 'rosado', revocado: 'neutro', expirado: 'neutro' };
+const acentos: Record<EstadoVisible, AcentoRegistro> = { pendiente: 'amarillo', aprobado: 'verde', rechazado: 'rosado', revocado: 'neutro', expirado: 'neutro' };
+
+export function estadoVisible(solicitud: SolicitudInvitado, ahora = Date.now()): EstadoVisible {
+  if (solicitud.estado === 'aprobado' && solicitud.expira_en) {
+    const vence = new Date(solicitud.expira_en).getTime();
+    if (!Number.isNaN(vence) && vence <= ahora) return 'expirado';
+  }
+  return solicitud.estado;
+}
+
+function vigencia(solicitud: SolicitudInvitado): string {
+  const estado = estadoVisible(solicitud);
+  if (estado === 'expirado') return `Expiró el ${fechaHora(solicitud.expira_en)}`;
+  if (estado === 'aprobado' && solicitud.expira_en) return `Vigente hasta el ${fechaHora(solicitud.expira_en)}`;
+  if (estado === 'aprobado') return 'Enlace enviado, aún no utilizado';
+  return '';
+}
+
+function fechaHora(valor?: string | null) {
+  if (!valor) return '';
+  const parsed = new Date(valor);
+  return Number.isNaN(parsed.getTime()) ? '' : new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+}
 
 const confirmaciones: Record<AccionInvitado | 'resend', { titulo: string; texto: (s: SolicitudInvitado) => string }> = {
   approve: { titulo: '¿Aprobar solicitud?', texto: (s) => `Se enviará un enlace de acceso a ${s.nombre} (${s.correo}).` },
@@ -102,15 +126,16 @@ export async function iniciarSolicitudesInvitado() {
     const lista = q('invitados-historial-lista'); lista.replaceChildren();
     for (const solicitud of grupo.todas) {
       const item = document.createElement('li');
-      item.className = `registro tarjeta-acento acento-${acentos[solicitud.estado]}`;
+      const visible = estadoVisible(solicitud);
+      item.className = `registro tarjeta-acento acento-${acentos[visible]}`;
       const cabecera = document.createElement('div'); cabecera.className = 'registro-cabecera';
       const textos = document.createElement('div'); textos.className = 'min-w-0';
-      const cuando = document.createElement('p'); cuando.className = 'registro-contexto'; cuando.textContent = `Recibida el ${fecha(solicitud.created_at)}`;
+      const cuando = document.createElement('p'); cuando.className = 'registro-contexto'; cuando.textContent = [`Recibida el ${fecha(solicitud.created_at)}`, vigencia(solicitud)].filter(Boolean).join(' · ');
       const nombre = document.createElement('p'); nombre.className = 'text-sm font-semibold text-neutral-900'; nombre.textContent = solicitud.institucion || 'Institución no informada';
       textos.append(cuando, nombre);
       const estado = document.createElement('span');
-      estado.className = `registro-insignia registro-insignia--${tonos[solicitud.estado]}`;
-      estado.textContent = estados[solicitud.estado];
+      estado.className = `registro-insignia registro-insignia--${tonos[visible]}`;
+      estado.textContent = estados[visible];
       cabecera.append(textos, estado);
       const motivo = document.createElement('p'); motivo.className = 'text-sm text-neutral-600 break-words'; motivo.textContent = solicitud.motivo || 'Motivo no informado';
       item.append(cabecera, motivo);
@@ -121,10 +146,10 @@ export async function iniciarSolicitudesInvitado() {
 
   function renderizar() {
     const grupos = agruparPorCorreo(solicitudes);
-    [grupos.length, grupos.filter(g => g.actual.estado === 'pendiente').length, grupos.filter(g => g.actual.estado === 'aprobado').length]
+    [grupos.length, grupos.filter(g => g.actual.estado === 'pendiente').length, grupos.filter(g => estadoVisible(g.actual) === 'aprobado').length]
       .forEach((n, i) => q(`invitados-metrica-${i}`).textContent = String(n));
     const termino = buscar.value.trim().toLocaleLowerCase('es');
-    const filas = grupos.filter(g => (!filtro.value || g.actual.estado === filtro.value)
+    const filas = grupos.filter(g => (!filtro.value || estadoVisible(g.actual) === filtro.value)
       && g.todas.some(s => [s.nombre, s.correo, s.institucion ?? ''].some(v => v.toLocaleLowerCase('es').includes(termino))));
     q('invitados-conteo').textContent = `${filas.length} de ${grupos.length} solicitantes.`;
     q<HTMLButtonElement>('invitados-limpiar').disabled = ocupado || (!buscar.value && !filtro.value);
@@ -132,13 +157,13 @@ export async function iniciarSolicitudesInvitado() {
     mensaje('invitados-vacio', filas.length ? '' : grupos.length ? 'No hay solicitudes que coincidan con los filtros.' : 'Todavía no hay solicitudes recibidas.');
     for (const grupo of filas) {
       const solicitud = grupo.actual;
-      const vigencia = solicitud.estado === 'aprobado' && solicitud.expira_en ? `Vigente hasta el ${fecha(solicitud.expira_en)}` : '';
+      const visible = estadoVisible(solicitud);
       const veces = grupo.todas.length > 1 ? `${grupo.todas.length} solicitudes` : '';
       lista.append(crearTarjetaRegistro({
-        acento: acentos[solicitud.estado],
-        contexto: [`Recibida el ${fecha(solicitud.created_at)}`, vigencia, veces].filter(Boolean).join(' · '),
+        acento: acentos[visible],
+        contexto: [`Recibida el ${fecha(solicitud.created_at)}`, vigencia(solicitud), veces].filter(Boolean).join(' · '),
         titulo: solicitud.nombre,
-        insignias: [{ texto: estados[solicitud.estado], tono: tonos[solicitud.estado], etiqueta: `Estado: ${estados[solicitud.estado]}` }],
+        insignias: [{ texto: estados[visible], tono: tonos[visible], etiqueta: `Estado: ${estados[visible]}` }],
         datos: [['Correo', solicitud.correo], ['Institución', solicitud.institucion || 'No informada'], ['Motivo', solicitud.motivo || 'No informado']],
         botones: botones(solicitud),
         accion: grupo.todas.length > 1
@@ -166,6 +191,7 @@ export async function iniciarSolicitudesInvitado() {
     try {
       const resultado = await cliente.resolver(actual.solicitud, actual.accion);
       solicitudes = solicitudes.map(s => s.id_invitado === resultado.id_invitado ? resultado : s);
+      window.dispatchEvent(new Event('fge:invitados-actualizados'));
       dialogo.close(); seleccion = null;
       mensaje('invitados-exito', exitos[actual.reenvio ? 'resend' : actual.accion]);
     } catch (error) {

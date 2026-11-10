@@ -65,6 +65,13 @@ export async function iniciarAuditoria() {
     grupo.append(crear('dt', etiqueta), dd);
     return grupo;
   }
+  // El Administrador opera con alcance regional (todos los países), por eso sus
+  // eventos sin país concreto se muestran como «Regional».
+  function paisEvento(evento: Evento): string {
+    if (evento.pais) return evento.pais;
+    if (evento.rol?.toUpperCase() === 'ADMIN') return 'Regional';
+    return 'Sin país asociado';
+  }
   function pintar(eventos: Evento[]) {
     const tarjetas = eventos.map(evento => {
       const legible = describirEvento(evento);
@@ -78,7 +85,7 @@ export async function iniciarAuditoria() {
       insignias.append(crear('span', legible.accion, `registro-insignia registro-insignia--${tono.insignia}`));
       cabecera.append(textos, insignias);
       const datos = crear('dl', '', 'registro-datos');
-      datos.append(dato('Persona', legible.persona, legible.detallePersona || undefined), dato('País', evento.pais ?? 'No disponible'));
+      datos.append(dato('Persona', legible.persona, legible.detallePersona || undefined), dato('País', paisEvento(evento)));
       tarjeta.append(cabecera, datos);
       return tarjeta;
     });

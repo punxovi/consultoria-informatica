@@ -10,6 +10,19 @@ export async function iniciarSolicitudes(){
  const cliente=crearClienteSolicitudes(import.meta.env.PUBLIC_API_BASE_URL??'http://127.0.0.1:4000',async()=>{
   const {data,error}=await getSupabaseClient().auth.getSession();if(error||!data.session)throw new ApiError('SESION_REQUERIDA','Sesión requerida',401);return data.session.access_token;
  });
+ // Cantidad de evidencias disponibles por solicitud (para mostrarlo en la tarjeta).
+ let evidencias=new Map<string,number>();let evidenciasCargadas=false;
+ async function contarEvidencias(ids:string[]){
+  evidencias=new Map();evidenciasCargadas=false;if(!ids.length){evidenciasCargadas=true;return;}
+  try{const {data,error}=await getSupabaseClient().from('evidencias_solicitud_cotizacion').select('id_solicitud').in('id_solicitud',ids).eq('estado_carga','disponible');if(error)throw error;
+   for(const fila of data??[])evidencias.set(fila.id_solicitud,(evidencias.get(fila.id_solicitud)??0)+1);evidenciasCargadas=true;
+  }catch{evidenciasCargadas=false;}
+ }
+ function insigniaEvidencia(id:string){
+  if(!evidenciasCargadas)return null;const n=evidencias.get(id)??0;
+  const e=nodo('span',n?`Con evidencia (${n})`:'Sin evidencia',n?'inline-block rounded-full bg-brand-green/10 px-3 py-1 text-sm font-semibold text-neutral-800':'inline-block rounded-full bg-neutral-100 px-3 py-1 text-sm text-neutral-600');
+  e.setAttribute('aria-label',n?`Tiene ${n} ${n===1?'archivo':'archivos'} de evidencia`:'Sin evidencia adjunta');return e;
+ }
  let filas:Solicitud[]=[];let actual:Solicitud|null=null;let autorizado=false;let cargando=false;let guardando=false;let detalleCargando=false;let epoca=0;let apertura=0;
  const nodo=(tag:string,texto:string,clase='')=>{const e=document.createElement(tag);e.textContent=texto;e.className=clase;return e;};
  const fecha=(valor:string)=>new Intl.DateTimeFormat('es-CL',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(new Date(valor))+' UTC';
@@ -35,7 +48,10 @@ export async function iniciarSolicitudes(){
   q('carga').textContent=filas.length?`${visibles.length} de ${filas.length} ${filas.length===1?'solicitud registrada':'solicitudes registradas'}.`:'No hay solicitudes en tu alcance territorial.';
   for(const s of visibles){
    const card=nodo('article','','rounded-2xl border border-[#DCD8EA] tarjeta-acento acento-morado bg-white p-5 space-y-3 min-w-0');
-   card.append(nodo('span',etiquetas[s.estado],s.estado==='solicitada'?'inline-block rounded-full bg-brand-yellow/20 px-3 py-1 text-sm font-semibold':'inline-block rounded-full bg-brand-green/10 px-3 py-1 text-sm font-semibold'),nodo('h2',s.nombre_solicitante,'text-xl font-bold break-words'),nodo('p',s.correo,'text-sm break-all text-neutral-600'),nodo('p',`Recibida: ${fecha(s.created_at)}`,'text-sm text-neutral-600'),items(s));
+   const insignias=nodo('div','','flex flex-wrap gap-2');
+   insignias.append(nodo('span',etiquetas[s.estado],s.estado==='solicitada'?'inline-block rounded-full bg-brand-yellow/20 px-3 py-1 text-sm font-semibold':'inline-block rounded-full bg-brand-green/10 px-3 py-1 text-sm font-semibold'));
+   const ev=insigniaEvidencia(s.id_solicitud);if(ev)insignias.append(ev);
+   card.append(insignias,nodo('h2',s.nombre_solicitante,'text-xl font-bold break-words'),nodo('p',s.correo,'text-sm break-all text-neutral-600'),nodo('p',`Recibida: ${fecha(s.created_at)}`,'text-sm text-neutral-600'),items(s));
    const b=document.createElement('button');b.type='button';b.className='min-h-12 rounded-xl border border-primary px-4 font-semibold text-primary';b.textContent='Ver solicitud';b.setAttribute('aria-label',`Ver solicitud de ${s.nombre_solicitante}`);b.addEventListener('click',()=>void abrir(s.id_solicitud));card.append(b);q('lista').append(card);
   }controles();
  }
@@ -54,6 +70,8 @@ export async function iniciarSolicitudes(){
   try{const {data,error}=await getSupabaseClient().from('evidencias_solicitud_cotizacion').select('id_evidencia,nombre_original,mime_type,tamano_bytes,created_at').eq('id_solicitud',id).eq('estado_carga','disponible').order('created_at');if(error)throw error;
    for(const item of data??[]){const li=document.createElement('li');li.className='flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCD8EA] p-3';const info=nodo('span',`${item.nombre_original} · ${tiposEvidencia[item.mime_type]??'Archivo'} · ${(item.tamano_bytes/1048576).toFixed(1)} MB`,'min-w-0 break-all text-sm');const b=document.createElement('button');b.type='button';b.textContent='Descargar';b.className='min-h-10 rounded-lg border border-primary px-3 font-semibold text-primary';b.addEventListener('click',()=>void descargarEvidencia(item.id_evidencia,item.nombre_original));li.append(info,b);lista.append(li);}
    mensaje.textContent=(data?.length??0)?`${data!.length} archivo(s) adjunto(s).`:'Aún no hay evidencia adjunta.';
+   // Mantiene sincronizada la insignia de la tarjeta (p. ej. tras agregar evidencia).
+   if(evidenciasCargadas&&(evidencias.get(id)??0)!==(data?.length??0)){evidencias.set(id,data?.length??0);if(!cargando)pintar();}
   }catch{mensaje.textContent='No fue posible cargar la evidencia.';}
  }
  async function descargarEvidencia(id:string,nombre:string){
@@ -75,7 +93,7 @@ export async function iniciarSolicitudes(){
   if(dialogo.open)dialogo.close();q('detalle').replaceChildren();q('lista').replaceChildren();q('form').hidden=true;q('solo-lectura').hidden=true;
   q('confirmacion').hidden=true;q('error').hidden=true;q('carga').textContent='Cargando solicitudes…';
   for(const id of ['total','nuevas','gestionadas'])q(id).textContent='—';controles();
-  try{const datos=await cliente.listar();if(turno!==epoca)return;filas=datos;cargando=false;pintar();}
+  try{const datos=await cliente.listar();if(turno!==epoca)return;await contarEvidencias(datos.map(s=>s.id_solicitud));if(turno!==epoca)return;filas=datos;cargando=false;pintar();}
   catch(error){if(turno!==epoca)return;q('carga').textContent='';q('error-texto').textContent=mensajeError(error);q('error').hidden=false;}
   finally{if(turno===epoca){cargando=false;controles();}}
  }
@@ -112,7 +130,17 @@ export async function iniciarSolicitudes(){
   filtro.addEventListener('change',()=>{if(!cargando)pintar();});
   q('limpiar').addEventListener('click',()=>{filtro.value='todas';if(!cargando)pintar();});
  for(const id of ['reintentar'])q(id).addEventListener('click',()=>{if(!guardando&&!cargando)void cargar();});
- window.addEventListener('fge:territorio-cambiado',()=>void cargar());
+ // El selector territorial vuelve a notificar el país activo cada minuto y al
+ // recuperar el foco (p. ej. al cerrar el selector de archivos). Solo se recarga
+ // —y se cierra el detalle— cuando el territorio cambia de verdad.
+ let territorioActivo:string|undefined;
+ window.addEventListener('fge:territorio-cambiado',e=>{
+  const id=String((e as CustomEvent<{id_pais?:string}>).detail?.id_pais??'');
+  const anterior=territorioActivo;territorioActivo=id;
+  if(anterior===id)return;
+  if(anterior===undefined&&dialogo.open)return;
+  void cargar();
+ });
  controles();
  try{autorizado=(await getUserRoles()).some(r=>['ADMIN','COORD'].includes(r.codigo));if(autorizado)await cargar();}
  catch{q('error-texto').textContent='No se pudo verificar el acceso. Recarga la página.';q('error').hidden=false;}
