@@ -40,6 +40,15 @@ import {mainNavItems} from '../config/nav';
    <p id="sol-detalle-carga" role="status" class="my-4 text-neutral-600"></p>
    <div id="sol-detalle-error" hidden role="alert" class="my-4 text-danger"></div>
    <div id="sol-detalle" class="mt-4 space-y-4"></div>
+   <section id="sol-evidencias" hidden class="mt-6 space-y-3 border-t border-[#DCD8EA] pt-5" aria-labelledby="sol-evidencias-titulo">
+    <div><h3 id="sol-evidencias-titulo" class="text-lg font-semibold">Evidencia de la solicitud</h3><p class="mt-1 text-sm text-neutral-600">Adjunta imágenes, PDF o documentos Word (máximo 20 MB por archivo).</p></div>
+    <form id="sol-evidencia-form" class="flex flex-wrap items-end gap-3">
+     <div class="min-w-0 flex-1"><label for="sol-evidencia-archivo" class="mb-1 block text-sm font-medium">Archivo</label><input id="sol-evidencia-archivo" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required class="block min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white p-2 text-sm" /></div>
+     <Button id="sol-evidencia-subir" type="submit" variant="outline" size="lg">Agregar evidencia</Button>
+    </form>
+    <p id="sol-evidencia-mensaje" role="status" aria-live="polite" class="text-sm text-neutral-600"></p>
+    <ul id="sol-evidencia-lista" class="space-y-2"></ul>
+   </section>
    <form id="sol-form" hidden class="mt-6 space-y-3 border-t border-[#DCD8EA] pt-5">
     <label for="sol-estado" class="block font-semibold">Actualizar estado</label>
     <select id="sol-estado" aria-describedby="sol-estado-error" class="min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3"></select>
