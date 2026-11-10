@@ -53,10 +53,7 @@ const ORGANIZATION_FIELDS = [
 const ORGANIZATION_IMAGE_FIELDS = 'id_archivo,nombre_original,mime_type,tamano_bytes,updated_at';
 const ORGANIZATION_WITH_IMAGE_FIELDS = `${ORGANIZATION_FIELDS},imagen:archivos!archivos_id_organizacion_fkey(${ORGANIZATION_IMAGE_FIELDS})`;
 const INVITED_ORGANIZATION_FIELDS = [
-  'id_organizacion', 'id_pais', 'nombre', 'region_departamento',
-  'comuna_municipio_ciudad', 'publico_objetivo', 'descripcion_breve',
-  'tipo_organizacion', 'numero_beneficiarios', 'pais', 'archived_at', 'version',
-  // La vista segura excluye los datos de contacto del Invitado (SCRUM-173).
+  ...ORGANIZATION_FIELDS.split(','),
 ].join(',');
 
 function withImageFilters(params: URLSearchParams): URLSearchParams {
@@ -273,16 +270,15 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
   async function invitedOrganizationRows(accessToken: string, params: URLSearchParams): Promise<Organization[]> {
     if (!params.has('select')) params.set('select', INVITED_ORGANIZATION_FIELDS);
-    const body = await request('organizaciones_invitado', accessToken, params);
+    const body = await request('organizaciones', accessToken, params);
     if (!Array.isArray(body)) {
       throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolviÃ³ una organizaciÃ³n invÃ¡lida.', 502);
     }
     return adjuntarImagenesInvitado(accessToken, body.map(organization));
   }
 
-  // La vista segura no incluye la imagen. El Invitado puede ver solo la imagen
-  // de organización (migración 20261108010000); si aún no está permitido, se
-  // conserva el listado y la interfaz muestra la imagen predeterminada.
+  // El Invitado usa el mismo contrato de lectura que el resto de la aplicación;
+  // si una imagen falla, se conserva el listado.
   async function adjuntarImagenesInvitado(accessToken: string, filas: Organization[]): Promise<Organization[]> {
     const ids = filas.map((fila) => fila.id_organizacion).filter((id): id is string => typeof id === 'string');
     if (ids.length === 0) return filas;
@@ -306,7 +302,9 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
   async function paisesDeOrganizacionesVisibles(accessToken: string): Promise<CountrySummary[]> {
     let filas: unknown;
     try {
-      filas = await request('organizaciones_invitado', accessToken, new URLSearchParams({ select: 'pais' }));
+      filas = await request('organizaciones', accessToken, new URLSearchParams({
+        select: 'pais:paises!organizaciones_id_pais_fkey(id_pais,codigo_iso,nombre)',
+      }));
     } catch {
       return [];
     }

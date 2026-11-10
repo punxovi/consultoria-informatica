@@ -32,13 +32,13 @@ test('Invitado consulta Organizaciones sin opciones de gestión', async ({ page 
   // El filtro de país se carga para el Invitado.
   await expect(page.locator('#filtro-pais option', { hasText: 'Chile' })).toHaveCount(1);
 });
-test('Invitado entra a la ficha y solo ve los accesos permitidos', async ({ page }) => {
+test('Invitado entra a la ficha y consulta todas las secciones de contenido', async ({ page }) => {
   await page.goto(`/organizaciones/${id}`);
   await expect(page.locator('#unauthorized-message')).toBeHidden();
   await soloLectura(page);
   await expect(page.getByRole('link', { name: /Editar organización/ })).toBeHidden();
   for (const seccion of ['actas', 'compromisos', 'diagnostico', 'donaciones', 'expediente-legal']) {
-    await expect(page.locator(`[data-org-seccion="${seccion}"]`)).toBeHidden();
+    await expect(page.locator(`[data-org-seccion="${seccion}"]`)).toBeVisible();
   }
 });
 test('Invitado abre Inicio, Planes, Programas y Reportes, pero no la administración', async ({ page }) => {

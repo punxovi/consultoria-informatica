@@ -1,24 +1,24 @@
 # Permisos de consulta del rol Invitado
 
-La migración `20261104110000_fge_scrum171_permisos_invitados.sql` aplica la matriz HU23 en RLS y entrega una proyección segura para las consultas de Organizaciones.
+La migracion `20261110100000_fge_invitado_consulta_global_solo_lectura.sql`
+amplia el rol `INVIT` a la consulta global de todo el contenido funcional
+activo, sin restriccion por pais y sin operaciones de modificacion. Las tablas
+de seguridad, administracion, auditoria y notificaciones siguen reservadas.
 
 ## Permitido
 
-- Descripción institucional y Programas.
-- Organizaciones: nombre, tipo, país, región, comuna, descripción general, público objetivo y beneficiarios.
-- Planes: nombre, objetivo, estado y avance.
-- Acciones: nombre, fechas y estado.
-- Contenido multimedia que cuente con una ruta pública específica.
-- Lectura del sitio público.
+- Todo el contenido de negocio activo: paises, organizaciones y sus datos,
+  programas, planes, acciones, actas, compromisos, diagnosticos, indicadores,
+  donaciones, expedientes, evidencias, catalogo y solicitudes de cotizacion.
+- Todos los paises, sin restriccion por alcance territorial.
+- Archivos almacenados en los buckets funcionales.
 
 ## Denegado
 
-- Cualquier `POST`, `PATCH`, `PUT` o `DELETE`.
-- Evidencias internas y archivos no publicables.
-- Teléfono, correo, dirección y otros datos de contacto.
-- Expedientes legales y documentos de identidad.
-- Actas, asistentes, compromisos y responsables.
-- Diagnósticos, donaciones, identidad de donantes y solicitudes de cotización.
-- Auditoría, administración de usuarios y coberturas.
+- Cualquier `POST`, `PATCH`, `PUT` o `DELETE` sobre el contenido.
+- Roles, permisos, perfiles, asignaciones, coberturas, auditoria,
+  notificaciones y administracion de cuentas.
 
-La revocación de la asignación `INVIT` y la expiración de la sesión son evaluadas por las funciones RLS en cada petición; no se confía en el ocultamiento de controles de la interfaz.
+La revocacion de la asignacion `INVIT` y la expiracion de la sesion son
+evaluadas por las funciones RLS en cada peticion; no se confia en el
+ocultamiento de controles de la interfaz.
