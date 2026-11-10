@@ -702,7 +702,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
       const params = new URLSearchParams({
         archived_at: 'is.null',
-        select: DONATION_FIELDS,
+        select: '*,certificados:archivos!id_donacion(id_archivo)',
+        'certificados.tipo_respaldo': 'eq.certificado',
+        'certificados.estado_carga': 'eq.disponible',
+        'certificados.archived_at': 'is.null',
+        'certificados.limit': '1',
         order: 'fecha.desc,created_at.desc',
       });
       if (orgId) {
@@ -712,7 +716,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body)) {
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida de donaciones.', 502);
       }
-      return body.map(donation);
+      return body.map(value => {
+        const { certificados, ...datos } = record(value);
+        return { ...donation(datos), tiene_certificado: Array.isArray(certificados) && certificados.length > 0 };
+      });
     },
 
     async getDonationById(accessToken: string, orgId: string, donationId: string): Promise<Donation> {
@@ -729,6 +736,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         id_programa: input.id_programa,
         categoria: input.categoria,
         categoria_otro: input.categoria_otro,
+        entrega_certificado: input.entrega_certificado,
         tipo_donante: input.tipo_donante,
         origen: input.origen,
         estado: input.estado,

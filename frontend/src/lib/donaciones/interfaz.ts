@@ -173,7 +173,7 @@ export function iniciarDonaciones() {
         datos: [
           ['Aporte', `${describirCategoria(item)} · ${describirAporte(item)}`],
           [recibida ? 'Entrega' : 'Recibe', recibida ? partes.entrega : partes.recibe],
-          ['Procedencia', item.origen ?? 'No registrada'],
+          ['Certificado', item.tiene_certificado === undefined ? 'Sin información' : item.tiene_certificado ? 'Adjunto' : 'Sin adjuntar'],
         ],
         accion: {
           texto: 'Ver detalle',
@@ -330,13 +330,15 @@ export function iniciarDonaciones() {
     q('detalle-aporte').textContent = describirAporte(donacion);
     q('detalle-valor').textContent = describirValor(donacion);
     q('detalle-estado').textContent = donacion.estado ?? 'Sin estado registrado';
+    q('detalle-certificado').textContent = donacion.entrega_certificado === 'entregado'
+      ? 'Entregado al donante' : donacion.entrega_certificado === 'pendiente' ? 'Pendiente de entrega' : 'Sin registrar';
     q('detalle-descripcion').textContent = donacion.descripcion;
 
     const siguiente = siguienteEstado(donacion.estado);
     q<HTMLButtonElement>('editar').hidden = !puedeGestionar;
     const boton = q<HTMLButtonElement>('avanzar-estado');
     boton.hidden = !siguiente || !puedeGestionar;
-    boton.textContent = siguiente ? `Avanzar a ${siguiente}` : '';
+    boton.textContent = siguiente ? { Comprometida: 'Registrar compromiso', Recibida: 'Confirmar recepción', Entregada: 'Confirmar entrega', Cerrada: 'Cerrar donación' }[siguiente] : '';
   }
 
   async function abrirDetalle(donacion: Donacion) {
@@ -485,6 +487,7 @@ export function iniciarDonaciones() {
   }
 
   function abrirFormularioCreacion() {
+    q<HTMLSelectElement>('entrega-certificado').options[0].disabled = false;
     modoFormulario = 'crear';
     formDonacion.querySelectorAll('option[data-historica]').forEach(opcion => opcion.remove());
     formDonacion.reset();
@@ -508,6 +511,8 @@ export function iniciarDonaciones() {
     q<HTMLInputElement>('fecha').value = donacion.fecha.slice(0, 10);
     q<HTMLSelectElement>('tipo-movimiento').value = donacion.tipo_movimiento;
     q<HTMLInputElement>('contraparte').value = donacion.contraparte_nombre;
+    q<HTMLSelectElement>('entrega-certificado').value = donacion.entrega_certificado ?? '';
+    q<HTMLSelectElement>('entrega-certificado').options[0].disabled = Boolean(donacion.entrega_certificado);
     q<HTMLSelectElement>('tipo-donante').value = donacion.tipo_donante ?? '';
     q<HTMLInputElement>('origen').value = donacion.origen ?? '';
     categoriaSelect.value = donacion.categoria ?? (donacion.tipo_aporte === 'dinero' ? 'Dinero' : 'Servicio');
@@ -556,6 +561,7 @@ export function iniciarDonaciones() {
       categoria_otro: datos.categoria_otro ?? null,
       tipo_donante: datos.tipo_donante,
       origen: datos.origen,
+      ...(datos.entrega_certificado ? { entrega_certificado: datos.entrega_certificado } : {}),
       estado: datos.estado,
       valor_estimado: datos.valor_estimado ?? null,
       moneda_valorizacion: datos.moneda_valorizacion ?? null,
@@ -597,6 +603,7 @@ export function iniciarDonaciones() {
       categoria_otro: texto('categoria_otro'),
       tipo_donante: texto('tipo_donante'),
       origen: texto('origen'),
+      entrega_certificado: texto('entrega_certificado'),
       estado: texto('estado'),
       fecha: String(fd.get('fecha') ?? ''),
       tipo_movimiento: fd.get('tipo_movimiento') as 'recibida' | 'entregada',
@@ -780,7 +787,7 @@ export function iniciarDonaciones() {
 
   q('detalle-volver').addEventListener('click', () => {
     cambiarVista('listado');
-    renderListadoDonaciones();
+    void cargarDonaciones();
   });
 
   // La ficha entrega el nombre de la organización y del país después de montar la sección.
