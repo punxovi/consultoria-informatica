@@ -45,7 +45,31 @@ export async function iniciarSolicitudes(){
   // «Nueva» es solo el estado inicial: no se puede volver a ella (la base de datos también lo impide).
   for(const estado of [...new Set(s.estados_permitidos)].filter(e=>e!==s.estado&&e!=='solicitada'))estados.add(new Option(etiquetas[estado],estado));
   q('form').hidden=estados.options.length===1;q('solo-lectura').hidden=estados.options.length!==1;
+  q('evidencias').hidden=false;q<HTMLFormElement>('evidencia-form').hidden=s.estados_permitidos.length===0;void cargarEvidencias(s.id_solicitud);
  }
+ const tiposEvidencia:Record<string,string>={'image/jpeg':'JPEG','image/png':'PNG','image/webp':'WebP','application/pdf':'PDF','application/msword':'Word','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'Word'};
+ function nombreSeguro(value:string){return value.replace(/[\\/\r\n\0]/g,'_').slice(0,255)||'evidencia';}
+ async function cargarEvidencias(id:string){
+  const lista=q<HTMLUListElement>('evidencia-lista');const mensaje=q('evidencia-mensaje');lista.replaceChildren();mensaje.textContent='Cargando archivos…';
+  try{const {data,error}=await getSupabaseClient().from('evidencias_solicitud_cotizacion').select('id_evidencia,nombre_original,mime_type,tamano_bytes,created_at').eq('id_solicitud',id).eq('estado_carga','disponible').order('created_at');if(error)throw error;
+   for(const item of data??[]){const li=document.createElement('li');li.className='flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCD8EA] p-3';const info=nodo('span',`${item.nombre_original} · ${tiposEvidencia[item.mime_type]??'Archivo'} · ${(item.tamano_bytes/1048576).toFixed(1)} MB`,'min-w-0 break-all text-sm');const b=document.createElement('button');b.type='button';b.textContent='Descargar';b.className='min-h-10 rounded-lg border border-primary px-3 font-semibold text-primary';b.addEventListener('click',()=>void descargarEvidencia(item.id_evidencia,item.nombre_original));li.append(info,b);lista.append(li);}
+   mensaje.textContent=(data?.length??0)?`${data!.length} archivo(s) adjunto(s).`:'Aún no hay evidencia adjunta.';
+  }catch{mensaje.textContent='No fue posible cargar la evidencia.';}
+ }
+ async function descargarEvidencia(id:string,nombre:string){
+  q('evidencia-mensaje').textContent='Descargando archivo…';try{const {data,error}=await getSupabaseClient().storage.from('fge-cotizaciones').download(`${actual!.id_solicitud}/${id}`);if(error||!data)throw error;const url=URL.createObjectURL(data);const a=document.createElement('a');a.href=url;a.download=nombre;a.click();URL.revokeObjectURL(url);q('evidencia-mensaje').textContent='Descarga iniciada.';}catch{q('evidencia-mensaje').textContent='No fue posible descargar el archivo.';}
+ }
+ q<HTMLFormElement>('evidencia-form').addEventListener('submit',async e=>{
+  e.preventDefault();if(!actual||guardando||detalleCargando)return;const file=q<HTMLInputElement>('evidencia-archivo').files?.[0];if(!file)return;
+  if(!tiposEvidencia[file.type]||file.size<1||file.size>20*1024*1024){q('evidencia-mensaje').textContent='Elige una imagen, PDF o Word de hasta 20 MB.';return;}
+  const idSolicitud=actual.id_solicitud;const boton=q<HTMLButtonElement>('evidencia-subir');boton.disabled=true;q('evidencia-mensaje').textContent='Guardando evidencia…';
+  try{const supabase=getSupabaseClient();const id=crypto.randomUUID();const {error:crearError}=await supabase.from('evidencias_solicitud_cotizacion').insert({id_evidencia:id,id_solicitud:idSolicitud,bucket_id:'fge-cotizaciones',ruta_objeto:`${idSolicitud}/${id}`,nombre_original:nombreSeguro(file.name),mime_type:file.type,tamano_bytes:file.size,estado_carga:'reservado'});if(crearError)throw crearError;
+   const {error:cargaError}=await supabase.storage.from('fge-cotizaciones').upload(`${idSolicitud}/${id}`,file,{contentType:file.type,upsert:false});if(cargaError)throw cargaError;
+   const {error:actualizarError}=await supabase.from('evidencias_solicitud_cotizacion').update({estado_carga:'disponible'}).eq('id_evidencia',id).eq('estado_carga','reservado');if(actualizarError)throw actualizarError;
+   q<HTMLFormElement>('evidencia-form').reset();await cargarEvidencias(idSolicitud);
+  }catch{q('evidencia-mensaje').textContent='No se pudo guardar el archivo. Si aparece como cargando, vuelve a intentarlo o recarga el detalle.';}
+  finally{boton.disabled=false;}
+ });
  async function cargar(){
   if(!autorizado)return;const turno=++epoca;++apertura;filas=[];actual=null;guardando=false;detalleCargando=false;cargando=true;
   if(dialogo.open)dialogo.close();q('detalle').replaceChildren();q('lista').replaceChildren();q('form').hidden=true;q('solo-lectura').hidden=true;
@@ -57,7 +81,7 @@ export async function iniciarSolicitudes(){
  }
  async function abrir(id:string){
   if(cargando||guardando||detalleCargando)return;const turno=epoca;const ventana=++apertura;actual=null;detalleCargando=true;
-  q('detalle').replaceChildren();q('form').hidden=true;q('solo-lectura').hidden=true;q('detalle-error').hidden=true;q('estado-error').hidden=true;
+  q('detalle').replaceChildren();q('form').hidden=true;q('solo-lectura').hidden=true;q('evidencias').hidden=true;q('evidencia-lista').replaceChildren();q('detalle-error').hidden=true;q('estado-error').hidden=true;
   q('detalle-carga').textContent='Cargando detalle…';dialogo.showModal();q('cerrar').focus();controles();
   try{const s=await cliente.obtener(id);if(turno!==epoca||ventana!==apertura)return;mostrarDetalle(s);}
   catch(error){if(turno!==epoca||ventana!==apertura)return;q('detalle-error').textContent=mensajeError(error);q('detalle-error').hidden=false;
@@ -84,7 +108,7 @@ export async function iniciarSolicitudes(){
  });
  q('cerrar').addEventListener('click',()=>{if(!guardando)dialogo.close();});
  dialogo.addEventListener('cancel',e=>{if(guardando)e.preventDefault();});
- dialogo.addEventListener('close',()=>{++apertura;detalleCargando=false;actual=null;q('detalle').replaceChildren();controles();});
+ dialogo.addEventListener('close',()=>{++apertura;detalleCargando=false;actual=null;q('detalle').replaceChildren();q('evidencias').hidden=true;controles();});
   filtro.addEventListener('change',()=>{if(!cargando)pintar();});
   q('limpiar').addEventListener('click',()=>{filtro.value='todas';if(!cargando)pintar();});
  for(const id of ['reintentar'])q(id).addEventListener('click',()=>{if(!guardando&&!cargando)void cargar();});
