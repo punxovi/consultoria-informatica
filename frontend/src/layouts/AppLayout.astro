@@ -116,6 +116,7 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
   import { verificarSesion } from '../lib/auth/cliente';
   import { getSupabaseClient, getUserRoles } from '../lib/supabase';
   import { iniciarContadorCotizaciones } from '../lib/solicitudes-cotizacion/contador';
+  import { iniciarContadorInvitados } from '../lib/invitados/contador';
   import { listarPaisesOrganizaciones } from '../lib/organizaciones/cliente';
 
   interface RolSesion {
@@ -428,8 +429,11 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       console.error('Error obteniendo los datos de perfil:', error);
     }
 
-    if (roles.some(rol => rol.codigo === 'COORD') && !roles.some(rol => rol.codigo === 'ADMIN')) {
+    if (roles.some(rol => rol.codigo === 'COORD' || rol.codigo === 'ADMIN')) {
       iniciarContadorCotizaciones();
+    }
+    if (roles.some(rol => rol.codigo === 'ADMIN')) {
+      iniciarContadorInvitados();
     }
 
     // Mantener la visibilidad original del menú según los roles asignados.

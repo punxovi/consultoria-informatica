@@ -66,7 +66,10 @@ const textos = [
             <div class="md:col-span-2">
               <Input id="nombre" label="Nombre del plan" required maxlength={150} />
             </div>
-            <Input id="periodo_anual" label="Período anual (año)" type="number" required hint="Año al que corresponde el plan." />
+            <div class="flex flex-col gap-1.5">
+              <Input id="periodo_anual" label="Período anual (año)" type="number" required min={2000} max={2100} step={1} placeholder="AAAA" hint="Año de 4 dígitos al que corresponde el plan. Se sugiere el año de la fecha de inicio." />
+              <p id="periodo-anual-aviso" class="text-sm leading-5 text-amber-800" hidden></p>
+            </div>
             <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
             <Input id="fecha_inicio" label="Fecha de inicio" type="date" required />
             <Input id="fecha_termino" label="Fecha de término" type="date" required />
@@ -218,6 +221,7 @@ const textos = [
           }
         }
       }
+      revisarPeriodoAnual();
       campos.disabled = false;
       form.setAttribute('aria-busy', 'false');
       const catalogosListos = Boolean(plan || (organizaciones.length && programas.length));
@@ -275,6 +279,40 @@ const textos = [
       }
     }
   });
+
+  // El período anual normalmente coincide con las fechas del plan, pero puede
+  // diferir (p. ej. planes que comienzan tarde), así que solo se advierte.
+  const inputPeriodo = document.querySelector<HTMLInputElement>('#periodo_anual')!;
+  const inputInicio = document.querySelector<HTMLInputElement>('#fecha_inicio')!;
+  const inputTermino = document.querySelector<HTMLInputElement>('#fecha_termino')!;
+  const avisoPeriodo = document.querySelector<HTMLElement>('#periodo-anual-aviso')!;
+
+  function anioDe(fecha: string): number | null {
+    return /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? Number(fecha.slice(0, 4)) : null;
+  }
+
+  function revisarPeriodoAnual() {
+    const periodo = Number(inputPeriodo.value);
+    const inicio = anioDe(inputInicio.value);
+    const termino = anioDe(inputTermino.value) ?? inicio;
+    if (!inputPeriodo.value || !Number.isInteger(periodo) || inicio === null || termino === null) {
+      avisoPeriodo.hidden = true;
+      return;
+    }
+    const fuera = periodo < inicio || periodo > termino;
+    avisoPeriodo.hidden = !fuera;
+    avisoPeriodo.textContent = fuera
+      ? `El período ${periodo} está fuera de las fechas del plan (${inicio === termino ? inicio : `${inicio}–${termino}`}). Puedes guardarlo igual si corresponde.`
+      : '';
+  }
+
+  inputInicio.addEventListener('change', () => {
+    const inicio = anioDe(inputInicio.value);
+    if (!inputPeriodo.value && inicio !== null) inputPeriodo.value = String(inicio);
+    revisarPeriodoAnual();
+  });
+  inputTermino.addEventListener('change', revisarPeriodoAnual);
+  inputPeriodo.addEventListener('input', revisarPeriodoAnual);
 
   document.querySelector('#recargar-plan')!.addEventListener('click', () => void cargarCatalogos());
   void cargarCatalogos();

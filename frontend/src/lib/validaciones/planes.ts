@@ -20,7 +20,17 @@ const fechaISO = (campo: string) =>
       return !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === valor;
     }, `${campo} debe ser una fecha válida.`);
 
+export const PERIODO_ANUAL_MINIMO = 2000;
+export const PERIODO_ANUAL_MAXIMO = 2100;
+const MENSAJE_PERIODO_ANUAL = `El período anual debe ser un año de 4 dígitos entre ${PERIODO_ANUAL_MINIMO} y ${PERIODO_ANUAL_MAXIMO}.`;
+
 const periodoAnual = z.number({ error: 'El período anual debe ser un año numérico.' })
+  .int('El período anual debe ser entero.')
+  .min(PERIODO_ANUAL_MINIMO, MENSAJE_PERIODO_ANUAL)
+  .max(PERIODO_ANUAL_MAXIMO, MENSAJE_PERIODO_ANUAL);
+
+// Los filtros siguen aceptando cualquier año para poder consultar registros históricos.
+const periodoAnualFiltro = z.number({ error: 'El período anual debe ser un año numérico.' })
   .int('El período anual debe ser entero.')
   .min(1, 'El período anual debe ser mayor que cero.')
   .max(9999, 'El período anual no puede superar 9999.');
@@ -64,7 +74,7 @@ export const listarPlanesSchema = z
   .object({
     id_organizacion: uuid('La organización').optional(),
     id_programa: uuid('El programa').optional(),
-    periodo_anual: periodoAnual.optional(),
+    periodo_anual: periodoAnualFiltro.optional(),
     incluir_archivados: z.boolean({ error: 'incluir_archivados debe ser booleano.' }).default(false),
   })
   .strict();

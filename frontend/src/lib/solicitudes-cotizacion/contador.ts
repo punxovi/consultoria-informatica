@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '../supabase';
+import { getSupabaseClient, getUserRoles } from '../supabase';
 import { paisOperativo } from '../territorio/contexto';
 import { crearClienteSolicitudes } from './cliente';
 
@@ -16,11 +16,14 @@ export function iniciarContadorCotizaciones() {
     if (!indicador || document.hidden) return;
     const turno = ++consulta;
     try {
-      const pais = await paisOperativo();
-      const solicitudes = pais ? await cliente.listar() : [];
+      // El Administrador no tiene país operativo: ve todas las solicitudes nuevas.
+      // El Coordinador solo cuenta las de su país activo.
+      const [pais, roles] = await Promise.all([paisOperativo(), getUserRoles()]);
+      const esAdmin = roles.some(r => r.codigo === 'ADMIN');
+      const solicitudes = pais || esAdmin ? await cliente.listar() : [];
       if (turno !== consulta) return;
       const cantidad = solicitudes.filter(s => s.estado === 'solicitada' &&
-        s.items.some(item => item.organizacion.pais.id_pais === pais)).length;
+        (esAdmin || s.items.some(item => item.organizacion.pais.id_pais === pais))).length;
       indicador.textContent = String(cantidad);
       indicador.setAttribute('aria-label', cantidad + ' solicitudes nuevas');
       indicador.hidden = cantidad === 0;

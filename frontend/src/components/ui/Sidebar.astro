@@ -247,6 +247,7 @@ for (const item of items) {
 
           <span class="min-w-0 flex-1">{item.label}</span>
           {item.href === '/cotizaciones' && <span id="cotizaciones-nuevas" hidden class="rounded-full bg-white px-2 text-sm font-bold text-primary"></span>}
+          {item.href === '/administracion/solicitudes-invitado' && <span id="invitados-pendientes" hidden class="rounded-full bg-white px-2 text-sm font-bold text-primary"></span>}
 
           {isActive && (
             <span
