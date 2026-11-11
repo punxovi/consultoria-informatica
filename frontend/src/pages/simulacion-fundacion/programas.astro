@@ -1,0 +1,115 @@
+---
+// TEMPORAL: página de programas de la simulación del sitio de la fundación.
+import SimulacionLayout from '../../layouts/SimulacionLayout.astro';
+import { programasSimulacion } from '../../lib/simulacion/programas';
+---
+
+<SimulacionLayout title="Programas · Simulación sitio Fundación Gestionar Esperanzas" actual="programas">
+  <!-- Portada -->
+  <section class="relative overflow-hidden bg-[#4C4688] text-white">
+    <div class="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[#1EAFDA]/40" aria-hidden="true"></div>
+    <div class="relative mx-auto max-w-6xl px-4 py-14 md:py-20">
+      <p class="text-sm font-semibold uppercase tracking-wider text-white/70">Fundación Gestionar Esperanzas</p>
+      <h1 class="mt-2 text-3xl font-bold md:text-5xl">Nuestros programas</h1>
+      <p class="mt-4 max-w-2xl text-base text-white/85 md:text-lg">
+        Seis líneas de trabajo para acompañar a las organizaciones comunitarias: desde su formalización hasta proyectos productivos, voluntariado y donaciones.
+      </p>
+    </div>
+  </section>
+
+  <!-- Índice de programas -->
+  <nav
+    aria-label="Ir a un programa"
+    class="sticky top-16 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-sm md:top-20"
+  >
+    <ul class="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none]">
+      {programasSimulacion.map((programa) => (
+        <li class="shrink-0">
+          <a
+            href={`#${programa.id}`}
+            class="inline-flex min-h-10 items-center gap-2 rounded-full border border-neutral-200 px-4 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          >
+            <span class="h-2.5 w-2.5 rounded-full" style={`background:${programa.color}`} aria-hidden="true"></span>
+            {programa.nombre}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+
+  <!-- Programas -->
+  <div class="mx-auto max-w-6xl space-y-8 px-4 py-12 md:space-y-10 md:py-16">
+    {programasSimulacion.map((programa, indice) => (
+      <article
+        id={programa.id}
+        class="scroll-mt-36 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm md:scroll-mt-40"
+        aria-labelledby={`titulo-${programa.id}`}
+      >
+        <header class="relative px-6 pb-6 pt-7 md:px-10 md:pt-9" style={`background:${programa.color}14`}>
+          <span class="absolute inset-y-0 left-0 w-1.5" style={`background:${programa.color}`} aria-hidden="true"></span>
+          <p class="text-xs font-semibold uppercase tracking-wider" style={`color:${programa.color}`}>
+            Programa {indice + 1} · {programa.bajada}
+          </p>
+          <h2 id={`titulo-${programa.id}`} class="mt-2 text-2xl font-bold text-[#252238] md:text-3xl">{programa.nombre}</h2>
+          <p class="mt-3 max-w-3xl text-base leading-relaxed text-neutral-700">{programa.descripcion}</p>
+        </header>
+
+        <div class="space-y-8 px-6 py-7 md:px-10 md:py-9">
+          <section>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-neutral-500">{programa.introPuntos}</h3>
+            <ul class="mt-4 grid gap-3 md:grid-cols-2">
+              {programa.puntos.map((punto) => (
+                <li class="flex gap-3 rounded-2xl bg-[#F7F6FA] p-4">
+                  <span
+                    class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white"
+                    style={`background:${programa.color}`}
+                    aria-hidden="true"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7" /></svg>
+                  </span>
+                  <div>
+                    <p class="font-semibold text-[#252238]">{punto.titulo}</p>
+                    {punto.texto && <p class="mt-1 text-sm leading-relaxed text-neutral-600">{punto.texto}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {programa.extras?.map((extra) => (
+            <section>
+              <h3 class="text-lg font-bold text-[#252238]">{extra.titulo}</h3>
+              {extra.texto && <p class="mt-1 text-sm text-neutral-600">{extra.texto}</p>}
+              {extra.etiquetas && (
+                <ul class="mt-3 flex flex-wrap gap-2">
+                  {extra.etiquetas.map((etiqueta) => (
+                    <li
+                      class="rounded-full border px-3 py-1.5 text-sm font-medium text-[#252238]"
+                      style={`border-color:${programa.color}55;background:${programa.color}0F`}
+                    >{etiqueta}</li>
+                  ))}
+                </ul>
+              )}
+              {extra.puntos && (
+                <dl class="mt-3 grid gap-3 md:grid-cols-2">
+                  {extra.puntos.map((punto) => (
+                    <div class="rounded-2xl border border-neutral-200 p-4">
+                      <dt class="font-semibold text-[#252238]">{punto.titulo}</dt>
+                      {punto.texto && <dd class="mt-1 text-sm leading-relaxed text-neutral-600">{punto.texto}</dd>}
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </section>
+          ))}
+
+          {programa.cierre && (
+            <p class="border-l-4 pl-4 text-base italic leading-relaxed text-neutral-700" style={`border-color:${programa.color}`}>
+              {programa.cierre}
+            </p>
+          )}
+        </div>
+      </article>
+    ))}
+  </div>
+</SimulacionLayout>

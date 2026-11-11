@@ -9,7 +9,12 @@ const { actual } = Astro.props;
     <a href="/catalogo" class="inline-flex min-h-11 shrink-0 items-center" aria-label="Fundación Gestionar Esperanzas · Catálogo">
       <img src="/images/logo-fge-blanco.png" alt="Fundación Gestionar Esperanzas" width="820" height="248" class="h-9 w-auto object-contain md:h-11" />
     </a>
-    <div class="flex items-center gap-x-5">
+    <div class="flex items-center gap-x-3 sm:gap-x-5">
+      <!-- TEMPORAL: vuelve a la simulación del sitio. Al desplegar, apuntar a https://fundaciongestionar.org/ o quitar. -->
+      <a href="/simulacion-fundacion" aria-label="Volver a la página de la fundación" class="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full font-semibold text-[#E5E2F8] transition hover:text-white sm:min-w-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+        <span class="hidden sm:inline">Volver a la página</span>
+      </a>
       <a href="/catalogo" aria-current={actual === 'catalogo' ? 'page' : undefined} class:list={['hidden min-h-12 items-center font-semibold sm:inline-flex', actual === 'catalogo' ? 'text-white underline decoration-white/50 underline-offset-8' : 'text-[#E5E2F8] hover:text-white']}>Catálogo</a>
       <a href="/cotizar" aria-current={actual === 'solicitud' ? 'page' : undefined} class="inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-[#423C76] shadow-sm transition hover:bg-[#F0EEF8] focus-visible:outline-2 focus-visible:outline-white md:min-h-11 md:text-base">
         Mi solicitud <span data-contador aria-label="productos seleccionados" class="inline-flex min-w-6 items-center justify-center rounded-full bg-brand-pink px-1.5 text-xs font-bold text-white">0</span>
