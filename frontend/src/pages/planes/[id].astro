@@ -1,6 +1,7 @@
 ---
 import Icono from '../../components/ui/Icono.astro';
 import BackButton from '../../components/ui/BackButton.astro';
+import MenuAcciones from '../../components/ui/MenuAcciones.astro';
 import Button from '../../components/ui/Button.astro';
 import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
@@ -62,7 +63,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
     ></div>
 
     <div id="detalle-plan" hidden class="space-y-6">
-      <section class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+      <section class="flex items-start justify-between gap-4 md:flex-col md:items-stretch xl:flex-row xl:items-center">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-3">
             <h1 data-plan="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
@@ -72,18 +73,20 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
         </div>
 
         <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
-        <div data-gestion-plan data-gestion hidden class="flex flex-wrap items-center gap-3">
-          <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
-            <Icono nombre="editar" />
-            Editar plan
-          </Button>
-          <EliminarRegistro tipo="plan" id={idPlan} regreso={hrefTrasEliminar} />
+        <div data-gestion-plan data-gestion hidden class="shrink-0">
+          <MenuAcciones etiqueta="Acciones del plan">
+            <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
+              <Icono nombre="editar" />
+              Editar plan
+            </Button>
+            <EliminarRegistro tipo="plan" id={idPlan} regreso={hrefTrasEliminar} />
+          </MenuAcciones>
         </div>
       </section>
 
       <PlanIndicadores />
 
-      <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+      <div class="pestanas rounded-2xl border border-[#E8E5EF] bg-white p-2">
         <div id="plan-tabs" class="flex flex-wrap gap-2 overflow-x-auto" role="tablist" aria-label="Secciones del plan">
           <button
             id="tab-resumen"

@@ -4,6 +4,7 @@ import Button from '../../../../components/ui/Button.astro';
 import DetalleAccionInfo from '../../../../components/acciones/DetalleAccionInfo.astro';
 import AccionLayout from '../../../../layouts/AccionLayout.astro';
 import EliminarRegistro from '../../../../components/ui/EliminarRegistro.astro';
+import MenuAcciones from '../../../../components/ui/MenuAcciones.astro';
 import IndicadoresAccion from '../../../../components/indicadores/IndicadoresAccion.astro';
 import EvidenciasAccion from '../../../../components/evidencias/EvidenciasAccion.astro';
 
@@ -31,7 +32,7 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
         Acción modificada correctamente.
       </p>
 
-      <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+      <header class="flex items-start justify-between gap-4 md:flex-col md:items-stretch xl:flex-row xl:items-start">
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-3">
             <h1 data-accion="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
@@ -44,20 +45,22 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
         </div>
 
         <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
-        <div id="gestion-accion" data-gestion hidden class="flex shrink-0 flex-wrap items-center gap-3">
-          <EliminarRegistro
-            tipo="accion"
-            id={idAccion}
-            regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`}
-          />
-          <Button href={`${rutaAccion}/editar`} variant="outline">
-            <Icono nombre="editar" />
-            Editar acción
-          </Button>
+        <div id="gestion-accion" data-gestion hidden class="shrink-0">
+          <MenuAcciones etiqueta="Acciones de la acción">
+            <Button href={`${rutaAccion}/editar`} variant="outline">
+              <Icono nombre="editar" />
+              Editar acción
+            </Button>
+            <EliminarRegistro
+              tipo="accion"
+              id={idAccion}
+              regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`}
+            />
+          </MenuAcciones>
         </div>
       </header>
 
-      <div class="overflow-x-auto rounded-2xl border border-[#E5E1EF] bg-white p-2">
+      <div class="pestanas overflow-x-auto rounded-2xl border border-[#E5E1EF] bg-white p-2">
         <div id="accion-tabs" class="flex min-w-max flex-wrap gap-2" role="tablist" aria-label="Secciones de la acción">
           <button id="tab-detalle" type="button" role="tab" aria-selected="true" aria-controls="panel-detalle" data-tab="detalle" class="shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors">Detalle de acción</button>
           <button id="tab-indicadores" type="button" role="tab" aria-selected="false" aria-controls="panel-indicadores" data-tab="indicadores" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Indicadores y resultados</button>

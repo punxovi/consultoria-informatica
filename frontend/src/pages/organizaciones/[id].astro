@@ -69,7 +69,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     <!-- Encabezado -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-      <figure class="relative w-full max-w-[320px] shrink-0 sm:w-48 lg:w-56">
+      <figure class="relative mx-auto w-full max-w-[320px] shrink-0 sm:mx-0 sm:w-48 lg:w-56">
         <a id="org-imagen-enlace" class="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" target="_blank" rel="noopener" aria-disabled="true" tabindex="-1">
           <img
             id="org-imagen"
@@ -78,7 +78,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
             class="aspect-[4/3] w-full rounded-2xl border border-[#E2DDED] bg-white object-contain object-center p-2 shadow-sm"
           />
         </a>
-        <figcaption id="org-imagen-estado" role="status" aria-live="polite" class="mt-1 text-xs text-neutral-500"></figcaption>
+        <figcaption id="org-imagen-estado" role="status" aria-live="polite" class="mt-1 text-center text-xs text-neutral-500 sm:text-left"></figcaption>
       </figure>
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-3">
@@ -152,7 +152,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </div>
     </div>
     <!-- Navegación principal: solo tres categorías -->
-    <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+    <div class="pestanas rounded-2xl border border-[#E8E5EF] bg-white p-2">
       <nav
         id="organizacion-tabs"
         class="flex flex-wrap gap-2 overflow-x-auto"
