@@ -44,10 +44,15 @@ export function createQuoteEmailWorker(options: {
 
   async function rpc(name: string, body: unknown) {
     const response = await fetchImpl(`${base}/rest/v1/rpc/${name}`, {
-      method: 'POST', headers: { apikey: options.serviceKey, authorization: `Bearer ${options.serviceKey}`, 'content-type': 'application/json' },
+      method: 'POST', headers: {
+        apikey: options.serviceKey,
+        ...(!options.serviceKey.startsWith('sb_secret_') ? { authorization: `Bearer ${options.serviceKey}` } : {}),
+        'content-type': 'application/json',
+      },
       body: JSON.stringify(body), signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) throw new Error(`Supabase RPC ${name} respondió ${response.status}`);
+    if (name === 'cerrar_notificacion_email_cotizacion') return;
     return response.json();
   }
 
@@ -68,17 +73,22 @@ export function createQuoteEmailWorker(options: {
       if (running) return;
       running = true;
       try {
-        const jobs: unknown = await rpc('tomar_notificaciones_email_cotizacion', { p_limite: 20 });
+        // Five sequential sends and acknowledgements fit within the five-minute SQL lease.
+        const jobs: unknown = await rpc('tomar_notificaciones_email_cotizacion', { p_limite: 5 });
         if (!Array.isArray(jobs)) throw new Error('El servicio devolvió una cola de correos inválida.');
         for (const job of jobs as EmailJob[]) {
+          let detail: string | null = null;
           try {
             await send(job);
-            await rpc('cerrar_notificacion_email_cotizacion', { p_id: job.id_notificacion, p_error: null });
           } catch (error) {
-            const detail = error instanceof Error ? error.message : 'Error de envío desconocido.';
-            try { await rpc('cerrar_notificacion_email_cotizacion', { p_id: job.id_notificacion, p_error: detail }); }
-            catch { /* La reserva vence en cinco minutos y el trabajo se recupera automáticamente. */ }
+            detail = error instanceof Error ? error.message : 'Error de envío desconocido.';
             console.error(JSON.stringify({ level: 'error', event: 'quote.email.failed', id: job.id_notificacion, error: detail }));
+          }
+          try {
+            await rpc('cerrar_notificacion_email_cotizacion', { p_id: job.id_notificacion, p_error: detail });
+          } catch {
+            // A lost acknowledgement is not a send failure. The lease permits recovery with the same key.
+            console.error(JSON.stringify({ level: 'error', event: 'quote.email.ack_failed', id: job.id_notificacion }));
           }
         }
       } catch (error) {
