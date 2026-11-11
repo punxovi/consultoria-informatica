@@ -5,6 +5,7 @@ import { mainNavItems } from '../../config/nav';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
 import BackButton from '../../components/ui/BackButton.astro';
+import MenuAcciones from '../../components/ui/MenuAcciones.astro';
 import { obtenerProgramaPorIdSchema } from '../../lib/validaciones/programas';
 
 const { id } = Astro.params;
@@ -37,9 +38,10 @@ if (!idValido) Astro.response.status = 404;
     <p id="eliminar-estado" hidden role="status" aria-live="polite" class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
 
     <div id="detalle-contenido" hidden class="space-y-5">
-      <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
-        <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-          <figure class="relative w-full max-w-[320px] shrink-0 sm:w-48 lg:w-56">
+      <!-- Móvil: grilla para dejar el menú ⋮ al lado del título (la imagen ocupa toda la fila de arriba). -->
+      <header class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 md:flex md:flex-col md:justify-between xl:flex-row xl:items-center">
+        <div class="contents md:flex md:min-w-0 md:flex-row md:items-center md:gap-4">
+          <figure class="relative col-span-2 mx-auto w-full max-w-[320px] shrink-0 md:mx-0 md:w-48 lg:w-56">
             <a id="detalle-imagen-enlace" class="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" target="_blank" rel="noopener" aria-disabled="true" tabindex="-1">
               <img
                 id="detalle-imagen"
@@ -48,7 +50,7 @@ if (!idValido) Astro.response.status = 404;
                 class="aspect-[4/3] w-full rounded-2xl border border-[#E2DDED] bg-white object-contain object-center p-2 shadow-sm"
               />
             </a>
-            <figcaption class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500">
+            <figcaption class="mt-1 flex flex-wrap items-center justify-center gap-x-2 text-xs text-neutral-500 md:justify-start">
               <span id="detalle-imagen-estado" role="status" aria-live="polite"></span>
               <button id="reintentar-imagen" type="button" hidden class="inline-flex min-h-[32px] items-center font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Reintentar</button>
             </figcaption>
@@ -58,7 +60,7 @@ if (!idValido) Astro.response.status = 404;
             <p class="mt-2 text-base text-neutral-600 md:text-lg">Objetivos, contexto y líneas de acción del programa.</p>
           </div>
         </div>
-        <div class="flex shrink-0 flex-wrap items-center gap-3">
+        <MenuAcciones etiqueta="Acciones del programa" class="shrink-0">
           <div id="editar-programa-enlace" hidden data-gestion>
             <Button href={`/programas/${encodeURIComponent(id ?? '')}/editar`} variant="outline">
               <Icono nombre="editar" />
@@ -71,7 +73,7 @@ if (!idValido) Astro.response.status = 404;
               Eliminar programa
             </Button>
           </div>
-        </div>
+        </MenuAcciones>
       </header>
 
       <Card class="tarjeta-acento acento-morado p-5 md:p-6">

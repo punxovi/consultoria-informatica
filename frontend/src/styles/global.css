@@ -385,6 +385,43 @@ span.registro-media { border: 0; background: #f0edf8; padding: 0; }
 html[data-solo-lectura] :is([data-gestion], [data-oculto-invitado]) { display: none !important; }
 
 /*
+ * Pestañas de detalle (organización, plan, acción) en móvil: en vez de píldoras que
+ * saltan de línea, texto con subrayado en una sola fila que se desliza si no cabe.
+ * El estado activo sale de aria-selected, que ya actualiza el script de cada página.
+ */
+@media (max-width: 767.98px) {
+  .pestanas {
+    padding: 0 !important;
+    background: transparent !important;
+    border-width: 0 0 1px 0 !important;
+    border-radius: 0 !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pestanas::-webkit-scrollbar { display: none; }
+  .pestanas [role='tablist'] {
+    flex-wrap: nowrap !important;
+    gap: 1.5rem !important;
+    min-width: max-content;
+  }
+  .pestanas [role='tab'] {
+    padding: 0.75rem 0 !important;
+    border-radius: 0 !important;
+    border-bottom: 2px solid transparent;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #6B6880 !important;
+    font-weight: 500 !important;
+    white-space: nowrap;
+  }
+  .pestanas [role='tab'][aria-selected='true'] {
+    border-bottom-color: #4C4688;
+    color: #4C4688 !important;
+    font-weight: 600 !important;
+  }
+}
+
+/*
  * Formularios: un único estilo para todos los campos de la plataforma
  * (gestión, login, cotizaciones, catálogo…), igual al de components/ui/Input.astro.
  * Va fuera de las capas de Tailwind para prevalecer sobre las clases de cada

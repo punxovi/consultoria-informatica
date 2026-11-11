@@ -47,7 +47,7 @@ const {
     {
       showBreadcrumb ? (
         <div
-          class="header-page-title flex min-w-0 items-center gap-2 overflow-hidden
+          class="header-page-title header-migas flex min-w-0 items-center gap-2 overflow-hidden
             text-base font-semibold tracking-tight text-[#252238]
             md:gap-3 md:text-lg"
         >
@@ -221,5 +221,24 @@ const {
   :global(.header-page-title *) {
     font-size: inherit !important;
     line-height: inherit !important;
+  }
+
+  /*
+   * Breadcrumb responsivo. Todas las páginas siguen el patrón:
+   * <BackButton> · links intermedios · separadores › · página actual (span.font-semibold).
+   * Móvil: solo la flecha y la página actual ("‹ Club de Fútbol…"), sin niveles cortados.
+   * Escritorio: breadcrumb completo y sin flecha (los links ya permiten volver).
+   */
+  @media (max-width: 767.98px) {
+    :global(.header-migas a:not([data-migas-volver])),
+    :global(.header-migas span:not(.font-semibold)) {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 768px) {
+    :global(.header-migas [data-migas-volver]) {
+      display: none !important;
+    }
   }
 </style>
