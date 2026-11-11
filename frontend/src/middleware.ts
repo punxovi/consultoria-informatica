@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 
-const PUBLIC_PATHS = new Set(['/','/catalogo','/cotizar','/cotizar/','/login','/recuperar-contrasena','/cambiar-contrasena','/solicitar-acceso-invitado','/invitado/acceso']);
+const PUBLIC_PATHS = new Set(['/','/catalogo','/cotizar','/cotizar/','/login','/recuperar-contrasena','/cambiar-contrasena','/solicitar-acceso-invitado','/invitado/acceso','/simulacion-fundacion','/simulacion-fundacion/programas']);
 const PUBLIC_PREFIXES = ['/api/v1/public/','/_astro/','/favicon','/Logo-'];
 
 function isPublic(pathname: string) {
