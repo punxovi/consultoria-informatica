@@ -65,7 +65,8 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 
   <!-- data-solo-lectura se quita solo si la sesión gestiona el país de la Organización. -->
   <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6" data-solo-lectura>
-    
+    <p id="organizacion-confirmacion" role="status" hidden class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success"></p>
+
     <!-- Encabezado -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
@@ -511,6 +512,18 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     asignarTexto('direccion-organizacion', organizacion.direccion);
     asignarTexto('publico-objetivo-organizacion', organizacion.publico_objetivo);
     asignarTexto('descripcion-organizacion', organizacion.descripcion_breve);
+
+    const resultado = new URLSearchParams(window.location.search).get('resultado');
+    if (resultado === 'creado' || resultado === 'actualizado') {
+      const confirmacion = elemento('organizacion-confirmacion');
+      confirmacion.textContent = resultado === 'creado'
+        ? 'Organización creada correctamente.'
+        : 'Organización modificada correctamente.';
+      confirmacion.hidden = false;
+      const urlLimpia = new URL(window.location.href);
+      urlLimpia.searchParams.delete('resultado');
+      history.replaceState(null, '', `${urlLimpia.pathname}${urlLimpia.search}${urlLimpia.hash}`);
+    }
 
     document.title = `${organizacion.nombre} | Detalle de organización`;
     estado.classList.add('hidden');

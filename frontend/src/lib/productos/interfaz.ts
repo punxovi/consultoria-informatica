@@ -4,6 +4,7 @@ import { ApiError } from '../api/transporte.ts';
 import { listarOrganizaciones } from '../organizaciones/cliente.ts';
 import type { Organizacion } from '../modelos/organizaciones.ts';
 import { crearClienteProductos, mensajeErrorProductos } from './cliente.ts';
+import { imagenPredeterminada, urlImagen } from '../catalogo/modelo.ts';
 import {
   MAXIMO_IMAGENES_POR_CARGA,
   camposFormulario,
@@ -85,10 +86,18 @@ export async function iniciarProductos() {
       const estado = producto.publicado
         ? '<span class="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-[#BDE8D6] bg-[#E5F6EE] px-3 py-1 text-xs font-semibold text-[#16794F]"><span aria-hidden="true">✓</span>Publicado</span>'
         : '<span class="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-[#E5E1EE] bg-[#F5F3F9] px-3 py-1 text-xs font-semibold text-[#625E70]"><span aria-hidden="true">○</span>No publicado</span>';
+      const portada = producto.imagenes[0];
+      const miniatura = `
+        <div class="flex aspect-[4/3] w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#E8E5EF] bg-[#F7F6FA] md:w-40">
+          <img src="${escapar(urlImagen(portada?.url))}" alt="${portada?.url ? `Imagen de ${escapar(producto.nombre)}` : `Sin imagen: ${escapar(producto.nombre)}`}"
+            loading="lazy" width="320" height="240" data-imagen-producto
+            class="h-full w-full object-contain object-center p-2" />
+        </div>`;
       return `
         <li>
           <article data-producto="${id}" class="rounded-2xl border border-[#E8E5EF] bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              ${miniatura}
               <div class="min-w-0 flex-1 space-y-3">
                 <div class="flex flex-wrap items-center gap-3">
                   <h3 class="break-words text-lg font-bold text-neutral-900">${escapar(producto.nombre)}</h3>
@@ -110,6 +119,7 @@ export async function iniciarProductos() {
         </li>`;
     }).join('');
     lista.hidden = false;
+    usarImagenPredeterminadaSiFalla(lista);
     for (const boton of lista.querySelectorAll<HTMLButtonElement>('button')) boton.disabled = ocupado;
   }
 
@@ -218,11 +228,31 @@ export async function iniciarProductos() {
     q('vista-previa-titulo').hidden = imagenesNuevas.length === 0;
   }
 
+  // Si un enlace firmado vence o falla, se muestra la imagen predeterminada.
+  function usarImagenPredeterminadaSiFalla(raiz: HTMLElement) {
+    for (const img of raiz.querySelectorAll<HTMLImageElement>('img[data-imagen-producto]')) {
+      img.addEventListener('error', () => { img.src = imagenPredeterminada; }, { once: true });
+    }
+  }
+
   function renderizarImagenesExistentes() {
     const existentes = editando?.imagenes ?? [];
     const contenedor = q('imagenes-existentes');
     contenedor.hidden = existentes.length === 0;
-    contenedor.textContent = existentes.length === 0 ? '' : `Este producto ya tiene ${existentes.length} ${existentes.length === 1 ? 'imagen guardada' : 'imágenes guardadas'}. Las nuevas se agregarán a las existentes.`;
+    if (existentes.length === 0) { contenedor.replaceChildren(); return; }
+    const total = `${existentes.length} ${existentes.length === 1 ? 'imagen guardada' : 'imágenes guardadas'}`;
+    contenedor.innerHTML = `
+      <p class="text-sm font-semibold text-[#383165]">Imágenes guardadas (${existentes.length})</p>
+      <ul class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-label="${total}">
+        ${existentes.map((imagen, indice) => `
+          <li class="overflow-hidden rounded-xl border border-[#E8E5EF] bg-white">
+            <img src="${escapar(urlImagen(imagen.url))}" alt="${escapar(imagen.nombre_archivo || `Imagen ${indice + 1} del producto`)}"
+              loading="lazy" data-imagen-producto class="aspect-square w-full object-contain object-center p-2" />
+            ${imagen.nombre_archivo ? `<p class="truncate border-t border-[#F0EEF5] px-2 py-1.5 text-xs text-neutral-600">${escapar(imagen.nombre_archivo)}</p>` : ''}
+          </li>`).join('')}
+      </ul>
+      <p class="mt-2 text-sm text-neutral-500">Las imágenes nuevas se agregarán a las existentes.</p>`;
+    usarImagenPredeterminadaSiFalla(contenedor);
   }
 
   function abrirFormulario(producto: Producto | null) {
