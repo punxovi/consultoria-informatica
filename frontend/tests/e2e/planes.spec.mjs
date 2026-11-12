@@ -58,7 +58,7 @@ test('valida creación, guarda sin acciones y confirma en el listado', async ({ 
   expect(solicitudes.filter(s => s.nombre === 'crearPlan')).toHaveLength(0);
   await page.locator('#fecha_termino').fill(datos.fecha_termino);
   await page.getByRole('button', { name: 'Guardar plan' }).click();
-  await expect(page.locator('#plan-confirmacion')).toHaveText('Plan guardado correctamente.');
+  await expect(page.locator('#plan-confirmacion')).toHaveText('Plan creado correctamente.');
   expect(solicitudes.find(s => s.nombre === 'crearPlan').entrada).toEqual(datos);
 });
 

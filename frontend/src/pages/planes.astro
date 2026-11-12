@@ -399,8 +399,14 @@ import AppLayout from '../layouts/AppLayout.astro';
     if (territorial && !territorio) return;
     const confirmacion = document.querySelector<HTMLElement>('#plan-confirmacion')!;
     const resultado = new URLSearchParams(window.location.search).get('resultado');
-    if (resultado === 'guardado' || resultado === 'eliminado') {
-      confirmacion.textContent = resultado === 'eliminado' ? 'Plan eliminado correctamente.' : 'Plan guardado correctamente.';
+    const mensajesResultado: Record<string, string> = {
+      creado: 'Plan creado correctamente.',
+      actualizado: 'Plan modificado correctamente.',
+      guardado: 'Plan guardado correctamente.',
+      eliminado: 'Plan eliminado correctamente.',
+    };
+    if (resultado && mensajesResultado[resultado]) {
+      confirmacion.textContent = mensajesResultado[resultado];
       confirmacion.hidden = false;
       const urlLimpia = new URL(window.location.href);
       urlLimpia.searchParams.delete('resultado');

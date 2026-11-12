@@ -23,6 +23,8 @@ function iniciar(form: HTMLFormElement) {
   const imagenCambio = document.querySelector<HTMLElement>('#imagen-cambio');
   
   let id = form.dataset.id || '';
+  // Si al crear falla solo la imagen, el reintento sigue contando como creación.
+  const esCreacion = !id;
   let version: number | undefined;
   let ultimoContenidoGuardado: string | null = null;
   let permiteSinLineas = false;
@@ -259,8 +261,8 @@ function iniciar(form: HTMLFormElement) {
       }
       
       modificado = false; ocupado = false; guardado = true;
-      estado.textContent = 'Programa guardado correctamente.';
-      window.location.replace(`/programas/${id}?resultado=guardado`);
+      estado.textContent = esCreacion ? 'Programa creado correctamente.' : 'Programa modificado correctamente.';
+      window.location.replace(`/programas/${id}?resultado=${esCreacion ? 'creado' : 'guardado'}`);
     } catch (error) {
       estado.textContent = '';
       campos.disabled = false;

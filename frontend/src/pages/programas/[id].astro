@@ -282,8 +282,11 @@ if (!idValido) Astro.response.status = 404;
       document.querySelector<HTMLElement>('#detalle-sin-lineas')!.hidden = tieneLineas;
       document.querySelector<HTMLElement>('#detalle-legado')!.hidden = tieneLineas;
 
-      if (new URLSearchParams(window.location.search).get('resultado') === 'guardado') {
-        confirmacion.textContent = 'Programa modificado correctamente.';
+      const resultado = new URLSearchParams(window.location.search).get('resultado');
+      if (resultado === 'guardado' || resultado === 'creado') {
+        confirmacion.textContent = resultado === 'creado'
+          ? 'Programa creado correctamente.'
+          : 'Programa modificado correctamente.';
         confirmacion.hidden = false;
         history.replaceState(null, '', `/programas/${encodeURIComponent(programa.id_programa)}`);
       }

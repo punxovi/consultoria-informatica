@@ -117,6 +117,7 @@ const textos = [
   import { crearPlan, actualizarPlan, obtenerPlan, listarOrganizacionesParaPlan, listarProgramasParaPlan } from '../../lib/planes/cliente';
   import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
   import { MENSAJE_SIN_PERMISO_TERRITORIAL, obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
+  import { erroresPorCampo, limpiarErroresCampos, marcarCampos, quitarErroresAlEditar } from '../../lib/ui/validacion-formulario';
 
   const form = document.querySelector<HTMLFormElement>('#plan-form')!;
   const campos = document.querySelector<HTMLFieldSetElement>('#plan-campos')!;
@@ -132,47 +133,25 @@ const textos = [
 
   function limpiarValidacion() {
     errores.hidden = true;
-    form.querySelectorAll('[data-error-campo]').forEach(elemento => elemento.remove());
-    form.querySelectorAll('[aria-invalid="true"]').forEach(elemento => {
-      elemento.setAttribute('aria-invalid', 'false');
-      elemento.removeAttribute('aria-describedby');
-    });
+    limpiarErroresCampos(form);
   }
 
-  function marcarCampos(detalles: { campo: string; mensaje: string }[]) {
-    for (const { campo, mensaje } of detalles) {
-      const control = form.elements.namedItem(campo.replace(/^cambios\./, ''));
-      if (!(control instanceof HTMLElement) || control.getAttribute('aria-invalid') === 'true') continue;
-      const aviso = document.createElement('p');
-      aviso.id = `${control.id}-validacion`;
-      aviso.dataset.errorCampo = '';
-      aviso.className = 'mt-1 text-sm text-red-800';
-      aviso.textContent = mensaje;
-      control.setAttribute('aria-invalid', 'true');
-      control.setAttribute('aria-describedby', aviso.id);
-      control.after(aviso);
-    }
-  }
-
-  function mostrarError(mensaje: string, detalles: string[] = []) {
-    errores.replaceChildren();
-    const titulo = document.createElement('p');
-    titulo.className = 'font-semibold';
-    titulo.textContent = mensaje;
-    errores.append(titulo);
-    if (detalles.length) {
-      const lista = document.createElement('ul');
-      lista.className = 'mt-2 list-disc space-y-1 pl-5';
-      for (const detalle of detalles) {
-        const item = document.createElement('li');
-        item.textContent = detalle;
-        lista.append(item);
-      }
-      errores.append(lista);
-    }
+  // Aviso general arriba; el detalle de cada error va bajo su campo.
+  function mostrarError(mensaje: string, detalles: { campo: string; mensaje: string }[] = []) {
+    errores.textContent = mensaje;
     errores.hidden = false;
-    errores.focus();
+    const primero = detalles.length ? marcarCampos(form, erroresPorCampo(form, detalles)) : null;
+    (primero ?? errores).focus();
   }
+
+  function mostrarErroresValidacion(detalles: { campo: string; mensaje: string }[]) {
+    errores.textContent = 'Revisa los campos indicados antes de guardar.';
+    errores.hidden = false;
+    const primero = marcarCampos(form, erroresPorCampo(form, detalles));
+    (primero ?? errores).focus();
+  }
+
+  quitarErroresAlEditar(form);
 
   async function cargarCatalogos() {
     reintentar.hidden = true;
@@ -245,8 +224,7 @@ const textos = [
     const datos = Object.fromEntries(new FormData(form).entries());
     const validacion = crearPlanSchema.safeParse({ ...datos, periodo_anual: Number(datos.periodo_anual) });
     if (!validacion.success) {
-      marcarCampos(validacion.error.issues.map(issue => ({ campo: issue.path.join('.'), mensaje: issue.message })));
-      mostrarError('Revisa los campos indicados antes de guardar.', validacion.error.issues.map(issue => issue.message));
+      mostrarErroresValidacion(validacion.error.issues.map(issue => ({ campo: issue.path.join('.'), mensaje: issue.message })));
       return;
     }
 
@@ -261,12 +239,9 @@ const textos = [
       } else {
         await crearPlan(validacion.data);
       }
-      window.location.assign('/planes?resultado=guardado');
+      window.location.assign(`/planes?resultado=${idPlan ? 'actualizado' : 'creado'}`);
     } catch (error) {
-      const detalles = error instanceof ErrorSolicitudPlan
-        ? error.campos.map(campo => campo.mensaje)
-        : [];
-      if (error instanceof ErrorSolicitudPlan) marcarCampos(error.campos);
+      const detalles = error instanceof ErrorSolicitudPlan ? error.campos : [];
       mostrarError(error instanceof Error ? error.message : 'No fue posible guardar el plan.', detalles);
       campos.disabled = false;
       form.setAttribute('aria-busy', 'false');

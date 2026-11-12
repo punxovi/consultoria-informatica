@@ -206,6 +206,7 @@ const tiposOrganizacion = [
     descargarImagenOrganizacion,
     listarPaisesOrganizaciones,
     obtenerOrganizacion,
+    OrganizacionesApiError,
     subirImagenOrganizacion,
   } from '../../lib/organizaciones/cliente';
   import {
@@ -379,6 +380,110 @@ const tiposOrganizacion = [
     recuperacion!.hidden = !requiereSesion;
   }
 
+  // Mismo patrón que Programas y Planes: aviso general arriba y, debajo de
+  // cada campo con problemas, su propio mensaje (todos a la vez).
+  const MENSAJES_OBLIGATORIOS: Record<string, string> = {
+    nombre: 'El nombre es obligatorio.',
+    nombre_representante: 'El nombre del representante es obligatorio.',
+    telefono: 'El teléfono es obligatorio.',
+    correo: 'El correo electrónico es obligatorio.',
+    id_pais: 'Selecciona un país.',
+    tipo_organizacion: 'Selecciona un tipo de organización.',
+    tipo_organizacion_otro: 'Debes especificar el otro tipo de organización.',
+    region_departamento: 'La región o departamento es obligatoria.',
+    comuna_municipio_ciudad: 'La comuna, municipio o ciudad es obligatoria.',
+    direccion: 'La dirección es obligatoria.',
+    publico_objetivo: 'El público objetivo es obligatorio.',
+    descripcion_breve: 'La descripción general es obligatoria.',
+    numero_beneficiarios: 'El número de beneficiarios es obligatorio.',
+  };
+
+  type ControlCampo = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+  function controlCampo(nombre: string): ControlCampo | null {
+    const control = form!.elements.namedItem(nombre);
+    return control instanceof HTMLInputElement ||
+      control instanceof HTMLTextAreaElement ||
+      control instanceof HTMLSelectElement
+      ? control
+      : null;
+  }
+
+  function quitarErrorCampo(control: Element) {
+    if (control.getAttribute('aria-invalid') !== 'true') return;
+    document.getElementById(`${control.id}-validacion`)?.remove();
+    control.setAttribute('aria-invalid', 'false');
+    const original = (control as HTMLElement).dataset.describedbyOriginal;
+    if (original) control.setAttribute('aria-describedby', original);
+    else control.removeAttribute('aria-describedby');
+  }
+
+  function limpiarErroresCampos() {
+    form!.querySelectorAll('[aria-invalid="true"]').forEach(quitarErrorCampo);
+    form!.querySelectorAll('[data-error-campo]').forEach((nodo) => nodo.remove());
+  }
+
+  function marcarCampos(errores: Record<string, string>) {
+    let primero: ControlCampo | null = null;
+    for (const [nombre, mensaje] of Object.entries(errores)) {
+      const control = controlCampo(nombre);
+      if (!control) continue;
+      const parrafo = document.createElement('p');
+      parrafo.id = `${control.id}-validacion`;
+      parrafo.className = 'mt-1 text-sm text-red-800';
+      parrafo.dataset.errorCampo = '';
+      parrafo.textContent = mensaje;
+      const describedby = control.getAttribute('aria-describedby') ?? '';
+      if (!control.dataset.describedbyOriginal && describedby) {
+        control.dataset.describedbyOriginal = describedby;
+      }
+      control.setAttribute('aria-invalid', 'true');
+      control.setAttribute(
+        'aria-describedby',
+        [control.dataset.describedbyOriginal, parrafo.id].filter(Boolean).join(' '),
+      );
+      control.after(parrafo);
+      primero ??= control;
+    }
+    return primero;
+  }
+
+  function erroresDeValidacion(issues: { path: PropertyKey[]; message: string }[]) {
+    const errores: Record<string, string> = {};
+
+    // Primero los obligatorios vacíos, con un mensaje claro por campo.
+    for (const [nombre, mensaje] of Object.entries(MENSAJES_OBLIGATORIOS)) {
+      const control = controlCampo(nombre);
+      if (control?.required && !control.value.trim()) errores[nombre] = mensaje;
+    }
+
+    // Luego el resto de reglas (formato, largo, etc.), una por campo.
+    for (const issue of issues) {
+      const nombre = String(issue.path[issue.path[0] === 'cambios' ? 1 : 0] ?? '');
+      if (nombre && !errores[nombre]) errores[nombre] = issue.message;
+    }
+    return errores;
+  }
+
+  function mostrarErroresValidacion(errores: Record<string, string>) {
+    const primero = marcarCampos(errores);
+    estado!.hidden = true;
+    error!.textContent = 'Revisa los campos indicados antes de guardar.';
+    error!.hidden = false;
+    recuperacion!.hidden = true;
+    if (primero) primero.focus();
+    else error!.focus();
+  }
+
+  form.addEventListener('input', (evento) => {
+    if (evento.target instanceof Element) quitarErrorCampo(evento.target);
+  });
+  form.addEventListener('change', (evento) => {
+    if (evento.target instanceof Element && evento.target.id !== 'imagen-organizacion') {
+      quitarErrorCampo(evento.target);
+    }
+  });
+
   function asignarValor(id: string, valor: string | number | null | undefined) {
     const campo = form!.querySelector<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -539,10 +644,11 @@ const tiposOrganizacion = [
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    if (guardando || !form!.reportValidity()) return;
+    if (guardando) return;
 
     error!.hidden = true;
     recuperacion!.hidden = true;
+    limpiarErroresCampos();
 
     const datosFormulario = obtenerCambiosFormulario();
     const validacion = esEdicion
@@ -553,6 +659,13 @@ const tiposOrganizacion = [
         })
       : crearOrganizacionSchema.safeParse(datosFormulario);
 
+    const erroresCampos = erroresDeValidacion(
+      validacion.success ? [] : validacion.error.issues,
+    );
+    if (Object.keys(erroresCampos).length > 0) {
+      mostrarErroresValidacion(erroresCampos);
+      return;
+    }
     if (!validacion.success) {
       mostrarError(
         'Revisa los datos ingresados',
@@ -619,6 +732,21 @@ const tiposOrganizacion = [
         return;
       }
 
+      const camposServidor = fallo instanceof OrganizacionesApiError ? fallo.fields : undefined;
+      if (camposServidor && Object.keys(camposServidor).length > 0) {
+        const errores = Object.fromEntries(
+          Object.entries(camposServidor)
+            .filter(([, mensajes]) => mensajes?.[0])
+            .map(([campo, mensajes]) => [campo.replace(/^cambios\./, ''), mensajes[0]]),
+        );
+        if (marcarCampos(errores)) {
+          campos!.disabled = false;
+          mostrarErroresValidacion({});
+          form!.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+          return;
+        }
+      }
+
       const mensaje =
         fallo instanceof Error
           ? fallo.message
@@ -633,7 +761,7 @@ const tiposOrganizacion = [
     } finally {
       guardando = false;
       guardar!.disabled = false;
-      guardar!.textContent = esEdicion ? 'Guardar cambios' : 'Guardar';
+      guardar!.textContent = esEdicion ? 'Guardar cambios' : 'Crear organización';
       form!.setAttribute('aria-busy', 'false');
     }
   });

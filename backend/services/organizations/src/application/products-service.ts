@@ -57,6 +57,28 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
       throw new ServiceError('SIN_PERMISO', 'Solo el Administrador puede gestionar los productos de cotización.', 403);
     }
   }
+  // El bucket es privado: para que el Administrador vea las fotos se firman
+  // enlaces temporales con su propia sesión (la política de Storage decide).
+  // Si la firma falla, el producto se entrega igual, solo sin vista previa.
+  async function signImages(token: string, paths: string[]): Promise<Map<string, string>> {
+    const urls = new Map<string, string>();
+    if (!paths.length) return urls;
+    try {
+      const response = await fetchImpl(`${base}/storage/v1/object/sign/fge-archivos`, { method: 'POST', headers: {
+        apikey: options.anonKey, authorization: `Bearer ${token}`, 'content-type': 'application/json',
+      }, body: JSON.stringify({ expiresIn: 3600, paths }) });
+      if (!response.ok) return urls;
+      const body = await response.json() as unknown;
+      if (!Array.isArray(body)) return urls;
+      for (const item of body as Record<string, unknown>[]) {
+        const firmada = item?.signedURL ?? item?.signedUrl;
+        if (typeof item?.path === 'string' && typeof firmada === 'string' && !item.error) {
+          urls.set(item.path, firmada.startsWith('http') ? firmada : `${base}/storage/v1${firmada}`);
+        }
+      }
+    } catch { /* sin vista previa */ }
+    return urls;
+  }
   async function enrich(token: string, rows: unknown[]): Promise<unknown[]> {
     const products = rows.filter((row): row is Record<string, unknown> => !!row && typeof row === 'object');
     if (!products.length) return [];
@@ -69,11 +91,12 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
     const orgById = new Map(orgRows.map((o) => [String(o.id_organizacion), o]));
     const imageData = await call(`archivos?select=id_archivo,id_producto,nombre_original,ruta_objeto&categoria=eq.imagen_producto&estado_carga=eq.disponible&archived_at=is.null&id_producto=in.(${products.map((p) => p.id_producto).join(',')})&order=created_at.asc`, token);
     const images = Array.isArray(imageData) ? imageData as Record<string, unknown>[] : [];
+    const signedUrls = await signImages(token, images.map((image) => String(image.ruta_objeto ?? '')).filter(Boolean));
     const imagesByProduct = new Map<string, unknown[]>();
     for (const image of images) {
       const id = String(image.id_producto);
       const list = imagesByProduct.get(id) ?? [];
-      list.push({ id_archivo: image.id_archivo, nombre_archivo: image.nombre_original, url: null });
+      list.push({ id_archivo: image.id_archivo, nombre_archivo: image.nombre_original, url: signedUrls.get(String(image.ruta_objeto)) ?? null });
       imagesByProduct.set(id, list);
     }
     return products.map((p) => {
