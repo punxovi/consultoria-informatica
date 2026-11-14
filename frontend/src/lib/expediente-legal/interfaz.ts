@@ -1,4 +1,5 @@
 import { ApiError, createApiTransport } from '../api/transporte';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteExpediente } from './cliente';
 import { camposLegalSchema, documentosVacios, tiposDocumento, validarPdf, type ExpedienteLegal, type GuardarExpediente, type TipoDocumento } from './modelo';
@@ -82,8 +83,11 @@ export async function iniciarExpedienteLegal() {
       nodo.textContent = String(valores[nodo.dataset.legalResumen as keyof typeof valores] || 'Sin información');
     }
     const estados = { pendiente: 'Pendiente', no_aplica: 'No aplica', cargado: demo ? 'Cargado (demostración)' : 'Cargado' };
+    const tonos = { pendiente: 'amarillo', no_aplica: 'neutro', cargado: 'verde' } as const;
     for (const doc of registro.documentos) {
-      buscar(`[data-legal-estado="${doc.tipo}"]`).textContent = estados[doc.estado];
+      const insignia = buscar(`[data-legal-estado="${doc.tipo}"]`);
+      insignia.textContent = estados[doc.estado];
+      insignia.className = `registro-insignia registro-insignia--${tonos[doc.estado]}`;
       buscar(`[data-legal-archivo="${doc.tipo}"]`).textContent = doc.nombre_archivo || 'Sin archivo adjunto';
     }
     const fecha = new Date(registro.updated_at);
@@ -100,7 +104,7 @@ export async function iniciarExpedienteLegal() {
 
   async function cargar() {
     if (ocupado) return;
-    if (!formulario.hidden && !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
+    if (!formulario.hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return;
     iniciado = true;
     limpiarErrores();
     recarga.hidden = true;
@@ -199,7 +203,7 @@ export async function iniciarExpedienteLegal() {
       mostrarError(fallo); error.focus();
       if (fallo instanceof ApiError && fallo.status === 409) {
         conflicto = true; recarga.hidden = false;
-        buscar('#legal-reintentar').textContent = 'Recargar datos del servidor';
+        buscar('#legal-reintentar').textContent = 'Reintentar';
       }
     } finally { ocupar(false); guardar.disabled = conflicto; }
   });

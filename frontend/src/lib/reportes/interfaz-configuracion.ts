@@ -4,7 +4,7 @@ import { crearClienteIndicadores } from '../indicadores/cliente.ts';
 import { listarOrganizaciones, listarPaisesOrganizaciones } from '../organizaciones/cliente.ts';
 import { listarProgramas } from '../programas/cliente.ts';
 import { listarAcciones } from '../acciones/cliente.ts';
-import { cargarOpcionesResultados } from './resultados.ts';
+import { cargarOpcionesIndicadoresYResultados, filtrarOpcionesReporte, type OpcionReporte } from './resultados.ts';
 import { crearControladorConsulta, type EstadoConsulta, type SolicitudReporte } from './consulta.ts';
 import { renderizarVistaPrevia } from './interfaz-vista-previa.ts';
 import { crearClienteReportesPdf, type ReportFilters, type ReportPreview } from './pdf.ts';
@@ -50,10 +50,12 @@ export function iniciarConfiguracionReporte() {
     indicadores: new Map(),
     resultados: new Map(),
   };
-  let opcionesIndicadores: Opcion[] = [];
   let intentado = false;
   let secuenciaOrganizaciones = 0;
   let fallidos: NombreCatalogo[] = [];
+  // Todas las opciones visibles para la sesión; en pantalla solo se muestran las relacionadas con los filtros.
+  let opcionesTodas: { indicadores: OpcionReporte[]; resultados: OpcionReporte[] } = { indicadores: [], resultados: [] };
+  let opcionesCargadas = false;
 
   const selectores = {
     id_pais: q<HTMLSelectElement>('pais'),
@@ -142,6 +144,7 @@ export function iniciarConfiguracionReporte() {
         config = quitarFiltro(config, filtro);
         pintarFormulario();
         actualizar();
+        if (filtro.campo === 'id_organizacion' || filtro.campo === 'id_programa' || filtro.campo === 'indicadores') pintarRelacionados();
         if (filtro.campo === 'id_pais') void cargarOrganizaciones();
       });
       item.append(texto, quitar);
@@ -217,6 +220,48 @@ export function iniciarConfiguracionReporte() {
     }
   }
 
+  function hayFiltroContexto() {
+    return Boolean(config.id_pais || config.id_organizacion || config.id_programa);
+  }
+
+  function pintarIndicadores() {
+    if (!opcionesCargadas) return;
+    leerFormulario();
+    const { indicadores: opciones } = filtrarOpcionesReporte(opcionesTodas, config);
+    pintarLista('indicadores', opciones, hayFiltroContexto()
+      ? 'No hay indicadores relacionados con el país, la organización o el programa elegidos.'
+      : 'No hay indicadores disponibles para seleccionar.');
+    q('indicadores-ayuda').textContent = hayFiltroContexto()
+      ? 'Solo se muestran los relacionados con el país, la organización y el programa elegidos.'
+      : 'Elige un país, una organización o un programa para ver solo los relacionados.';
+    leerFormulario();
+  }
+
+  function pintarResultados() {
+    if (!opcionesCargadas) return;
+    leerFormulario();
+    const { resultados: opciones } = filtrarOpcionesReporte(opcionesTodas, config);
+    const conIndicadores = config.indicadores.length > 0;
+    pintarLista('resultados', opciones, conIndicadores
+      ? 'Los indicadores marcados todavía no tienen resultados registrados.'
+      : hayFiltroContexto()
+        ? 'No hay resultados relacionados con el país, la organización o el programa elegidos.'
+        : 'No hay resultados disponibles para seleccionar.');
+    q('resultados-ayuda').textContent = conIndicadores
+      ? 'Solo se muestran los resultados de los indicadores marcados.'
+      : hayFiltroContexto()
+        ? 'Solo se muestran los relacionados con el país, la organización y el programa elegidos.'
+        : 'Marca indicadores o elige filtros para ver solo los resultados relacionados.';
+    leerFormulario();
+  }
+
+  /** Repinta indicadores y resultados según los filtros; quita las selecciones que dejaron de corresponder. */
+  function pintarRelacionados() {
+    pintarIndicadores();
+    pintarResultados();
+    pintarSeleccion();
+  }
+
   async function cargarOrganizaciones() {
     const secuencia = ++secuenciaOrganizaciones;
     const select = selectores.id_organizacion;
@@ -237,6 +282,7 @@ export function iniciarConfiguracionReporte() {
       avisoSelect(select, 'No fue posible cargar las organizaciones.');
       if (!fallidos.includes('Organizaciones')) fallidos.push('Organizaciones');
     }
+    pintarRelacionados();
     pintarSeleccion();
   }
 
@@ -266,17 +312,25 @@ export function iniciarConfiguracionReporte() {
         avisoSelect(selectores.id_programa, activos.length === 0 ? 'No hay programas disponibles.' : '');
       })]);
     }
-    if (quiere('Indicadores')) {
-      tareas.push(['Indicadores', indicadores.catalogo().then((catalogo) => {
-        opcionesIndicadores = catalogo.map((i) => ({ valor: i.id_indicador, etiqueta: i.nombre, detalle: i.unidad_medida }));
-        pintarLista('indicadores', opcionesIndicadores, 'No hay indicadores disponibles para seleccionar.');
-      })]);
+    const necesitaIndicadoresOResultados = quiere('Indicadores') || quiere('Resultados');
+    const opcionesIndicadoresYResultados = necesitaIndicadoresOResultados
+      ? cargarOpcionesIndicadoresYResultados(
+        () => listarAcciones(),
+        (accion) => indicadores.listar(accion),
+        () => listarOrganizaciones({}),
+      ).then((opciones) => {
+        opcionesTodas = opciones;
+        opcionesCargadas = true;
+        return opciones;
+      })
+      : null;
+    if (quiere('Indicadores') && opcionesIndicadoresYResultados) {
+      tareas.push(['Indicadores', opcionesIndicadoresYResultados.then(() => pintarIndicadores())]);
     }
     if (quiere('Organizaciones')) tareas.push(['Organizaciones', cargarOrganizaciones()]);
     if (quiere('Resultados')) {
-      tareas.push(['Resultados', cargarOpcionesResultados(() => listarAcciones(), (accion) => indicadores.listar(accion)).then((opciones) => {
-        pintarLista('resultados', opciones, 'No hay resultados disponibles para seleccionar.');
-      })]);
+      // Después de Indicadores: los resultados dependen de los indicadores marcados.
+      tareas.push(['Resultados', opcionesIndicadoresYResultados!.then(() => pintarResultados())]);
     }
 
     const resultados = await Promise.allSettled(tareas.map(([, tarea]) => tarea));
@@ -371,11 +425,48 @@ export function iniciarConfiguracionReporte() {
     try {
       const archivo = await reportes.descargar(vista.download);
       iniciarDescarga(archivo.blob, archivo.fileName);
-      pintarExportacion('exito', `PDF descargado: ${archivo.fileName}`);
+      pintarExportacion('exito', `PDF descargado: ${archivo.fileName}. Volviendo a Reportes…`);
+      // Terminada la descarga se vuelve al módulo; la breve espera deja iniciar la descarga del archivo.
+      window.setTimeout(() => {
+        window.location.assign(`/reportes?${new URLSearchParams({ pdf: archivo.fileName })}`);
+      }, 1200);
     } catch (error) {
       pintarExportacion('error', describirErrorPdf(error));
     }
   }
+
+  // --- Pasos: configurar → vista previa ----------------------------------------
+  // La vista previa ocupa su propia pantalla; los filtros se conservan al volver.
+  const HASH_VISTA = '#vista-previa';
+  function mostrarPaso(paso: 'configurar' | 'vista', enfocar = true) {
+    const enVista = paso === 'vista';
+    q('paso-configurar').hidden = enVista;
+    q('paso-vista').hidden = !enVista;
+    q('paso-1').classList.toggle('rep-paso-activo', !enVista);
+    q('paso-2').classList.toggle('rep-paso-activo', enVista);
+    q('vista-disponible').hidden = enVista || !vistaParaExportar;
+    const migas = document.getElementById('rep-migas-paso');
+    if (migas) migas.textContent = enVista ? 'Vista previa' : 'Configurar reporte';
+    // El área desplazable es el contenido principal, no la ventana: se lleva el reporte al inicio.
+    raiz.scrollIntoView({ block: 'start' });
+    if (!enfocar) return;
+    if (enVista) q('vista-titulo').focus({ preventScroll: true });
+    else q<HTMLButtonElement>('solicitar').focus({ preventScroll: true });
+  }
+  function abrirVista() {
+    if (!vistaParaExportar) return;
+    if (location.hash !== HASH_VISTA) history.pushState({ paso: 'vista' }, '', HASH_VISTA);
+    mostrarPaso('vista');
+  }
+  function volverAConfigurar() {
+    // Si la vista previa se abrió con pushState, «Atrás» deja el historial coherente.
+    if (location.hash === HASH_VISTA && history.state?.paso === 'vista') history.back();
+    else mostrarPaso('configurar');
+  }
+  window.addEventListener('popstate', () => {
+    if (location.hash === HASH_VISTA && vistaParaExportar) mostrarPaso('vista');
+    else mostrarPaso('configurar');
+  });
 
   function pintarConsulta(estado: EstadoConsulta) {
     for (const panel of Object.values(paneles)) q(`consulta-${panel}`).hidden = panel !== paneles[estado.tipo];
@@ -393,10 +484,14 @@ export function iniciarConfiguracionReporte() {
       vistaParaExportar = estado.vista;
       renderizarVistaPrevia(contenedorVista, estado.vista, { criterios: criteriosSolicitud });
       pintarExportacion('lista');
+      abrirVista();
     } else {
       vistaParaExportar = null;
       contenedorVista.replaceChildren();
       pintarExportacion('oculto');
+      // Sin vista previa vigente no se permanece en el paso 2.
+      if (!q('paso-vista').hidden) mostrarPaso('configurar', false);
+      q('vista-disponible').hidden = true;
     }
   }
 
@@ -475,6 +570,7 @@ export function iniciarConfiguracionReporte() {
     pintarSeleccion();
     revalidar();
     if (paisAnterior) void cargarOrganizaciones();
+    else pintarRelacionados();
   });
 
   q('reintentar').addEventListener('click', () => {
@@ -508,12 +604,20 @@ export function iniciarConfiguracionReporte() {
     if (estado.tipo === 'error' && estado.reintentable) solicitar(estado.parametros);
   });
 
+  q('volver-configurar').addEventListener('click', volverAConfigurar);
+  q('ver-vista').addEventListener('click', abrirVista);
   q('exportar-pdf').addEventListener('click', () => pintarExportacion('confirmacion'));
   q('cancelar-pdf').addEventListener('click', () => pintarExportacion('lista'));
   q('confirmar-pdf').addEventListener('click', () => { void descargarPdf(); });
   q('exportacion-reintentar').addEventListener('click', () => pintarExportacion('confirmacion'));
 
+  // Organización y programa acotan los indicadores y resultados que se ofrecen.
+  selectores.id_organizacion.addEventListener('change', () => { pintarRelacionados(); revalidar(); });
+  selectores.id_programa.addEventListener('change', () => { pintarRelacionados(); revalidar(); });
+
   q('indicadores-opciones').addEventListener('change', () => {
+    pintarResultados();
+    pintarSeleccion();
     if (marcados('indicadores').length > MAX_SELECCION) {
       q('error-general').textContent = `Puedes seleccionar hasta ${MAX_SELECCION} indicadores.`;
       q('error-general').hidden = false;
@@ -523,5 +627,8 @@ export function iniciarConfiguracionReporte() {
   pintarSeleccion();
   consulta.reiniciar();
   pintarExportacion('oculto');
+  // Al recargar con #vista-previa no hay vista vigente: se empieza configurando.
+  if (location.hash === HASH_VISTA) history.replaceState(null, '', location.pathname + location.search);
+  mostrarPaso('configurar', false);
   void cargarCatalogos();
 }

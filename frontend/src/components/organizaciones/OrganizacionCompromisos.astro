@@ -1,8 +1,11 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Icono from '../ui/Icono.astro';
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 
 interface Props {
   idOrganizacion: string;
@@ -17,38 +20,11 @@ const { idOrganizacion } = Astro.props;
   class="space-y-6 text-slate-900"
   aria-labelledby="comp-titulo"
 >
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div class="flex items-start gap-3">
-      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-6 w-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 4.75h7l4 4v10.5A1.75 1.75 0 0 1 17.25 21h-10.5A1.75 1.75 0 0 1 5 19.25V6.5A1.75 1.75 0 0 1 6.75 4.75H8Z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 4.75v4h4M8.5 13h7M8.5 16.5h7" />
-        </svg>
-      </div>
-      <div>
-        <h2 id="comp-titulo" class="text-xl font-semibold tracking-tight text-slate-900">Compromisos</h2>
-        <p class="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">
-          Consulta los acuerdos, sus responsables y las fechas de cumplimiento de esta organización.
-        </p>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap gap-3 sm:justify-end">
-      <Button id="comp-recargar" variant="outline" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5.5 9A7 7 0 0 1 17 5l3 2M4 17l3 2a7 7 0 0 0 11.5-4" />
-        </svg>
-        Recargar datos
-      </Button>
-      <Button id="comp-nuevo" type="button" disabled>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
-        </svg>
-        Registrar compromiso
-      </Button>
-    </div>
-  </header>
+  <EncabezadoModulo id="comp-titulo" titulo="Compromisos" descripcion="Acuerdos, responsables y fechas de cumplimiento.">
+    <Button id="comp-nuevo" type="button" disabled>
+      <span aria-hidden="true">＋</span> Registrar compromiso
+    </Button>
+  </EncabezadoModulo>
 
   <p id="comp-permisos" hidden role="status" class="rounded-xl border border-[#DED9EE] bg-white p-4 text-sm text-slate-600">
     Puedes consultar los compromisos, pero no tienes permiso para modificarlos en esta organización.
@@ -57,7 +33,7 @@ const { idOrganizacion } = Astro.props;
   <div id="comp-carga" hidden role="status" aria-live="polite">
     <Card>
       <div class="flex items-center justify-center gap-3 py-5 text-sm text-slate-600">
-        <span class="h-5 w-5 animate-spin rounded-full border-2 border-[#DED9EE] border-t-[#4C4688]" aria-hidden="true"></span>
+        <span class="h-5 w-5 animate-spin rounded-full border-2 border-[#DED9EE] border-t-primary" aria-hidden="true"></span>
         Cargando compromisos…
       </div>
     </Card>
@@ -67,13 +43,8 @@ const { idOrganizacion } = Astro.props;
   <div id="comp-exito" hidden role="status" aria-live="polite" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"></div>
 
   <!-- Listado -->
-  <div id="comp-listado" hidden class="space-y-4">
-    <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h3 class="text-lg font-semibold text-slate-900">Listado de compromisos</h3>
-        <p class="mt-1 text-sm text-slate-500">Cada tarjeta muestra el estado, la persona responsable y su fecha límite.</p>
-      </div>
-    </div>
+  <div id="comp-listado" hidden class="space-y-3">
+    <p id="comp-cantidad" class="modulo-conteo"></p>
 
     <div id="comp-estados-vacios" class="space-y-3">
       <EmptyState
@@ -91,7 +62,7 @@ const { idOrganizacion } = Astro.props;
       </div>
     </div>
 
-    <div id="comp-lista" class="space-y-4"></div>
+    <div id="comp-lista" class="space-y-3"></div>
   </div>
 
   <!-- Detalle -->
@@ -150,10 +121,14 @@ const { idOrganizacion } = Astro.props;
           </svg>
           Volver al listado
         </Button>
-        <Button id="comp-editar" type="button">
+        <Button id="comp-pdf-acta" type="button" variant="outline">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m14 5 5 5M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
-          </svg>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" />
+        </svg>
+          Descargar PDF del acta
+        </Button>
+        <Button id="comp-editar" type="button">
+          <Icono nombre="editar" />
           Editar compromiso
         </Button>
       </div>
@@ -176,16 +151,16 @@ const { idOrganizacion } = Astro.props;
             <p class="mt-1 text-sm text-slate-500">Completa los datos del acuerdo y quién será responsable de cumplirlo.</p>
           </div>
         </div>
-        <p class="mb-5 text-sm text-slate-500">Los campos con * son obligatorios. Los nuevos compromisos quedan Pendientes.</p>
+        <AvisoObligatorios class="mb-5" />
 
         <div class="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
           <div class="md:col-span-2">
-            <label for="comp-acta" class="block text-sm font-medium text-slate-800">Acta de origen <span class="text-rose-600">*</span></label>
+            <label for="comp-acta" class="block text-sm font-medium text-slate-800">Acta de origen<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <select id="comp-acta" name="id_acta" required class="mt-2 min-h-[48px] w-full rounded-xl border border-[#D9D4E8] bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15"></select>
             <p id="comp-acta-hint" class="mt-1.5 text-xs text-slate-500">Selecciona el acta donde se acordó este compromiso.</p>
           </div>
           <div class="md:col-span-2">
-            <label for="comp-descripcion" class="block text-sm font-medium text-slate-800">Acción o acuerdo comprometido <span class="text-rose-600">*</span></label>
+            <label for="comp-descripcion" class="block text-sm font-medium text-slate-800">Acción o acuerdo comprometido<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <textarea id="comp-descripcion" name="descripcion" required maxlength="2000" rows="3" placeholder="Describe el acuerdo que debe cumplirse…" class="mt-2 w-full resize-y rounded-xl border border-[#D9D4E8] bg-white p-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15"></textarea>
           </div>
         </div>
@@ -199,7 +174,7 @@ const { idOrganizacion } = Astro.props;
           <Input id="comp-contacto" name="responsable_contacto" label="Contacto del responsable" required maxlength={300} hint="Correo, teléfono u otro medio de contacto." />
           <Input id="comp-fecha" name="fecha_limite" type="date" label="Fecha límite" required />
           <div>
-            <label for="comp-estado" class="block text-sm font-medium text-slate-800">Estado <span class="text-rose-600">*</span></label>
+            <label for="comp-estado" class="block text-sm font-medium text-slate-800">Estado<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <select id="comp-estado" name="estado" required class="mt-2 min-h-[48px] w-full rounded-xl border border-[#D9D4E8] bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15">
               <option value="pendiente">Pendiente</option>
               <option value="cumplido">Cumplido</option>
@@ -213,7 +188,7 @@ const { idOrganizacion } = Astro.props;
       </Card>
 
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button id="comp-cancelar" type="button" variant="outline">Cancelar</Button>
+        <Button id="comp-cancelar" data-descartar type="button" variant="outline">Cancelar</Button>
         <Button id="comp-guardar" type="submit">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 4.75h12l2.25 2.5v12A1.75 1.75 0 0 1 17.5 21h-11A1.75 1.75 0 0 1 4.75 19.25V6.5A1.75 1.75 0 0 1 6.5 4.75Z" />

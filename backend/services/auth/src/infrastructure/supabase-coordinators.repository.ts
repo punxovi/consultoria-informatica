@@ -1,9 +1,10 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { randomBytes } from 'node:crypto';
 import { CoordinatorError, type CoordinatorRepository, type CreateCoordinator } from '../domain/coordinators.ts';
 
 interface Options { url: string; anonKey: string; adminKey?: string; redirectUrl: string; fetchImpl?: typeof fetch }
 export function createSupabaseCoordinatorRepository(options: Options): CoordinatorRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.url);
   const base = options.url.replace(/\/$/, '');
   async function request(path: string, key: string, token: string, body: unknown): Promise<any> {
     let response: Response;

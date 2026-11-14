@@ -1,4 +1,6 @@
 ---
+// Flecha para volver. Vive en el breadcrumb del header: en móvil reemplaza a los niveles
+// intermedios y en escritorio se oculta, porque ahí se ve el breadcrumb completo (ver Header.astro).
 interface Props {
   label?: string;
   class?: string;
@@ -13,34 +15,30 @@ const {
 
 const accessibleLabel =
   label || (href ? 'Volver al listado' : 'Volver a la página anterior');
+
+const clases = [
+  '-ml-1 inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1 rounded-full',
+  'text-[#4C4688] transition-colors hover:bg-[#F0EEF8] active:bg-[#E6E2F3]',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688]',
+  className,
+];
 ---
 
 {
   href ? (
-    <a
-      href={href}
-      class:list={[
-        'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl',
-        'border border-[#DCD8E8] bg-white px-3 text-[#4C4688]',
-        'transition-colors hover:border-[#C9C3E0] hover:bg-[#F0EEF8]',
-        'focus-visible:outline-none focus-visible:ring-2',
-        'focus-visible:ring-[#4C4688] focus-visible:ring-offset-2',
-        className,
-      ]}
-      aria-label={accessibleLabel}
-    >
+    <a href={href} data-migas-volver class:list={clases} aria-label={accessibleLabel}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 shrink-0"
+        class="h-6 w-6 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
         aria-hidden="true"
       >
-        <path d="M19 12H5m7 7-7-7 7-7" />
+        <path d="m15 18-6-6 6-6" />
       </svg>
 
       {label && <span class="text-sm font-semibold">{label}</span>}
@@ -49,28 +47,22 @@ const accessibleLabel =
     <button
       type="button"
       data-back-button="true"
-      class:list={[
-        'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl',
-        'border border-[#DCD8E8] bg-white px-3 text-[#4C4688]',
-        'transition-colors hover:border-[#C9C3E0] hover:bg-[#F0EEF8]',
-        'focus-visible:outline-none focus-visible:ring-2',
-        'focus-visible:ring-[#4C4688] focus-visible:ring-offset-2',
-        className,
-      ]}
+      data-migas-volver
+      class:list={clases}
       aria-label={accessibleLabel}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 shrink-0"
+        class="h-6 w-6 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
         aria-hidden="true"
       >
-        <path d="M19 12H5m7 7-7-7 7-7" />
+        <path d="m15 18-6-6 6-6" />
       </svg>
 
       {label && <span class="text-sm font-semibold">{label}</span>}

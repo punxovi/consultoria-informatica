@@ -11,6 +11,8 @@ import {
 } from './legal-record.schemas.ts';
 import type { Compromiso, CamposCompromiso, ActualizarCompromisoInput, EstadoCompromiso } from './compromisos.ts';
 import type { Diagnostico, CamposDiagnostico, ActualizarDiagnosticoInput } from './diagnosticos.ts';
+import type { OrganizationImage, OrganizationImageUpload } from './organization-image.ts';
+import type { Donation, DonationFile, DownloadedFile, CreateDonationInput, CreateDonationFileInput } from './donations.ts';
 
 export {
   LEGAL_DOCUMENT_TYPES,
@@ -55,6 +57,14 @@ export {
   normalizarTipoRespaldo,
 } from './donations.ts';
 
+export type { OrganizationImage, OrganizationImageUpload } from './organization-image.ts';
+export {
+  ORGANIZATION_IMAGE_MIME_TYPES,
+  ORGANIZATION_IMAGE_MAX_BYTES,
+  parseOrganizationImageMimeType,
+  parseOrganizationImageUpload,
+} from './organization-image.ts';
+
 export const ORGANIZATION_TYPES = [
   'comedor_merendero',
   'centro_comunitario',
@@ -92,6 +102,7 @@ export interface Organization {
   archived_at: string | null;
   version: number;
   pais: CountrySummary;
+  imagen?: OrganizationImage | null;
 }
 
 export interface OrganizationFields {
@@ -156,6 +167,7 @@ export interface SaveLegalRecordInput {
 }
 
 export interface OrganizationsRepository {
+  auditCommitmentsExport(token: string, context: {id_organizacion:string;id_acta?:string}): Promise<void>;
   list(accessToken: string, filters: OrganizationFilters): Promise<Organization[]>;
   getById(accessToken: string, id: string): Promise<Organization>;
   create(accessToken: string, fields: OrganizationFields): Promise<Organization>;
@@ -207,6 +219,8 @@ export interface OrganizationsRepository {
     mimeType: string,
   ): Promise<DonationFile>;
   downloadDonationFile(accessToken: string, donationId: string, fileId: string): Promise<DownloadedFile>;
+  replaceOrganizationImage(accessToken: string, orgId: string, upload: OrganizationImageUpload): Promise<OrganizationImage>;
+  downloadOrganizationImage(accessToken: string, orgId: string): Promise<DownloadedFile>;
 }
 
 

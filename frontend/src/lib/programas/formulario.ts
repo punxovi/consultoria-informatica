@@ -1,4 +1,5 @@
 import { actualizarProgramaSchema, crearProgramaSchema, obtenerProgramaPorIdSchema } from '../validaciones/programas';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { getUserRoles } from '../supabase';
 import { actualizarPrograma, crearPrograma, obtenerPrograma } from './cliente';
 import { guardarImagen, obtenerImagen, optimizarImagen, quitarImagen } from './imagen';
@@ -22,6 +23,8 @@ function iniciar(form: HTMLFormElement) {
   const imagenCambio = document.querySelector<HTMLElement>('#imagen-cambio');
   
   let id = form.dataset.id || '';
+  // Si al crear falla solo la imagen, el reintento sigue contando como creación.
+  const esCreacion = !id;
   let version: number | undefined;
   let ultimoContenidoGuardado: string | null = null;
   let permiteSinLineas = false;
@@ -133,10 +136,8 @@ function iniciar(form: HTMLFormElement) {
   });
 
   document.querySelector('#cancelar-programa')!.addEventListener('click', () => {
-    if (!modificado || confirm('¿Descartar los cambios sin guardar?')) {
-      modificado = false;
-      window.location.assign(id ? `/programas/${id}` : '/programas');
-    }
+    modificado = false;
+    window.location.assign(id ? `/programas/${id}` : '/programas');
   });
 
   window.addEventListener('beforeunload', evento => {
@@ -144,8 +145,8 @@ function iniciar(form: HTMLFormElement) {
   });
 
   if (recargar) {
-    recargar.addEventListener('click', () => {
-      if (!modificado || confirm('¿Descartar tus cambios y cargar la versión guardada?')) void cargar();
+    recargar.addEventListener('click', async () => {
+      if (!modificado || await confirmarDescarte('Se cargará la versión guardada y perderás tus cambios.')) void cargar();
     });
   }
 
@@ -260,8 +261,8 @@ function iniciar(form: HTMLFormElement) {
       }
       
       modificado = false; ocupado = false; guardado = true;
-      estado.textContent = 'Programa guardado correctamente.';
-      window.location.replace(`/programas/${id}?resultado=guardado`);
+      estado.textContent = esCreacion ? 'Programa creado correctamente.' : 'Programa modificado correctamente.';
+      window.location.replace(`/programas/${id}?resultado=${esCreacion ? 'creado' : 'guardado'}`);
     } catch (error) {
       estado.textContent = '';
       campos.disabled = false;

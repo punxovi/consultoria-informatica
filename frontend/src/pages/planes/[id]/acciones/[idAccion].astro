@@ -1,8 +1,10 @@
 ---
+import Icono from '../../../../components/ui/Icono.astro';
 import Button from '../../../../components/ui/Button.astro';
 import DetalleAccionInfo from '../../../../components/acciones/DetalleAccionInfo.astro';
 import AccionLayout from '../../../../layouts/AccionLayout.astro';
 import EliminarRegistro from '../../../../components/ui/EliminarRegistro.astro';
+import MenuAcciones from '../../../../components/ui/MenuAcciones.astro';
 import IndicadoresAccion from '../../../../components/indicadores/IndicadoresAccion.astro';
 import EvidenciasAccion from '../../../../components/evidencias/EvidenciasAccion.astro';
 
@@ -11,12 +13,12 @@ const idAccion = Astro.params.idAccion ?? '';
 const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURIComponent(idAccion)}`;
 ---
 
-<AccionLayout idPlan={idPlan} title="Detalle de acción">
+<AccionLayout idPlan={idPlan} title="Detalle de acción" allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <section id="accion-detalle" data-id-plan={idPlan} data-id-accion={idAccion} class="-mt-3 w-full space-y-5">
     <p id="detalle-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando acción…</p>
     <p id="detalle-error" hidden role="alert" class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
     <div id="detalle-reintentar" hidden>
-      <Button id="recargar-accion" variant="outline">Reintentar carga</Button>
+      <Button id="recargar-accion" variant="outline">Reintentar</Button>
     </div>
 
     <div id="detalle-contenido" hidden class="space-y-5">
@@ -30,7 +32,7 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
         Acción modificada correctamente.
       </p>
 
-      <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+      <header class="flex items-start justify-between gap-4 md:flex-col md:items-stretch xl:flex-row xl:items-start">
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-3">
             <h1 data-accion="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
@@ -42,26 +44,27 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
           </p>
         </div>
 
-        <div class="flex shrink-0 flex-wrap items-center gap-3">
-          <EliminarRegistro
-            tipo="accion"
-            id={idAccion}
-            regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`}
-          />
-          <Button href={`${rutaAccion}/editar`} variant="outline">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
-            </svg>
-            Editar acción
-          </Button>
+        <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
+        <div id="gestion-accion" data-gestion hidden class="shrink-0">
+          <MenuAcciones etiqueta="Acciones de la acción">
+            <Button href={`${rutaAccion}/editar`} variant="outline">
+              <Icono nombre="editar" />
+              Editar acción
+            </Button>
+            <EliminarRegistro
+              tipo="accion"
+              id={idAccion}
+              regreso={`/planes/${encodeURIComponent(idPlan)}?resultado=accion-eliminada#acciones-plan`}
+            />
+          </MenuAcciones>
         </div>
       </header>
 
-      <div class="overflow-x-auto rounded-2xl border border-[#E5E1EF] bg-white p-2">
+      <div class="pestanas overflow-x-auto rounded-2xl border border-[#E5E1EF] bg-white p-2">
         <div id="accion-tabs" class="flex min-w-max flex-wrap gap-2" role="tablist" aria-label="Secciones de la acción">
           <button id="tab-detalle" type="button" role="tab" aria-selected="true" aria-controls="panel-detalle" data-tab="detalle" class="shrink-0 rounded-full bg-[#4C4688] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors">Detalle de acción</button>
           <button id="tab-indicadores" type="button" role="tab" aria-selected="false" aria-controls="panel-indicadores" data-tab="indicadores" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Indicadores y resultados</button>
-          <button id="tab-evidencias" type="button" role="tab" aria-selected="false" aria-controls="panel-evidencias" data-tab="evidencias" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Evidencias</button>
+          <button id="tab-evidencias" data-oculto-invitado type="button" role="tab" aria-selected="false" aria-controls="panel-evidencias" data-tab="evidencias" tabindex="-1" class="shrink-0 rounded-full bg-[#F2F0F7] px-5 py-3 text-sm font-medium text-neutral-600 transition-colors hover:bg-[#E8E4F3] hover:text-primary">Evidencias</button>
         </div>
       </div>
 
@@ -82,6 +85,8 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
 
 <script>
   import { obtenerAccion } from '../../../../lib/acciones/cliente';
+  import { obtenerPlan } from '../../../../lib/planes/cliente';
+  import { obtenerAlcanceGestion, puedeGestionarPais } from '../../../../lib/territorio/permisos';
   import { etiquetaEstado, estaVencida, mostrarFecha } from '../../../../lib/acciones/presentacion';
 
   const seccion = document.querySelector<HTMLElement>('#accion-detalle')!;
@@ -130,10 +135,18 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
     estado.textContent = 'Cargando acción…';
 
     try {
-      const accion = await obtenerAccion(seccion.dataset.idAccion!);
+      const [accion, plan, alcance] = await Promise.all([
+        obtenerAccion(seccion.dataset.idAccion!),
+        obtenerPlan(seccion.dataset.idPlan!),
+        obtenerAlcanceGestion(),
+      ]);
       if (accion.id_plan !== seccion.dataset.idPlan) {
         throw new Error('La acción solicitada no pertenece a este plan.');
       }
+      const gestionable = puedeGestionarPais(alcance, plan.organizacion.id_pais);
+      document.querySelector<HTMLElement>('#gestion-accion')!.hidden = !gestionable;
+      // Fuera del país propio o de una cobertura vigente, Indicadores y Evidencias quedan en solo consulta.
+      document.documentElement.toggleAttribute('data-solo-consulta', !gestionable);
 
       const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
       if (raizEliminar) raizEliminar.dataset.version = String(accion.version);

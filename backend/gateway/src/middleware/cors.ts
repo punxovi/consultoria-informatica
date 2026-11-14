@@ -17,7 +17,7 @@ export function applyCors(
 
   response.statusCode = 204;
   response.setHeader('access-control-allow-methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
-  response.setHeader('access-control-allow-headers', 'authorization,content-type,x-request-id');
+  response.setHeader('access-control-allow-headers', 'authorization,content-type,x-request-id,x-territory-id');
   response.end();
   return true;
 }

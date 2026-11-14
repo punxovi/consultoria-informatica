@@ -3,6 +3,28 @@ import assert from 'node:assert/strict';
 import { crearEntornoIndicadores } from '../helpers/indicadores-entorno.mjs';
 import { crearClienteIndicadores } from '../../src/lib/indicadores/cliente.ts';
 import { createApiTransport } from '../../src/lib/api/transporte.ts';
+import { readFile } from 'node:fs/promises';
+
+test('la carga inicial de sprint 9 es repetible y conserva los indicadores de las Acciones', async () => {
+  const env = await crearEntornoIndicadores();
+  try {
+    const { accion } = await env.fixture();
+    const client = crearClienteIndicadores(createApiTransport(env.gatewayUrl), async () => 'qa-admin');
+    const catalog = await client.catalogo();
+    const [item] = await client.asociar(accion.id_accion, [{ id_indicador: catalog[0].id_indicador, meta: 42 }]);
+    const seed = await readFile(new URL('../../../supabase/seed.sql', import.meta.url), 'utf8');
+    const sql = seed.slice(seed.indexOf('WITH catalogo('), seed.indexOf('-- Cuenta de prueba'));
+    const before = await client.listar(accion.id_accion);
+    await env.db.exec(sql);
+    const first = await client.catalogo();
+    await env.db.exec(sql);
+    assert.deepEqual(await client.catalogo(), first);
+    assert.equal(new Set(first.map(i => i.nombre)).size, first.length);
+    assert.deepEqual(await client.listar(accion.id_accion), before);
+    assert.equal(before[0].id_indicador, item.id_indicador);
+    assert.equal(before[0].meta, 42);
+  } finally { await env.cerrar(); }
+});
 
 test('SCRUM-118: cliente HTTP → Gateway → Intervenciones → PostgreSQL con RLS', async t => {
   const env = await crearEntornoIndicadores();

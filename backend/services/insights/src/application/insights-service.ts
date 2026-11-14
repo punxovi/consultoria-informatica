@@ -49,7 +49,7 @@ export function createInsightsApplication(repository: InsightsRepository, now: (
       if(!Buffer.isBuffer(bytes)||bytes.subarray(0,5).toString()!=='%PDF-'||!bytes.subarray(-64).toString().includes('%%EOF')) {
         throw new ServiceError('PDF_GENERACION_FALLIDA','El generador no produjo un PDF válido.',500);
       }
-      await repository.auditExport(accessToken,{destination:entry.document.destination,filters:entry.filters as {countryId:string|null}});
+      await repository.auditExport(accessToken,{destination:entry.document.destination,filters:{...entry.filters,reportId,countryId:entry.filters.countryId as string|null}});
       return {bytes,fileName:pdfFileName(entry.document),mimeType:'application/pdf'};
     },
   };

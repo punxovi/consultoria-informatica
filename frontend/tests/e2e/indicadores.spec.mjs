@@ -65,7 +65,7 @@ test('error de servicio no se confunde con catálogo vacío y permite reintentar
   await expect(page.locator('#ind-error')).toContainText('Falta aplicar la migración');
   await expect(page.locator('#ind-vacio')).toBeHidden();
   await expect(page.locator('#ind-asociar')).toBeDisabled();
-  fallo=null;await page.locator('#ind-recargar').click();await expect(page.locator('#ind-vacio')).toBeVisible();
+  fallo=null;await page.reload();await expect(page.locator('#ind-vacio')).toBeVisible();
 });
 
 test('403 conserva entradas y conflicto bloquea guardado hasta recargar',async({page})=>{
@@ -73,14 +73,14 @@ test('403 conserva entradas y conflicto bloquea guardado hasta recargar',async({
   fallo={status:403,code:'SIN_PERMISO',message:'No tienes permiso para editar.'};await page.locator('#ind-guardar').click();await expect(page.locator('#ind-dialogo-error')).toContainText('No tienes permiso');await expect(page.locator('#ind-valor')).toHaveValue('50');
   fallo={status:409,code:'CONFLICTO_CONCURRENCIA',message:'La meta cambió.'};await page.locator('#ind-guardar').click();await expect(page.locator('#ind-guardar')).toBeDisabled();
   await page.locator('#ind-cancelar').click();await page.getByRole('button',{name:'Editar meta',exact:true}).click();await expect(page.locator('#ind-guardar')).toBeDisabled();
-  await page.locator('#ind-cancelar').click();fallo=null;lista[0].meta=40;lista[0].version=2;await page.locator('#ind-recargar').click();await expect(page.locator('#ind-lista dd').first()).toHaveText('40');
+  await page.locator('#ind-cancelar').click();fallo=null;lista[0].meta=40;lista[0].version=2;await page.reload();await expect(page.locator('#ind-lista dd').first()).toHaveText('40');
   await page.getByRole('button',{name:'Editar meta',exact:true}).click();await expect(page.locator('#ind-guardar')).toBeEnabled();
 });
 test('respuesta incierta al asociar conserva selección y evita un segundo envío',async({page})=>{
   await abrir(page);await seleccionar(page,0,'20');fallo={status:503,code:'SERVICIO_NO_DISPONIBLE',message:'No fue posible confirmar la operación.'};
   await page.locator('#ind-asociar').click();await expect(page.locator('#ind-error')).toContainText('Conservamos los valores');await expect(page.locator('#ind-asociar')).toBeDisabled();
   await expect(page.locator(`[data-meta="${catalogoDemo[0].id_indicador}"]`)).toHaveValue('20');await expect(page.locator('#ind-exito')).toBeHidden();
-  fallo=null;page.once('dialog',d=>d.accept());await page.locator('#ind-recargar').click();await expect(page.locator('#ind-asociar')).toBeEnabled();
+  fallo=null;await page.reload();await expect(page.locator('#ind-asociar')).toBeEnabled();
 });
 test('catálogo vacío deshabilita asociación y no inventa indicadores',async({page})=>{
   catalogo=[];await page.goto(`/planes/${id}/acciones/${id}`);await expect(page.locator('#ind-catalogo-vacio')).toBeVisible();await expect(page.locator('#ind-asociar')).toBeDisabled();

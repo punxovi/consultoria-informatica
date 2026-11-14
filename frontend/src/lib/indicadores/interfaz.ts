@@ -1,3 +1,5 @@
+import { iconoSvg } from '../ui/iconos.ts';
+import { confirmar as confirmarAccion } from '../ui/confirmar';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteIndicadores } from './cliente';
@@ -30,6 +32,11 @@ export function iniciarIndicadores() {
     q<HTMLFieldSetElement>('edicion-campos').disabled = valor;
     q<HTMLButtonElement>('asociar').disabled = valor || requiereRecarga || !catalogo.some(c => !indicadores.some(i => i.id_catalogo === c.id_indicador));
     q<HTMLButtonElement>('guardar').disabled = valor || requiereRecarga;
+    q<HTMLButtonElement>('nueva').disabled = valor || !cargado || requiereRecarga || !catalogo.some(c => !indicadores.some(i => i.id_catalogo === c.id_indicador));
+  }
+  // Igual que en Actas: el listado es la vista principal y el catálogo se abre con «Agregar indicadores».
+  function vista(formulario: boolean) {
+    q('vista-lista').hidden = formulario; q('vista-form').hidden = !formulario; q('nueva').hidden = formulario;
   }
   function limpiarErrores() {
     q('error').hidden = q('exito').hidden = q('dialogo-error').hidden = q('seleccion-error').hidden = true;
@@ -50,60 +57,90 @@ export function iniciarIndicadores() {
     if (api && (fallo.code === 'RUTA_NO_ENCONTRADA' || fallo.status === 501)) mensaje = 'El servicio de Indicadores todavía no está disponible. Revisa la configuración del Backend.';
     if (mutacion && api && (fallo.status === 409 || fallo.status === 0 || fallo.status >= 500)) {
       requiereRecarga = true;
-      mensaje += ' Conservamos los valores ingresados. Cierra el formulario y pulsa Actualizar indicadores antes de volver a guardar.';
+      mensaje += ' Conservamos los valores ingresados. Cierra el formulario y recarga la página antes de volver a guardar.';
     }
     const destino = dialogo.open ? q('dialogo-error') : q('error'); destino.textContent = mensaje; destino.hidden = false; destino.focus();
   }
   function renderCatalogo() {
     q('catalogo').replaceChildren(); q('catalogo-vacio').hidden = catalogo.length > 0;
-    for (const cat of catalogo) {
-      const asociado = indicadores.some(i => i.id_catalogo === cat.id_indicador);
-      const row = document.createElement('div'); row.className = 'rounded-xl border border-neutral-200 bg-white p-4';
-      const label = document.createElement('label'); label.className = 'flex min-h-[48px] cursor-pointer items-start gap-3 font-semibold';
+    const estaAsociado = (cat: IndicadorCatalogo) => indicadores.some(i => i.id_catalogo === cat.id_indicador);
+    // Primero los disponibles; los ya asociados quedan al final, atenuados.
+    const ordenado = [...catalogo].sort((a, b) => Number(estaAsociado(a)) - Number(estaAsociado(b)));
+    for (const cat of ordenado) {
+      const asociado = estaAsociado(cat);
+      const row = document.createElement('div');
+      row.className = asociado ? 'rounded-xl border border-neutral-200 bg-neutral-50 p-4' : 'rounded-xl border border-neutral-200 bg-white p-4 transition-colors has-[:checked]:border-primary/40 has-[:checked]:bg-[#F7F6FC]';
+      const label = document.createElement('label'); label.className = `flex items-start gap-3 ${asociado ? 'cursor-not-allowed' : 'cursor-pointer'}`;
       const check = document.createElement('input'); check.type = 'checkbox'; check.dataset.catalogo = cat.id_indicador;
-      check.id = `ind-seleccion-${cat.id_indicador}`; check.disabled = asociado; check.className = 'mt-1 size-5 shrink-0 accent-primary';
-      const nombre = document.createElement('span'); nombre.textContent = cat.nombre; label.append(check, nombre);
-      const desc = document.createElement('p'); desc.className = 'mt-1 text-sm text-neutral-700'; desc.textContent = asociado ? `${cat.unidad_medida} · Ya asociado a esta acción` : `${cat.descripcion} Unidad: ${cat.unidad_medida}.`;
-      const valores = document.createElement('div'); valores.hidden = true; valores.className = 'mt-3';
-      const metaLabel = document.createElement('label'); metaLabel.htmlFor = `ind-meta-${cat.id_indicador}`; metaLabel.className = 'block font-medium'; metaLabel.textContent = 'Meta esperada *';
-      const meta = document.createElement('input'); meta.type = 'number'; meta.min = '0'; meta.step = 'any'; meta.id = metaLabel.htmlFor; meta.disabled = true;
-      meta.dataset.meta = cat.id_indicador; meta.className = 'mt-2 min-h-[48px] w-full rounded-lg border border-neutral-300 p-3';
+      check.id = `ind-seleccion-${cat.id_indicador}`; check.disabled = asociado; check.className = 'mt-0.5 size-5 shrink-0 accent-primary';
+      const textos = document.createElement('span'); textos.className = 'min-w-0 flex-1';
+      const cabecera = document.createElement('span'); cabecera.className = 'flex flex-wrap items-center gap-2';
+      const nombre = document.createElement('span'); nombre.className = `font-semibold ${asociado ? 'text-neutral-500' : 'text-neutral-900'}`; nombre.textContent = cat.nombre;
+      const unidad = document.createElement('span'); unidad.className = 'inline-flex rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600'; unidad.textContent = cat.unidad_medida;
+      cabecera.append(nombre, unidad);
+      if (asociado) {
+        const chip = document.createElement('span'); chip.className = 'inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800'; chip.textContent = 'Ya asociado'; cabecera.append(chip);
+      }
+      const desc = document.createElement('span'); desc.className = 'mt-1 block text-sm leading-5 text-neutral-500'; desc.textContent = cat.descripcion;
+      textos.append(cabecera, desc); label.append(check, textos);
+      const valores = document.createElement('div'); valores.hidden = true; valores.className = 'mt-3 pl-8';
+      const metaLabel = document.createElement('label'); metaLabel.htmlFor = `ind-meta-${cat.id_indicador}`; metaLabel.className = 'block text-sm font-semibold text-neutral-800'; metaLabel.textContent = `Meta esperada (${cat.unidad_medida.toLowerCase()}) *`;
+      const meta = document.createElement('input'); meta.type = 'number'; meta.min = '0'; meta.step = 'any'; meta.id = metaLabel.htmlFor; meta.disabled = true; meta.placeholder = 'Ej.: 20';
+      meta.dataset.meta = cat.id_indicador; meta.className = 'mt-2 min-h-[44px] w-full max-w-xs rounded-lg border border-neutral-300 bg-white px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15';
       check.addEventListener('change', () => { valores.hidden = !check.checked; meta.disabled = !check.checked; if (check.checked) meta.focus(); });
-      valores.append(metaLabel, meta); row.append(label, desc, valores); q('catalogo').append(row);
+      valores.append(metaLabel, meta); row.append(label, valores); q('catalogo').append(row);
     }
   }
   function boton(texto: string, accion: () => void) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'min-h-[48px] rounded-lg border-2 border-primary px-4 py-2 font-medium text-primary hover:bg-primary/5'; b.textContent = texto; b.addEventListener('click', accion); return b;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'registro-boton registro-boton--secundario gap-2'; b.textContent = texto; b.dataset.gestion = '';
+    // Mismo ícono de «Editar» que en el resto de la aplicación.
+    if (texto.startsWith('Editar')) b.insertAdjacentHTML('afterbegin', iconoSvg('editar'));
+    b.addEventListener('click', accion); return b;
   }
   function renderSeguimiento() {
-    q('cantidad').textContent = `${indicadores.length} ${indicadores.length === 1 ? 'indicador' : 'indicadores'}`;
+    q('cantidad').textContent = `${indicadores.length} ${indicadores.length === 1 ? 'indicador asociado' : 'indicadores asociados'}`;
     q('vacio').hidden = indicadores.length > 0; q('lista').replaceChildren();
     for (const item of indicadores) {
       const cat = definicion(item);
-      const card = document.createElement('article'); card.dataset.indicador = item.id_indicador; card.className = 'min-w-0 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm';
-      const h = document.createElement('h4'); h.className = 'break-words text-xl font-semibold'; h.textContent = cat.nombre;
-      const unidad = document.createElement('p'); unidad.className = 'mt-1 text-neutral-700'; unidad.textContent = `Unidad: ${cat.unidad_medida}`;
-      const valores = document.createElement('dl'); valores.className = 'my-4 grid grid-cols-2 gap-3';
-      for (const [etiqueta, valor, clase] of [
-        ['Meta esperada', mostrarCantidad(item.meta), 'bg-primary/5'],
-        ['Resultado obtenido', item.resultado === null ? 'Sin registrar' : mostrarCantidad(item.resultado.valor_medido), 'bg-neutral-100'],
+      const conResultado = item.resultado !== null;
+      const card = document.createElement('article'); card.dataset.indicador = item.id_indicador;
+      card.className = `registro tarjeta-acento ${conResultado ? 'acento-verde' : 'acento-morado'}`;
+      const cabecera = document.createElement('div'); cabecera.className = 'registro-cabecera';
+      const textos = document.createElement('div'); textos.className = 'min-w-0';
+      const unidad = document.createElement('p'); unidad.className = 'registro-contexto'; unidad.textContent = `Unidad: ${cat.unidad_medida}`;
+      const h = document.createElement('h4'); h.className = 'registro-titulo'; h.textContent = cat.nombre;
+      textos.append(unidad, h);
+      const insignias = document.createElement('div'); insignias.className = 'registro-insignias';
+      const estado = document.createElement('span');
+      estado.className = `registro-insignia registro-insignia--${conResultado ? 'verde' : 'neutro'}`;
+      estado.textContent = conResultado ? 'Resultado registrado' : 'Sin resultado';
+      insignias.append(estado); cabecera.append(textos, insignias);
+      const valores = document.createElement('dl'); valores.className = 'registro-datos';
+      for (const [etiqueta, valor] of [
+        ['Meta esperada', mostrarCantidad(item.meta)],
+        ['Resultado obtenido', conResultado ? mostrarCantidad(item.resultado!.valor_medido) : 'Sin registrar'],
       ]) {
-        const div = document.createElement('div'); div.className = `min-w-0 rounded-lg p-3 ${clase}`;
-        const dt = document.createElement('dt'); dt.className = 'text-sm font-medium'; dt.textContent = etiqueta;
-        const dd = document.createElement('dd'); dd.className = 'indicador-valor mt-2 break-words font-bold'; dd.textContent = valor; div.append(dt, dd); valores.append(div);
+        const div = document.createElement('div'); div.className = 'min-w-0';
+        const dt = document.createElement('dt'); dt.textContent = etiqueta;
+        const dd = document.createElement('dd'); dd.className = `indicador-valor${!conResultado && etiqueta === 'Resultado obtenido' ? ' indicador-pendiente' : ''}`; dd.textContent = valor; div.append(dt, dd); valores.append(div);
       }
-      const fecha = document.createElement('p'); fecha.className = 'mb-3 text-sm text-neutral-700';
-      fecha.textContent = item.resultado ? `Medición: ${item.resultado.fecha_medicion.split('-').reverse().join('/')}` : 'Puedes registrar el resultado más adelante.';
-      const observaciones = document.createElement('p'); observaciones.className = 'mb-4 whitespace-pre-wrap break-words text-neutral-700'; observaciones.textContent = item.resultado?.observaciones ?? ''; observaciones.hidden = !observaciones.textContent;
-      const acciones = document.createElement('div'); acciones.className = 'flex flex-wrap gap-3';
+      const nota = document.createElement('p'); nota.className = 'registro-resumen';
+      nota.textContent = item.resultado
+        ? [`Medición: ${item.resultado.fecha_medicion.split('-').reverse().join('/')}`, item.resultado.observaciones].filter(Boolean).join(' · ')
+        : 'Puedes registrar el resultado más adelante.';
+      const acciones = document.createElement('div'); acciones.className = 'registro-pie';
       acciones.append(boton('Editar meta', () => abrir(item, 'meta')), boton(item.resultado ? 'Actualizar resultado' : 'Registrar resultado', () => abrir(item, 'resultado')));
-      card.append(h, unidad, valores, fecha, observaciones, acciones); q('lista').append(card);
+      card.append(cabecera, valores, nota, acciones); q('lista').append(card);
     }
   }
   function tieneCambios() { return checks().length > 0 || dialogo.open; }
   async function cargar(confirmar = true) {
     if (ocupado) return;
-    if (confirmar && tieneCambios() && !window.confirm('Se descartará la selección sin guardar para recargar los datos. ¿Continuar?')) return;
+    if (confirmar && tieneCambios() && !(await confirmarAccion({
+      titulo: '¿Recargar los indicadores?',
+      mensaje: 'Se descartará la selección o los valores que aún no has guardado para volver a cargar los datos.',
+      confirmar: 'Recargar', tono: 'peligro',
+    }))) return;
     limpiarErrores(); bloquear(true);
     try {
       const [cat, items] = await Promise.all([servicio.catalogo(), servicio.listar(accion)]);
@@ -124,7 +161,7 @@ export function iniciarIndicadores() {
     if (entradas.length !== seleccionados.length) { form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return; }
     bloquear(true, 'Asociando indicadores…');
     try {
-      const nuevos = await servicio.asociar(accion, entradas); indicadores.push(...nuevos); renderCatalogo(); renderSeguimiento();
+      const nuevos = await servicio.asociar(accion, entradas); indicadores.push(...nuevos); renderCatalogo(); renderSeguimiento(); vista(false);
       q('exito').textContent = 'Indicadores asociados correctamente.'; q('exito').hidden = false;
     } catch (fallo) { error(fallo, true); } finally { bloquear(false); }
   });
@@ -141,7 +178,7 @@ export function iniciarIndicadores() {
     q<HTMLInputElement>('fecha').value = item.resultado?.fecha_medicion ?? hoyLocal(); q<HTMLTextAreaElement>('observaciones').value = item.resultado?.observaciones ?? '';
     q<HTMLButtonElement>('guardar').disabled = requiereRecarga;
     dialogo.showModal();
-    if (requiereRecarga) error(new Error('Cierra el formulario y pulsa Actualizar indicadores antes de volver a guardar.'));
+    if (requiereRecarga) error(new Error('Cierra el formulario y recarga la página antes de volver a guardar.'));
     else input.focus();
   }
   q('edicion').addEventListener('submit', async evento => {
@@ -164,7 +201,13 @@ export function iniciarIndicadores() {
   q('cancelar').addEventListener('click', () => { if (!ocupado) dialogo.close(); });
   dialogo.addEventListener('cancel', evento => { if (ocupado) evento.preventDefault(); });
   q('limpiar').addEventListener('click', () => { if (!ocupado) { limpiarErrores(); renderCatalogo(); } });
-  q('recargar').addEventListener('click', () => cargar());
+  q('nueva').addEventListener('click', () => {
+    if (ocupado || !cargado) return; limpiarErrores(); renderCatalogo(); vista(true);
+    form.querySelector<HTMLInputElement>('[data-catalogo]:not(:disabled)')?.focus();
+  });
+  q('volver').addEventListener('click', () => {
+    if (ocupado) return; limpiarErrores(); renderCatalogo(); vista(false); q('nueva').focus();
+  });
   const iniciar = () => { if (!iniciado) { iniciado = true; void cargar(false); } };
   window.addEventListener('accion:detalle-cargado', iniciar);
   if (document.querySelector<HTMLElement>('#accion-detalle')?.dataset.cargada === 'true') iniciar();

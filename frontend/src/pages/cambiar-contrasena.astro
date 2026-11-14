@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../components/ui/AvisoObligatorios.astro';
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/ui/Button.astro';
 import Card from '../components/ui/Card.astro';
@@ -47,6 +48,7 @@ import Input from '../components/ui/Input.astro';
           </div>
 
           <form id="password-form" class="auth-form" novalidate>
+            <AvisoObligatorios />
             <Input
               label="Nueva contraseña"
               id="password"
@@ -357,8 +359,26 @@ import Input from '../components/ui/Input.astro';
     .auth-page { display: flex; flex-direction: column; }
     .brand-panel { min-height: 230px; height: 230px; }
     .brand-logo { width: 220px; }
-    .brand-wave { bottom: -85px; height: 150px; }
-    .brand-footer { left: 1.25rem; bottom: .9rem; font-size: .65rem; }
+    .brand-wave {
+      /* En celular la franja no se inclina, para que el texto quede dentro de lo morado. */
+      left: -20%;
+      right: -20%;
+      bottom: -70px;
+      height: 140px;
+      transform: none;
+      border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+    }
+    .brand-footer {
+      left: 1rem;
+      right: 1rem;
+      bottom: .7rem;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0 .6rem;
+      font-size: .7rem;
+      text-align: center;
+    }
     .auth-panel { min-height: auto; padding: 2rem 1.25rem 3rem; }
     .auth-card { padding: 0; }
     .auth-header h1 { font-size: 1.8rem; }

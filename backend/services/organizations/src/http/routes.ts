@@ -16,9 +16,13 @@ import {
   parseCreateDonation,
   parseCreateDonationFile,
   parseUploadDonationFile,
+  parseOrganizationImageMimeType,
+  parseOrganizationImageUpload,
+  ORGANIZATION_IMAGE_MAX_BYTES,
 } from '../domain/organizations.ts';
-import { readJsonBody, readMultipartBody, readBinaryFile } from './body.ts';
+import { readJsonBody, readMultipartBody, readBinaryFile, readLimitedBinaryBody } from './body.ts';
 import { parseUpdateDonation, parseArchiveDonation } from '../domain/donations.ts';
+import { parseCommitmentsPdfQuery } from '../domain/commitments-pdf.ts';
 
 function respond(response: ServerResponse, status: number, body: unknown, requestId: string): void {
   response.statusCode = status;
@@ -65,6 +69,7 @@ export async function routeOrganizations(
           'commitments:create',
           'commitments:detail',
           'commitments:update',
+          'commitments:pdf',
           'diagnosticos:list',
           'diagnosticos:create',
           'diagnosticos:detail',
@@ -78,6 +83,8 @@ export async function routeOrganizations(
           'donations:files:reserve',
           'donations:files:upload',
           'donations:files:download',
+          'image:replace',
+          'image:download',
         ],
       }), requestId);
       return;
@@ -104,6 +111,23 @@ export async function routeOrganizations(
     const commitmentsMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/commitments(?:\/([^/]+))?$/);
     if (commitmentsMatch) {
       const orgId = parseUuid(decodeURIComponent(commitmentsMatch[1]), 'La organización');
+      if (commitmentsMatch[2] === 'pdf') {
+        response.setHeader('cache-control', 'private, no-store');
+        if (request.method !== 'GET') {
+          response.setHeader('allow', 'GET');
+          throw new ServiceError('METODO_NO_PERMITIDO', 'La descarga de compromisos solo permite GET.', 405);
+        }
+        const context = parseCommitmentsPdfQuery(orgId, url.searchParams);
+        const file = await application.downloadCommitmentsPdf(token, context);
+        response.statusCode = 200;
+        response.setHeader('content-type', file.mimeType);
+        response.setHeader('content-length', file.bytes.length);
+        response.setHeader('content-disposition', `attachment; filename="${file.fileName}"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+        response.setHeader('x-content-type-options', 'nosniff');
+        response.setHeader('x-request-id', requestId);
+        response.end(file.bytes);
+        return;
+      }
       // Subruta para orígenes (actas)
       if (commitmentsMatch[2] === 'origins' && request.method === 'GET') {
         const origins = await application.listCommitmentOrigins(token, orgId);
@@ -160,6 +184,29 @@ export async function routeOrganizations(
         const input = await parseLegalRecordInput(await readMultipartBody(request), true);
         const expediente = await application.updateLegalRecord(token, id, input);
         respond(response, 200, success('EXPEDIENTE_LEGAL_ACTUALIZADO', 'El expediente legal fue actualizado correctamente.', { expediente }), requestId);
+        return;
+      }
+    }
+
+    const imageMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/image$/);
+    if (imageMatch) {
+      const id = parseUuid(decodeURIComponent(imageMatch[1]), 'La organización');
+      if (request.method === 'PUT') {
+        const mimeType = parseOrganizationImageMimeType(request.headers['content-type']);
+        const bytes = await readLimitedBinaryBody(request, ORGANIZATION_IMAGE_MAX_BYTES);
+        const upload = parseOrganizationImageUpload(bytes, mimeType, url.searchParams.get('nombre'));
+        const imagen = await application.replaceOrganizationImage(token, id, upload);
+        respond(response, 200, success('IMAGEN_ORGANIZACION_GUARDADA', 'La imagen de la organización fue guardada correctamente.', { imagen }), requestId);
+        return;
+      }
+      if (request.method === 'GET') {
+        const file = await application.downloadOrganizationImage(token, id);
+        response.statusCode = 200;
+        response.setHeader('content-type', file.mimeType);
+        response.setHeader('cache-control', 'private, no-store');
+        response.setHeader('x-content-type-options', 'nosniff');
+        response.setHeader('x-request-id', requestId);
+        response.end(file.bytes);
         return;
       }
     }

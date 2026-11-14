@@ -79,6 +79,7 @@ const camposDonacion = {
   id_programa: z.string().optional(),
   categoria: z.string().optional(),
   categoria_otro: z.string().optional(),
+  entrega_certificado: z.enum(['pendiente', 'entregado']).optional(),
   tipo_donante: z.string().optional(),
   origen: z.string().optional(),
   estado: z.string().optional(),
@@ -219,6 +220,8 @@ export const donacionSchema = z.object({
   id_programa: z.string().uuid().nullable().optional(),
   categoria: z.string().nullable().optional(),
   categoria_otro: z.string().nullable().optional(),
+  tiene_certificado: z.boolean().optional(),
+  entrega_certificado: z.enum(['pendiente', 'entregado']).nullish(),
   tipo_donante: z.string().nullable().optional(),
   origen: z.string().nullable().optional(),
   estado: z.string().nullable().optional(),
@@ -240,6 +243,16 @@ export const donacionSchema = z.object({
 });
 
 export type Donacion = z.infer<typeof donacionSchema>;
+
+// Conserva la perspectiva histórica del servicio: el movimiento pertenece a la organización.
+export function partesDonacion(
+  donacion: Pick<Donacion, 'tipo_movimiento' | 'contraparte_nombre'>,
+  organizacion: string,
+) {
+  return donacion.tipo_movimiento === 'recibida'
+    ? { entrega: donacion.contraparte_nombre, recibe: organizacion }
+    : { entrega: organizacion, recibe: donacion.contraparte_nombre };
+}
 
 export const respaldoSchema = z.object({
   id_archivo: z.string().uuid(),

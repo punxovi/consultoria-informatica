@@ -1,3 +1,4 @@
+import { instalarAuditoriaRF62, esRpcAuditoria, ejecutarRpcAuditoria } from './auditoria-db.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { crearEntornoDiagnostico } from './diagnostico-entorno.mjs';
@@ -21,6 +22,7 @@ export async function crearEntornoActas({ origin = 'http://127.0.0.1:4333' } = {
     for (const nombre of ['20261008140000_fge_actas_api.sql','20261010120000_fge_actas_integracion.sql','20261010140000_fge_compromisos_integracion.sql']) {
       await db.exec(await readFile(new URL('../../../supabase/migrations/' + nombre, import.meta.url),'utf8'));
     }
+    await instalarAuditoriaRF62(db);
     async function fixture(pais = 'CL', conPlan = true) {
       const organizacion = await base.crearOrganizacion(pais);
       if (!conPlan) return { organizacion, planes: [], acciones: [] };
@@ -60,9 +62,20 @@ export async function crearEntornoActas({ origin = 'http://127.0.0.1:4333' } = {
       const token = req.headers.authorization?.replace(/^Bearer /,'');
       let raw = ''; for await (const chunk of req) raw += chunk;
       try {
+        if (url.pathname === '/auth/v1/user') {
+          const id = { 'qa-admin': base.usuarios.ADMIN, 'qa-coord': base.usuarios.COORD }[token];
+          return id
+            ? responder(200, { id, email: 'qa@example.invalid', user_metadata: {} })
+            : responder(401, { message: 'Sesión inválida' });
+        }
         if (url.pathname === '/__qa/fixture' && token === 'qa-admin') {
           const entrada = raw ? JSON.parse(raw) : {};
           return responder(201,await fixture(entrada.pais,entrada.conPlan));
+        }
+        if(esRpcAuditoria(url.pathname)) {
+          const actor={'qa-admin':base.usuarios.ADMIN,'qa-coord':base.usuarios.COORD,'qa-sin-rol':base.usuarios.SIN_ROL}[token];
+          if(!actor)return responder(401,{code:'42501'});
+          return responder(200,await ejecutarRpcAuditoria(db,actor,url.pathname,raw?JSON.parse(raw):{},req.headers));
         }
         const tabla = url.pathname.split('/').pop();
         if (!['actas','planes','acciones','catalogo_actas','crear_acta_completa','consultar_compromisos','catalogo_compromisos','guardar_compromiso'].includes(tabla)) {

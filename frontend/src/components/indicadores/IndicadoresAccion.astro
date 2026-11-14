@@ -1,4 +1,7 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Icono from '../ui/Icono.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
@@ -12,33 +15,11 @@ const { idAccion } = Astro.props;
   class="space-y-5"
   aria-labelledby="indicadores-titulo"
 >
-  <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-    <div class="flex min-w-0 items-start gap-3">
-      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EDEBFA] text-primary" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 3v18h18" />
-          <path d="m7 14 4-4 3 3 6-8" />
-          <path d="M16 5h4v4" />
-        </svg>
-      </span>
-      <div class="min-w-0">
-        <h2 id="indicadores-titulo" class="text-xl font-bold tracking-tight text-neutral-900 md:text-2xl">
-          Indicadores y resultados
-        </h2>
-        <p class="mt-1 max-w-3xl text-sm leading-6 text-neutral-500">
-          Define qué esperas alcanzar y registra lo obtenido. La meta y el resultado se muestran por separado.
-        </p>
-      </div>
-    </div>
-
-    <Button id="ind-recargar" variant="outline">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M20 7v5h-5M4 17v-5h5" />
-        <path d="M5.5 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.5-1" />
-      </svg>
-      Actualizar indicadores
+  <EncabezadoModulo id="indicadores-titulo" titulo="Indicadores y resultados" descripcion="Elige indicadores del catálogo, define la meta esperada para esta acción y registra el resultado obtenido." descripcionVisible>
+    <Button id="ind-nueva" disabled aria-controls="ind-vista-form" data-gestion>
+      <span aria-hidden="true">＋</span> Agregar indicadores
     </Button>
-  </header>
+  </EncabezadoModulo>
 
   <p id="ind-carga" hidden role="status" class="rounded-xl border border-primary/15 bg-[#F4F2FC] p-4 text-sm text-primary">
     Cargando indicadores…
@@ -46,18 +27,33 @@ const { idAccion } = Astro.props;
   <p id="ind-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></p>
   <p id="ind-exito" hidden role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"></p>
 
-  <div class="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-    <Card class="h-full p-4 md:p-5">
-      <div class="mb-5 flex items-start gap-3">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F5EC] text-[#18865A]" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <div id="ind-vista-lista" class="min-w-0 space-y-3">
+    <p id="ind-cantidad" class="modulo-conteo">—</p>
+    <div id="ind-vacio" hidden class="rounded-2xl border border-dashed border-neutral-300 bg-white px-4 py-10 text-center">
+      <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDEBFA] text-primary" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18" />
+          <path d="m7 14 4-4 3 3 6-8" />
+        </svg>
+      </span>
+      <h4 class="mt-3 font-semibold text-neutral-900">Todavía no hay indicadores</h4>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">Pulsa «Agregar indicadores» para elegirlos del catálogo y definir la meta de cada uno.</p>
+    </div>
+    <div id="ind-lista" class="grid min-w-0 gap-3 lg:grid-cols-2"></div>
+  </div>
+
+  <div id="ind-vista-form" hidden class="min-w-0">
+    <Card class="p-4 md:p-6">
+      <div class="mb-6 flex items-start gap-4 border-b border-[#EEEAF5] pb-5">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EDEBFA] text-[#4C4688]" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16v16H4z" />
             <path d="M8 8h8M8 12h5M8 16h8" />
           </svg>
         </span>
         <div class="min-w-0">
-          <h3 class="text-base font-bold text-neutral-900">Catálogo estandarizado</h3>
-          <p class="mt-1 text-sm leading-5 text-neutral-500">
+          <h3 class="text-lg font-bold tracking-tight text-[#383165] md:text-xl">Agregar indicadores del catálogo</h3>
+          <p class="mt-1 text-sm leading-5 text-[#706E78]">
             Selecciona los indicadores que correspondan y define la meta de cada uno.
           </p>
         </div>
@@ -70,55 +66,44 @@ const { idAccion } = Astro.props;
       <form id="ind-form" novalidate>
         <fieldset id="ind-campos" disabled class="min-w-0 space-y-4">
           <legend class="sr-only">Indicadores disponibles y metas</legend>
-          <div id="ind-catalogo" class="space-y-3"></div>
+          <div id="ind-catalogo" class="grid items-start gap-3 lg:grid-cols-2"></div>
           <p id="ind-seleccion-error" hidden role="alert" class="rounded-lg bg-red-50 p-3 text-sm text-red-800"></p>
-          <div class="flex flex-wrap gap-3 border-t border-neutral-100 pt-4">
+          <div class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-5 sm:flex-row sm:flex-wrap sm:justify-end">
+            <Button id="ind-volver" data-descartar variant="outline">Cancelar</Button>
+            <Button id="ind-limpiar" variant="outline"><Icono nombre="limpiar" />Limpiar selección</Button>
             <Button id="ind-asociar" type="submit">Asociar indicadores</Button>
-            <Button id="ind-limpiar" variant="outline">Limpiar selección</Button>
           </div>
         </fieldset>
       </form>
-    </Card>
-
-    <Card class="h-full p-4 md:p-5">
-      <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div class="flex min-w-0 items-start gap-3">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F2FC] text-[#2473B8]" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 4h8l4 4v12H4V4h4Z" />
-              <path d="M14 4v5h5M8 13h8M8 17h5" />
-            </svg>
-          </span>
-          <div class="min-w-0">
-            <h3 class="text-base font-bold text-neutral-900">Indicadores asociados</h3>
-            <p class="mt-1 text-sm leading-5 text-neutral-500">Registra el avance frente a cada meta y consulta sus resultados.</p>
-          </div>
-        </div>
-        <span id="ind-cantidad" class="inline-flex shrink-0 items-center rounded-full bg-[#EDEBFA] px-3 py-1 text-xs font-semibold text-primary">—</span>
-      </div>
-
-      <p id="ind-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-6 text-center text-sm leading-6 text-neutral-600">
-        Esta acción todavía no tiene indicadores asociados. Selecciona los que correspondan en el catálogo para comenzar.
-      </p>
-      <div id="ind-lista" class="min-w-0 space-y-3"></div>
     </Card>
   </div>
 
   <dialog
     id="ind-dialogo"
     aria-labelledby="ind-dialogo-titulo"
-    class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-y-auto rounded-2xl border border-[#E8E5EF] bg-white p-0 text-neutral-900 shadow-[0_20px_60px_rgba(26,26,26,0.2)] backdrop:bg-neutral-900/40"
+    class="m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#E8E5EF] bg-white p-0 text-[#1A1A1A] shadow-[0_20px_60px_rgba(26,26,26,0.2)] backdrop:bg-[#1A1A1A]/50"
   >
-    <div class="border-b border-neutral-100 px-6 py-5">
-      <h3 id="ind-dialogo-titulo" class="text-xl font-bold text-primary md:text-2xl">Registrar resultado</h3>
-      <p id="ind-contexto" class="mt-2 break-words text-sm leading-6 text-neutral-600"></p>
-    </div>
-    <div class="px-6 py-5">
-      <p id="ind-dialogo-error" hidden role="alert" tabindex="-1" class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"></p>
-      <p id="ind-dialogo-carga" hidden role="status" class="mb-4 rounded-lg bg-[#F4F2FC] p-3 text-sm text-primary">Guardando…</p>
+    <form id="ind-edicion" novalidate>
+      <AvisoObligatorios />
+      <fieldset id="ind-edicion-campos" class="min-w-0">
+        <div class="border-b border-[#EEEAF5] px-6 py-5">
+          <div class="flex items-start gap-4">
+            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EDEBFA] text-[#4C4688]" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v18h18" />
+                <path d="m7 14 4-4 3 3 6-8" />
+              </svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <h3 id="ind-dialogo-titulo" class="text-lg font-bold tracking-tight text-[#383165] md:text-xl">Registrar resultado</h3>
+              <p id="ind-contexto" class="mt-1 break-words text-sm text-[#706E78]"></p>
+            </div>
+          </div>
+        </div>
 
-      <form id="ind-edicion" novalidate>
-        <fieldset id="ind-edicion-campos" class="min-w-0 space-y-5">
+        <div class="space-y-5 px-6 py-5">
+          <p id="ind-dialogo-error" hidden role="alert" tabindex="-1" class="rounded-lg border border-[#F5C4D6] bg-[#FCE8F0] p-3 text-sm text-[#AD174F]"></p>
+          <p id="ind-dialogo-carga" hidden role="status" class="rounded-lg bg-[#F4F2FC] p-3 text-sm text-primary">Guardando…</p>
           <div>
             <Input id="ind-valor" name="valor" type="number" label="Valor" required />
             <p id="ind-valor-ayuda" class="mt-2 text-xs leading-5 text-neutral-500">
@@ -132,13 +117,17 @@ const { idAccion } = Astro.props;
               <textarea id="ind-observaciones" name="observaciones" rows="3" maxlength="1000" class="mt-2 w-full rounded-xl border border-neutral-200 bg-white p-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"></textarea>
             </div>
           </div>
-          <div class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-4">
-            <Button id="ind-cancelar" variant="outline">Cancelar</Button>
-            <Button id="ind-guardar" type="submit">Guardar resultado</Button>
+          <div class="rounded-xl border border-[#F5D989] bg-[#FFF8E5] px-4 py-3">
+            <p class="text-sm leading-5 text-[#805600]">Esta operación modificará los registros del sistema. Revisa la información antes de confirmar.</p>
           </div>
-        </fieldset>
-      </form>
-    </div>
+        </div>
+
+        <div class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] bg-[#FAF9FC] px-6 py-4 sm:flex-row sm:justify-end">
+          <Button id="ind-cancelar" data-descartar variant="outline">Cancelar</Button>
+          <Button id="ind-guardar" type="submit">Guardar resultado</Button>
+        </div>
+      </fieldset>
+    </form>
   </dialog>
 </section>
 
@@ -148,16 +137,18 @@ const { idAccion } = Astro.props;
 </script>
 
 <style is:global>
-  #indicadores-accion .indicador-valor {
+  #indicadores-accion .registro-datos dd.indicador-valor {
+    display: block;
     font-size: 1.5rem;
     font-weight: 700;
     line-height: 1.25;
     color: #1f2937;
   }
 
-  #indicadores-accion #ind-lista > * {
-    min-width: 0;
-    border-radius: 0.875rem;
+  #indicadores-accion .registro-datos dd.indicador-pendiente {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6b7280;
   }
 
   #indicadores-accion #ind-catalogo > * {

@@ -39,11 +39,18 @@ export async function readMultipartBody(request: IncomingMessage): Promise<FormD
     return await new Request('http://organizations.local', {
       method: 'POST',
       headers: { 'content-type': contentType },
-      body,
+      body: new Uint8Array(body),
     }).formData();
   } catch {
     throw new ServiceError('MULTIPART_INVALIDO', 'No fue posible interpretar el formulario.', 400);
   }
+}
+
+export async function readLimitedBinaryBody(request: IncomingMessage, maximum: number): Promise<Buffer> {
+  if (Number(request.headers['content-length']) > maximum) {
+    throw new ServiceError('CUERPO_DEMASIADO_GRANDE', 'El archivo supera el tamaño permitido.', 413);
+  }
+  return readBody(request, maximum);
 }
 
 export async function readBinaryFile(request: IncomingMessage, expectedSize: number): Promise<Buffer> {

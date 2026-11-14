@@ -1,11 +1,12 @@
 ---
+import Icono from '../components/ui/Icono.astro';
 import AppLayout from '../layouts/AppLayout.astro';
 import { mainNavItems } from '../config/nav';
 import Card from '../components/ui/Card.astro';
 import Button from '../components/ui/Button.astro';
 ---
 
-<AppLayout title="Programas Institucionales" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Programas Institucionales" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <span slot="breadcrumb" class="font-medium text-primary">Gestión institucional</span>
 
   <section class="space-y-6">
@@ -26,7 +27,7 @@ import Button from '../components/ui/Button.astro';
           Consulta y administra el catálogo de programas institucionales disponibles para las organizaciones.
         </p>
       </div>
-      <div id="crear-programa-panel" hidden>
+      <div id="crear-programa-panel" hidden data-gestion>
         <Button href="/programas/nuevo">
           <span aria-hidden="true">+</span>
           Nuevo programa
@@ -35,7 +36,7 @@ import Button from '../components/ui/Button.astro';
     </header>
 
     <section aria-label="Resumen del catálogo" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Card class="border-l-4 border-l-primary p-4 md:p-5">
+      <Card class="tarjeta-acento acento-morado p-4 md:p-5">
         <div class="flex items-center gap-4">
           <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -50,7 +51,7 @@ import Button from '../components/ui/Button.astro';
         </div>
       </Card>
 
-      <Card class="border-l-4 border-l-brand-green p-4 md:p-5">
+      <Card class="tarjeta-acento acento-verde p-4 md:p-5">
         <div class="flex items-center gap-4">
           <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -67,48 +68,41 @@ import Button from '../components/ui/Button.astro';
     </section>
 
     <Card class="p-4 md:p-5">
-      <div class="flex items-start gap-3">
+      <div class="mb-4 flex items-start gap-3">
         <span class="rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M7 12h10m-7 6h4" />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" /></svg>
         </span>
         <div>
-          <h2 class="font-semibold text-neutral-900">Filtrar programas</h2>
-          <p class="mt-1 text-sm text-neutral-500">
-            Combina año, nombre y organización. Los filtros de año y organización consideran los planes asociados a cada programa.
-          </p>
+          <h2 class="text-lg font-semibold text-neutral-900">Filtrar programas</h2>
+          <p class="mt-1 text-sm text-neutral-500">Combina nombre, año y organización. El año y la organización consideran los planes asociados a cada programa.</p>
         </div>
       </div>
 
-      <div class="mt-5 grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+        <div class="min-w-0 space-y-1.5">
+          <label for="programas-busqueda" class="block text-sm font-medium text-neutral-800">Nombre del programa</label>
+          <input id="programas-busqueda" type="search" placeholder="Ej.: Donación de recursos…" autocomplete="off" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-neutral-400" />
+        </div>
         <div class="min-w-0 space-y-1.5">
           <label for="programas-filtro-anio" class="block text-sm font-medium text-neutral-800">Año del plan</label>
-          <select id="programas-filtro-anio" disabled class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+          <select id="programas-filtro-anio" disabled class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="">Todos los años</option>
           </select>
         </div>
         <div class="min-w-0 space-y-1.5">
-          <label for="programas-busqueda" class="block text-sm font-medium text-neutral-800">Nombre del programa</label>
-          <input
-            id="programas-busqueda"
-            type="search"
-            placeholder="Ej.: Donación de recursos…"
-            autocomplete="off"
-            class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div class="min-w-0 space-y-1.5">
           <label for="programas-filtro-organizacion" class="block text-sm font-medium text-neutral-800">Organización</label>
-          <select id="programas-filtro-organizacion" disabled class="min-h-[48px] w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
+          <select id="programas-filtro-organizacion" disabled class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="">Todas las organizaciones</option>
           </select>
         </div>
       </div>
       <p id="programas-filtros-aviso" hidden role="status" class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"></p>
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
-        <p id="programas-conteo-filtrado" class="text-sm text-neutral-500">Cargando programas…</p>
-        <Button id="limpiar-programas" variant="outline" disabled>Limpiar filtros</Button>
+        <p id="programas-conteo-filtrado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando programas…</p>
+        <Button id="limpiar-programas" variant="outline" disabled>
+          <Icono nombre="limpiar" />
+          Limpiar filtros
+        </Button>
       </div>
     </Card>
 
@@ -118,17 +112,11 @@ import Button from '../components/ui/Button.astro';
           <h2 id="programas-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de programas</h2>
           <p class="mt-1 text-sm text-neutral-500">Selecciona un programa para consultar su información.</p>
         </div>
-        <Button id="recargar-programas" variant="outline">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m-4.5-3A8 8 0 0 1 18 6l2 6M4 12l2 6a8 8 0 0 0 12.5-1" />
-          </svg>
-          Actualizar listado
-        </Button>
       </div>
 
-      <p id="programas-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando programas…</p>
+      <p id="programas-estado" role="status" aria-live="polite" class="text-sm text-neutral-500 empty:hidden">Cargando programas…</p>
       <p id="programas-error" role="alert" hidden class="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger"></p>
-      <div id="programas-listado" aria-busy="true" class="grid grid-cols-1 gap-4"></div>
+      <div id="programas-listado" aria-busy="true" class="grid grid-cols-1 gap-3"></div>
       <div id="programas-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-10 text-center">
         <span class="mx-auto inline-flex rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -144,30 +132,30 @@ import Button from '../components/ui/Button.astro';
 </AppLayout>
 
 <template id="plantilla-programa">
-  <article class="flex min-w-0 flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5">
-    <div class="flex min-w-0 flex-1 items-start gap-4">
-      <span class="shrink-0 rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <rect x="4" y="3" width="16" height="18" rx="2" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 8h8M8 12h8M8 16h5" />
-        </svg>
-      </span>
-      <div class="min-w-0 flex-1">
-        <h3 class="break-words text-base font-bold text-neutral-900 sm:text-lg"></h3>
-        <p data-objetivo class="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-600"></p>
-        <p data-organizaciones class="mt-3 text-xs text-neutral-500"></p>
+  <article class="registro tarjeta-acento acento-morado">
+    <div class="registro-cabecera">
+      <div class="registro-identidad">
+        <img data-miniatura src="/images/programa-predeterminado.svg" alt="" width="44" height="44" class="registro-media" />
+        <div class="min-w-0">
+          <p class="registro-contexto">Programa institucional</p>
+          <h3 class="registro-titulo"></h3>
+        </div>
       </div>
     </div>
-    <div class="flex shrink-0 justify-end border-t border-neutral-100 pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
-      <a class="inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-        Ver detalle <span aria-hidden="true">→</span>
-      </a>
+    <p data-objetivo class="registro-resumen"></p>
+    <dl class="registro-datos">
+      <div class="min-w-0"><dt>Organizaciones</dt><dd data-organizaciones></dd></div>
+      <div class="min-w-0"><dt>Planes asociados</dt><dd data-planes></dd></div>
+    </dl>
+    <div class="registro-pie">
+      <a class="registro-enlace">Ver detalle <span aria-hidden="true">→</span></a>
     </div>
   </article>
 </template>
 
 <script>
   import { listarProgramas } from '../lib/programas/cliente';
+  import { IMAGEN_PROGRAMA_PREDETERMINADA, obtenerMiniaturas } from '../lib/programas/imagen';
   import { listarPlanes } from '../lib/planes/cliente';
   import { getUserRoles } from '../lib/supabase';
 
@@ -177,7 +165,6 @@ import Button from '../components/ui/Button.astro';
   const listado = document.querySelector<HTMLElement>('#programas-listado')!;
   const estado = document.querySelector<HTMLElement>('#programas-estado')!;
   const error = document.querySelector<HTMLElement>('#programas-error')!;
-  const recargar = document.querySelector<HTMLButtonElement>('#recargar-programas')!;
   const busqueda = document.querySelector<HTMLInputElement>('#programas-busqueda')!;
   const filtroAnio = document.querySelector<HTMLSelectElement>('#programas-filtro-anio')!;
   const filtroOrganizacion = document.querySelector<HTMLSelectElement>('#programas-filtro-organizacion')!;
@@ -196,6 +183,33 @@ import Button from '../components/ui/Button.astro';
   let planes: Plan[] = [];
   let planesDisponibles = true;
   let cargando = false;
+  let miniaturas = new Map<string, string>();
+
+  function asignarMiniatura(miniatura: HTMLImageElement, programa: Programa) {
+    const url = miniaturas.get(String(programa.id_programa));
+    miniatura.src = url ?? IMAGEN_PROGRAMA_PREDETERMINADA;
+    miniatura.alt = url ? `Imagen de ${programa.nombre}` : '';
+    miniatura.onerror = url ? () => {
+      miniatura.onerror = null;
+      miniatura.src = IMAGEN_PROGRAMA_PREDETERMINADA;
+      miniatura.alt = '';
+      miniatura.title = 'No se pudo cargar la imagen del programa.';
+    } : null;
+  }
+
+  // Las imágenes llegan después del listado para no retrasarlo; si fallan,
+  // las tarjetas conservan la imagen predeterminada.
+  async function cargarMiniaturas() {
+    try {
+      miniaturas = await obtenerMiniaturas(programas.map((programa) => String(programa.id_programa)));
+    } catch {
+      miniaturas = new Map();
+    }
+    listado.querySelectorAll<HTMLImageElement>('img[data-miniatura]').forEach((miniatura) => {
+      const programa = programas.find((item) => String(item.id_programa) === miniatura.dataset.idPrograma);
+      if (programa) asignarMiniatura(miniatura, programa);
+    });
+  }
 
   function normalizar(texto: string) {
     return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CL').trim();
@@ -259,14 +273,20 @@ import Button from '../components/ui/Button.astro';
     for (const programa of coincidencias) {
       const tarjeta = plantilla.content.cloneNode(true) as DocumentFragment;
       tarjeta.querySelector('h3')!.textContent = programa.nombre;
+      const miniatura = tarjeta.querySelector<HTMLImageElement>('img[data-miniatura]')!;
+      miniatura.dataset.idPrograma = String(programa.id_programa);
+      asignarMiniatura(miniatura, programa);
       tarjeta.querySelector<HTMLElement>('[data-objetivo]')!.textContent =
         programa.objetivo_general?.trim() || 'Este programa todavía no tiene un objetivo general registrado.';
 
-      const organizaciones = [...new Set(planesDelPrograma(programa).map((plan) => plan.organizacion?.nombre).filter((nombre): nombre is string => Boolean(nombre)))];
-      const textoOrganizaciones = tarjeta.querySelector<HTMLElement>('[data-organizaciones]')!;
-      textoOrganizaciones.textContent = organizaciones.length
-        ? `Organizaciones con planes asociados: ${organizaciones.join(', ')}`
-        : 'Sin planes asociados a organizaciones.';
+      const planesPrograma = planesDelPrograma(programa);
+      const organizaciones = [...new Set(planesPrograma.map((plan) => plan.organizacion?.nombre).filter((nombre): nombre is string => Boolean(nombre)))];
+      tarjeta.querySelector<HTMLElement>('[data-organizaciones]')!.textContent = organizaciones.length
+        ? organizaciones.join(', ')
+        : 'Sin organizaciones asociadas';
+      tarjeta.querySelector<HTMLElement>('[data-planes]')!.textContent = planesDisponibles
+        ? `${planesPrograma.length} ${planesPrograma.length === 1 ? 'plan' : 'planes'}`
+        : 'No disponible';
 
       const enlace = tarjeta.querySelector<HTMLAnchorElement>('a')!;
       enlace.href = `/programas/${encodeURIComponent(programa.id_programa)}`;
@@ -288,9 +308,8 @@ import Button from '../components/ui/Button.astro';
     conteoFiltrado.textContent = programas.length
       ? `${coincidencias.length} de ${programas.length} ${programas.length === 1 ? 'programa registrado' : 'programas registrados'}.`
       : 'No hay programas registrados actualmente.';
-    estado.textContent = programas.length
-      ? 'Programas cargados.'
-      : 'No hay programas registrados actualmente.';
+    // Con datos no se muestra un aviso: el conteo ya está en la tarjeta de filtros.
+    estado.textContent = programas.length ? '' : 'No hay programas registrados actualmente.';
     listado.setAttribute('aria-busy', 'false');
   }
 
@@ -306,7 +325,6 @@ import Button from '../components/ui/Button.astro';
 
     if (cargando) return;
     cargando = true;
-    recargar.disabled = true;
     listado.setAttribute('aria-busy', 'true');
     error.hidden = true;
     vacio.hidden = true;
@@ -320,6 +338,7 @@ import Button from '../components/ui/Button.astro';
       planes = resultadoPlanes.status === 'fulfilled' ? resultadoPlanes.value : [];
       cargarOpcionesFiltros();
       renderizar();
+      void cargarMiniaturas();
     } catch (fallo) {
       listado.replaceChildren();
       estado.textContent = '';
@@ -330,7 +349,6 @@ import Button from '../components/ui/Button.astro';
       conteoFiltrado.textContent = '';
     } finally {
       cargando = false;
-      recargar.disabled = false;
       listado.setAttribute('aria-busy', 'false');
     }
   }
@@ -345,7 +363,6 @@ import Button from '../components/ui/Button.astro';
     renderizar();
     busqueda.focus();
   });
-  recargar.addEventListener('click', () => void cargar());
   window.addEventListener('pageshow', (evento) => {
     if (evento.persisted) void cargar();
   });

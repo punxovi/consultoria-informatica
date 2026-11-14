@@ -1,0 +1,119 @@
+---
+// TEMPORAL: header y footer de la simulación del sitio de fundaciongestionar.org.
+// Quitar junto con las páginas /simulacion-fundacion cuando los accesos estén en el sitio real.
+import Layout from './Layout.astro';
+import { RUTA_PROGRAMAS_SIMULACION } from '../lib/simulacion/programas';
+
+interface Props {
+  title: string;
+  actual?: 'inicio' | 'programas';
+}
+
+const { title, actual = 'inicio' } = Astro.props;
+const INICIO = '/simulacion-fundacion';
+
+// Solo páginas propias: la simulación no enlaza al sitio real de la fundación.
+const menu = [
+  { texto: 'Inicio', href: INICIO, activo: actual === 'inicio' },
+  { texto: 'Programas', href: RUTA_PROGRAMAS_SIMULACION, activo: actual === 'programas' },
+];
+---
+
+<Layout title={title}>
+  <!-- Contenedor propio: Layout fija body en height:100% y el header sticky dejaría de pegarse al pasar la primera pantalla. -->
+  <div class="min-h-full">
+  <header class="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
+    <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 md:h-20">
+      <a href={INICIO} class="shrink-0" aria-label="Fundación Gestionar Esperanzas · Inicio">
+        <!-- El PNG es cuadrado con mucho aire: se recorta a la franja donde está el logo. -->
+        <img src="/Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas" class="h-10 w-[142px] object-cover object-[50%_47.6%] md:h-12 md:w-[170px]" />
+      </a>
+
+      <!-- ml-auto: el menú se agrupa a la derecha, junto a Catálogo y Plataforma interna. -->
+      <nav class="ml-auto mr-2 hidden items-center gap-6 text-sm font-medium text-neutral-700 md:flex" aria-label="Menú del sitio">
+        {menu.map((item) => (
+          <a
+            href={item.href}
+            aria-current={item.activo ? 'page' : undefined}
+            class:list={['transition-colors hover:text-[#1EAFDA]', item.activo && 'font-semibold text-[#4C4688]']}
+          >{item.texto}</a>
+        ))}
+      </nav>
+
+      <!-- Accesos nuevos -->
+      <div class="flex shrink-0 items-center gap-2">
+        <a
+          href="/catalogo"
+          class="hidden min-h-10 items-center gap-2 rounded-full border border-[#4C4688] px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F0EEF8] sm:inline-flex"
+        >
+          Catálogo
+        </a>
+        <a
+          href="/login"
+          class="hidden min-h-10 items-center gap-2 rounded-full bg-[#4C4688] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#423C76] sm:inline-flex"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+          Plataforma interna
+        </a>
+        <button
+          id="sim-menu-toggle"
+          type="button"
+          aria-label="Abrir menú"
+          aria-expanded="false"
+          aria-controls="sim-menu"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 hover:bg-neutral-100 md:hidden"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Menú móvil -->
+    <nav id="sim-menu" hidden class="border-t border-neutral-200 bg-white px-4 py-3 md:hidden" aria-label="Menú del sitio">
+      <ul class="space-y-1 text-sm font-medium text-neutral-700">
+        {menu.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              aria-current={item.activo ? 'page' : undefined}
+              class:list={['block rounded-lg px-3 py-2.5 hover:bg-neutral-100', item.activo && 'bg-[#F0EEF8] font-semibold text-[#4C4688]']}
+            >{item.texto}</a>
+          </li>
+        ))}
+      </ul>
+      <div class="mt-3 grid grid-cols-2 gap-2 border-t border-neutral-200 pt-3 sm:hidden">
+        <a href="/catalogo" class="inline-flex min-h-11 items-center justify-center rounded-full border border-[#4C4688] text-sm font-semibold text-[#4C4688]">Catálogo</a>
+        <a href="/login" class="inline-flex min-h-11 items-center justify-center rounded-full bg-[#4C4688] text-sm font-semibold text-white">Plataforma interna</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="bg-white text-[#303030]">
+    <slot />
+  </main>
+
+  <footer class="bg-[#252238] text-white/80">
+    <div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 md:flex-row md:items-center md:justify-between">
+      <img src="/images/logo-fge-blanco.png" alt="Fundación Gestionar Esperanzas" class="h-10 w-auto self-start" />
+      <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <a href={RUTA_PROGRAMAS_SIMULACION} class="hover:text-white">Programas</a>
+        <a href="/catalogo" class="hover:text-white">Catálogo</a>
+        <a href="/login" class="hover:text-white">Plataforma interna</a>
+      </div>
+      <p class="text-xs">Argentina · Chile · Uruguay</p>
+    </div>
+  </footer>
+  </div>
+</Layout>
+
+<script>
+  const toggle = document.getElementById('sim-menu-toggle');
+  const menu = document.getElementById('sim-menu');
+
+  toggle?.addEventListener('click', () => {
+    const abierto = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!abierto));
+    toggle.setAttribute('aria-label', abierto ? 'Abrir menú' : 'Cerrar menú');
+    if (menu) menu.hidden = abierto;
+  });
+</script>

@@ -1,7 +1,10 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
+import Icono from '../ui/Icono.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 import { accept } from '../../lib/evidencias/modelo';
 const { idAccion } = Astro.props;
 ---
@@ -9,79 +12,85 @@ const { idAccion } = Astro.props;
   id="evidencias-accion"
   data-accion={idAccion}
   aria-labelledby="evidencias-titulo"
-  class="space-y-5 border-t border-neutral-200 pt-6"
+  class="space-y-5"
 >
-  <header class="flex flex-wrap items-start justify-between gap-4">
-    <div class="flex min-w-0 items-start gap-3">
-      <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F0EAFE] text-[#7450D8]" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
-          <path d="M5 13.5v4A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-4" />
-        </svg>
-      </span>
-      <div>
-        <h2 id="evidencias-titulo" class="text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">Evidencias</h2>
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-600 md:text-base">Adjunta archivos que respalden esta acción y controla cuáles pueden publicarse. Puedes agregarlos en cualquier momento.</p>
-      </div>
-    </div>
-    <Button id="ev-recargar" variant="outline">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M20 7v5h-5M4 17v-5h5" />
-        <path d="M5.5 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.5-1" />
-      </svg>
-      Actualizar evidencias
+  <EncabezadoModulo id="evidencias-titulo" titulo="Evidencias" descripcion="Adjunta archivos que respalden esta acción (fotos, videos, actas o audios) y decide cuáles se pueden publicar." descripcionVisible>
+    <Button id="ev-nueva" data-gestion disabled aria-controls="ev-vista-form">
+      <span aria-hidden="true">＋</span> Agregar evidencia
     </Button>
-  </header>
+  </EncabezadoModulo>
 
   <div id="ev-mensajes" class="space-y-3">
-    <p id="ev-carga" role="status" hidden class="rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm text-primary">Cargando evidencias…</p>
+    <p id="ev-carga" role="status" hidden class="rounded-xl border border-primary/15 bg-[#F4F2FC] p-4 text-sm text-primary">Cargando evidencias…</p>
     <p id="ev-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"></p>
     <p id="ev-exito" hidden role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"></p>
   </div>
 
-  <div class="min-w-0 space-y-5">
-    <Card class="min-w-0 p-5 md:p-6">
-      <div class="mb-5 flex items-start gap-3">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F2FF] text-[#2864B4]" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14m-7-7h14" />
+  <div id="ev-vista-lista" class="min-w-0 space-y-3">
+    <p id="ev-cantidad" class="modulo-conteo">—</p>
+    <div id="ev-vacio" hidden class="rounded-2xl border border-dashed border-neutral-300 bg-white px-4 py-10 text-center">
+      <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#F0EAFE] text-[#7450D8]" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+        </svg>
+      </span>
+      <h4 class="mt-3 font-semibold text-neutral-900">Todavía no hay evidencias</h4>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">La acción puede continuar sin archivos. Pulsa «Agregar evidencia» para adjuntar el primero cuando esté disponible.</p>
+    </div>
+    <div id="ev-lista" class="grid min-w-0 gap-3 lg:grid-cols-2"></div>
+  </div>
+
+  <div id="ev-vista-form" hidden class="min-w-0">
+    <Card class="min-w-0 p-4 md:p-6">
+      <div class="mb-6 flex items-start gap-4 border-b border-[#EEEAF5] pb-5">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EDEBFA] text-[#4C4688]" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+            <path d="M5 13.5v4A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-4" />
           </svg>
         </span>
         <div class="min-w-0">
-          <h3 id="ev-form-titulo" class="text-lg font-bold text-neutral-900">Adjuntar evidencia</h3>
-          <p class="mt-1 text-sm leading-5 text-neutral-500">Los campos con * son obligatorios. El archivo queda vinculado a esta acción.</p>
+          <h3 id="ev-form-titulo" class="text-lg font-bold tracking-tight text-[#383165] md:text-xl">Adjuntar evidencia</h3>
+          <p id="ev-form-ayuda" class="mt-1 text-sm leading-5 text-[#706E78]">El archivo queda vinculado a esta acción.</p>
+          <AvisoObligatorios class="mt-1" />
         </div>
       </div>
 
-      <p id="ev-pendiente" hidden class="my-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"></p>
+      <p id="ev-pendiente" hidden class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"></p>
       <form id="ev-form" novalidate>
-        <fieldset id="ev-campos" class="min-w-0 space-y-5" disabled>
-          <div>
-            <label for="ev-archivo" class="block text-sm font-semibold text-neutral-800">Archivo <span class="text-[#D21F5B]">*</span></label>
-            <input id="ev-archivo" type="file" required accept={accept} aria-describedby="ev-archivo-ayuda" class="mt-2 min-h-[48px] w-full min-w-0 max-w-full rounded-xl border border-neutral-200 bg-white p-2 text-sm text-neutral-700 file:mr-3 file:min-h-[40px] file:rounded-lg file:border-0 file:bg-[#4C4688] file:px-4 file:font-medium file:text-white hover:file:bg-[#423C76]" />
-            <p id="ev-archivo-ayuda" class="mt-2 text-xs leading-5 text-neutral-500">Fotografías (JPG, PNG, WebP), videos (MP4, WebM), documentos o actas en PDF y audio (MP3, OGG, WAV). Máximo 50 MiB.</p>
+        <fieldset id="ev-campos" class="grid min-w-0 gap-5 lg:grid-cols-2" disabled>
+          <legend class="sr-only">Datos de la evidencia</legend>
+
+          <div id="ev-paso-archivo" class="ev-seccion">
+            <p class="ev-paso"><span aria-hidden="true">1</span>Archivo</p>
+            <div>
+              <label for="ev-archivo" class="block text-sm font-semibold text-neutral-800">Archivo<span class="marca-obligatorio" aria-hidden="true">*</span></label>
+              <input id="ev-archivo" type="file" required accept={accept} aria-describedby="ev-archivo-ayuda" />
+              <p id="ev-archivo-ayuda" class="mt-2 text-xs leading-5 text-neutral-500">Fotografías (JPG, PNG, WebP), videos (MP4, WebM), documentos o actas en PDF y audio (MP3, OGG, WAV). Máximo 50 MiB.</p>
+            </div>
           </div>
 
-          <div id="ev-metadatos" class="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-            <Input id="ev-origen" name="origen" label="Origen" required maxlength={200} placeholder="Ej.: Visita en terreno o acta de reunión" />
-            <div class="min-w-0">
-              <label for="ev-descripcion" class="block text-sm font-semibold text-neutral-800">Descripción <span class="text-[#D21F5B]">*</span></label>
-              <textarea id="ev-descripcion" name="descripcion" required maxlength="5000" rows="3" class="mt-2 w-full rounded-xl border border-neutral-200 bg-white p-3 text-sm text-neutral-800 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" placeholder="Describe qué demuestra el archivo y su relación con la acción."></textarea>
+          <div id="ev-edicion-archivo" hidden class="ev-seccion">
+            <p class="ev-paso"><span aria-hidden="true">1</span>Archivo</p>
+            <p class="text-sm text-neutral-700">Archivo registrado: <strong id="ev-edicion-nombre" class="break-words text-neutral-900"></strong></p>
+            <p class="text-xs leading-5 text-neutral-500">El archivo no se puede reemplazar. Si necesitas otro archivo, agrégalo como una nueva evidencia.</p>
+          </div>
+
+          <div id="ev-metadatos" class="contents">
+            <div class="ev-seccion">
+              <p class="ev-paso"><span aria-hidden="true">2</span>Información</p>
+              <Input id="ev-origen" name="origen" label="Origen" required maxlength={200} placeholder="Ej.: Visita en terreno o acta de reunión" />
+              <div class="min-w-0">
+                <label for="ev-descripcion" class="block text-sm font-semibold text-neutral-800">Descripción<span class="marca-obligatorio" aria-hidden="true">*</span></label>
+                <textarea id="ev-descripcion" name="descripcion" required maxlength="5000" rows="3" class="mt-2 w-full rounded-xl border border-neutral-200 bg-white p-3 text-sm text-neutral-800 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" placeholder="Describe qué demuestra el archivo y su relación con la acción."></textarea>
+              </div>
             </div>
 
-            <div class="min-w-0 space-y-4 rounded-xl border border-[#E9E6F2] bg-[#FAF9FC] p-4">
-              <div class="flex items-center gap-2">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FCE8F0] text-[#C51D5A]" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="10" cy="7" r="4" />
-                    <path d="M20 8v6m-3-3h6" />
-                  </svg>
-                </span>
-                <h4 class="font-semibold text-neutral-900">Personas y consentimiento</h4>
-              </div>
+            <div class="ev-seccion">
+              <p class="ev-paso"><span aria-hidden="true">3</span>Personas y consentimiento</p>
               <div>
-                <label for="ev-personas" class="block text-sm font-medium text-neutral-800">¿Aparecen personas identificables? <span class="text-[#D21F5B]">*</span></label>
+                <label for="ev-personas" class="block text-sm font-semibold text-neutral-800">¿Aparecen personas identificables?<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <select id="ev-personas" name="personas" required class="mt-2 min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15">
                   <option value="">Selecciona una opción</option>
                   <option value="sin_personas">No aparecen personas identificables</option>
@@ -89,98 +98,79 @@ const { idAccion } = Astro.props;
                   <option value="menores">Sí, aparecen menores de edad</option>
                 </select>
               </div>
-              <label id="ev-consentimiento-grupo" hidden class="flex items-start gap-3 text-sm leading-5 text-neutral-700">
-                <input id="ev-consentimiento" name="consentimiento" type="checkbox" class="mt-1 size-5 shrink-0 accent-primary" />
+              <label id="ev-consentimiento-grupo" hidden class="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E9E6F2] bg-[#FAF9FC] p-3 text-sm leading-5 text-neutral-700">
+                <input id="ev-consentimiento" name="consentimiento" type="checkbox" class="mt-0.5 size-5 shrink-0 accent-primary" />
                 <span>Declaro contar con el consentimiento de las personas identificables que aparecen en la evidencia.</span>
               </label>
-              <label id="ev-tutor-grupo" hidden class="flex items-start gap-3 text-sm leading-5 text-neutral-700">
-                <input id="ev-tutor" name="tutor" type="checkbox" class="mt-1 size-5 shrink-0 accent-primary" />
+              <label id="ev-tutor-grupo" hidden class="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E9E6F2] bg-[#FAF9FC] p-3 text-sm leading-5 text-neutral-700">
+                <input id="ev-tutor" name="tutor" type="checkbox" class="mt-0.5 size-5 shrink-0 accent-primary" />
                 <span>Declaro contar con el consentimiento del padre, madre o tutor legal de los menores que aparecen.</span>
               </label>
+              <p id="ev-edicion-consentimiento" hidden class="rounded-lg bg-[#FFF8E5] p-3 text-xs leading-5 text-[#805600]">Si ya no cuentas con el consentimiento, desmarca la declaración. La evidencia quedará sin publicar.</p>
               <p class="text-xs leading-5 text-neutral-500">La declaración se registra con tu usuario y la fecha del servidor.</p>
             </div>
 
-            <label class="flex min-w-0 items-start gap-3 rounded-xl border border-[#E3DFF1] bg-white p-4 text-sm leading-5">
-              <input id="ev-publicable" name="publicable" type="checkbox" class="mt-1 size-5 shrink-0 accent-primary" />
-              <span><strong class="text-neutral-900">Permitir publicación</strong><span class="mt-1 block text-neutral-600">Se marcará como publicada solo después de completar la carga. Si no lo marcas, queda sin publicar.</span></span>
-            </label>
+            <div class="ev-seccion">
+              <p class="ev-paso"><span aria-hidden="true">4</span>Publicación</p>
+              <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-[#E3DFF1] bg-white p-4 text-sm leading-5 transition-colors hover:bg-[#FAF9FC]">
+                <input id="ev-publicable" name="publicable" type="checkbox" class="mt-0.5 size-5 shrink-0 accent-primary" />
+                <span><strong class="text-neutral-900">Permitir publicación</strong><span id="ev-publicable-ayuda" class="mt-1 block text-neutral-600">Se marcará como publicada solo después de completar la carga. Si no lo marcas, queda sin publicar.</span></span>
+              </label>
+            </div>
           </div>
 
-          <div class="flex flex-wrap gap-3 border-t border-neutral-100 pt-4">
+          <div class="flex flex-col-reverse gap-3 border-t border-[#EEEAF5] pt-5 sm:flex-row sm:justify-end lg:col-span-2">
+            <Button id="ev-cancelar" data-descartar variant="outline">Cancelar</Button>
             <Button id="ev-guardar" type="submit">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 12.5 9.5 17 19 7.5" />
               </svg>
-              Guardar evidencia
+              <span id="ev-guardar-texto">Guardar evidencia</span>
             </Button>
-            <Button id="ev-cancelar" variant="outline">Cancelar</Button>
           </div>
         </fieldset>
       </form>
     </Card>
-
-    <Card class="min-w-0 p-5 md:p-6">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8F6EF] text-[#199D6B]" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6M8 13h8m-8 4h8" />
-            </svg>
-          </span>
-          <h3 class="text-lg font-bold text-neutral-900">Archivos de la acción</h3>
-        </div>
-        <span id="ev-cantidad" class="inline-flex rounded-full bg-[#F0EEF9] px-3 py-1 text-sm font-semibold text-[#4C4688]">—</span>
-      </div>
-      <div id="ev-vacio" hidden class="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center">
-        <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-neutral-400 shadow-sm" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <path d="M14 2v6h6" />
-          </svg>
-        </span>
-        <h4 class="mt-3 font-semibold text-neutral-900">Todavía no hay evidencias</h4>
-        <p class="mt-2 text-sm leading-6 text-neutral-600">La acción puede continuar sin archivos. Usa el formulario para adjuntar el primero cuando esté disponible.</p>
-      </div>
-      <div id="ev-lista" class="min-w-0 space-y-3"></div>
-    </Card>
   </div>
 
-  <dialog id="ev-detalle" aria-labelledby="ev-detalle-titulo" class="m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-3xl overflow-hidden rounded-2xl border border-neutral-200 bg-white p-0 shadow-2xl backdrop:bg-neutral-950/40">
+  <dialog id="ev-detalle" aria-labelledby="ev-detalle-titulo" class="m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-3xl overflow-hidden rounded-2xl border border-[#E8E5EF] bg-white p-0 text-[#1A1A1A] shadow-[0_20px_60px_rgba(26,26,26,0.2)] backdrop:bg-[#1A1A1A]/50">
     <div class="flex max-h-[calc(100dvh_-_2rem)] flex-col">
-      <header class="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-100 p-5 md:p-6">
-        <div class="flex min-w-0 items-start gap-3">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EAFE] text-[#7450D8]" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <header class="shrink-0 border-b border-[#EEEAF5] px-6 py-5">
+        <div class="flex items-start gap-4">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EDEBFA] text-[#4C4688]" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <path d="M14 2v6h6" />
             </svg>
           </span>
-          <div class="min-w-0">
-            <p class="mb-1 text-sm font-medium text-neutral-500">Detalle de evidencia</p>
-            <h3 id="ev-detalle-titulo" tabindex="-1" class="break-words text-xl font-bold text-neutral-900">Evidencia</h3>
+          <div class="min-w-0 flex-1">
+            <h3 id="ev-detalle-titulo" tabindex="-1" class="break-words text-lg font-bold tracking-tight text-[#383165] md:text-xl">Evidencia</h3>
+            <p class="mt-1 text-sm text-[#706E78]">Detalle de evidencia</p>
           </div>
         </div>
-        <Button id="ev-detalle-cerrar" variant="ghost" size="sm" class="shrink-0">Cerrar</Button>
       </header>
-      <div class="min-h-0 overflow-y-auto p-5 md:p-6">
+      <div class="min-h-0 overflow-y-auto px-6 py-5">
         <div id="ev-detalle-mensajes" class="space-y-3"></div>
-        <dl id="ev-datos" class="my-5 grid gap-4 sm:grid-cols-2"></dl>
+        <dl id="ev-datos" class="mb-5 grid gap-4 sm:grid-cols-2"></dl>
         <p id="ev-declaracion" class="whitespace-pre-wrap break-words rounded-xl border border-neutral-100 bg-[#F8F7FB] p-4 text-sm leading-6 text-neutral-700"></p>
-        <p id="ev-sin-consentimiento" hidden class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">No se puede publicar sin una declaración de consentimiento afirmativa.</p>
+        <div id="ev-sin-consentimiento" hidden class="mt-4 rounded-xl border border-[#F5D989] bg-[#FFF8E5] px-4 py-3">
+          <p class="text-sm leading-5 text-[#805600]">No hay un consentimiento vigente, por lo que no se puede publicar. Puedes actualizarlo desde «Editar evidencia».</p>
+        </div>
       </div>
-      <footer id="ev-detalle-acciones" hidden class="shrink-0 border-t border-neutral-100 bg-[#FAF9FC] p-5 md:p-6">
-        <div class="flex flex-wrap gap-3">
+      <footer class="flex shrink-0 flex-col-reverse gap-3 border-t border-[#EEEAF5] bg-[#FAF9FC] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <Button id="ev-detalle-cerrar" variant="outline">Cerrar</Button>
+        <div id="ev-detalle-acciones" hidden class="flex flex-col-reverse gap-3 sm:flex-row">
+          <Button id="ev-reintentar" variant="outline" data-gestion>Completar carga</Button>
+          <Button id="ev-editar" variant="outline" data-gestion>
+            <Icono nombre="editar" />
+            Editar evidencia
+          </Button>
           <Button id="ev-descargar">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
             </svg>
             Descargar archivo
           </Button>
-          <Button id="ev-publicar" variant="outline">Permitir publicación</Button>
-          <Button id="ev-revocar" variant="outline">Revocar consentimiento</Button>
-          <Button id="ev-reintentar" variant="outline">Completar carga</Button>
-          <a id="ev-enlace-publico" hidden target="_blank" rel="noopener" class="inline-flex min-h-[48px] items-center text-primary underline underline-offset-2">Consultar publicación institucional</a>
         </div>
       </footer>
     </div>
@@ -191,3 +181,49 @@ const { idAccion } = Astro.props;
   import { iniciarEvidencias } from '../../lib/evidencias/interfaz';
   iniciarEvidencias();
 </script>
+
+<style is:global>
+  #evidencias-accion .ev-seccion {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid #ebe8f2;
+    border-radius: 0.875rem;
+    background: #fff;
+    padding: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    #evidencias-accion .ev-seccion {
+      padding: 1.25rem;
+    }
+  }
+
+  #evidencias-accion .ev-seccion[hidden] {
+    display: none;
+  }
+
+  #evidencias-accion .ev-paso {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b6880;
+  }
+
+  #evidencias-accion .ev-paso > span {
+    display: inline-flex;
+    height: 1.25rem;
+    width: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: #edebfa;
+    font-size: 0.6875rem;
+    color: #4c4688;
+  }
+</style>

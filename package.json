@@ -23,8 +23,8 @@
     "dev:interventions": "npm run dev --workspace=@fge/interventions-service",
     "dev:insights": "npm run dev --workspace=@fge/insights-service",
     "test": "npm run test:architecture && npm run test --workspace=frontend",
-    "test:architecture": "npm run test --workspace=@fge/contracts && npm run test --workspace=@fge/api-gateway && npm run test --workspace=@fge/auth-service && npm run test --workspace=@fge/organizations-service && npm run test --workspace=@fge/programs-service && npm run test --workspace=@fge/interventions-service && npm run test --workspace=@fge/insights-service",
-    "check:architecture": "npm run check --workspace=@fge/contracts && npm run check --workspace=@fge/api-gateway && npm run check --workspace=@fge/auth-service && npm run check --workspace=@fge/organizations-service && npm run check --workspace=@fge/programs-service && npm run check --workspace=@fge/interventions-service && npm run check --workspace=@fge/insights-service",
+    "test:architecture": "npm run test --workspace=@fge/contracts && npm run test --workspace=@fge/api-gateway && npm run test --workspace=@fge/auth-service && npm run test --workspace=@fge/organizations-service && npm run test --workspace=@fge/programs-service && npm run test --workspace=@fge/interventions-service && npm run test --workspace=@fge/insights-service && npm run test --workspace=@fge/observability",
+    "check:architecture": "npm run check --workspace=@fge/contracts && npm run check --workspace=@fge/api-gateway && npm run check --workspace=@fge/auth-service && npm run check --workspace=@fge/organizations-service && npm run check --workspace=@fge/programs-service && npm run check --workspace=@fge/interventions-service && npm run check --workspace=@fge/insights-service && npm run check --workspace=@fge/observability",
     "build:frontend": "npm run build --workspace=frontend"
   },
   "dependencies": {

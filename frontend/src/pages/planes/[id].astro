@@ -1,5 +1,7 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import BackButton from '../../components/ui/BackButton.astro';
+import MenuAcciones from '../../components/ui/MenuAcciones.astro';
 import Button from '../../components/ui/Button.astro';
 import { mainNavItems } from '../../config/nav';
 import AppLayout from '../../layouts/AppLayout.astro';
@@ -7,6 +9,7 @@ import AccionesPlan from '../../components/acciones/AccionesPlan.astro';
 import EliminarRegistro from '../../components/ui/EliminarRegistro.astro';
 import PlanIndicadores from '../../components/planes/PlanIndicadores.astro';
 import PlanResumen from '../../components/planes/PlanResumen.astro';
+import { agregarRetorno } from '../../lib/navegacion/retorno-organizaciones';
 
 const idPlan = Astro.params.id ?? '';
 const filtrosRetorno = new URLSearchParams();
@@ -14,6 +17,8 @@ for (const parametro of ['anio', 'id_programa', 'id_organizacion']) {
   const valor = Astro.url.searchParams.get(parametro);
   if (valor) filtrosRetorno.set(parametro, valor);
 }
+// Conserva también los filtros originales del listado de Organizaciones (org_*).
+agregarRetorno(filtrosRetorno, Astro.url.searchParams);
 const queryRetorno = filtrosRetorno.toString();
 const hrefVolverPlanes = `/planes${queryRetorno ? `?${queryRetorno}` : ''}`;
 const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryRetorno}` : ''}`;
@@ -22,7 +27,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
 <AppLayout
   title="Detalle del plan"
   navItems={mainNavItems}
-  allowedRoles={['ADMIN', 'COORD']}
+  allowedRoles={['ADMIN', 'COORD', 'INVIT']}
 >
   <Fragment slot="headerBreadcrumb">
     <BackButton href={hrefVolverPlanes} />
@@ -58,7 +63,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
     ></div>
 
     <div id="detalle-plan" hidden class="space-y-6">
-      <section class="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+      <section class="flex items-start justify-between gap-4 md:flex-col md:items-stretch xl:flex-row xl:items-center">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-3">
             <h1 data-plan="nombre" class="break-words text-2xl font-bold text-neutral-900 md:text-3xl"></h1>
@@ -67,20 +72,21 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
           <p data-plan="resumen" class="mt-2 text-base text-neutral-600 md:text-lg"></p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.65 2.65M8 17l-4 1 1-4L16.862 2.138a2 2 0 0 1 2.829 0l1.171 1.171a2 2 0 0 1 0 2.829L8 17Z" />
-            </svg>
-            Editar plan
-          </Button>
-          <EliminarRegistro tipo="plan" id={idPlan} regreso={hrefTrasEliminar} />
+        <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
+        <div data-gestion-plan data-gestion hidden class="shrink-0">
+          <MenuAcciones etiqueta="Acciones del plan">
+            <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
+              <Icono nombre="editar" />
+              Editar plan
+            </Button>
+            <EliminarRegistro tipo="plan" id={idPlan} regreso={hrefTrasEliminar} />
+          </MenuAcciones>
         </div>
       </section>
 
       <PlanIndicadores />
 
-      <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+      <div class="pestanas rounded-2xl border border-[#E8E5EF] bg-white p-2">
         <div id="plan-tabs" class="flex flex-wrap gap-2 overflow-x-auto" role="tablist" aria-label="Secciones del plan">
           <button
             id="tab-resumen"
@@ -121,6 +127,8 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
 
 <script>
   import { obtenerPlan } from '../../lib/planes/cliente';
+  import { obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
+  import { hrefOrganizacion } from '../../lib/navegacion/retorno-organizaciones';
 
   const seccion = document.querySelector<HTMLElement>('[data-id-plan]')!;
   const estado = document.querySelector<HTMLElement>('#detalle-estado')!;
@@ -139,15 +147,20 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
     return { texto: 'En ejecución', clase: 'bg-success/10 text-success' };
   }
 
-  void obtenerPlan(seccion.dataset.idPlan ?? '')
-    .then((plan) => {
+  void Promise.all([obtenerPlan(seccion.dataset.idPlan ?? ''), obtenerAlcanceGestion()])
+    .then(([plan, alcance]) => {
+      const gestionable = puedeGestionarPais(alcance, plan.organizacion.id_pais);
+      document.querySelectorAll<HTMLElement>('[data-gestion-plan]').forEach((elemento) => {
+        elemento.hidden = !gestionable;
+      });
+
       const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');
       if (raizEliminar) raizEliminar.dataset.version = String(plan.version);
 
       document.querySelector<HTMLElement>('#plan-breadcrumb')!.textContent = plan.nombre;
 
       const enlaceOrganizacionBreadcrumb = document.querySelector<HTMLAnchorElement>('#plan-organizacion-breadcrumb')!;
-      enlaceOrganizacionBreadcrumb.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+      enlaceOrganizacionBreadcrumb.href = hrefOrganizacion(String(plan.id_organizacion), new URLSearchParams(window.location.search));
       enlaceOrganizacionBreadcrumb.textContent = plan.organizacion.nombre;
       enlaceOrganizacionBreadcrumb.hidden = false;
       document.querySelector<HTMLElement>('#plan-organizacion-separador')!.hidden = false;
@@ -175,7 +188,7 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
 
       const enlaceOrganizacion = document.querySelector<HTMLAnchorElement>('[data-plan="organizacion"]');
       if (enlaceOrganizacion) {
-        enlaceOrganizacion.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+        enlaceOrganizacion.href = hrefOrganizacion(String(plan.id_organizacion), new URLSearchParams(window.location.search));
         enlaceOrganizacion.setAttribute('aria-label', `Ver organización ${plan.organizacion.nombre}`);
       }
 

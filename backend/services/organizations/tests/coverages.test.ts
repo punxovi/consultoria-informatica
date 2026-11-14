@@ -50,6 +50,17 @@ let baseUrl: string;
 const app = createCoveragesApplication({
   async execute(_token, operation, input) {
     if (operation === 'list') return [coverage];
+    if (operation === 'history') return [{
+      id_historial: '44444444-4444-4444-8444-444444444444',
+      id_permiso_temporal: coverage.id_permiso_temporal,
+      tipo_evento: 'EXTENDER',
+      fin_at_anterior: coverage.fin_at,
+      fin_at_nuevo: '2026-11-15T03:00:00.000Z',
+      motivo: 'Extensión de prueba',
+      accion_por: '55555555-5555-4555-8555-555555555555',
+      accion_por_nombre: 'Administrador QA',
+      accion_at: '2026-11-02T12:00:00.000Z',
+    }];
     if (operation === 'mine') return [{
       id_permiso_temporal: coverage.id_permiso_temporal,
       id_pais: coverage.id_pais,
@@ -119,4 +130,20 @@ describe('rutas HTTP de coberturas', () => {
     assert.equal(propias.status, 200);
     assert.equal((await propias.json()).data.coverages[0].id_pais, coverage.id_pais);
   });
+
+  test('consulta el historial de una cobertura sin exponer una ruta de escritura', async () => {
+    const historial = await fetch(`${baseUrl}/v1/organizations/temporary-coverages/${coverage.id_permiso_temporal}/history`, { headers });
+    assert.equal(historial.status, 200);
+    const body = await historial.json();
+    assert.equal(body.code, 'HISTORIAL_COBERTURA_LISTADO');
+    assert.equal(body.data.history[0].accion_por_nombre, 'Administrador QA');
+  });
+});
+
+test('repositorio valida historial, filas incompletas y prioridad de sesión inválida', async()=>{
+  const make=(body:unknown,status=200)=>createSupabaseCoveragesRepository({url:'https://qa.invalid',anonKey:'public',fetchImpl:async()=>Response.json(body,{status})});
+  assert.deepEqual(await make([]).execute('jwt','history',{}),[]);
+  await assert.rejects(make([{}]).execute('jwt','history',{}),{code:'RESPUESTA_INVALIDA'});
+  await assert.rejects(make({}).execute('jwt','create',{}),{code:'RESPUESTA_INVALIDA'});
+  await assert.rejects(make({code:'42501'},401).execute('jwt','list',{}),{code:'SESION_INVALIDA',status:401});
 });

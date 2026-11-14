@@ -1,0 +1,36 @@
+
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import SolicitudesInvitado from '../../components/administracion/SolicitudesInvitado.astro';
+import { mainNavItems } from '../../config/nav';
+---
+
+<AppLayout
+  title="Solicitudes de Invitado"
+  navItems={mainNavItems}
+  allowedRoles={['ADMIN']}
+>
+  <Fragment slot="headerBreadcrumb">
+    <span class="text-sm font-semibold text-neutral-900">
+      Solicitudes de Invitado
+    </span>
+  </Fragment>
+
+  <section class="min-w-0 space-y-6" aria-labelledby="solicitudes-title">
+    <header>
+      <p class="text-sm font-medium text-primary">Administración</p>
+      <h1
+        id="solicitudes-title"
+        class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl"
+      >
+        Solicitudes de acceso de Invitados
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm text-neutral-500">
+        Revisa las solicitudes de acceso, consulta los antecedentes de cada
+        persona y decide si corresponde aprobarlas o rechazarlas.
+      </p>
+    </header>
+
+    <SolicitudesInvitado />
+  </section>
+</AppLayout>

@@ -1,8 +1,11 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Icono from '../ui/Icono.astro';
 import Card from '../ui/Card.astro';
 import Button from '../ui/Button.astro';
 import Input from '../ui/Input.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 import { accept } from '../../lib/donaciones/modelo';
 interface Props {
   idOrganizacion: string;
@@ -10,6 +13,10 @@ interface Props {
 const { idOrganizacion } = Astro.props;
 const claseSelect = 'mt-1.5 min-h-[48px] w-full rounded-xl border border-[#DCD8E8] bg-white px-3 text-base text-[#1A1A1A] hover:border-[#B8B1D2] focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5]';
 const campoSoloLectura = 'min-h-[48px] w-full rounded-xl border border-[#E8E5EF] bg-[#F7F5FB] px-3.5 py-2.5 text-base text-[#4A4660]';
+const monedas = [
+  ['CLP', 'Peso chileno'], ['ARS', 'Peso argentino'], ['UYU', 'Peso uruguayo'],
+  ['USD', 'Dólar estadounidense'], ['EUR', 'Euro'],
+];
 const categorias = ['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro'];
 const tiposDonante = [
   { value: 'empresa', label: 'Empresa' },
@@ -31,24 +38,12 @@ const tiposRespaldo = [
   { value: 'fotografia', label: 'Fotografía (evidencia visual de la entrega/recepción)' },
 ];
 ---
-<section id="seccion-donaciones" data-organizacion={idOrganizacion} class="space-y-6 fge-donaciones">
-  <!-- Encabezado de la sección -->
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 class="text-xl font-semibold text-neutral-900">Donaciones y recursos</h2>
-      <p class="mt-1 text-sm text-neutral-500">
-        Consulta los aportes recibidos y entregados, registra nuevas donaciones y adjunta sus documentos de respaldo.
-      </p>
-    </div>
-    <div class="flex flex-wrap items-center gap-3">
-      <Button id="don-recargar" variant="outline" size="sm">
-        Recargar
-      </Button>
-      <Button id="don-nueva" size="sm" class="solo-gestor">
-        + Registrar donación
-      </Button>
-    </div>
-  </div>
+<section id="seccion-donaciones" data-organizacion={idOrganizacion} aria-labelledby="don-titulo" class="space-y-6 fge-donaciones">
+  <EncabezadoModulo id="don-titulo" titulo="Donaciones y recursos" descripcion="Aportes recibidos y entregados, con sus respaldos.">
+    <Button id="don-nueva" class="solo-gestor">
+      <span aria-hidden="true">＋</span> Registrar ofrecimiento o donación
+    </Button>
+  </EncabezadoModulo>
   <!-- Notificaciones y estados -->
   <div id="don-carga" hidden role="status" class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-sm font-medium text-blue-800 animate-pulse">
     Cargando información...
@@ -56,22 +51,24 @@ const tiposRespaldo = [
   <div id="don-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 focus:outline-none"></div>
   <div id="don-exito" hidden role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"></div>
   <!-- Vista 1: Listado de Donaciones -->
-  <div id="don-listado" class="space-y-4">
+  <div id="don-listado" class="space-y-3">
     <EmptyState
       id="don-vacio"
       hidden
       title="Todavía no hay donaciones"
       description="Cuando registres una donación para esta organización, aparecerá aquí con sus aportes y respaldos documentales."
     />
-    <div id="don-lista" class="grid gap-4"></div>
+    <p id="don-cantidad" class="modulo-conteo" hidden></p>
+    <div id="don-lista" class="grid gap-3"></div>
   </div>
   <!-- Vista 2: Formulario Nueva Donación -->
   <div id="don-form-donacion" hidden>
     <Card>
       <h3 id="don-form-titulo" class="text-lg font-semibold text-neutral-900">Registrar nueva donación</h3>
       <p id="don-form-ayuda" class="mt-1 text-sm text-neutral-500">
-        Los campos marcados con <span class="font-semibold text-[#C81E5B]">*</span> son obligatorios. Una vez creada podrás adjuntar sus respaldos documentales.
+        Una vez creada podrás adjuntar sus respaldos documentales.
       </p>
+      <AvisoObligatorios class="mt-1" />
       <form id="don-form-donacion-tag" class="mt-6 space-y-6" novalidate>
         <fieldset id="don-campos" class="space-y-6">
           <section class="don-grupo don-grupo-morado" aria-labelledby="don-g-general">
@@ -79,19 +76,19 @@ const tiposRespaldo = [
             <div class="grid gap-5 sm:grid-cols-2">
               <Input id="don-fecha" name="fecha" type="date" label="Fecha de la donación" required />
               <div>
-                <label for="don-tipo-movimiento" class="text-sm font-semibold text-[#383165]">Tipo de movimiento <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-tipo-movimiento" class="text-sm font-semibold text-[#383165]">Tipo de movimiento<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <select id="don-tipo-movimiento" name="tipo_movimiento" required class={claseSelect}>
                   <option value="recibida">Recibida (ingreso para la organización)</option>
-                  <option value="entregada">Entregada (aporte entregado)</option>
+                  <option value="entregada">Entregada (salida de la organización)</option>
                 </select>
               </div>
               <div>
-                <label for="don-pais" class="text-sm font-semibold text-[#383165]">País <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-pais" class="text-sm font-semibold text-[#383165]">País<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <input id="don-pais" type="text" readonly aria-describedby="don-pais-ayuda" class={`mt-1.5 ${campoSoloLectura}`} />
-                <p id="don-pais-ayuda" class="mt-1 text-xs text-neutral-500">Corresponde al país de la organización receptora.</p>
+                <p id="don-pais-ayuda" class="mt-1 text-xs text-neutral-500">Corresponde al país de la organización del registro.</p>
               </div>
               <div>
-                <label for="don-organizacion" class="text-sm font-semibold text-[#383165]">Organización receptora <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-organizacion" class="text-sm font-semibold text-[#383165]">Organización del registro<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <input id="don-organizacion" type="text" readonly class={`mt-1.5 ${campoSoloLectura}`} />
               </div>
               <div class="sm:col-span-2">
@@ -105,19 +102,20 @@ const tiposRespaldo = [
           </section>
 
           <section class="don-grupo don-grupo-verde" aria-labelledby="don-g-donante">
-            <h4 id="don-g-donante">Donante</h4>
+            <h4 id="don-g-donante">Quién entrega y quién recibe</h4>
+            <p id="don-sentido" role="status" class="mb-4 rounded-xl bg-white/70 p-3 text-sm text-neutral-700"></p>
             <div class="grid gap-5 sm:grid-cols-2">
               <div class="sm:col-span-2">
-                <Input id="don-contraparte" name="contraparte_nombre" label="Nombre o identificación del donante" placeholder="Ej. Empresa Alimentos del Sur" required maxlength={200} />
+                <Input id="don-contraparte" name="contraparte_nombre" label="Nombre o identificación de la contraparte" placeholder="Ej. Empresa Alimentos del Sur" required maxlength={200} />
               </div>
               <div>
-                <label for="don-tipo-donante" class="text-sm font-semibold text-[#383165]">Tipo de donante <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-tipo-donante" class="text-sm font-semibold text-[#383165]">Tipo de contraparte<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <select id="don-tipo-donante" name="tipo_donante" required class={claseSelect}>
                   <option value="">Selecciona un tipo</option>
                   {tiposDonante.map((t) => <option value={t.value}>{t.label}</option>)}
                 </select>
               </div>
-              <Input id="don-origen" name="origen" label="Origen del donante" placeholder="Ej. Campaña local, aporte corporativo" required maxlength={2000} />
+              <Input id="don-origen" name="origen" label="Origen o procedencia del aporte" placeholder="Ej. Campaña local, aporte corporativo" required maxlength={2000} />
             </div>
           </section>
 
@@ -126,7 +124,7 @@ const tiposRespaldo = [
             <input type="hidden" id="don-aporte-tipo" name="tipo_aporte" value="dinero" />
             <div class="grid gap-5 sm:grid-cols-2">
               <div>
-                <label for="don-categoria" class="text-sm font-semibold text-[#383165]">Categoría del aporte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-categoria" class="text-sm font-semibold text-[#383165]">Categoría del aporte<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <select id="don-categoria" name="categoria" required class={claseSelect}>
                   {categorias.map((c) => <option value={c}>{c}</option>)}
                 </select>
@@ -135,12 +133,12 @@ const tiposRespaldo = [
                 <Input id="don-categoria-otro" name="categoria_otro" label="Describe el aporte (Otro)" required maxlength={2000} />
               </div>
               <div class="sm:col-span-2">
-                <label for="don-descripcion" class="text-sm font-semibold text-[#383165]">Descripción del aporte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-descripcion" class="text-sm font-semibold text-[#383165]">Descripción del aporte<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <textarea id="don-descripcion" name="descripcion" required rows="3" maxlength="2000" placeholder="Detalla en qué consistió el aporte, su destino o contexto." class="mt-1.5 w-full rounded-xl border border-[#DCD8E8] p-3 text-base focus:border-[#4C4688] focus:outline-none focus:ring-2 focus:ring-[#EAE8F5]"></textarea>
               </div>
               <div id="don-grupo-dinero" class="contents">
                 <Input id="don-monto" name="monto" type="number" min="0.01" step="any" label="Monto" placeholder="Ej. 150000" required />
-                <Input id="don-moneda" name="moneda" label="Moneda (3 letras)" value="CLP" maxlength={3} placeholder="CLP" required />
+                <label class="text-sm font-semibold" for="don-moneda">Moneda<span class="marca-obligatorio" aria-hidden="true">*</span><select id="don-moneda" name="moneda" class={claseSelect} required>{monedas.map(([codigo, nombre]) => <option value={codigo}>{codigo} · {nombre}</option>)}</select></label>
               </div>
               <div id="don-grupo-recurso" hidden class="contents">
                 <Input id="don-cantidad" name="cantidad" type="number" min="0.01" step="any" label="Cantidad" placeholder="Ej. 25" hint="Opcional. Si la indicas, completa también la unidad." />
@@ -154,7 +152,7 @@ const tiposRespaldo = [
             <p class="mb-4 text-sm text-neutral-500">Completa los tres campos o déjalos vacíos.</p>
             <div class="grid gap-5 sm:grid-cols-3">
               <Input id="don-valor-estimado" name="valor_estimado" type="number" min="0" step="any" label="Valor estimado" />
-              <Input id="don-moneda-valorizacion" name="moneda_valorizacion" label="Moneda (3 letras)" maxlength={3} placeholder="CLP" />
+              <label class="text-sm font-semibold" for="don-moneda-valorizacion">Moneda<select id="don-moneda-valorizacion" name="moneda_valorizacion" class={claseSelect} ><option value="">Sin especificar</option>{monedas.map(([codigo, nombre]) => <option value={codigo}>{codigo} · {nombre}</option>)}</select></label>
               <Input id="don-metodo-valorizacion" name="metodo_valorizacion" label="Método de valorización" maxlength={200} placeholder="Ej. Cotización" />
             </div>
           </section>
@@ -163,17 +161,25 @@ const tiposRespaldo = [
             <h4 id="don-g-estado">Estado</h4>
             <div class="grid gap-5 sm:grid-cols-2">
               <div>
-                <label for="don-estado" class="text-sm font-semibold text-[#383165]">Estado del aporte <span class="text-[#C81E5B]" aria-hidden="true">*</span></label>
+                <label for="don-estado" class="text-sm font-semibold text-[#383165]">Estado del aporte<span class="marca-obligatorio" aria-hidden="true">*</span></label>
                 <select id="don-estado" name="estado" required class={claseSelect}>
                   {estados.map((e) => <option value={e}>{e}</option>)}
                 </select>
-                <p class="mt-1 text-xs text-neutral-500">Después solo podrá avanzar en orden: Comprometida, Recibida, Entregada y Cerrada.</p>
+                <p class="mt-1 text-xs text-neutral-500">Si el aporte se acordó de palabra o por correo, elige Comprometida. Cuando se haga efectivo, actualiza este mismo registro.</p>
+              </div>
+              <div>
+                <label for="don-entrega-certificado" class="text-sm font-semibold">Entrega del certificado al donante</label>
+                <select id="don-entrega-certificado" name="entrega_certificado" class={claseSelect}>
+                  <option value="">Sin registrar</option>
+                  <option value="pendiente">Pendiente de entrega</option>
+                  <option value="entregado">Entregado al donante</option>
+                </select>
               </div>
             </div>
           </section>
         </fieldset>
         <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button id="don-cancelar" variant="outline">Cancelar</Button>
+          <Button id="don-cancelar" data-descartar variant="outline">Cancelar</Button>
           <Button id="don-guardar" type="submit">Guardar donación</Button>
         </div>
       </form>
@@ -194,21 +200,25 @@ const tiposRespaldo = [
           <h3 id="don-detalle-contraparte" class="mt-2 break-words text-xl font-semibold text-neutral-900"></h3>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button id="don-editar" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[#D8D2E8] bg-white px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F7F5FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">Editar datos</button>
+          <button id="don-editar" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#D8D2E8] bg-white px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F7F5FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"> <Icono nombre="editar" />Editar datos</button>
           <button id="don-avanzar-estado" type="button" hidden class="solo-gestor inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#4C4688] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#423C76] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"></button>
         </div>
       </div>
       <dl class="don-detalle-grid mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {[
           { id: 'don-detalle-fecha', label: 'Fecha' },
-          { id: 'don-detalle-organizacion', label: 'Organización receptora' },
+          { id: 'don-detalle-organizacion', label: 'Organización del registro' },
+          { id: 'don-detalle-emisor', label: 'Quién entrega · origen' },
+          { id: 'don-detalle-receptor', label: 'Quién recibe · destino' },
+          { id: 'don-detalle-referencia', label: 'Referencia del registro' },
           { id: 'don-detalle-pais', label: 'País' },
           { id: 'don-detalle-programa', label: 'Programa Institucional' },
-          { id: 'don-detalle-donante', label: 'Tipo y origen del donante' },
+          { id: 'don-detalle-donante', label: 'Tipo de contraparte y procedencia del aporte' },
           { id: 'don-detalle-categoria', label: 'Categoría' },
           { id: 'don-detalle-aporte', label: 'Aporte' },
           { id: 'don-detalle-valor', label: 'Valorización estimada' },
           { id: 'don-detalle-estado', label: 'Estado' },
+          { id: 'don-detalle-certificado', label: 'Entrega del certificado al donante' },
           { id: 'don-detalle-descripcion', label: 'Descripción', wide: true },
         ].map((campo) => (
           <div class={campo.wide ? 'sm:col-span-2 xl:col-span-3' : ''}>
@@ -236,6 +246,10 @@ const tiposRespaldo = [
           + Adjuntar respaldo
         </Button>
       </div>
+      <div class="mt-4 rounded-xl border border-[#DCD8EA] bg-[#F7F5FB] p-4">
+        <p class="text-sm text-neutral-600">Si el aporte de una empresa incluye un certificado de donación, adjúntalo aquí. Podrás consultarlo después con el filtro Certificados.</p>
+        <Button id="don-adjuntar-certificado" variant="outline" size="sm" class="solo-gestor mt-3">Adjuntar certificado de donación</Button>
+      </div>
       <!-- Filtro por tipo de respaldo -->
       <div class="don-filtros mt-4 flex flex-wrap gap-2">
         {filtrosRespaldo.map((filtro, indice) => (
@@ -250,10 +264,11 @@ const tiposRespaldo = [
         <h5 class="text-sm font-bold text-neutral-900">Adjuntar nuevo respaldo documental</h5>
         <div id="don-respaldo-pendiente-alerta" hidden class="mt-2 rounded-lg bg-amber-100 p-3 text-xs text-amber-900 font-medium"></div>
         <form id="don-respaldo-form" class="mt-4 space-y-4" novalidate>
+          <AvisoObligatorios />
           <fieldset id="don-respaldo-campos" class="grid gap-4 sm:grid-cols-2">
             <div>
               <label for="don-respaldo-tipo" class="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
-                Tipo de respaldo *
+                Tipo de respaldo<span class="marca-obligatorio" aria-hidden="true">*</span>
               </label>
               <select
                 id="don-respaldo-tipo"
@@ -269,7 +284,7 @@ const tiposRespaldo = [
             </div>
             <div>
               <label for="don-respaldo-archivo" class="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
-                Archivo de respaldo * (máx. 50 MiB)
+                Archivo de respaldo (máx. 50 MiB)<span class="marca-obligatorio" aria-hidden="true">*</span>
               </label>
               <input
                 id="don-respaldo-archivo"
@@ -277,7 +292,6 @@ const tiposRespaldo = [
                 type="file"
                 accept={accept}
                 required
-                class="mt-1 block min-h-[44px] w-full text-xs text-neutral-500 file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-primary/90"
               />
               <p class="mt-1 text-xs text-neutral-500">Formatos permitidos: PDF, JPG, PNG, WebP.</p>
             </div>
@@ -296,7 +310,7 @@ const tiposRespaldo = [
             </div>
           </fieldset>
           <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button id="don-respaldo-cancelar" variant="outline" size="sm">
+            <Button id="don-respaldo-cancelar" data-descartar variant="outline" size="sm">
               Cancelar
             </Button>
             <Button id="don-respaldo-guardar" type="submit" size="sm">
@@ -326,14 +340,6 @@ const tiposRespaldo = [
   #seccion-donaciones :global(button) {
     font-family: inherit;
   }
-  #seccion-donaciones :global(#don-lista > article) {
-    overflow: hidden; border: 1px solid var(--don-borde); border-radius: 16px;
-    background: #fff; box-shadow: 0 2px 8px rgb(38 28 76 / 4%);
-    transition: box-shadow 160ms ease, border-color 160ms ease;
-  }
-  #seccion-donaciones :global(#don-lista > article:hover) {
-    border-color: #D5CFE8; box-shadow: 0 5px 16px rgb(38 28 76 / 7%);
-  }
   #seccion-donaciones :global(#don-detalle .don-detalle-grid > div) {
     min-width: 0; border: 1px solid #E5E0EF; border-radius: 12px;
     background: #F7F5FB; padding: 14px 15px;
@@ -355,32 +361,15 @@ const tiposRespaldo = [
   #seccion-donaciones :global(.chip-filtro-respaldo.activo) {
     border-color: var(--don-morado); background: var(--don-morado); color: white;
   }
-  #seccion-donaciones :global(#don-form-donacion-tag input),
-  #seccion-donaciones :global(#don-form-donacion-tag select),
-  #seccion-donaciones :global(#don-form-donacion-tag textarea),
-  #seccion-donaciones :global(#don-respaldo-form input),
-  #seccion-donaciones :global(#don-respaldo-form select) {
-    border-color: #D8D2E8; border-radius: 11px;
-  }
-  #seccion-donaciones :global(#don-form-donacion-tag input:focus),
-  #seccion-donaciones :global(#don-form-donacion-tag select:focus),
-  #seccion-donaciones :global(#don-form-donacion-tag textarea:focus),
-  #seccion-donaciones :global(#don-respaldo-form input:focus),
-  #seccion-donaciones :global(#don-respaldo-form select:focus) {
-    border-color: var(--don-morado); outline: 2px solid rgb(76 70 136 / 14%); outline-offset: 1px;
-  }
   #seccion-donaciones :global(#don-respaldo-pendiente-alerta) { border: 1px solid #F1D5A2; background: #FFF8E9; }
   #seccion-donaciones :global(.don-grupo) {
-    border: 1px solid #E8E5EF; border-top-width: 3px; border-radius: 16px; background: #fff; padding: 18px 18px 20px;
+    border: 1px solid #E8E5EF; border-left-width: 3px; border-radius: 16px; background: #fff; padding: 18px 18px 20px;
   }
   #seccion-donaciones :global(.don-grupo h4) { margin-bottom: 14px; color: #292536; font-size: 1rem; font-weight: 600; }
-  #seccion-donaciones :global(.don-grupo-morado) { border-top-color: #8C81BC; }
-  #seccion-donaciones :global(.don-grupo-verde) { border-top-color: #6CBA9B; }
-  #seccion-donaciones :global(.don-grupo-amarillo) { border-top-color: #E4B93F; }
+  #seccion-donaciones :global(.don-grupo-morado) { border-left-color: var(--color-primary); }
+  #seccion-donaciones :global(.don-grupo-verde) { border-left-color: var(--color-brand-green); }
+  #seccion-donaciones :global(.don-grupo-amarillo) { border-left-color: var(--color-brand-yellow); }
   #seccion-donaciones :global([aria-invalid='true']) { border-color: #C81E5B; }
-  @media (max-width: 640px) {
-    #seccion-donaciones :global(#don-lista > article .don-card-layout) { padding: 14px; }
-  }
 </style>
 
 <script>

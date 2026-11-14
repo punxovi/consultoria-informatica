@@ -1,4 +1,5 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import Button from '../../components/ui/Button.astro';
 import Card from '../../components/ui/Card.astro';
 import EmptyState from '../../components/ui/EmptyState.astro';
@@ -32,11 +33,11 @@ const claseControl =
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {[
-        { id: 'coord-total', titulo: 'Cuentas registradas', acento: 'border-l-primary', icono: 'bg-primary/10 text-primary' },
-        { id: 'coord-activas', titulo: 'Activas', acento: 'border-l-brand-green', icono: 'bg-brand-green/10 text-brand-green' },
-        { id: 'coord-inactivas', titulo: 'Inactivas', acento: 'border-l-brand-yellow', icono: 'bg-brand-yellow/20 text-[#946200]' },
+        { id: 'coord-total', titulo: 'Cuentas registradas', acento: 'acento-morado', icono: 'bg-primary/10 text-primary' },
+        { id: 'coord-activas', titulo: 'Activas', acento: 'acento-verde', icono: 'bg-brand-green/10 text-brand-green' },
+        { id: 'coord-inactivas', titulo: 'Inactivas', acento: 'acento-amarillo', icono: 'bg-brand-yellow/20 text-[#946200]' },
       ].map((metrica) => (
-        <Card class={`border-l-4 ${metrica.acento} p-4`}>
+        <Card class={`tarjeta-acento ${metrica.acento} p-4`}>
           <div class="flex items-center gap-3">
             <span class={`rounded-xl p-3 ${metrica.icono}`} aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5" /><path stroke-linecap="round" d="M5 20a7 7 0 0 1 14 0" /></svg>
@@ -51,9 +52,16 @@ const claseControl =
     </div>
 
     <Card class="p-4 md:p-5">
-      <div class="mb-4">
+      <div class="mb-4 flex items-start gap-3">
+        <span class="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" />
+          </svg>
+        </span>
+        <div class="min-w-0">
         <h2 class="text-lg font-semibold text-neutral-900">Filtrar cuentas</h2>
         <p class="mt-1 text-sm text-neutral-500">Busca por nombre o correo y combina el estado y el país principal.</p>
+        </div>
       </div>
       <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
         <div class="space-y-1.5">
@@ -78,8 +86,7 @@ const claseControl =
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         <p id="coord-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando cuentas…</p>
         <div class="flex flex-wrap gap-2">
-          <Button id="coord-limpiar" variant="outline" size="lg" disabled>Limpiar filtros</Button>
-          <Button id="coord-recargar" variant="outline" size="lg">Recargar</Button>
+          <Button id="coord-limpiar" variant="outline" size="lg" disabled> <Icono nombre="limpiar" />Limpiar filtros</Button>
         </div>
       </div>
     </Card>

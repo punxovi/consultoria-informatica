@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
@@ -59,9 +60,7 @@ const tiposOrganizacion = [
     <a href="/login" class="inline-flex min-h-11 items-center text-primary underline">Iniciar sesión</a>
   </div>
 
-  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
-    Los campos marcados con <span class="font-semibold text-[#FF2471]">*</span> son obligatorios. Completa los datos generales antes de guardar.
-  </p>
+  <AvisoObligatorios />
 
   <form
     id="form-organizacion"
@@ -73,7 +72,7 @@ const tiposOrganizacion = [
     class="w-full space-y-5"
   >
     <fieldset id="campos-organizacion" disabled={esEdicion} class="min-w-0 space-y-5">
-      <Card class="w-full border-t-4 border-t-[#4C4688] p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-morado p-5 md:p-6">
         <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -98,7 +97,7 @@ const tiposOrganizacion = [
         </div>
       </Card>
 
-      <Card class="w-full border-t-4 border-t-[#1BAAC1] p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-celeste p-5 md:p-6">
         <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E7F7FA] text-[#1BAAC1]" aria-hidden="true">
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -125,7 +124,7 @@ const tiposOrganizacion = [
         </div>
       </Card>
 
-      <Card class="w-full border-t-4 border-t-[#199D6B] p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-verde p-5 md:p-6">
         <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
           <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E7F6EF] text-[#199D6B]" aria-hidden="true">
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -140,11 +139,11 @@ const tiposOrganizacion = [
 
         <div class="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
           <div class="min-w-0 space-y-1.5">
-            <label for="publico_objetivo" class="block text-sm font-medium text-neutral-800">Público objetivo <span class="text-[#FF2471]" aria-hidden="true">*</span></label>
+            <label for="publico_objetivo" class="block text-sm font-medium text-neutral-800">Público objetivo<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <textarea id="publico_objetivo" name="publico_objetivo" required maxlength="500" rows="4" placeholder="Describe a las personas o comunidades a las que apoya..." class="mt-1.5 block w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
           </div>
           <div class="min-w-0 space-y-1.5">
-            <label for="descripcion_breve" class="block text-sm font-medium text-neutral-800">Descripción general <span class="text-[#FF2471]" aria-hidden="true">*</span></label>
+            <label for="descripcion_breve" class="block text-sm font-medium text-neutral-800">Descripción general<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <textarea id="descripcion_breve" name="descripcion_breve" required maxlength="1000" rows="4" placeholder="Resume las actividades y el propósito de la organización..." class="mt-1.5 block w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
           </div>
           <div class="md:col-span-2 md:max-w-md">
@@ -153,8 +152,43 @@ const tiposOrganizacion = [
         </div>
       </Card>
 
+      <Card class="w-full tarjeta-acento acento-rosado p-5 md:p-6">
+        <div class="flex items-start gap-3 border-b border-neutral-100 pb-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFE9F1] text-[#FF2471]" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path stroke-linecap="round" stroke-linejoin="round" d="m20.5 16-4.5-4.5L7 19.5"/>
+            </svg>
+          </span>
+          <div>
+            <h2 class="text-lg font-bold text-neutral-900">Imagen representativa</h2>
+            <p class="mt-1 text-sm text-neutral-500">Ayuda a identificar visualmente la organización en el listado y en su ficha.</p>
+          </div>
+        </div>
+
+        <div class="mt-5 min-w-0">
+          <div class="min-w-0 space-y-2">
+            <label for="imagen-organizacion" class="block text-sm font-medium text-neutral-800">
+              <span id="imagen-organizacion-etiqueta">{esEdicion ? 'Reemplazar imagen' : 'Cargar imagen'}</span>{' '}
+              <span class="font-normal text-neutral-500">(opcional)</span>
+            </label>
+            <input
+              id="imagen-organizacion"
+              name="imagen"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-describedby="imagen-organizacion-ayuda imagen-organizacion-error"
+            />
+            <p id="imagen-organizacion-ayuda" class="text-sm leading-5 text-neutral-500">JPG, PNG o WebP, hasta 5 MB. Si no cargas una imagen se usará una predeterminada.</p>
+            <img id="imagen-organizacion-vista" alt="Vista previa de la imagen de la organización" hidden class="mt-4 max-h-64 max-w-full rounded-xl border border-neutral-200 object-contain" />
+            <p id="imagen-organizacion-estado" role="status" aria-live="polite" class="text-sm text-neutral-600"></p>
+            <p id="imagen-organizacion-error" role="alert" hidden class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"></p>
+            <button id="imagen-organizacion-descartar" type="button" hidden class="inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Descartar selección</button>
+          </div>
+        </div>
+      </Card>
+
       <div class="flex flex-col-reverse gap-3 border-t border-neutral-100 pt-5 sm:flex-row sm:justify-end">
-        <Button id="cancelar-organizacion" variant="outline" href={esEdicion ? `/organizaciones/${encodeURIComponent(idOrganizacion)}` : '/organizaciones'}>Cancelar</Button>
+        <Button id="cancelar-organizacion" data-descartar variant="outline" href={esEdicion ? `/organizaciones/${encodeURIComponent(idOrganizacion)}` : '/organizaciones'}>Cancelar</Button>
         <Button id="guardar-organizacion" type="submit">{esEdicion ? 'Guardar cambios' : 'Crear organización'}</Button>
       </div>
     </fieldset>
@@ -169,10 +203,22 @@ const tiposOrganizacion = [
   import {
     actualizarOrganizacion,
     crearOrganizacion,
+    descargarImagenOrganizacion,
     listarPaisesOrganizaciones,
     obtenerOrganizacion,
+    OrganizacionesApiError,
+    subirImagenOrganizacion,
   } from '../../lib/organizaciones/cliente';
+  import {
+    validarImagenOrganizacion,
+  } from '../../lib/organizaciones/imagen';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
+  import {
+    MENSAJE_SIN_PERMISO_TERRITORIAL,
+    obtenerAlcanceGestion,
+    puedeGestionarPais,
+    type AlcanceGestion,
+  } from '../../lib/territorio/permisos';
 
   const form = document.querySelector<HTMLFormElement>(
     '#form-organizacion',
@@ -220,10 +266,87 @@ const tiposOrganizacion = [
     throw new Error('No se encontraron los elementos del formulario de organización.');
   }
 
-  const esEdicion = form.dataset.modo === 'editar';
-  const idOrganizacion = form.dataset.id ?? '';
+  // Tras crear la organización, un fallo al subir la imagen deja el formulario
+  // en modo edición para reintentar sin duplicar el registro.
+  let esEdicion = form.dataset.modo === 'editar';
+  const esCreacionInicial = !esEdicion;
+  let idOrganizacion = form.dataset.id ?? '';
   let versionActual: number | undefined;
   let guardando = false;
+  let alcanceGestion: AlcanceGestion | undefined;
+
+  const inputImagen = document.querySelector<HTMLInputElement>('#imagen-organizacion')!;
+  const vistaImagen = document.querySelector<HTMLImageElement>('#imagen-organizacion-vista')!;
+  const estadoImagen = document.querySelector<HTMLElement>('#imagen-organizacion-estado')!;
+  const errorImagen = document.querySelector<HTMLElement>('#imagen-organizacion-error')!;
+  const descartarImagen = document.querySelector<HTMLButtonElement>('#imagen-organizacion-descartar')!;
+  let urlImagenActual: string | null = null;
+  let urlImagenSeleccionada: string | null = null;
+
+  function mostrarImagen(url: string | null) {
+    vistaImagen.hidden = !url;
+    if (url) vistaImagen.src = url;
+    else vistaImagen.removeAttribute('src');
+  }
+
+  function errorDeImagen(mensaje: string) {
+    errorImagen.textContent = mensaje;
+    errorImagen.hidden = !mensaje;
+  }
+
+  function limpiarSeleccionImagen() {
+    inputImagen.value = '';
+    if (urlImagenSeleccionada) URL.revokeObjectURL(urlImagenSeleccionada);
+    urlImagenSeleccionada = null;
+    descartarImagen.hidden = true;
+    mostrarImagen(urlImagenActual);
+  }
+
+  inputImagen.addEventListener('change', () => {
+    errorDeImagen('');
+    estadoImagen.textContent = '';
+    const archivo = inputImagen.files?.[0];
+    if (!archivo) {
+      limpiarSeleccionImagen();
+      return;
+    }
+    const problema = validarImagenOrganizacion(archivo);
+    if (problema) {
+      limpiarSeleccionImagen();
+      errorDeImagen(problema);
+      return;
+    }
+    if (urlImagenSeleccionada) URL.revokeObjectURL(urlImagenSeleccionada);
+    urlImagenSeleccionada = URL.createObjectURL(archivo);
+    mostrarImagen(urlImagenSeleccionada);
+    descartarImagen.hidden = false;
+    estadoImagen.textContent = 'La imagen se cargará al guardar.';
+  });
+
+  descartarImagen.addEventListener('click', () => {
+    limpiarSeleccionImagen();
+    errorDeImagen('');
+    estadoImagen.textContent = '';
+    inputImagen.focus();
+  });
+
+  async function cargarImagenActual(organizacion: Organizacion) {
+    if (!organizacion.imagen) {
+      estadoImagen.textContent = 'La organización usa la imagen predeterminada.';
+      return;
+    }
+    estadoImagen.textContent = 'Cargando imagen actual…';
+    try {
+      const blob = await descargarImagenOrganizacion(organizacion.id_organizacion);
+      if (urlImagenActual) URL.revokeObjectURL(urlImagenActual);
+      urlImagenActual = URL.createObjectURL(blob);
+      if (!urlImagenSeleccionada) mostrarImagen(urlImagenActual);
+      estadoImagen.textContent = '';
+    } catch {
+      estadoImagen.textContent = '';
+      errorDeImagen('No se pudo cargar la imagen actual. Puedes reemplazarla igualmente.');
+    }
+  }
 
   inputTelefono?.addEventListener('input', () => {
     let cantidadDigitos = 0;
@@ -257,6 +380,110 @@ const tiposOrganizacion = [
     recuperacion!.hidden = !requiereSesion;
   }
 
+  // Mismo patrón que Programas y Planes: aviso general arriba y, debajo de
+  // cada campo con problemas, su propio mensaje (todos a la vez).
+  const MENSAJES_OBLIGATORIOS: Record<string, string> = {
+    nombre: 'El nombre es obligatorio.',
+    nombre_representante: 'El nombre del representante es obligatorio.',
+    telefono: 'El teléfono es obligatorio.',
+    correo: 'El correo electrónico es obligatorio.',
+    id_pais: 'Selecciona un país.',
+    tipo_organizacion: 'Selecciona un tipo de organización.',
+    tipo_organizacion_otro: 'Debes especificar el otro tipo de organización.',
+    region_departamento: 'La región o departamento es obligatoria.',
+    comuna_municipio_ciudad: 'La comuna, municipio o ciudad es obligatoria.',
+    direccion: 'La dirección es obligatoria.',
+    publico_objetivo: 'El público objetivo es obligatorio.',
+    descripcion_breve: 'La descripción general es obligatoria.',
+    numero_beneficiarios: 'El número de beneficiarios es obligatorio.',
+  };
+
+  type ControlCampo = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+  function controlCampo(nombre: string): ControlCampo | null {
+    const control = form!.elements.namedItem(nombre);
+    return control instanceof HTMLInputElement ||
+      control instanceof HTMLTextAreaElement ||
+      control instanceof HTMLSelectElement
+      ? control
+      : null;
+  }
+
+  function quitarErrorCampo(control: Element) {
+    if (control.getAttribute('aria-invalid') !== 'true') return;
+    document.getElementById(`${control.id}-validacion`)?.remove();
+    control.setAttribute('aria-invalid', 'false');
+    const original = (control as HTMLElement).dataset.describedbyOriginal;
+    if (original) control.setAttribute('aria-describedby', original);
+    else control.removeAttribute('aria-describedby');
+  }
+
+  function limpiarErroresCampos() {
+    form!.querySelectorAll('[aria-invalid="true"]').forEach(quitarErrorCampo);
+    form!.querySelectorAll('[data-error-campo]').forEach((nodo) => nodo.remove());
+  }
+
+  function marcarCampos(errores: Record<string, string>) {
+    let primero: ControlCampo | null = null;
+    for (const [nombre, mensaje] of Object.entries(errores)) {
+      const control = controlCampo(nombre);
+      if (!control) continue;
+      const parrafo = document.createElement('p');
+      parrafo.id = `${control.id}-validacion`;
+      parrafo.className = 'mt-1 text-sm text-red-800';
+      parrafo.dataset.errorCampo = '';
+      parrafo.textContent = mensaje;
+      const describedby = control.getAttribute('aria-describedby') ?? '';
+      if (!control.dataset.describedbyOriginal && describedby) {
+        control.dataset.describedbyOriginal = describedby;
+      }
+      control.setAttribute('aria-invalid', 'true');
+      control.setAttribute(
+        'aria-describedby',
+        [control.dataset.describedbyOriginal, parrafo.id].filter(Boolean).join(' '),
+      );
+      control.after(parrafo);
+      primero ??= control;
+    }
+    return primero;
+  }
+
+  function erroresDeValidacion(issues: { path: PropertyKey[]; message: string }[]) {
+    const errores: Record<string, string> = {};
+
+    // Primero los obligatorios vacíos, con un mensaje claro por campo.
+    for (const [nombre, mensaje] of Object.entries(MENSAJES_OBLIGATORIOS)) {
+      const control = controlCampo(nombre);
+      if (control?.required && !control.value.trim()) errores[nombre] = mensaje;
+    }
+
+    // Luego el resto de reglas (formato, largo, etc.), una por campo.
+    for (const issue of issues) {
+      const nombre = String(issue.path[issue.path[0] === 'cambios' ? 1 : 0] ?? '');
+      if (nombre && !errores[nombre]) errores[nombre] = issue.message;
+    }
+    return errores;
+  }
+
+  function mostrarErroresValidacion(errores: Record<string, string>) {
+    const primero = marcarCampos(errores);
+    estado!.hidden = true;
+    error!.textContent = 'Revisa los campos indicados antes de guardar.';
+    error!.hidden = false;
+    recuperacion!.hidden = true;
+    if (primero) primero.focus();
+    else error!.focus();
+  }
+
+  form.addEventListener('input', (evento) => {
+    if (evento.target instanceof Element) quitarErrorCampo(evento.target);
+  });
+  form.addEventListener('change', (evento) => {
+    if (evento.target instanceof Element && evento.target.id !== 'imagen-organizacion') {
+      quitarErrorCampo(evento.target);
+    }
+  });
+
   function asignarValor(id: string, valor: string | number | null | undefined) {
     const campo = form!.querySelector<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -288,7 +515,13 @@ const tiposOrganizacion = [
 
   async function cargarPaises() {
     const seleccionPrevia = selectPais!.value;
-    const paises = await listarPaisesOrganizaciones();
+    const [todosLosPaises, alcance] = await Promise.all([
+      listarPaisesOrganizaciones(),
+      obtenerAlcanceGestion(),
+    ]);
+    alcanceGestion = alcance;
+    const paises = todosLosPaises.filter((pais) => puedeGestionarPais(alcance, pais.id_pais));
+    if (paises.length === 0) throw new Error(MENSAJE_SIN_PERMISO_TERRITORIAL);
     selectPais!.replaceChildren(new Option('Selecciona un país', '', true, false));
     for (const pais of paises) {
       selectPais!.add(new Option(pais.nombre, pais.id_pais));
@@ -377,7 +610,12 @@ const tiposOrganizacion = [
 
     try {
       await cargarPaises();
-      precargarOrganizacion(await obtenerOrganizacion(idOrganizacion));
+      const organizacion = await obtenerOrganizacion(idOrganizacion);
+      if (!alcanceGestion || !puedeGestionarPais(alcanceGestion, organizacion.id_pais)) {
+        throw new Error(MENSAJE_SIN_PERMISO_TERRITORIAL);
+      }
+      precargarOrganizacion(organizacion);
+      void cargarImagenActual(organizacion);
       campos!.disabled = false;
       form!.hidden = false;
       estado!.textContent = '';
@@ -406,10 +644,11 @@ const tiposOrganizacion = [
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    if (guardando || !form!.reportValidity()) return;
+    if (guardando) return;
 
     error!.hidden = true;
     recuperacion!.hidden = true;
+    limpiarErroresCampos();
 
     const datosFormulario = obtenerCambiosFormulario();
     const validacion = esEdicion
@@ -420,6 +659,13 @@ const tiposOrganizacion = [
         })
       : crearOrganizacionSchema.safeParse(datosFormulario);
 
+    const erroresCampos = erroresDeValidacion(
+      validacion.success ? [] : validacion.error.issues,
+    );
+    if (Object.keys(erroresCampos).length > 0) {
+      mostrarErroresValidacion(erroresCampos);
+      return;
+    }
     if (!validacion.success) {
       mostrarError(
         'Revisa los datos ingresados',
@@ -437,6 +683,7 @@ const tiposOrganizacion = [
     estado!.textContent = esEdicion ? 'Guardando cambios...' : 'Guardando organización...';
     form!.setAttribute('aria-busy', 'true');
 
+    let organizacionGuardada = false;
     try {
       const organizacion = esEdicion
         ? await actualizarOrganizacion(
@@ -447,14 +694,59 @@ const tiposOrganizacion = [
         : await crearOrganizacion(
             datosFormulario as Parameters<typeof crearOrganizacion>[0],
           );
+      organizacionGuardada = true;
+      esEdicion = true;
+      idOrganizacion = organizacion.id_organizacion;
+      versionActual = organizacion.version;
 
-      estado!.textContent = esEdicion
-        ? 'Organización actualizada correctamente.'
-        : 'Organización creada correctamente.';
+      const archivoImagen = inputImagen.files?.[0];
+      if (archivoImagen) {
+        estado!.textContent = 'Subiendo imagen...';
+        guardar!.textContent = 'Subiendo imagen...';
+        estadoImagen.textContent = 'Subiendo imagen…';
+        await subirImagenOrganizacion(idOrganizacion, archivoImagen);
+        estadoImagen.textContent = 'Imagen cargada correctamente.';
+      }
+
+      estado!.textContent = esCreacionInicial
+        ? 'Organización creada correctamente.'
+        : 'Organización actualizada correctamente.';
       window.location.replace(
-        `/organizaciones/${encodeURIComponent(organizacion.id_organizacion)}?resultado=${esEdicion ? 'actualizado' : 'creado'}`,
+        `/organizaciones/${encodeURIComponent(idOrganizacion)}?resultado=${esCreacionInicial ? 'creado' : 'actualizado'}`,
       );
     } catch (fallo) {
+      if (organizacionGuardada) {
+        const detalle = fallo instanceof Error ? fallo.message : 'Ocurrió un error inesperado.';
+        estadoImagen.textContent = '';
+        errorDeImagen(`No se pudo cargar la imagen: ${detalle}`);
+        mostrarError(
+          'La organización se guardó, pero la imagen no se pudo cargar',
+          `${detalle} Puedes reintentar guardando de nuevo, seleccionar otra imagen o continuar sin ella desde la ficha de la organización.`,
+          detalle.toLocaleLowerCase('es').includes('sesión'),
+        );
+        form!.dataset.modo = 'editar';
+        form!.dataset.id = idOrganizacion;
+        document.querySelector('#cancelar-organizacion')
+          ?.setAttribute('href', `/organizaciones/${encodeURIComponent(idOrganizacion)}`);
+        campos!.disabled = false;
+        return;
+      }
+
+      const camposServidor = fallo instanceof OrganizacionesApiError ? fallo.fields : undefined;
+      if (camposServidor && Object.keys(camposServidor).length > 0) {
+        const errores = Object.fromEntries(
+          Object.entries(camposServidor)
+            .filter(([, mensajes]) => mensajes?.[0])
+            .map(([campo, mensajes]) => [campo.replace(/^cambios\./, ''), mensajes[0]]),
+        );
+        if (marcarCampos(errores)) {
+          campos!.disabled = false;
+          mostrarErroresValidacion({});
+          form!.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+          return;
+        }
+      }
+
       const mensaje =
         fallo instanceof Error
           ? fallo.message
@@ -469,7 +761,7 @@ const tiposOrganizacion = [
     } finally {
       guardando = false;
       guardar!.disabled = false;
-      guardar!.textContent = esEdicion ? 'Guardar cambios' : 'Guardar';
+      guardar!.textContent = esEdicion ? 'Guardar cambios' : 'Crear organización';
       form!.setAttribute('aria-busy', 'false');
     }
   });

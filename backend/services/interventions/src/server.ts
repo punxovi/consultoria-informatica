@@ -1,5 +1,6 @@
+import { createAuditedServer } from '../../../shared/observability/src/audit-context.ts';
 
-import { createServer, type Server } from 'node:http';
+import { type Server } from 'node:http';
 import { readPort } from '../../../shared/config/src/index.ts';
 import { getRequestId, logEvent } from '../../../shared/observability/src/index.ts';
 import { createInterventionsApplication, type InterventionsApplication } from './application/interventions-service.ts';
@@ -26,7 +27,7 @@ export function createInterventionsServer(
     createSupabaseMeetingMinuteAttachmentsRepositoryFromEnv(),
   );
 
-  return createServer(async (request, response) => {
+  return createAuditedServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'interventions.request', {
       requestId,

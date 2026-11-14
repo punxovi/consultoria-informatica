@@ -1,0 +1,482 @@
+
+---
+import AvisoObligatorios from '../components/ui/AvisoObligatorios.astro';
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Card from '../components/ui/Card.astro';
+---
+
+<Layout title="Solicitar acceso - Fundación Gestionar Esperanzas">
+  <main class="auth-page">
+    <section class="brand-panel">
+      <div class="brand-circle"></div>
+      <img
+        src="/Logo-FGE-SIN-FONDO.png"
+        alt="Fundación Gestionar Esperanzas"
+        class="brand-logo"
+      />
+      <div class="brand-wave"></div>
+      <div class="brand-footer">
+        <span>Chile · Argentina · Uruguay</span>
+        <span>© Fundación Gestionar Esperanzas</span>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <Card class="auth-card">
+        <div class="auth-content">
+          <!-- Confirmación: reemplaza al formulario cuando la solicitud se registra. -->
+          <div id="guest-success" class="success-panel hidden" role="status" aria-live="polite">
+            <span class="success-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.5 9.5 17 19 7.5" />
+              </svg>
+            </span>
+            <h1 id="guest-success-title" tabindex="-1">¡Solicitud enviada!</h1>
+            <p>
+              Registramos tu solicitud de acceso como invitado. Un Administrador la revisará y,
+              si se aprueba, recibirás un enlace de acceso en{' '}
+              <strong id="guest-success-email"></strong>.
+            </p>
+            <Button href="/login" variant="primary" size="lg" class="full" id="guest-back-login">
+              Volver al inicio de sesión
+            </Button>
+          </div>
+
+          <header id="guest-header" class="auth-header">
+            <h1>Solicitar acceso</h1>
+            <p>
+              Completa el formulario para solicitar acceso como invitado a la plataforma.
+            </p>
+          </header>
+
+          <div id="guest-error" class="error-alert hidden" role="alert">
+            <span class="error-icon">!</span>
+            <span id="guest-error-message"></span>
+          </div>
+
+          <form id="guest-request-form" class="auth-form" novalidate>
+            <AvisoObligatorios />
+            <div>
+              <label for="guest-name">Nombre completo<span class="marca-obligatorio" aria-hidden="true">*</span></label>
+              <input
+                id="guest-name"
+                name="nombre"
+                type="text"
+                placeholder="Ingresa tu nombre completo"
+                autocomplete="name"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="guest-email">Correo electrónico<span class="marca-obligatorio" aria-hidden="true">*</span></label>
+              <input
+                id="guest-email"
+                name="correo"
+                type="email"
+                placeholder="nombre@correo.cl"
+                autocomplete="email"
+                required
+              />
+            </div>
+
+            <div>
+              <label for="guest-institution">
+                Institución u organización
+              </label>
+              <input
+                id="guest-institution"
+                name="institucion"
+                type="text"
+                placeholder="Nombre de tu institución"
+              />
+            </div>
+
+            <div>
+              <label for="guest-reason">Motivo de la solicitud</label>
+              <textarea
+                id="guest-reason"
+                name="motivo"
+                rows="4"
+                placeholder="Cuéntanos por qué necesitas acceder a la intranet..."
+              ></textarea>
+            </div>
+
+            <Button
+              id="guest-submit"
+              type="submit"
+              variant="primary"
+              size="lg"
+              class="full"
+            >
+              Enviar solicitud
+            </Button>
+          </form>
+
+          <div id="guest-back" class="back">
+            <Button href="/login" variant="ghost" size="sm">
+              ← Volver al inicio de sesión
+            </Button>
+          </div>
+
+          <p class="auth-footer">
+            Las solicitudes serán revisadas por un administrador.
+          </p>
+        </div>
+      </Card>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  import { createAuthTransport } from '../lib/auth/transporte';
+  const form = document.getElementById('guest-request-form') as HTMLFormElement;
+  const error = document.getElementById('guest-error');
+  const errorMessage = document.getElementById('guest-error-message');
+  const success = document.getElementById('guest-success');
+
+  // Tras registrar la solicitud se oculta el formulario y queda solo la confirmación con el botón al login.
+  function mostrarConfirmacion(correo: string) {
+    for (const id of ['guest-header', 'guest-request-form', 'guest-back', 'guest-error']) {
+      document.getElementById(id)?.classList.add('hidden');
+    }
+    const email = document.getElementById('guest-success-email');
+    if (email) email.textContent = correo;
+    success?.classList.remove('hidden');
+    document.getElementById('guest-success-title')?.focus();
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    error?.classList.add('hidden');
+
+    const nombre = (document.getElementById('guest-name') as HTMLInputElement).value.trim();
+    const correo = (document.getElementById('guest-email') as HTMLInputElement).value.trim();
+    const institucion = (document.getElementById('guest-institution') as HTMLInputElement).value.trim();
+    const motivo = (document.getElementById('guest-reason') as HTMLTextAreaElement).value.trim();
+
+    if (!nombre || !correo) {
+      if (errorMessage) {
+        errorMessage.textContent = 'Completa el nombre y el correo para continuar.';
+      }
+      error?.classList.remove('hidden');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+      if (errorMessage) {
+        errorMessage.textContent = 'Ingresa un correo electrónico válido.';
+      }
+      error?.classList.remove('hidden');
+      return;
+    }
+
+    const button = document.getElementById('guest-submit') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const transport = createAuthTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000');
+      await transport.request('/api/v1/guests/request', { method: 'POST', body: { nombre, correo, ...(institucion ? { institucion } : {}), ...(motivo ? { motivo } : {}) } });
+      form.reset();
+      mostrarConfirmacion(correo);
+    } catch (cause) {
+      if (errorMessage) errorMessage.textContent = cause instanceof Error ? cause.message : 'No fue posible registrar la solicitud.';
+      error?.classList.remove('hidden');
+    } finally { button.disabled = false; }
+  });
+</script>
+
+<style>
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 45% 55%;
+    background: #fff;
+  }
+
+  .brand-panel {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fff 0%, #fafafa 65%, #f5f3fb 100%);
+  }
+
+  .brand-logo {
+    position: relative;
+    z-index: 2;
+    width: min(78%, 390px);
+  }
+
+  .brand-circle {
+    position: absolute;
+    width: 270px;
+    height: 270px;
+    top: -145px;
+    left: -90px;
+    border-radius: 50%;
+    background: rgba(76, 70, 136, .08);
+  }
+
+  .brand-wave {
+    position: absolute;
+    left: -10%;
+    right: -15%;
+    bottom: -25%;
+    height: 42%;
+    background: #4c4688;
+    border-radius: 55% 55% 0 0 / 35% 35% 0 0;
+    transform: rotate(-3deg);
+  }
+
+  .brand-footer {
+    position: absolute;
+    z-index: 3;
+    left: 2.5rem;
+    bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    color: rgba(255,255,255,.9);
+    font-size: .78rem;
+  }
+
+  .auth-panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 5rem;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 2rem;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .auth-content {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+  }
+
+  .auth-header {
+    margin-bottom: 2rem;
+  }
+
+  .auth-header h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .auth-header p {
+    margin: .75rem 0 0;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .auth-form label {
+    display: block;
+    margin-bottom: .375rem;
+  }
+
+  .auth-form input,
+  .auth-form textarea {
+    width: 100%;
+  }
+
+  .auth-form textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .full {
+    width: 100%;
+  }
+
+  .back {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .auth-header.hidden,
+  .auth-form.hidden,
+  .back.hidden,
+  .success-panel.hidden {
+    display: none;
+  }
+
+  .success-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .success-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    background: #e6f6ee;
+    color: #18865a;
+  }
+
+  .success-icon svg {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .success-panel h1 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    outline: none;
+  }
+
+  .success-panel p {
+    margin: 0 0 .75rem;
+    color: #706e78;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .success-panel strong {
+    color: #383165;
+    overflow-wrap: anywhere;
+  }
+
+  .error-alert,
+  .info-alert {
+    margin-bottom: 1.5rem;
+    padding: .9rem;
+    border-radius: .75rem;
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+
+  .error-alert {
+    display: flex;
+    gap: .65rem;
+    border: 1px solid rgba(255,36,113,.25);
+    background: rgba(255,36,113,.06);
+    color: #706e78;
+  }
+
+  .error-alert.hidden,
+  .info-alert.hidden {
+    display: none;
+  }
+
+  .error-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff2471;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+
+  .info-alert {
+    border: 1px solid #D8D2F0;
+    background: #EFEDFA;
+    color: #4C4688;
+  }
+
+  .auth-footer {
+    margin: 2rem 0 0;
+    color: #a09fa2;
+    text-align: center;
+    font-size: .75rem;
+  }
+
+  @media (max-width: 900px) {
+    .auth-page {
+      grid-template-columns: 40% 60%;
+    }
+
+    .auth-panel {
+      padding: 2rem;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .auth-page {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-panel {
+      min-height: 230px;
+      height: 230px;
+    }
+
+    .brand-logo {
+      width: 220px;
+    }
+
+    .brand-wave {
+      /* En celular la franja no se inclina, para que el texto quede dentro de lo morado. */
+      left: -20%;
+      right: -20%;
+      bottom: -70px;
+      height: 140px;
+      transform: none;
+      border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+    }
+
+    .brand-footer {
+      left: 1rem;
+      right: 1rem;
+      bottom: .7rem;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0 .6rem;
+      font-size: .7rem;
+      text-align: center;
+    }
+
+    .auth-panel {
+      min-height: auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    .auth-card {
+      padding: 0;
+    }
+
+    .auth-header h1 {
+      font-size: 1.8rem;
+    }
+  }
+</style>

@@ -112,7 +112,7 @@ export async function generateReportPdf(report:ReportDocument):Promise<Buffer> {
       block('* Importe recibido del consolidado. La fuente no informa su moneda.',8);
       block(`Generado: ${new Date(report.generatedAt).toISOString().replace('T',' ').replace('.000Z',' UTC')}`,8);
       y+=10;line('Filtros aplicados',margin,y,12,'bold');y+=21;
-      report.filters.forEach(filter=>block(filter,8.5));y+=15;
+      (report.filterLabels ?? report.filters).forEach(filter=>block(filter,8.5));y+=15;
       if(report.destination!=='interno'){block('Información agregada: se omiten nombres, identificadores y datos personales.',9,brand.green);y+=10;}
 
       function table(section:ReportSection,index:number):void {

@@ -1,9 +1,12 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 
 interface Props {
   idOrganizacion: string;
@@ -19,24 +22,11 @@ const { idOrganizacion } = Astro.props;
   class="relative space-y-6"
   aria-labelledby="actas-titulo"
 >
-  <!-- Encabezado del módulo -->
-  <div class="flex flex-col gap-4 border-l-4 border-[#4C4688] pl-4 sm:flex-row sm:items-center sm:justify-between sm:pl-5">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[#77719F]">
-        Gestión de la organización
-      </p>
-      <h2 id="actas-titulo" class="mt-1 text-2xl font-bold tracking-tight text-neutral-900">
-        Actas de reunión
-      </h2>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
-        Historial de reuniones, participantes y acuerdos registrados para esta organización.
-      </p>
-    </div>
-
+  <EncabezadoModulo id="actas-titulo" titulo="Actas de reunión" descripcion="Reuniones, participantes y acuerdos de la organización.">
     <Button id="actas-nueva" disabled>
-      <span aria-hidden="true" class="mr-1.5">＋</span> Registrar acta
+      <span aria-hidden="true">＋</span> Registrar acta
     </Button>
-  </div>
+  </EncabezadoModulo>
 
   <!-- Error general -->
   <p
@@ -49,7 +39,7 @@ const { idOrganizacion } = Astro.props;
   <p id="actas-mensaje" hidden role="status" aria-live="polite"></p>
   <p id="actas-catalogo-estado" hidden class="rounded-lg bg-neutral-100 p-4 text-sm"></p>
   <div id="actas-recuperacion" hidden>
-    <Button id="actas-recargar" variant="outline">Recargar actas</Button>
+    <Button id="actas-recargar" variant="outline">Reintentar</Button>
   </div>
 
   <!-- Carga -->
@@ -77,23 +67,9 @@ const { idOrganizacion } = Astro.props;
   />
 
   <!-- Historial -->
-  <div id="actas-historial" hidden class="space-y-4">
-    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]">Registro histórico</p>
-        <h3 class="mt-1 text-lg font-semibold text-neutral-900">Historial de reuniones</h3>
-      </div>
-
-      <p
-        id="cantidad-actas"
-        class="text-sm text-neutral-500"
-      ></p>
-    </div>
-
-    <div
-      id="lista-actas"
-      class="space-y-4"
-    ></div>
+  <div id="actas-historial" hidden class="space-y-3">
+    <p id="cantidad-actas" class="modulo-conteo"></p>
+    <div id="lista-actas" class="space-y-3"></div>
   </div>
 
   <!-- Formulario -->
@@ -115,6 +91,7 @@ const { idOrganizacion } = Astro.props;
           <p class="mt-2 text-sm leading-6 text-neutral-500">
             Completa la información de la reunión, registra a sus participantes y agrega los compromisos acordados.
           </p>
+          <AvisoObligatorios />
         </div>
 
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -181,7 +158,7 @@ const { idOrganizacion } = Astro.props;
             class="block text-sm font-medium text-neutral-800"
           >
             Usuarios del sistema
-            <span class="ml-0.5 text-danger" aria-hidden="true">*</span>
+           <span class="marca-obligatorio" aria-hidden="true">*</span>
           </label>
 
           <select
@@ -226,7 +203,7 @@ const { idOrganizacion } = Astro.props;
               class="block text-sm font-medium text-neutral-800"
             >
               Objetivo de la reunión
-              <span class="ml-0.5 text-danger" aria-hidden="true">*</span>
+             <span class="marca-obligatorio" aria-hidden="true">*</span>
             </label>
 
             <textarea
@@ -282,7 +259,7 @@ const { idOrganizacion } = Astro.props;
 
 
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button id="actas-cancelar" type="button" variant="outline">Cancelar</Button>
+        <Button id="actas-cancelar" data-descartar type="button" variant="outline">Cancelar</Button>
         <Button id="actas-guardar" type="submit">Guardar acta</Button>
       </div>
     </form>
@@ -305,8 +282,14 @@ const { idOrganizacion } = Astro.props;
           </div>
 
           <div class="flex flex-col gap-2 sm:flex-row">
-            <Button id="actas-editar" type="button" variant="outline">
-              <span aria-hidden="true" class="mr-1.5">✎</span> Editar acta
+            <!-- Solo se muestra si el acta tiene compromisos; genera el mismo PDF que el detalle del compromiso. -->
+            <Button id="actas-pdf-compromisos" type="button" variant="outline">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-1.5 h-4 w-4" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" />
+              </svg>
+              Descargar PDF de compromisos
+            </Button>
+            <Button id="actas-editar" type="button" variant="outline"> <Icono nombre="editar" /> Editar acta
             </Button>
             <Button id="actas-volver" type="button" variant="outline">Volver al historial</Button>
           </div>
@@ -354,14 +337,11 @@ const { idOrganizacion } = Astro.props;
         </div>
 
         <div class="actas-adjuntos-carga" id="actas-adjuntos-carga">
-          <label for="actas-adjuntos-archivos" class="actas-adjuntos-zona">
-            <span class="actas-adjuntos-subir-icono" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M20 16.5v2A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-2"/></svg>
-            </span>
-            <span class="font-semibold text-[#176B4B]">Selecciona los archivos que deseas adjuntar</span>
-            <span class="text-sm text-neutral-500">Puedes seleccionar varios archivos. Máximo 50 MB por archivo.</span>
-          </label>
-          <input id="actas-adjuntos-archivos" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.mp3,.ogg,.wav,.mp4,.webm,application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/ogg,audio/wav,video/mp4,video/webm" class="actas-adjuntos-input sr-only" />
+          <div class="min-w-0 space-y-1.5">
+            <label for="actas-adjuntos-archivos">Archivos <span class="font-normal text-neutral-500">(opcional)</span></label>
+            <input id="actas-adjuntos-archivos" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.mp3,.ogg,.wav,.mp4,.webm,application/pdf,image/jpeg,image/png,image/webp,audio/mpeg,audio/ogg,audio/wav,video/mp4,video/webm" aria-describedby="actas-adjuntos-ayuda" />
+            <p id="actas-adjuntos-ayuda" class="text-sm leading-5 text-neutral-500">PDF, imágenes, audio o video. Puedes seleccionar varios, hasta 50 MB por archivo.</p>
+          </div>
           <div id="actas-adjuntos-seleccionados" class="actas-adjuntos-seleccionados" hidden aria-live="polite"></div>
           <Button id="actas-adjuntos-subir" type="button">Cargar archivos seleccionados</Button>
         </div>
@@ -403,30 +383,9 @@ const { idOrganizacion } = Astro.props;
     box-shadow: 0 4px 14px rgb(38 28 76 / 5%);
   }
 
-  /* El historial lo construye interfaz.ts; estos estilos también se aplican a los nodos dinámicos. */
-  #actas-reunion :global(#lista-actas > *) {
-    box-sizing: border-box;
-    border: 1px solid var(--actas-border) !important;
-    border-radius: 16px !important;
-    background: #fff !important;
-    padding: 0 !important;
-    box-shadow: 0 2px 8px rgb(38 28 76 / 4%);
-    transition: border-color 150ms ease, box-shadow 150ms ease;
-  }
-
-  #actas-reunion :global(#lista-actas > *:hover) {
-    border-color: #C9C2E5 !important;
-    box-shadow: 0 4px 12px rgb(38 28 76 / 6%);
-  }
-
-  #actas-reunion :global(#lista-actas button),
-  #actas-reunion :global(#lista-actas a) {
-    border-radius: 10px;
-  }
-
   #actas-reunion :global(#actas-compromisos-detalle > *) {
     border: 1px solid #E2DEED !important;
-    border-left: 4px solid #1BAAC1 !important;
+    border-left: 3px solid var(--color-brand-cyan) !important;
     border-radius: 12px !important;
     background: #FCFBFE !important;
     padding: 14px 16px !important;
@@ -438,21 +397,6 @@ const { idOrganizacion } = Astro.props;
     border-radius: 14px;
     background: #FCFBFE;
     padding: 16px;
-  }
-
-  #actas-reunion :global(#actas-formulario input),
-  #actas-reunion :global(#actas-formulario select),
-  #actas-reunion :global(#actas-formulario textarea) {
-    border-color: #D8D2E8;
-    border-radius: 11px;
-  }
-
-  #actas-reunion :global(#actas-formulario input:focus),
-  #actas-reunion :global(#actas-formulario select:focus),
-  #actas-reunion :global(#actas-formulario textarea:focus) {
-    border-color: var(--actas-purple);
-    outline: 2px solid rgb(76 70 136 / 14%);
-    outline-offset: 1px;
   }
 
   #actas-reunion :global(#detalle-asistentes > *) {
@@ -475,8 +419,7 @@ const { idOrganizacion } = Astro.props;
     padding: 0;
   }
 
-  #actas-reunion .actas-adjuntos-icono,
-  #actas-reunion .actas-adjuntos-subir-icono {
+  #actas-reunion .actas-adjuntos-icono {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
@@ -494,55 +437,10 @@ const { idOrganizacion } = Astro.props;
     gap: 12px;
   }
 
-  #actas-reunion .actas-adjuntos-zona {
-    display: flex;
-    min-height: 142px;
-    cursor: pointer;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    border: 1.5px dashed #A8D9C2;
-    border-radius: 14px;
-    background: #F6FCF8;
-    padding: 20px;
-    text-align: center;
-    transition: border-color 150ms ease, background 150ms ease;
-  }
 
-  #actas-reunion .actas-adjuntos-zona:hover {
-    border-color: #39A978;
-    background: #EFF9F3;
-  }
-
-  #actas-reunion .actas-adjuntos-subir-icono {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-  }
-  #actas-reunion .actas-adjuntos-subir-icono svg { width: 23px; height: 23px; }
-
-  #actas-reunion .actas-adjuntos-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
 
   #actas-reunion :global(#actas-adjuntos-subir) {
     width: fit-content;
-    border-color: #159765 !important;
-    background: #159765 !important;
-    color: white !important;
-    box-shadow: 0 3px 8px rgb(21 151 101 / 16%);
-  }
-  #actas-reunion :global(#actas-adjuntos-subir:hover) {
-    background: #117D54 !important;
   }
 
   #actas-reunion .actas-adjuntos-mensaje {
@@ -581,7 +479,7 @@ const { idOrganizacion } = Astro.props;
 
   :global(#actas-reunion .actas-adjunto-guardado) {
     border-color: #DCEFE4;
-    border-left: 4px solid #36BD8A;
+    border-left: 3px solid var(--color-brand-green);
     background: linear-gradient(100deg, #F3FBF6 0%, #F8FCF9 100%);
     padding: 11px 14px;
   }
@@ -647,11 +545,6 @@ const { idOrganizacion } = Astro.props;
     padding-top: 14px;
   }
 
-  @media (max-width: 640px) {
-    #actas-reunion :global(#lista-actas > *) {
-      padding: 0 !important;
-    }
-  }
 </style>
 
 <script>

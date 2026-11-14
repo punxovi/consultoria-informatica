@@ -1,4 +1,6 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -19,14 +21,23 @@ const listas = [
 ---
 
 <section id="reporte-configuracion" class="reporte-config space-y-6" aria-busy="true">
+  <!-- Paso 1: configurar. Paso 2: vista previa en su propia pantalla, con la descarga. -->
+  <ol class="flex flex-wrap items-center gap-2 text-sm" aria-label="Pasos del reporte">
+    <li id="rep-paso-1" class="rep-paso rep-paso-activo"><span>1</span> Configurar</li>
+    <li aria-hidden="true" class="h-px w-6 bg-[#D8D3E8]"></li>
+    <li id="rep-paso-2" class="rep-paso"><span>2</span> Vista previa y descarga</li>
+  </ol>
+
+  <div id="rep-paso-configurar" class="space-y-6">
   <header class="min-w-0">
     <p class="text-sm font-medium text-primary">Reportes consolidados</p>
     <h1 class="mt-1 text-2xl font-bold text-neutral-900 md:text-3xl">Configurar nuevo reporte</h1>
     <p class="mt-2 max-w-2xl text-sm text-neutral-500">
-      Define el período y los criterios del reporte antes de solicitar su vista previa. Los campos marcados con
-      <span class="font-semibold text-[#C81E5B]">*</span> son obligatorios.
+      Define el período y los criterios del reporte antes de solicitar su vista previa.
     </p>
   </header>
+
+  <AvisoObligatorios />
 
   <div
     id="rep-catalogos-estado"
@@ -47,7 +58,7 @@ const listas = [
   </div>
 
   <form id="rep-form" novalidate class="space-y-6">
-    <Card class="border-t-4 border-t-primary p-4 md:p-5">
+    <Card class="tarjeta-acento acento-morado p-4 md:p-5">
       <div class="mb-4">
         <h2 class="text-lg font-semibold text-neutral-900">Período del reporte</h2>
         <p class="mt-1 text-sm text-neutral-500">Ambas fechas son obligatorias para solicitar el reporte.</p>
@@ -62,7 +73,7 @@ const listas = [
       </div>
     </Card>
 
-    <Card class="border-t-4 border-t-brand-green p-4 md:p-5">
+    <Card class="tarjeta-acento acento-verde p-4 md:p-5">
       <div class="mb-4">
         <h2 class="text-lg font-semibold text-neutral-900">Filtros</h2>
         <p class="mt-1 text-sm text-neutral-500">Opcionales. Sin filtros se consideran todos los datos visibles para tu sesión.</p>
@@ -106,14 +117,14 @@ const listas = [
       </div>
     </Card>
 
-    <Card class="border-t-4 border-t-brand-yellow p-4 md:p-5">
+    <Card class="tarjeta-acento acento-amarillo p-4 md:p-5">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-neutral-900">Filtros seleccionados</h2>
           <p id="rep-seleccion-resumen" class="mt-1 text-sm text-neutral-500" aria-live="polite"></p>
         </div>
         <Button id="rep-restablecer" variant="outline" size="sm" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 9A7 7 0 0 1 18 6l2 4M19 15a7 7 0 0 1-12.5 3L4 14" /></svg>
+          <Icono nombre="limpiar" />
           Restablecer filtros
         </Button>
       </div>
@@ -123,15 +134,19 @@ const listas = [
     <p id="rep-error-general" role="alert" hidden class="rounded-xl border border-danger/20 bg-danger/5 p-4 text-sm text-danger"></p>
 
     <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-      <Button href="/reportes" variant="outline">Cancelar</Button>
+      <Button href="/reportes" variant="outline" data-descartar>Cancelar</Button>
       <Button id="rep-solicitar" type="submit" disabled>Solicitar vista previa</Button>
     </div>
   </form>
 
-  <section id="rep-consulta" aria-labelledby="rep-consulta-titulo" aria-live="polite" class="space-y-3">
-    <h2 id="rep-consulta-titulo" class="text-lg font-semibold text-neutral-900">Solicitud</h2>
-    <div id="rep-consulta-inactivo" class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-6 text-center text-sm text-neutral-500">
-      Configura el período y los filtros para preparar la solicitud de la vista previa.
+  <div id="rep-vista-disponible" hidden class="flex flex-col gap-3 rounded-2xl border border-[#D9D3EE] bg-[#F6F4FC] p-4 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-[#423C76]">Ya tienes una vista previa preparada con los filtros anteriores.</p>
+    <Button id="rep-ver-vista" type="button" variant="outline" size="sm" class="shrink-0">Ver vista previa</Button>
+  </div>
+
+  <section id="rep-consulta" aria-label="Estado de la solicitud" aria-live="polite" class="space-y-3">
+    <div id="rep-consulta-inactivo" class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-4 text-center text-sm text-neutral-500">
+      Completa el período y los filtros y presiona «Solicitar vista previa».
     </div>
     <div id="rep-consulta-carga" hidden role="status" class="flex items-center justify-center gap-3 rounded-2xl border border-[#E4E0F2] bg-white p-6 text-sm text-neutral-500">
       <span class="h-4 w-4 animate-spin rounded-full border-2 border-[#D8D3E8] border-t-primary" aria-hidden="true"></span>
@@ -141,16 +156,9 @@ const listas = [
       <p id="rep-consulta-error-texto"></p>
       <Button id="rep-consulta-reintentar" variant="outline" size="sm" class="shrink-0">Reintentar</Button>
     </div>
-    <div id="rep-consulta-vacio" hidden role="status" class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-6 text-center text-sm text-neutral-500">
-      <p class="font-semibold text-neutral-800">No hay resultados para los criterios seleccionados.</p>
-      <p class="mt-1">Amplía el período o quita algunos filtros y vuelve a solicitar la vista previa.</p>
-    </div>
     <div id="rep-consulta-listo" hidden class="rounded-2xl border border-[#E4E0F2] bg-white p-4 md:p-5">
       <p class="text-sm font-semibold text-neutral-900">Solicitud preparada</p>
       <p class="mt-1 text-sm text-neutral-500">Los criterios son válidos y están listos para generar la vista previa.</p>
-    </div>
-    <div id="rep-consulta-exito" hidden role="status" class="rounded-2xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-[#14784D]">
-      Vista previa lista. Revisa la información antes de exportar el reporte.
     </div>
     <div id="rep-consulta-parametros" hidden>
       <Card class="p-4 md:p-5">
@@ -159,21 +167,33 @@ const listas = [
       </Card>
     </div>
   </section>
+  </div>
 
-  <section id="rep-vista-previa" hidden aria-label="Vista previa del reporte" class="space-y-4"></section>
+  <div id="rep-paso-vista" hidden class="space-y-5">
+    <!-- Barra superior de la vista previa: volver a los filtros y descargar el PDF. -->
+    <div class="tarjeta-acento acento-morado relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <Button id="rep-volver-configurar" type="button" variant="ghost" size="sm" class="-ml-2">
+            <span aria-hidden="true">←</span> Modificar filtros
+          </Button>
+          <h2 id="rep-vista-titulo" tabindex="-1" class="mt-2 text-2xl font-bold text-neutral-900 md:text-3xl">Vista previa del reporte</h2>
+          <p class="mt-1 max-w-2xl text-sm text-neutral-500">Revisa la información antes de descargarla. El PDF tendrá el mismo contenido, período y filtros.</p>
+        </div>
 
-  <section id="rep-exportacion" hidden aria-live="polite" class="rounded-2xl border border-[#E4E0F2] bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5">
-    <div id="rep-exportacion-lista">
-      <h2 class="text-lg font-semibold text-neutral-900">Exportar PDF</h2>
-      <p class="mt-1 text-sm text-neutral-500">El archivo se generará con la misma vista previa, período y filtros que acabas de revisar.</p>
-      <Button id="rep-exportar-pdf" type="button" class="mt-4">Descargar PDF</Button>
-    </div>
-    <div id="rep-exportacion-confirmacion" hidden>
-      <h2 class="text-lg font-semibold text-neutral-900">Confirmar descarga</h2>
-      <p class="mt-1 text-sm text-neutral-500">No se volverán a consultar datos ni se modificarán los filtros de la vista previa.</p>
-      <div class="mt-4 flex flex-wrap gap-3">
-        <Button id="rep-confirmar-pdf" type="button">Generar y descargar PDF</Button>
-        <Button id="rep-cancelar-pdf" type="button" variant="outline">Volver</Button>
+        <section id="rep-exportacion" hidden aria-live="polite" class="w-full min-w-0 lg:w-80 lg:shrink-0">
+          <div id="rep-exportacion-lista">
+            <Button id="rep-exportar-pdf" type="button" size="lg" class="w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
+              Descargar PDF
+            </Button>
+          </div>
+    <div id="rep-exportacion-confirmacion" hidden class="rounded-xl border border-[#E4E0F2] bg-[#FAF9FC] p-4">
+      <p class="text-sm font-semibold text-neutral-900">¿Generar el PDF?</p>
+      <p class="mt-1 text-xs text-neutral-500">Se usará esta misma vista previa; no se vuelven a consultar datos.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <Button id="rep-confirmar-pdf" type="button" size="sm">Generar y descargar PDF</Button>
+        <Button id="rep-cancelar-pdf" type="button" variant="outline" size="sm">Cancelar</Button>
       </div>
     </div>
     <div id="rep-exportacion-generando" hidden role="status" class="flex items-center gap-3">
@@ -185,10 +205,34 @@ const listas = [
       <p id="rep-exportacion-error-texto"></p>
       <Button id="rep-exportacion-reintentar" type="button" variant="outline" size="sm" class="shrink-0">Reintentar</Button>
     </div>
-  </section>
+        </section>
+      </div>
+    </div>
+
+    <div id="rep-consulta-exito" hidden role="status" class="rounded-2xl border border-brand-green/30 bg-brand-green/10 px-4 py-3 text-sm text-[#14784D]">
+      Vista previa lista. Revisa la información antes de descargar el reporte.
+    </div>
+
+    <div id="rep-consulta-vacio" hidden role="status" class="rounded-2xl border border-dashed border-[#D8D3E8] bg-white p-6 text-center text-sm text-neutral-500">
+      <p class="font-semibold text-neutral-800">No hay resultados para los criterios seleccionados.</p>
+      <p class="mt-1">Amplía el período o quita algunos filtros y vuelve a solicitar la vista previa.</p>
+    </div>
+
+    <section id="rep-vista-previa" hidden aria-label="Vista previa del reporte" class="space-y-4"></section>
+  </div>
 </section>
 
 <style>
+  .reporte-config :global(.rep-paso) {
+    display: inline-flex; align-items: center; gap: .5rem; padding: .3rem .8rem .3rem .3rem; border-radius: 999px;
+    background: #fff; border: 1px solid #E4E0F2; color: #6B6680; font-weight: 500;
+  }
+  .reporte-config :global(.rep-paso span) {
+    display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 999px;
+    background: #F0EDF8; color: #4C4688; font-size: .8rem; font-weight: 700;
+  }
+  .reporte-config :global(.rep-paso-activo) { border-color: #4C4688; color: #2B2654; font-weight: 600; }
+  .reporte-config :global(.rep-paso-activo span) { background: #4C4688; color: #fff; }
   .reporte-config :global([aria-invalid='true']) { border-color: #C81E5B; }
   .reporte-config :global(.rep-lista label) {
     display: flex; align-items: flex-start; gap: .6rem; min-height: 40px; padding: .35rem .5rem;

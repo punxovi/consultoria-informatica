@@ -1,8 +1,13 @@
+import { iconoSvg } from '../ui/iconos.ts';
+import { confirmarDescarte } from '../ui/descartar-cambios';
+import { confirmar as confirmarAccion } from '../ui/confirmar';
+import { crearTarjetaRegistro } from '../ui/registro.ts';
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 import { getSupabaseClient } from '../supabase.ts';
 import { camposActaSchema, type AdjuntoActa, type ActaReunion, type CatalogoActas } from './modelo.ts';
 import { crearClienteActas } from './cliente.ts';
 import { iniciarCompromisosEnActas } from '../compromisos/en-actas.ts';
+import { crearDescargaPdfCompromisos, guardarArchivo } from '../compromisos/pdf.ts';
 
 export async function iniciarActasReunion() {
   const raiz = document.querySelector<HTMLElement>('#actas-reunion');
@@ -10,11 +15,15 @@ export async function iniciarActasReunion() {
   raiz.dataset.iniciado = 'true';
   const org = raiz.dataset.organizacion!;
   const buscar = <T extends HTMLElement = HTMLElement>(s: string) => raiz.querySelector<T>(s)!;
-  const servicio = crearClienteActas(createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'), async () => {
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
+  const tokenSesion = async () => {
     const { data, error } = await getSupabaseClient().auth.getSession();
     if (error || !data.session) throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
     return data.session.access_token;
-  });
+  };
+  const servicio = crearClienteActas(createApiTransport(apiBase), tokenSesion);
+  const pdfCompromisos = crearDescargaPdfCompromisos(apiBase, tokenSesion);
+  const botonPdf = buscar<HTMLButtonElement>('#actas-pdf-compromisos');
   const compromisos = iniciarCompromisosEnActas(raiz);
   const formulario = buscar<HTMLFormElement>('#actas-formulario');
   const plan = buscar<HTMLSelectElement>('#actas-plan');
@@ -79,6 +88,7 @@ export async function iniciarActasReunion() {
     formulario.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('input,select,textarea,button').forEach(n => n.disabled = valor);
     nueva.disabled = valor || !cargado || !catalogo?.puede_gestionar || !catalogo.planes.length || !catalogo.asistentes.length;
     editar.disabled = valor || !catalogo?.puede_gestionar;
+    botonPdf.disabled = valor;
     buscar<HTMLButtonElement>('#actas-volver').disabled = valor;
     buscar<HTMLButtonElement>('#actas-recargar').disabled = valor;
     guardar.disabled = valor || !catalogo?.puede_gestionar || !!editando && conflictos.has(editando.id_acta);
@@ -97,19 +107,6 @@ export async function iniciarActasReunion() {
   }
   plan.addEventListener('change', () => actualizarOpcionesAccion());
 
-  function campoResumen(etiqueta: string, valor: string): HTMLElement {
-    const grupo = document.createElement('div');
-    grupo.className = 'rounded-xl border border-[#E3DFF0] bg-[#F7F6FA] p-3.5';
-    const titulo = document.createElement('dt');
-    titulo.className = 'text-xs font-medium uppercase tracking-wide text-slate-500';
-    titulo.textContent = etiqueta;
-    const dato = document.createElement('dd');
-    dato.className = 'mt-1 break-words text-sm font-semibold text-slate-900';
-    dato.textContent = valor;
-    grupo.append(titulo, dato);
-    return grupo;
-  }
-
   function historial() {
     ocultar(); actual = null; editando = null;
     buscar('#actas-vacio').hidden = registros.length > 0;
@@ -117,43 +114,16 @@ export async function iniciarActasReunion() {
     buscar('#cantidad-actas').textContent = `${registros.length} ${registros.length === 1 ? 'acta registrada' : 'actas registradas'}`;
     const lista = buscar('#lista-actas'); lista.replaceChildren();
     for (const acta of [...registros].sort((a, b) => b.fecha_reunion.localeCompare(a.fecha_reunion) || b.id_acta.localeCompare(a.id_acta))) {
-      const tarjeta = document.createElement('article');
-      tarjeta.className = 'overflow-hidden rounded-xl border border-[#E3DFF0] bg-white shadow-[0_2px_8px_rgba(38,28,76,0.04)] transition hover:border-[#D8D2E8] hover:shadow-[0_4px_12px_rgba(38,28,76,0.06)]';
-      const linea = document.createElement('div'); linea.className = 'h-0.5 bg-[#D8D3E8]';
-      const contenido = document.createElement('div'); contenido.className = 'grid min-w-0 gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-stretch';
-      const cabecera = document.createElement('div'); cabecera.className = 'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between';
-      const principal = document.createElement('div'); principal.className = 'flex min-w-0 items-start gap-3';
-      const icono = document.createElement('div');
-      icono.className = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]';
-      icono.setAttribute('aria-hidden', 'true');
-      icono.innerHTML = '<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.75h7l4.25 4.25v11A1.5 1.5 0 0 1 16.75 20.5h-9.5A1.5 1.5 0 0 1 5.75 19V5.25A1.5 1.5 0 0 1 7.25 3.75Z"/><path d="M14 4v4h4M8.5 12h7M8.5 15.5h7"/></svg>';
-      const encabezado = document.createElement('div'); encabezado.className = 'min-w-0';
-      const etiqueta = document.createElement('p'); etiqueta.className = 'text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]'; etiqueta.textContent = 'Acta de reunión';
-      const titulo = document.createElement('h4'); titulo.className = 'mt-1 break-words text-base font-semibold text-slate-900'; titulo.textContent = acta.objetivo || 'Acta sin objetivo registrado';
-      encabezado.append(etiqueta, titulo); principal.append(icono, encabezado);
-      const fecha = document.createElement('span'); fecha.className = 'inline-flex w-fit shrink-0 items-center rounded-full bg-[#F0EDF8] px-3 py-1.5 text-sm font-medium text-[#4C4688]'; fecha.textContent = fechaVisible(acta.fecha_reunion);
-      cabecera.append(principal, fecha);
-      const datos = document.createElement('dl'); datos.className = 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3';
-      datos.append(campoResumen('Plan relacionado', nombrePlan(acta.id_plan)), campoResumen('Acción relacionada', nombreAccion(acta.id_accion)), campoResumen('Asistentes', `${acta.asistentes.length} ${acta.asistentes.length === 1 ? 'persona' : 'personas'}`));
-      const principalContenido = document.createElement('div');
-      principalContenido.className = 'min-w-0 space-y-4';
-      principalContenido.append(cabecera, datos);
-
-      const acciones = document.createElement('div');
-      acciones.className = 'flex justify-end border-t border-[#F0EDF6] pt-3 lg:h-full lg:min-w-[130px] lg:items-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0';
-      const boton = document.createElement('button');
-      boton.type = 'button';
-      boton.dataset.verActa = acta.id_acta;
-      boton.innerHTML = 'Ver detalle <span aria-hidden="true">→</span>';
-      boton.className = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[#4C4688] transition hover:bg-[#F5F3FA] focus:outline-none focus:ring-2 focus:ring-[#4C4688]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
-      boton.addEventListener('click', () => void consultarDetalle(acta.id_acta));
-      acciones.append(boton);
-
-      contenido.append(principalContenido, acciones);
-      tarjeta.append(linea, contenido);
-      lista.append(tarjeta);
+      const personas = `${acta.asistentes.length} ${acta.asistentes.length === 1 ? 'persona' : 'personas'}`;
+      lista.append(crearTarjetaRegistro({
+        contexto: `Reunión del ${fechaVisible(acta.fecha_reunion)}`,
+        titulo: acta.objetivo || 'Acta sin objetivo registrado',
+        datos: [['Plan', nombrePlan(acta.id_plan)], ['Acción', nombreAccion(acta.id_accion)], ['Asistentes', personas]],
+        accion: { texto: 'Ver detalle', atributos: { 'data-ver-acta': acta.id_acta }, alPulsar: () => void consultarDetalle(acta.id_acta) },
+      }));
     }
   }
+
   function iconoArchivo(nombreArchivo: string): string {
     const extension = nombreArchivo.split('.').pop()?.toLowerCase();
     if (extension === 'pdf') {
@@ -171,7 +141,7 @@ export async function iniciarActasReunion() {
     boton.className = 'actas-adjunto-eliminar';
     boton.setAttribute('aria-label', `Eliminar ${nombreArchivo}`);
     boton.title = 'Eliminar archivo';
-    boton.innerHTML = `<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5.5 7l.8 13h11.4l.8-13M9 7V4h6v3"/></svg><span>${etiqueta}</span>`;
+    boton.innerHTML = `${iconoSvg('eliminar')}<span>${etiqueta}</span>`;
     boton.addEventListener('click', accion);
     return boton;
   }
@@ -297,11 +267,15 @@ export async function iniciarActasReunion() {
   async function eliminarAdjunto(adjunto: AdjuntoActa, boton: HTMLButtonElement) {
     if (!actual || !catalogo?.puede_gestionar || cargandoAdjuntos) return;
 
-    const confirmar = window.confirm(
-      `¿Eliminar definitivamente el archivo "${adjunto.nombre_original}"? Esta acción no se puede deshacer.`,
-    );
+    const confirmado = await confirmarAccion({
+      titulo: '¿Eliminar este archivo?',
+      mensaje: `Se eliminará definitivamente «${adjunto.nombre_original}».`,
+      aviso: 'Esta acción no se puede deshacer.',
+      confirmar: 'Eliminar archivo',
+      tono: 'peligro',
+    });
 
-    if (!confirmar) return;
+    if (!confirmado) return;
 
     cargandoAdjuntos = true;
     boton.disabled = true;
@@ -390,6 +364,7 @@ export async function iniciarActasReunion() {
     if (!acta.asistentes.length) lista.textContent = 'Sin asistentes registrados.';
     for (const nombre of acta.asistentes) { const item = document.createElement('span'); item.className = 'rounded-full bg-primary/10 px-3 py-1 text-sm'; item.textContent = nombre; lista.append(item); }
     compromisos?.detalle(acta.compromisos ?? []);
+    botonPdf.hidden = !(acta.compromisos ?? []).length;
     editar.hidden = !catalogo?.puede_gestionar;
     buscar('#actas-adjuntos-subir').hidden = !catalogo?.puede_gestionar;
     buscar('#actas-adjuntos-carga').hidden = !catalogo?.puede_gestionar;
@@ -426,7 +401,7 @@ export async function iniciarActasReunion() {
   }
   async function cargar() {
     if (ocupado) return false;
-    if (!buscar('#actas-formulario-contenedor').hidden && !confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return false;
+    if (!buscar('#actas-formulario-contenedor').hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return false;
     limpiarMensajes(); cargado = false; buscar('#actas-catalogo-estado').hidden = true;
     buscar('#actas-recuperacion').hidden = true; cargarVista();
     try {
@@ -480,6 +455,21 @@ export async function iniciarActasReunion() {
   subirAdjuntos.addEventListener('click', () => void procesarAdjuntos());
   nueva.addEventListener('click', () => abrirFormulario());
   editar.addEventListener('click', () => { if (actual) abrirFormulario(actual); });
+  // Mismo PDF que «Descargar PDF del acta» en el detalle de un compromiso.
+  botonPdf.addEventListener('click', async () => {
+    if (!actual || ocupado) return;
+    limpiarMensajes(); ocupar(true);
+    try {
+      const archivo = await pdfCompromisos.descargar(org, actual.id_acta);
+      guardarArchivo(archivo.blob, archivo.fileName);
+      const mensaje = buscar('#actas-mensaje'); mensaje.className = 'rounded-lg bg-success/10 p-4 text-success';
+      mensaje.textContent = 'Se descargó el PDF con los compromisos del acta.'; mensaje.hidden = false;
+    } catch (fallo) {
+      error(fallo);
+    } finally {
+      ocupar(false);
+    }
+  });
   buscar('#actas-cancelar').addEventListener('click', () => { if (!ocupado) { limpiarMensajes(); if (editando) detalle(editando); else historial(); ocupar(false); } });
   buscar('#actas-volver').addEventListener('click', () => { if (!ocupado) { limpiarMensajes(); historial(); } });
   buscar('#actas-recargar').addEventListener('click', () => void cargar());

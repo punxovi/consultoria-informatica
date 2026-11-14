@@ -1,6 +1,8 @@
 ---
-interface Props { titulo: string; descripcion: string; destino?: string; href?: string; tono?: 'violeta' | 'verde' | 'rosa' | 'celeste' }
-const { titulo, descripcion, destino, href, tono = 'violeta' } = Astro.props;
+interface Props { titulo: string; descripcion: string; destino?: string; href?: string; tono?: 'violeta' | 'verde' | 'rosa' | 'celeste';
+  /** Sección que el Invitado no puede consultar: no se le ofrece el acceso. */
+  soloEquipo?: boolean }
+const { titulo, descripcion, destino, href, tono = 'violeta', soloEquipo = false } = Astro.props;
 const Tag = href ? 'a' : 'button';
 ---
 <Tag href={href} type={href ? undefined : 'button'} data-org-seccion={destino} class={`org-acceso org-acceso-${tono}`}>

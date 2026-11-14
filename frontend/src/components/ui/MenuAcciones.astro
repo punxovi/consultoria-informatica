@@ -1,0 +1,140 @@
+---
+interface Props {
+  etiqueta?: string;
+  class?: string;
+}
+
+const { etiqueta = 'Más acciones', class: className = '' } = Astro.props;
+---
+
+<div class:list={['menu-acciones relative', className]} data-menu-acciones>
+  <button
+    type="button"
+    data-menu-acciones-toggle
+    aria-label={etiqueta}
+    aria-haspopup="true"
+    aria-expanded="false"
+    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full
+      text-[#4C4688] transition-colors hover:bg-[#F0EEF8] active:bg-[#E6E2F3]
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] md:hidden"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="12" cy="5" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="12" cy="19" r="1.8" />
+    </svg>
+  </button>
+
+  <div data-menu-acciones-panel class="menu-acciones-panel flex flex-wrap items-center gap-3">
+    <slot />
+  </div>
+</div>
+
+<style is:global>
+  @media (max-width: 767.98px) {
+    .menu-acciones-panel {
+      position: absolute;
+      top: calc(100% + 0.375rem);
+      right: 0;
+      z-index: 30;
+      min-width: 13rem;
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 0.125rem !important;
+      padding: 0.375rem;
+      border: 1px solid #E8E5EF;
+      border-radius: 1rem;
+      background: #fff;
+      box-shadow: 0 12px 32px rgb(37 34 56 / 0.14);
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+    }
+
+    [data-menu-acciones][data-abierto] .menu-acciones-panel {
+      visibility: visible;
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Los diálogos de confirmación deben verse aunque el menú se cierre. */
+    .menu-acciones-panel dialog {
+      visibility: visible;
+    }
+
+    .menu-acciones-panel div:not(dialog, dialog *) {
+      width: 100%;
+    }
+
+    .menu-acciones-panel :is(a, button):not(dialog *) {
+      width: 100%;
+      min-height: 44px;
+      justify-content: flex-start !important;
+      padding: 0.5rem 0.75rem !important;
+      border-color: transparent !important;
+      border-radius: 0.75rem !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      font-size: 0.875rem !important;
+    }
+
+    .menu-acciones-panel :is(a, button):not(dialog *):hover {
+      background: #F5F3FA !important;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-menu-acciones]').forEach((menu) => {
+    if (menu.dataset.iniciado) return;
+    menu.dataset.iniciado = 'true';
+
+    const toggle = menu.querySelector<HTMLButtonElement>('[data-menu-acciones-toggle]')!;
+    const panel = menu.querySelector<HTMLElement>('[data-menu-acciones-panel]')!;
+
+    function abrir(abierto: boolean) {
+      menu.toggleAttribute('data-abierto', abierto);
+      toggle.setAttribute('aria-expanded', String(abierto));
+    }
+
+    // Sin acciones visibles (por permisos) no se ofrece el botón ⋮.
+    function actualizarToggle() {
+      const hayAcciones = Array.from(panel.children).some(
+        (hijo) => !(hijo as HTMLElement).hidden && getComputedStyle(hijo).display !== 'none',
+      );
+      toggle.hidden = !hayAcciones;
+      if (!hayAcciones) abrir(false);
+    }
+
+    toggle.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      abrir(!menu.hasAttribute('data-abierto'));
+    });
+
+    // Elegir una opción cierra el menú (el diálogo de confirmación sigue visible).
+    panel.addEventListener('click', (evento) => {
+      const objetivo = evento.target as HTMLElement;
+      if (objetivo.closest('dialog')) return;
+      if (objetivo.closest('a, button')) abrir(false);
+    });
+
+    document.addEventListener('click', (evento) => {
+      if (!menu.contains(evento.target as Node)) abrir(false);
+    });
+
+    document.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Escape' && menu.hasAttribute('data-abierto')) {
+        abrir(false);
+        toggle.focus();
+      }
+    });
+
+    new MutationObserver(actualizarToggle).observe(panel, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['hidden'],
+    });
+    actualizarToggle();
+  });
+</script>

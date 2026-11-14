@@ -1,7 +1,10 @@
 ﻿import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { crearClienteCompromisos } from './cliente';
+import { crearDescargaPdfCompromisos, guardarArchivo } from './pdf';
 import { guardarCompromisoSchema, vencido, type ActaOrigen, type Compromiso } from './modelo';
+import { crearTarjetaRegistro, type TonoInsignia } from '../ui/registro';
 
 export function iniciarCompromisos() {
   const encontrada = document.querySelector<HTMLElement>('#compromisos');
@@ -30,16 +33,16 @@ export function iniciarCompromisos() {
 
   const form = q<HTMLFormElement>('form');
   const campo = (nombre: string) => form.elements.namedItem(nombre) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-  const real = crearClienteCompromisos(
-    createApiTransport(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'),
-    async () => {
-      const { data, error: errorSesion } = await getSupabaseClient().auth.getSession();
-      if (errorSesion || !data.session) {
-        throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
-      }
-      return data.session.access_token;
-    },
-  );
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000';
+  const tokenSesion = async () => {
+    const { data, error: errorSesion } = await getSupabaseClient().auth.getSession();
+    if (errorSesion || !data.session) {
+      throw new ApiError('SESION_REQUERIDA', 'Tu sesión expiró. Vuelve a iniciar sesión.', 401);
+    }
+    return data.session.access_token;
+  };
+  const real = crearClienteCompromisos(createApiTransport(apiBase), tokenSesion);
+  const pdf = crearDescargaPdfCompromisos(apiBase, tokenSesion);
 
   let servicio = real;
   let demo = false;
@@ -72,6 +75,8 @@ export function iniciarCompromisos() {
 
     if (!valor) {
       q<HTMLButtonElement>('nuevo').disabled = !cargado || actas.length === 0;
+      // El PDF se genera en el Backend con datos reales: no aplica a la demostración.
+      q<HTMLButtonElement>('pdf-acta').disabled = demo;
       q<HTMLButtonElement>('guardar').disabled = conflicto;
     }
   }
@@ -130,9 +135,14 @@ export function iniciarCompromisos() {
   }
 
   function clasesEstado(registro: Compromiso) {
-    if (vencido(registro)) return 'inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700';
-    if (registro.estado === 'cumplido') return 'inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700';
-    return 'inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800';
+    if (vencido(registro)) return 'registro-insignia registro-insignia--rosado';
+    if (registro.estado === 'cumplido') return 'registro-insignia registro-insignia--verde';
+    return 'registro-insignia registro-insignia--amarillo';
+  }
+
+  function tonoEstado(registro: Compromiso): TonoInsignia {
+    if (vencido(registro)) return 'rosado';
+    return registro.estado === 'cumplido' ? 'verde' : 'amarillo';
   }
 
   function listar(registros: Compromiso[]) {
@@ -140,85 +150,19 @@ export function iniciarCompromisos() {
     lista.replaceChildren();
     q('vacio').hidden = registros.length > 0;
     q('sin-actas').hidden = actas.length > 0;
+    q('cantidad').hidden = registros.length === 0;
+    q('cantidad').textContent = `${registros.length} ${registros.length === 1 ? 'compromiso registrado' : 'compromisos registrados'}`;
 
     for (const registro of registros) {
-      const tarjeta = document.createElement('article');
-      tarjeta.className = 'group min-w-0 overflow-hidden rounded-xl border border-[#E3DFF0] bg-white shadow-[0_2px_8px_rgba(38,28,76,0.04)] transition hover:border-[#D8D2E8] hover:shadow-[0_4px_12px_rgba(38,28,76,0.06)]';
-
-      // Línea superior sutil y constante: el estado se comunica con la etiqueta,
-      // no cambiando el color de toda la tarjeta.
-      const linea = document.createElement('div');
-      linea.className = 'h-0.5 bg-[#D8D3E8]';
-
-      const contenido = document.createElement('div');
-      contenido.className = 'grid min-w-0 gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center';
-
-      const bloquePrincipal = document.createElement('div');
-      bloquePrincipal.className = 'flex min-w-0 items-start gap-4';
-
-      const icono = document.createElement('div');
-      icono.className = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]';
-      icono.setAttribute('aria-hidden', 'true');
-      icono.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4.75h7l4 4v10.5A1.75 1.75 0 0 1 17.25 21h-10.5A1.75 1.75 0 0 1 5 19.25V6.5A1.75 1.75 0 0 1 6.75 4.75H8Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 4.75v4h4M8.5 13h7M8.5 16.5h7"/></svg>';
-
-      const cuerpo = document.createElement('div');
-      cuerpo.className = 'min-w-0 flex-1';
-
-      const cabecera = document.createElement('div');
-      cabecera.className = 'flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between';
-
-      const tituloGrupo = document.createElement('div');
-      tituloGrupo.className = 'min-w-0 flex-1';
-      const etiqueta = document.createElement('p');
-      etiqueta.className = 'text-xs font-semibold uppercase tracking-wide text-slate-500';
-      etiqueta.textContent = 'Acuerdo comprometido';
-      const titulo = document.createElement('h4');
-      titulo.className = 'mt-1.5 break-words whitespace-pre-wrap text-base font-semibold leading-6 text-slate-900';
-      titulo.textContent = registro.descripcion || 'Compromiso sin descripción';
-      tituloGrupo.append(etiqueta, titulo);
-
-      const estado = document.createElement('span');
-      estado.className = clasesEstado(registro);
-      estado.textContent = etiquetaEstado(registro);
-      estado.setAttribute('aria-label', `Estado: ${etiquetaEstado(registro)}`);
-      cabecera.append(tituloGrupo, estado);
-
       const origen = actas.find((acta) => acta.id_acta === registro.id_acta);
-      const metadatos = document.createElement('dl');
-      metadatos.className = 'mt-4 grid min-w-0 grid-cols-1 gap-4 border-t border-[#F0EDF6] pt-4 sm:grid-cols-3';
-
-      const crearDato = (etiquetaDato: string, valorDato: string | null | undefined) => {
-        const grupo = document.createElement('div');
-        grupo.className = 'min-w-0';
-        const dt = document.createElement('dt');
-        dt.className = 'text-xs font-semibold uppercase tracking-wide text-slate-500';
-        dt.textContent = etiquetaDato;
-        const dd = document.createElement('dd');
-        dd.className = 'mt-1.5 break-words text-sm font-medium leading-6 text-slate-900';
-        dd.textContent = (valorDato ?? '').trim() || 'Sin información';
-        grupo.append(dt, dd);
-        metadatos.append(grupo);
-      };
-
-      crearDato('Acta de origen', origen?.nombre ?? 'Acta asociada');
-      crearDato('Responsable', registro.responsable_nombre);
-      crearDato('Fecha límite', fecha(registro.fecha_limite));
-
-      cuerpo.append(cabecera, metadatos);
-      bloquePrincipal.append(icono, cuerpo);
-
-      const acciones = document.createElement('div');
-      acciones.className = 'flex justify-end border-t border-[#F0EDF6] pt-3 lg:h-full lg:min-w-[130px] lg:items-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0';
-      const boton = document.createElement('button');
-      boton.type = 'button';
-      boton.className = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[#4C4688] transition hover:bg-[#F5F3FA] focus:outline-none focus:ring-2 focus:ring-[#4C4688]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
-      boton.innerHTML = 'Ver detalle <span aria-hidden="true">→</span>';
-      boton.addEventListener('click', () => { void consultar(registro.id_compromiso); });
-      acciones.append(boton);
-
-      contenido.append(bloquePrincipal, acciones);
-      tarjeta.append(linea, contenido);
-      lista.append(tarjeta);
+      const estado = etiquetaEstado(registro);
+      lista.append(crearTarjetaRegistro({
+        contexto: `Fecha límite ${fecha(registro.fecha_limite)}`,
+        titulo: registro.descripcion || 'Compromiso sin descripción',
+        insignias: [{ texto: estado, tono: tonoEstado(registro), etiqueta: `Estado: ${estado}` }],
+        datos: [['Responsable', registro.responsable_nombre], ['Acta de origen', origen?.nombre ?? 'Acta asociada']],
+        accion: { texto: 'Ver detalle', alPulsar: () => { void consultar(registro.id_compromiso); } },
+      }));
     }
 
     vista('listado');
@@ -226,7 +170,7 @@ export function iniciarCompromisos() {
 
   async function cargar(confirmar = true) {
     if (ocupado) return;
-    if (confirmar && !form.hidden && !window.confirm('Se descartarán los cambios del formulario. ¿Recargar?')) return;
+    if (confirmar && !form.hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return;
 
     limpiar();
     ocupar(true);
@@ -385,6 +329,23 @@ export function iniciarCompromisos() {
     }
   });
 
+  // Solo se descarga el PDF de un acta: sus compromisos se comparten con quienes participaron en esa reunión.
+  async function descargarPdf(idActa: string) {
+    if (ocupado || demo) return;
+    limpiar();
+    ocupar(true);
+    try {
+      const archivo = await pdf.descargar(org!, idActa);
+      guardarArchivo(archivo.blob, archivo.fileName);
+      q('exito').textContent = 'Se descargó el PDF con los compromisos del acta.';
+      q('exito').hidden = false;
+    } catch (fallo) {
+      error(fallo);
+    } finally {
+      ocupar(false);
+    }
+  }
+  q('pdf-acta').addEventListener('click', () => { if (actual) void descargarPdf(actual.id_acta); });
   q('nuevo').addEventListener('click', () => editar(true));
   q('editar').addEventListener('click', () => editar());
   q('cancelar').addEventListener('click', () => {
@@ -394,11 +355,10 @@ export function iniciarCompromisos() {
     else void cargar(false);
   });
   q('volver').addEventListener('click', () => { void cargar(false); });
-  q('recargar').addEventListener('click', () => { void cargar(); });
 
   async function activarDemo() {
     if (ocupado || demo) return;
-    if (!form.hidden && !window.confirm('Se descartarán los cambios para entrar en la demostración. ¿Continuar?')) return;
+    if (!form.hidden && !(await confirmarDescarte('Al entrar en la demostración se perderán los cambios del formulario.'))) return;
 
     ocupar(true);
     try {

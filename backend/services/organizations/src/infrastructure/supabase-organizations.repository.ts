@@ -1,3 +1,4 @@
+import { withAuditFetch } from '../../../../shared/observability/src/audit-context.ts';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -17,19 +18,21 @@ import type {
   DownloadedFile,
   CreateDonationInput,
   CreateDonationFileInput,
+  OrganizationImage,
 } from '../domain/organizations.ts';
 import { LEGAL_DOCUMENT_TYPES, assertFileSignature, normalizarTipoRespaldo } from '../domain/organizations.ts';
 import { mergeDonationChanges, parseCreateDonation, parseUpdateDonation, parseArchiveDonation, type UpdateDonationInput } from '../domain/donations.ts';
 import type { Compromiso } from '../domain/compromisos.ts';
+import { identifyDonationParties } from '../domain/donation-parties.ts';
+import { parseCreateDonationFile, parseUploadDonationFile } from '../domain/donations.ts';
 
 interface RepositoryOptions {
   supabaseUrl: string;
   anonKey: string;
   fetchImpl?: typeof fetch;
+  resolveRoles?: boolean;
 }
 
-// Devuelve el registro autorizado por RLS, incluidos metadatos HU20 cuando ya
-// están desplegados. Permite leer el esquema anterior durante el despliegue.
 const DONATION_FIELDS = '*';
 
 const DONATION_FILE_FIELDS = [
@@ -46,6 +49,19 @@ const ORGANIZATION_FIELDS = [
   'created_by', 'updated_by', 'archived_at', 'version',
   'pais:paises!organizaciones_id_pais_fkey(id_pais,codigo_iso,nombre)',
 ].join(',');
+
+const ORGANIZATION_IMAGE_FIELDS = 'id_archivo,nombre_original,mime_type,tamano_bytes,updated_at';
+const ORGANIZATION_WITH_IMAGE_FIELDS = `${ORGANIZATION_FIELDS},imagen:archivos!archivos_id_organizacion_fkey(${ORGANIZATION_IMAGE_FIELDS})`;
+const INVITED_ORGANIZATION_FIELDS = [
+  ...ORGANIZATION_FIELDS.split(','),
+].join(',');
+
+function withImageFilters(params: URLSearchParams): URLSearchParams {
+  params.set('imagen.categoria', 'eq.imagen_organizacion');
+  params.set('imagen.estado_carga', 'eq.disponible');
+  params.set('imagen.archived_at', 'is.null');
+  return params;
+}
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -64,6 +80,16 @@ function commitment(value: unknown, orgId: string): Compromiso {
 function postgrestError(status: number, body: unknown): ServiceError {
   const detail = record(body);
   const code = typeof detail.code === 'string' ? detail.code : '';
+  if (code === '23514' && typeof detail.message === 'string') {
+    for (const prefix of ['RESPALDO_INMUTABLE', 'ESTADO_RESPALDO_INVALIDO', 'RESPALDO_INVALIDO']) {
+      if (detail.message.startsWith(`${prefix}:`)) {
+        return new ServiceError(prefix, detail.message.slice(prefix.length + 1).trim(), prefix === 'RESPALDO_INVALIDO' ? 400 : 409, detail);
+      }
+    }
+  }
+  if (code === '23503' && String(detail.message).startsWith('DONACION_NO_DISPONIBLE:')) {
+    return new ServiceError('NO_ENCONTRADA', 'La donación no existe o está archivada.', 404, detail);
+  }
   if (code === '23503') {
     return new ServiceError('PAIS_NO_EXISTE', 'El país indicado no existe o ya no está disponible.', 409, detail);
   }
@@ -119,7 +145,21 @@ function organization(value: unknown): Organization {
   if (typeof data.id_organizacion !== 'string' || typeof data.nombre !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una organización inválida.', 502);
   }
-  return data as unknown as Organization;
+  if (!('imagen' in data)) return data as unknown as Organization;
+  const imagen = Array.isArray(data.imagen) ? data.imagen[0] : data.imagen;
+  return { ...data, imagen: organizationImage(imagen) } as unknown as Organization;
+}
+
+function organizationImage(value: unknown): OrganizationImage | null {
+  const data = record(value);
+  if (typeof data.id_archivo !== 'string') return null;
+  return {
+    id_archivo: data.id_archivo,
+    nombre_original: String(data.nombre_original ?? ''),
+    mime_type: data.mime_type as OrganizationImage['mime_type'],
+    tamano_bytes: Number(data.tamano_bytes ?? 0),
+    updated_at: String(data.updated_at ?? ''),
+  };
 }
 
 function country(value: unknown): CountrySummary {
@@ -135,7 +175,7 @@ function donation(value: unknown): Donation {
   if (typeof data.id_donacion !== 'string' || typeof data.id_organizacion !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una donación inválida.', 502);
   }
-  return data as unknown as Donation;
+  return { ...(data as unknown as Donation), ...identifyDonationParties(data) };
 }
 
 function donationFile(value: unknown): DonationFile {
@@ -143,7 +183,18 @@ function donationFile(value: unknown): DonationFile {
   if (typeof data.id_archivo !== 'string' || typeof data.id_donacion !== 'string') {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un archivo de donación inválido.', 502);
   }
-  const tipoRespaldo = normalizarTipoRespaldo(String(data.tipo_respaldo || data.categoria || 'comprobante'));
+  let tipoRespaldo: DonationFile['tipo_respaldo'];
+  try {
+    tipoRespaldo = normalizarTipoRespaldo(String(data.tipo_respaldo || data.categoria || ''));
+  } catch (error) {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'El respaldo recibido no tiene un tipo documental válido.', 502, error);
+  }
+  if (data.bucket_id !== 'fge-archivos' || typeof data.ruta_objeto !== 'string' ||
+      !data.ruta_objeto.startsWith(`donaciones/${data.id_donacion}/`) ||
+      !/^[^/\\%?#]+$/.test(data.ruta_objeto.slice(`donaciones/${data.id_donacion}/`.length)) ||
+      (data.categoria !== tipoRespaldo && data.categoria !== 'respaldo_donacion')) {
+    throw new ServiceError('RESPUESTA_INVALIDA', 'La referencia almacenada del respaldo no corresponde a su donación.', 502);
+  }
   return {
     ...(data as unknown as DonationFile),
     tipo_respaldo: tipoRespaldo,
@@ -151,7 +202,7 @@ function donationFile(value: unknown): DonationFile {
 }
 
 export function createSupabaseOrganizationsRepository(options: RepositoryOptions): OrganizationsRepository {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const baseUrl = options.supabaseUrl.replace(/\/$/, '');
 
   async function request(
@@ -207,7 +258,6 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     params: URLSearchParams,
     init?: RequestInit,
   ): Promise<Organization[]> {
-    // Si no enviamos un select personalizado con joins extras, usa el por defecto
     if (!params.has('select')) {
       params.set('select', ORGANIZATION_FIELDS);
     }
@@ -216,6 +266,68 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
     }
     return body.map(organization);
+  }
+
+  async function invitedOrganizationRows(accessToken: string, params: URLSearchParams): Promise<Organization[]> {
+    if (!params.has('select')) params.set('select', INVITED_ORGANIZATION_FIELDS);
+    const body = await request('organizaciones', accessToken, params);
+    if (!Array.isArray(body)) {
+      throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolviÃ³ una organizaciÃ³n invÃ¡lida.', 502);
+    }
+    return adjuntarImagenesInvitado(accessToken, body.map(organization));
+  }
+
+  // El Invitado usa el mismo contrato de lectura que el resto de la aplicación;
+  // si una imagen falla, se conserva el listado.
+  async function adjuntarImagenesInvitado(accessToken: string, filas: Organization[]): Promise<Organization[]> {
+    const ids = filas.map((fila) => fila.id_organizacion).filter((id): id is string => typeof id === 'string');
+    if (ids.length === 0) return filas;
+    let imagenes: unknown;
+    try {
+      imagenes = await request('archivos', accessToken, new URLSearchParams({
+        select: `id_organizacion,${ORGANIZATION_IMAGE_FIELDS}`,
+        id_organizacion: `in.(${ids.join(',')})`,
+        categoria: 'eq.imagen_organizacion',
+        estado_carga: 'eq.disponible',
+        archived_at: 'is.null',
+      }));
+    } catch {
+      return filas;
+    }
+    if (!Array.isArray(imagenes)) return filas;
+    const porOrganizacion = new Map(imagenes.map((imagen) => [record(imagen).id_organizacion, organizationImage(imagen)]));
+    return filas.map((fila) => ({ ...fila, imagen: porOrganizacion.get(fila.id_organizacion) ?? null }));
+  }
+
+  async function paisesDeOrganizacionesVisibles(accessToken: string): Promise<CountrySummary[]> {
+    let filas: unknown;
+    try {
+      filas = await request('organizaciones', accessToken, new URLSearchParams({
+        select: 'pais:paises!organizaciones_id_pais_fkey(id_pais,codigo_iso,nombre)',
+      }));
+    } catch {
+      return [];
+    }
+    if (!Array.isArray(filas)) return [];
+    const porId = new Map<string, CountrySummary>();
+    for (const fila of filas) {
+      const pais = record(record(fila).pais);
+      if (typeof pais.id_pais === 'string' && typeof pais.nombre === 'string' && typeof pais.codigo_iso === 'string') {
+        porId.set(pais.id_pais, country(pais));
+      }
+    }
+    return [...porId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }
+
+  async function esInvitado(accessToken: string): Promise<boolean> {
+    if (!options.resolveRoles) return false;
+
+    const body = await request('rpc/get_user_roles', accessToken, new URLSearchParams(), {
+      method: 'POST', body: JSON.stringify({}),
+    });
+    if (!Array.isArray(body)) return false;
+    const roles = body.map((item) => record(item).codigo);
+    return roles.includes('INVIT') && !roles.some((role) => role === 'ADMIN' || role === 'COORD');
   }
 
   async function requireDonationManagement(accessToken: string, orgId: string): Promise<void> {
@@ -282,7 +394,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       await request('rpc/registrar_acceso_documento', accessToken, new URLSearchParams(), {
         method: 'POST',
         body: JSON.stringify({ p_id_documento: body[0].id_informacion_legal })
-      }).catch(() => null); // Silenciar error si falla la inserción de auditoría
+      }); // No entregar datos personales si falla su registro de acceso.
     }
 
     return body[0] ? legalRecord(body[0]) : null;
@@ -292,10 +404,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     accessToken: string,
     path: string,
     init: RequestInit,
-  ): Promise<void> {
+    bucket = 'fge-expedientes-legales',
+  ): Promise<Response> {
     let response: Response;
     try {
-      response = await fetchImpl(`${baseUrl}/storage/v1/object/fge-expedientes-legales/${path}`, {
+      response = await fetchImpl(`${baseUrl}/storage/v1/object/${bucket}/${path}`, {
         ...init,
         headers: {
           apikey: options.anonKey,
@@ -309,8 +422,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     if (!response.ok) {
       let body: unknown = null;
       try { body = await response.json(); } catch { body = null; }
-      throw postgrestError(response.status, body);
+      const status = String(record(body).statusCode ?? '') === '403' ? 403 : response.status;
+      if (status === 404) throw new ServiceError('ARCHIVO_NO_ENCONTRADO', 'El archivo no fue encontrado en Storage.', 404);
+      throw postgrestError(status, body);
     }
+    return response;
   }
 
   async function saveLegalRecord(
@@ -359,36 +475,48 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
   }
 
   return {
+    async auditCommitmentsExport(token, context) {
+      await request('rpc/registrar_exportacion_reporte',token,new URLSearchParams(),{method:'POST',
+        body:JSON.stringify({p_destino:'interno',p_filtros:{tipo:'compromisos',organizationId:context.id_organizacion,id_acta:context.id_acta??null,reportId:randomUUID()}})});
+    },
+
     async list(accessToken, filters) {
+      if (await esInvitado(accessToken)) {
+        const params = new URLSearchParams({ order: 'nombre.asc' });
+        if (filters.search) params.set('nombre', `ilike.*${filters.search}*`);
+        if (filters.idPais) params.set('id_pais', `eq.${filters.idPais}`);
+        params.set('archived_at', 'is.null');
+        return invitedOrganizationRows(accessToken, params);
+      }
       const params = new URLSearchParams({ order: 'nombre.asc' });
       let selectString = ORGANIZATION_FIELDS;
 
-      // Filtro de archivadas
       if (!filters.includeArchived) params.set('archived_at', 'is.null');
-
-      // Búsqueda por nombre (no distingue mayúsculas/minúsculas)
       if (filters.search) params.set('nombre', `ilike.*${filters.search}*`);
-
-      // Filtro por país
       if (filters.idPais) params.set('id_pais', `eq.${filters.idPais}`);
-
-      // Filtro por Programa Institucional (mediante Plan de Intervención)
       if (filters.idPrograma) {
-        // Hacemos un inner join rápido. PostgREST devuelve la organización sin duplicarla.
         selectString += ',planes!inner(id_programa)';
         params.set('planes.id_programa', `eq.${filters.idPrograma}`);
       }
 
-      params.set('select', selectString);
-      return organizationRows(accessToken, params);
+      params.set('select', selectString.replace(ORGANIZATION_FIELDS, ORGANIZATION_WITH_IMAGE_FIELDS));
+      return organizationRows(accessToken, withImageFilters(params));
     },
 
     async getById(accessToken, id) {
-      const rows = await organizationRows(accessToken, new URLSearchParams({
+      if (await esInvitado(accessToken)) {
+        const rows = await invitedOrganizationRows(accessToken, new URLSearchParams({
+          id_organizacion: `eq.${id}`, archived_at: 'is.null', limit: '1',
+        }));
+        if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La OrganizaciÃ³n solicitada no existe o no estÃ¡ disponible.', 404);
+        return rows[0];
+      }
+      const rows = await organizationRows(accessToken, withImageFilters(new URLSearchParams({
+        select: ORGANIZATION_WITH_IMAGE_FIELDS,
         id_organizacion: `eq.${id}`,
         archived_at: 'is.null',
         limit: '1',
-      }));
+      })));
       if (!rows[0]) throw new ServiceError('NO_ENCONTRADA', 'La organización solicitada no existe.', 404);
       return rows[0];
     },
@@ -435,7 +563,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body)) {
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
       }
-      return body.map(country);
+      if (body.length > 0) return body.map(country);
+      // Si el catálogo llega vacío (caso del Invitado), se usan los países de las
+      // organizaciones que la sesión puede consultar en la vista segura.
+      return paisesDeOrganizacionesVisibles(accessToken);
     },
 
     getLegalRecord,
@@ -569,7 +700,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
       const params = new URLSearchParams({
         archived_at: 'is.null',
-        select: DONATION_FIELDS,
+        select: '*,certificados:archivos!id_donacion(id_archivo)',
+        'certificados.tipo_respaldo': 'eq.certificado',
+        'certificados.estado_carga': 'eq.disponible',
+        'certificados.archived_at': 'is.null',
+        'certificados.limit': '1',
         order: 'fecha.desc,created_at.desc',
       });
       if (orgId) {
@@ -579,7 +714,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body)) {
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida de donaciones.', 502);
       }
-      return body.map(donation);
+      return body.map(value => {
+        const { certificados, ...datos } = record(value);
+        return { ...donation(datos), tiene_certificado: Array.isArray(certificados) && certificados.length > 0 };
+      });
     },
 
     async getDonationById(accessToken: string, orgId: string, donationId: string): Promise<Donation> {
@@ -596,6 +734,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         id_programa: input.id_programa,
         categoria: input.categoria,
         categoria_otro: input.categoria_otro,
+        entrega_certificado: input.entrega_certificado,
         tipo_donante: input.tipo_donante,
         origen: input.origen,
         estado: input.estado,
@@ -662,7 +801,11 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body)) {
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida de archivos.', 502);
       }
-      return body.map(donationFile);
+      return body.map(value => {
+        const file = donationFile(value);
+        if (file.id_donacion !== donationId) throw new ServiceError('RESPUESTA_INVALIDA', 'El respaldo no pertenece a la donación consultada.', 502);
+        return file;
+      });
     },
 
     async getDonationFileById(accessToken: string, donationId: string, fileId: string): Promise<DonationFile> {
@@ -679,10 +822,18 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       if (!Array.isArray(body) || !body[0]) {
         throw new ServiceError('NO_ENCONTRADO', 'El archivo de respaldo no existe o no está disponible.', 404);
       }
-      return donationFile(body[0]);
+      const file = donationFile(body[0]);
+      if (file.id_archivo !== fileId || (donationId && file.id_donacion !== donationId)) {
+        throw new ServiceError('RESPUESTA_INVALIDA', 'El respaldo recibido no coincide con la consulta.', 502);
+      }
+      return file;
     },
 
     async reserveDonationFile(accessToken: string, donationId: string, input: CreateDonationFileInput): Promise<DonationFile> {
+      input = parseCreateDonationFile(input);
+      if (input.id_donacion && input.id_donacion !== donationId) {
+        throw new ServiceError('DONACION_NO_COINCIDE', 'La donación del respaldo no coincide con la ruta.', 400);
+      }
       const donFound = await request('donaciones', accessToken, new URLSearchParams({
         id_donacion: `eq.${donationId}`,
         archived_at: 'is.null',
@@ -731,6 +882,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       bytes: Buffer,
       mimeType: string,
     ): Promise<DonationFile> {
+      parseUploadDonationFile({ version_esperada: expectedVersion });
       let file = await this.getDonationFileById(accessToken, donationId, fileId);
       if (file.version !== expectedVersion) {
         throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El archivo cambió. Recarga antes de cargarlo.', 409);
@@ -777,7 +929,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       });
 
       if (!response.ok) {
-        await request('archivos', accessToken, new URLSearchParams({ id_archivo: `eq.${fileId}` }), {
+        await request('archivos', accessToken, new URLSearchParams({
+          id_archivo: `eq.${fileId}`, id_donacion: `eq.${donationId}`,
+          version: `eq.${file.version}`, estado_carga: 'eq.reservado', archived_at: 'is.null',
+        }), {
           method: 'PATCH',
           body: JSON.stringify({ estado_carga: 'fallido' }),
         }).catch(() => null);
@@ -790,7 +945,10 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
 
       const updated = await request('archivos', accessToken, new URLSearchParams({
         id_archivo: `eq.${fileId}`,
+        id_donacion: `eq.${donationId}`,
         version: `eq.${file.version}`,
+        estado_carga: 'eq.reservado',
+        archived_at: 'is.null',
         select: DONATION_FILE_FIELDS,
       }), {
         method: 'PATCH',
@@ -824,11 +982,70 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         if (response.status === 401 || response.status === 403) throw new ServiceError('SIN_PERMISO', 'No tienes permiso para descargar este archivo.', response.status);
         throw new ServiceError('ERROR_STORAGE', 'No fue posible descargar el archivo.', 502);
       }
+      await request('rpc/registrar_acceso_archivo',accessToken,new URLSearchParams(),{
+        method:'POST',body:JSON.stringify({p_tipo:'donacion',p_id:fileId}),
+      });
       const bytes = Buffer.from(await response.arrayBuffer());
       return {
         bytes,
         mimeType: file.mime_type,
         fileName: file.nombre_original,
+      };
+    },
+
+    async replaceOrganizationImage(accessToken, orgId, upload) {
+      await this.getById(accessToken, orgId);
+      const extension = upload.mimeType === 'image/jpeg' ? 'jpg' : upload.mimeType.slice('image/'.length);
+      const path = `organizaciones/${orgId}/imagen/${randomUUID()}.${extension}`;
+      await storageRequest(accessToken, path, {
+        method: 'POST',
+        headers: { 'content-type': upload.mimeType, 'x-upsert': 'false' },
+        body: upload.bytes,
+      }, 'fge-archivos');
+      let saved: unknown;
+      try {
+        saved = await request('rpc/reemplazar_imagen_organizacion', accessToken, new URLSearchParams(), {
+          method: 'POST',
+          body: JSON.stringify({
+            p_id_organizacion: orgId,
+            p_ruta_objeto: path,
+            p_nombre_original: upload.nombre,
+            p_mime_type: upload.mimeType,
+            p_tamano_bytes: upload.bytes.length,
+          }),
+        });
+      } catch (error) {
+        // Sin registro, el objeto quedaría huérfano: se retira de Storage.
+        await storageRequest(accessToken, path, { method: 'DELETE' }, 'fge-archivos').catch(() => null);
+        if (error instanceof ServiceError && ['PGRST202', '42883'].includes(String(record(error.cause).code))) {
+          throw new ServiceError('MIGRACION_PENDIENTE', 'La base de datos requiere la migración SCRUM-175.', 503);
+        }
+        throw error;
+      }
+      const image = organizationImage(Array.isArray(saved) ? saved[0] : saved);
+      if (!image) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una imagen inválida.', 502);
+      return image;
+    },
+
+    async downloadOrganizationImage(accessToken, orgId) {
+      const body = await request('archivos', accessToken, new URLSearchParams({
+        select: `${ORGANIZATION_IMAGE_FIELDS},ruta_objeto`,
+        id_organizacion: `eq.${orgId}`,
+        categoria: 'eq.imagen_organizacion',
+        estado_carga: 'eq.disponible',
+        archived_at: 'is.null',
+        limit: '1',
+      }));
+      if (!Array.isArray(body)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
+      const row = record(body[0]);
+      if (typeof row.ruta_objeto !== 'string') {
+        throw new ServiceError('IMAGEN_NO_ENCONTRADA', 'La Organización no tiene una imagen registrada.', 404);
+      }
+      const response = await storageRequest(accessToken, row.ruta_objeto, { method: 'GET' }, 'fge-archivos');
+      return {
+        bytes: Buffer.from(await response.arrayBuffer()),
+        mimeType: String(row.mime_type),
+        fileName: String(row.nombre_original ?? 'imagen'),
       };
     },
   };
@@ -863,11 +1080,16 @@ function unconfiguredRepository(): OrganizationsRepository {
     listDonations: unavailable,
     getDonationById: unavailable,
     createDonation: unavailable,
+    updateDonation: unavailable,
+    archiveDonation: unavailable,
     listDonationFiles: unavailable,
     getDonationFileById: unavailable,
     reserveDonationFile: unavailable,
     uploadDonationFile: unavailable,
     downloadDonationFile: unavailable,
+    auditCommitmentsExport: unavailable,
+    replaceOrganizationImage: unavailable,
+    downloadOrganizationImage: unavailable,
   };
 }
 
@@ -875,5 +1097,5 @@ export function createSupabaseOrganizationsRepositoryFromEnv(): OrganizationsRep
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) return unconfiguredRepository();
-  return createSupabaseOrganizationsRepository({ supabaseUrl, anonKey });
+  return createSupabaseOrganizationsRepository({ supabaseUrl, anonKey, resolveRoles: true });
 }

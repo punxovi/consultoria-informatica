@@ -31,7 +31,9 @@ export async function getUserRoles(): Promise<UserRole[]> {
   const { data, error } = await getSupabaseClient().rpc('get_user_roles');
 
   if (error) {
-    throw new Error(`No se pudieron obtener los roles: ${error.message}`);
+    const fallo = new Error(`No se pudieron obtener los roles: ${error.message}`) as Error & { status?: number };
+    fallo.status = typeof error.status === 'number' ? error.status : undefined;
+    throw fallo;
   }
 
   return (data ?? []) as UserRole[];

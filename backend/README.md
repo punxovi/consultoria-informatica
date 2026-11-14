@@ -58,3 +58,16 @@ Las operaciones `/api/v1/coordinators` requieren la migración de SCRUM-145.
 El alta requiere además `SUPABASE_SERVICE_ROLE_KEY`, exclusiva del Backend.
 Parámetros, respuestas, ciclo de vida y pruebas en
 [`CONTRATO-COORDINADORES.md`](../docs/CONTRATO-COORDINADORES.md).
+
+### Auditoría RF62 (SCRUM-157)
+
+Auth requiere `SUPABASE_SERVICE_ROLE_KEY` también para registrar operaciones
+verificadas y rechazos de autenticación. La clave permanece en el proceso Auth;
+los repositorios normales siguen usando clave pública y JWT del usuario.
+Las migraciones `20261107020000_fge_scrum157_auditoria_rf62.sql` y
+`20261107021000_fge_scrum157_auditoria_copias_storage.sql` deben aplicarse antes
+de desplegar los procesos nuevos. Auth sincroniza idempotentemente los eventos
+nativos al confirmar operaciones y cada 30 segundos; no modifica el esquema Auth.
+Para proxies entre hosts, configurar `AUDIT_TRUSTED_PROXY_IPS` en la red privada.
+Contrato, fuentes instrumentadas y pruebas en
+[CONTRATO-AUDITORIA-SCRUM157.md](../docs/CONTRATO-AUDITORIA-SCRUM157.md).

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
+import type { DonationParties } from './donation-parties.ts';
 
 export const TIPOS_RESPALDO = ['comprobante', 'acta_entrega', 'certificado', 'fotografia'] as const;
 export type TipoRespaldo = (typeof TIPOS_RESPALDO)[number];
@@ -53,6 +54,7 @@ const donationFieldsSchema = z
     id_programa: uuid('El Programa institucional').optional(),
     categoria: z.enum(CATEGORIAS_DONACION),
     categoria_otro: text('La descripción de Otro', 2000).optional(),
+    entrega_certificado: z.enum(['pendiente', 'entregado']).optional(),
     tipo_donante: z.enum(['empresa', 'persona', 'organizacion']),
     origen: text('El origen del donante', 2000),
     estado: z.enum(ESTADOS_DONACION),
@@ -206,12 +208,13 @@ export const uploadDonationFileSchema = z.object({
 
 export type UploadDonationFileInput = z.infer<typeof uploadDonationFileSchema>;
 
-export type Donation = {
+export type Donation = Partial<DonationParties> & {
   id_donacion: string;
   id_pais?: string;
   id_programa?: string | null;
   categoria?: 'Dinero' | 'Producto' | 'Servicio' | 'Insumos' | 'Otro' | null;
   categoria_otro?: string | null;
+  entrega_certificado?: 'pendiente' | 'entregado' | null;
   tipo_donante?: 'empresa' | 'persona' | 'organizacion' | null;
   origen?: string | null;
   estado?: 'Comprometida' | 'Recibida' | 'Entregada' | 'Cerrada' | null;

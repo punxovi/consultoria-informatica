@@ -1,11 +1,12 @@
 ---
+import Icono from '../components/ui/Icono.astro';
 import Button from '../components/ui/Button.astro';
 import Card from '../components/ui/Card.astro';
 import { mainNavItems } from '../config/nav';
 import AppLayout from '../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Planes de Intervención" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD']}>
+<AppLayout title="Planes de Intervención" navItems={mainNavItems} allowedRoles={['ADMIN', 'COORD', 'INVIT']}>
   <Fragment slot="headerBreadcrumb">
     <span class="text-sm font-semibold text-neutral-900">Planes de Intervención</span>
   </Fragment>
@@ -26,13 +27,13 @@ import AppLayout from '../layouts/AppLayout.astro';
           Consulta, filtra y administra los planes asociados a organizaciones y programas institucionales.
         </p>
       </div>
-      <Button href="/planes/nuevo" class="shrink-0">
+      <Button href="/planes/nuevo" class="shrink-0" data-gestion>
         <span aria-hidden="true">+</span> Nuevo plan
       </Button>
     </header>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Card class="border-l-4 border-l-primary p-4">
+      <Card class="tarjeta-acento acento-morado p-4">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-primary/10 p-3 text-primary" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" /></svg>
@@ -43,7 +44,7 @@ import AppLayout from '../layouts/AppLayout.astro';
           </div>
         </div>
       </Card>
-      <Card class="border-l-4 border-l-brand-green p-4">
+      <Card class="tarjeta-acento acento-verde p-4">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-brand-green/10 p-3 text-brand-green" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" /></svg>
@@ -54,7 +55,7 @@ import AppLayout from '../layouts/AppLayout.astro';
           </div>
         </div>
       </Card>
-      <Card class="border-l-4 border-l-brand-yellow p-4">
+      <Card class="tarjeta-acento acento-amarillo p-4">
         <div class="flex items-center gap-3">
           <span class="rounded-xl bg-brand-yellow/20 p-3 text-[#946200]" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" /></svg>
@@ -74,11 +75,17 @@ import AppLayout from '../layouts/AppLayout.astro';
         </span>
         <div>
           <h2 class="text-lg font-semibold text-neutral-900">Filtrar planes</h2>
-          <p class="mt-1 text-sm text-neutral-500">Combina año, programa y organización para encontrar los planes que necesitas.</p>
+          <p class="mt-1 text-sm text-neutral-500">Combina país, año, programa y organización para encontrar los planes que necesitas.</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
+      <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="space-y-1.5">
+          <label for="filtro-pais" class="block text-sm font-medium text-neutral-800">País</label>
+          <select id="filtro-pais" disabled class="w-full">
+            <option value="">Todos los países</option>
+          </select>
+        </div>
         <div class="space-y-1.5">
           <label for="filtro-anio" class="block text-sm font-medium text-neutral-800">Año del plan</label>
           <select id="filtro-anio" class="min-h-[46px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary">
@@ -100,11 +107,12 @@ import AppLayout from '../layouts/AppLayout.astro';
       </div>
 
       <p id="planes-contexto-organizacion" hidden class="mt-4 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]" aria-live="polite"></p>
+      <p id="aviso-solo-consulta" role="status" aria-live="polite" hidden class="mt-4 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]"></p>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
         <p id="planes-estado" role="status" aria-live="polite" class="text-sm text-neutral-500">Cargando planes…</p>
         <Button id="limpiar-filtros" variant="outline" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 9A7 7 0 0 1 18 6l2 4M19 15a7 7 0 0 1-12.5 3L4 14" /></svg>
+          <Icono nombre="limpiar" />
           Limpiar filtros
         </Button>
       </div>
@@ -117,12 +125,6 @@ import AppLayout from '../layouts/AppLayout.astro';
           <h2 id="planes-listado-titulo" class="text-lg font-semibold text-neutral-900">Listado de planes</h2>
           <p class="mt-1 text-sm text-neutral-500">Selecciona un plan para consultar su información y sus acciones.</p>
         </div>
-        <Button id="recargar-planes" variant="outline" class="shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7v5h-5M4 17v-5h5m-4.5-3A8 8 0 0 1 18 6l2 6M4 12l2 6a8 8 0 0 0 12.5-1" />
-          </svg>
-          Actualizar listado
-        </Button>
       </div>
       <div id="planes-listado" aria-busy="true" class="grid grid-cols-1 gap-3"></div>
       <div id="planes-vacio" hidden class="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center">
@@ -137,49 +139,36 @@ import AppLayout from '../layouts/AppLayout.astro';
 </AppLayout>
 
 <template id="plantilla-plan">
-  <article class="group rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-[#D8D3F2] hover:shadow-md sm:p-5">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div class="min-w-0 flex-1">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" /></svg>
-          </span>
-          <h3 data-nombre class="min-w-0 break-words text-lg font-bold text-neutral-900"></h3>
-          <span data-estado class="inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold"></span>
+  <article class="registro tarjeta-acento">
+    <div class="registro-cabecera">
+      <div class="registro-identidad">
+        <span class="registro-media" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l4 4v12H4V4h4Zm7 0v5h5M8 13h8m-8 4h8" /></svg>
+        </span>
+        <div class="min-w-0">
+          <p data-anio class="registro-contexto"></p>
+          <h3 data-nombre class="registro-titulo"></h3>
         </div>
-
-        <dl class="mt-4 grid grid-cols-1 gap-4 pl-0 sm:grid-cols-2 xl:grid-cols-4">
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Organización</dt>
-            <dd class="mt-1 break-words text-sm font-medium"><a data-organizacion class="text-neutral-800 underline decoration-neutral-300 underline-offset-2 transition hover:text-primary hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="#">—</a></dd>
-          </div>
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Programa</dt>
-            <dd class="mt-1 break-words text-sm font-medium"><a data-programa class="text-neutral-800 underline decoration-neutral-300 underline-offset-2 transition hover:text-primary hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="#">—</a></dd>
-          </div>
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Año del plan</dt>
-            <dd data-anio class="mt-1 text-sm font-medium text-neutral-800"></dd>
-          </div>
-          <div class="min-w-0">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Vigencia</dt>
-            <dd data-vigencia class="mt-1 text-sm font-medium text-neutral-800"></dd>
-          </div>
-        </dl>
       </div>
-
-      <div class="flex shrink-0 justify-end border-t border-neutral-100 pt-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-        <a data-detalle class="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          Ver detalle <span aria-hidden="true">→</span>
-        </a>
-      </div>
+      <div class="registro-insignias"><span data-estado class="registro-insignia"></span></div>
+    </div>
+    <dl class="registro-datos">
+      <div class="min-w-0"><dt>Organización</dt><dd><a data-organizacion href="#">—</a></dd></div>
+      <div class="min-w-0"><dt>Programa</dt><dd><a data-programa href="#">—</a></dd></div>
+      <div class="min-w-0"><dt>Vigencia</dt><dd data-vigencia></dd></div>
+    </dl>
+    <div class="registro-pie">
+      <a data-detalle class="registro-enlace">Ver detalle <span aria-hidden="true">→</span></a>
     </div>
   </article>
 </template>
 
 <script>
+  import { paisOperativo } from '../lib/territorio/contexto';
   import { listarPlanes } from '../lib/planes/cliente';
-  import { listarOrganizaciones } from '../lib/organizaciones/cliente';
+  import { listarOrganizaciones, listarPaisesOrganizaciones } from '../lib/organizaciones/cliente';
+  import { actualizarAvisoConsulta } from '../lib/territorio/aviso-consulta';
+  import { agregarRetorno, hrefOrganizacion } from '../lib/navegacion/retorno-organizaciones';
 
   type PlanListado = Awaited<ReturnType<typeof listarPlanes>>[number];
   type OrganizacionListado = Awaited<ReturnType<typeof listarOrganizaciones>>[number];
@@ -187,7 +176,8 @@ import AppLayout from '../layouts/AppLayout.astro';
   const listado = document.querySelector<HTMLElement>('#planes-listado')!;
   const estado = document.querySelector<HTMLElement>('#planes-estado')!;
   const error = document.querySelector<HTMLElement>('#planes-error')!;
-  const recargar = document.querySelector<HTMLButtonElement>('#recargar-planes')!;
+  const filtroPais = document.querySelector<HTMLSelectElement>('#filtro-pais')!;
+  const avisoConsulta = document.querySelector<HTMLElement>('#aviso-solo-consulta')!;
   const filtroAnio = document.querySelector<HTMLSelectElement>('#filtro-anio')!;
   const filtroPrograma = document.querySelector<HTMLSelectElement>('#filtro-programa')!;
   const filtroOrganizacion = document.querySelector<HTMLSelectElement>('#filtro-organizacion')!;
@@ -202,15 +192,21 @@ import AppLayout from '../layouts/AppLayout.astro';
   const pendientes = document.querySelector<HTMLElement>('#planes-pendientes')!;
 
   let planes: PlanListado[] = [];
+  let planesTodos: PlanListado[] = [];
+  let organizacionesTodas: OrganizacionListado[] = [];
+  let paisesCargados = false;
   let organizacionesRegistradas: OrganizacionListado[] = [];
   let organizacionContextual: string | null = new URLSearchParams(window.location.search).get('id_organizacion');
   let cargando = false;
+  let solicitudActual = 0;
+  let territorio: string | null = null;
+  let territorial = false;
 
   function obtenerEstado(inicio: string, termino: string) {
     const hoy = new Date().toISOString().slice(0, 10);
-    if (termino < hoy) return { texto: 'Finalizado', clase: 'bg-neutral-100 text-neutral-600', clave: 'finalizado' };
-    if (inicio > hoy) return { texto: 'Pendiente', clase: 'bg-brand-yellow/20 text-[#946200]', clave: 'pendiente' };
-    return { texto: 'En ejecución', clase: 'bg-brand-green/10 text-[#16794F]', clave: 'ejecucion' };
+    if (termino < hoy) return { texto: 'Finalizado', tono: 'neutro', clave: 'finalizado' };
+    if (inicio > hoy) return { texto: 'Pendiente', tono: 'amarillo', clave: 'pendiente' };
+    return { texto: 'En ejecución', tono: 'verde', clave: 'ejecucion' };
   }
 
   function periodo(inicio: string, termino: string) {
@@ -228,6 +224,38 @@ import AppLayout from '../layouts/AppLayout.astro';
     selector.replaceChildren(new Option(etiquetaInicial, ''));
     for (const opcion of opciones) selector.add(new Option(opcion.etiqueta, opcion.valor));
     if (opciones.some(opcion => opcion.valor === valorAnterior)) selector.value = valorAnterior;
+  }
+
+  // Un Coordinador consulta planes de todos los países; el filtro parte en su territorio activo.
+  function aplicarPais() {
+    const pais = filtroPais.value;
+    planes = pais ? planesTodos.filter(plan => plan.organizacion.id_pais === pais) : planesTodos;
+    organizacionesRegistradas = pais ? organizacionesTodas.filter(organizacion => organizacion.id_pais === pais) : organizacionesTodas;
+    void actualizarAvisoConsulta(avisoConsulta, pais, filtroPais.selectedOptions[0]?.text ?? '', 'planes');
+  }
+
+  async function cargarPaises() {
+    if (paisesCargados) return;
+    try {
+      const paises = await listarPaisesOrganizaciones();
+      filtroPais.replaceChildren(new Option('Todos los países', ''));
+      [...paises].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).forEach(pais => filtroPais.add(new Option(pais.nombre, pais.id_pais)));
+      paisesCargados = true;
+    } catch {
+      // Sin catálogo de países se listan todos los planes visibles.
+    }
+    filtroPais.disabled = false;
+  }
+
+  function paisInicial(parametros: URLSearchParams, territorioActivo: string | null): string {
+    if (parametros.has('id_pais')) return parametros.get('id_pais') ?? '';
+    const idOrganizacion = parametros.get('id_organizacion');
+    if (idOrganizacion) {
+      const paisOrganizacion = organizacionesTodas.find(organizacion => String(organizacion.id_organizacion) === idOrganizacion)?.id_pais
+        ?? planesTodos.find(plan => String(plan.id_organizacion) === idOrganizacion)?.organizacion.id_pais;
+      if (paisOrganizacion) return paisOrganizacion;
+    }
+    return territorioActivo ?? '';
   }
 
   function poblarFiltros() {
@@ -271,6 +299,7 @@ import AppLayout from '../layouts/AppLayout.astro';
   function sincronizarFiltrosEnUrl() {
     const url = new URL(window.location.href);
     const filtros: Array<[string, string]> = [
+      ['id_pais', filtroPais.value],
       ['anio', filtroAnio.value],
       ['id_programa', filtroPrograma.value],
       ['id_organizacion', idOrganizacionFiltro()],
@@ -310,20 +339,21 @@ import AppLayout from '../layouts/AppLayout.astro';
       tarjeta.querySelector<HTMLElement>('[data-nombre]')!.textContent = plan.nombre;
       const enlaceOrganizacion = tarjeta.querySelector<HTMLAnchorElement>('[data-organizacion]')!;
       enlaceOrganizacion.textContent = plan.organizacion.nombre;
-      enlaceOrganizacion.href = `/organizaciones/${encodeURIComponent(plan.id_organizacion)}`;
+      enlaceOrganizacion.href = hrefOrganizacion(String(plan.id_organizacion), new URLSearchParams(window.location.search));
       enlaceOrganizacion.setAttribute('aria-label', `Ver organización ${plan.organizacion.nombre}`);
 
       const enlacePrograma = tarjeta.querySelector<HTMLAnchorElement>('[data-programa]')!;
       enlacePrograma.textContent = plan.programa.nombre;
       enlacePrograma.href = `/programas/${encodeURIComponent(plan.id_programa)}`;
       enlacePrograma.setAttribute('aria-label', `Ver programa institucional ${plan.programa.nombre}`);
-      tarjeta.querySelector<HTMLElement>('[data-anio]')!.textContent = String(plan.periodo_anual);
+      tarjeta.querySelector<HTMLElement>('[data-anio]')!.textContent = `Plan ${plan.periodo_anual}`;
       tarjeta.querySelector<HTMLElement>('[data-vigencia]')!.textContent = periodo(plan.fecha_inicio, plan.fecha_termino);
 
       const etiqueta = tarjeta.querySelector<HTMLElement>('[data-estado]')!;
       const calculado = obtenerEstado(plan.fecha_inicio, plan.fecha_termino);
       etiqueta.textContent = calculado.texto;
-      etiqueta.classList.add(...calculado.clase.split(' '));
+      etiqueta.classList.add(`registro-insignia--${calculado.tono}`);
+      tarjeta.querySelector('article')!.classList.add(`acento-${calculado.tono}`);
 
       const enlace = tarjeta.querySelector<HTMLAnchorElement>('[data-detalle]')!;
       const parametrosRetorno = new URLSearchParams();
@@ -331,6 +361,7 @@ import AppLayout from '../layouts/AppLayout.astro';
       if (filtroPrograma.value) parametrosRetorno.set('id_programa', filtroPrograma.value);
       const idOrgActual = idOrganizacionFiltro();
       if (idOrgActual) parametrosRetorno.set('id_organizacion', idOrgActual);
+      agregarRetorno(parametrosRetorno, new URLSearchParams(window.location.search));
       const queryRetorno = parametrosRetorno.toString();
       enlace.href = `/planes/${encodeURIComponent(plan.id_plan)}${queryRetorno ? `?${queryRetorno}` : ''}`;
       enlace.setAttribute('aria-label', `Ver detalle de ${plan.nombre}`);
@@ -348,7 +379,7 @@ import AppLayout from '../layouts/AppLayout.astro';
       ? `Mostrando los planes relacionados con ${nombreOrganizacion || 'la organización seleccionada'}.`
       : '';
 
-    const hayFiltros = Boolean(filtroAnio.value || filtroPrograma.value || idOrgActual);
+    const hayFiltros = Boolean(filtroAnio.value || filtroPrograma.value || idOrgActual || filtroPais.value !== (territorio ?? ''));
     limpiarFiltros.disabled = !hayFiltros;
     planesVacio.hidden = resultados.length !== 0;
     if (!resultados.length) {
@@ -365,34 +396,51 @@ import AppLayout from '../layouts/AppLayout.astro';
   }
 
   async function cargar() {
+    if (territorial && !territorio) return;
     const confirmacion = document.querySelector<HTMLElement>('#plan-confirmacion')!;
     const resultado = new URLSearchParams(window.location.search).get('resultado');
-    if (resultado === 'guardado' || resultado === 'eliminado') {
-      confirmacion.textContent = resultado === 'eliminado' ? 'Plan eliminado correctamente.' : 'Plan guardado correctamente.';
+    const mensajesResultado: Record<string, string> = {
+      creado: 'Plan creado correctamente.',
+      actualizado: 'Plan modificado correctamente.',
+      guardado: 'Plan guardado correctamente.',
+      eliminado: 'Plan eliminado correctamente.',
+    };
+    if (resultado && mensajesResultado[resultado]) {
+      confirmacion.textContent = mensajesResultado[resultado];
       confirmacion.hidden = false;
       const urlLimpia = new URL(window.location.href);
       urlLimpia.searchParams.delete('resultado');
       history.replaceState(null, '', `${urlLimpia.pathname}${urlLimpia.search}${urlLimpia.hash}`);
     }
 
-    if (cargando) return;
+    const solicitud = ++solicitudActual;
+    const pais = territorio;
+    listado.replaceChildren();
+    planes = [];
+    actualizarContadores([]);
     cargando = true;
-    recargar.disabled = true;
     listado.setAttribute('aria-busy', 'true');
     error.hidden = true;
     estado.textContent = 'Cargando planes…';
 
     try {
-      planes = await listarPlanes();
+      const recibidos = await listarPlanes();
+      if (solicitud !== solicitudActual) return;
+      planesTodos = recibidos;
       try {
-        organizacionesRegistradas = await listarOrganizaciones();
+        organizacionesTodas = await listarOrganizaciones({});
       } catch {
         // El listado de planes puede funcionar aunque falle la carga del catálogo de organizaciones.
-        organizacionesRegistradas = [];
+        organizacionesTodas = [];
       }
-      poblarFiltros();
+      if (solicitud !== solicitudActual) return;
+      await cargarPaises();
+      if (solicitud !== solicitudActual) return;
 
       const parametros = new URLSearchParams(window.location.search);
+      filtroPais.value = paisInicial(parametros, pais);
+      aplicarPais();
+      poblarFiltros();
       filtroAnio.value = parametros.get('anio') ?? '';
       filtroPrograma.value = parametros.get('id_programa') ?? '';
       const idOrgInicial = parametros.get('id_organizacion');
@@ -402,16 +450,25 @@ import AppLayout from '../layouts/AppLayout.astro';
       }
       renderizar();
     } catch (fallo) {
+      if (solicitud !== solicitudActual) return;
       estado.textContent = '';
       error.textContent = fallo instanceof Error ? fallo.message : 'No fue posible cargar los planes.';
       error.hidden = false;
     } finally {
+      if (solicitud !== solicitudActual) return;
       cargando = false;
-      recargar.disabled = false;
       listado.setAttribute('aria-busy', 'false');
     }
   }
 
+  filtroPais.addEventListener('change', () => {
+    filtroOrganizacion.value = '';
+    organizacionContextual = null;
+    aplicarPais();
+    poblarFiltros();
+    sincronizarFiltrosEnUrl();
+    renderizar();
+  });
   filtroAnio.addEventListener('change', () => {
     sincronizarFiltrosEnUrl();
     renderizar();
@@ -426,6 +483,9 @@ import AppLayout from '../layouts/AppLayout.astro';
     renderizar();
   });
   limpiarFiltros.addEventListener('click', () => {
+    filtroPais.value = territorio ?? '';
+    aplicarPais();
+    poblarFiltros();
     filtroAnio.value = '';
     filtroPrograma.value = '';
     filtroOrganizacion.value = '';
@@ -433,7 +493,19 @@ import AppLayout from '../layouts/AppLayout.astro';
     sincronizarFiltrosEnUrl();
     renderizar();
   });
-  recargar.addEventListener('click', () => void cargar());
   window.addEventListener('pageshow', evento => { if (evento.persisted) void cargar(); });
-  void cargar();
+  window.addEventListener('fge:territorio-cambiado', (event) => {
+    const id = (event as CustomEvent<{id_pais:string}>).detail.id_pais;
+    if (!territorial || id === territorio) return;
+    territorio = id; solicitudActual += 1;
+    planes = []; organizacionesRegistradas = []; listado.replaceChildren(); actualizarContadores([]);
+    organizacionContextual = null; filtroOrganizacion.value = ''; filtroPrograma.value = ''; filtroAnio.value = ''; filtroPais.value = id;
+    sincronizarFiltrosEnUrl();
+    if (!id) { error.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.'; error.hidden = false; return; }
+    void cargar();
+  });
+  void (async () => {
+    try { territorio = await paisOperativo(); territorial = Boolean(territorio); await cargar(); }
+    catch { error.textContent = 'No fue posible verificar tu territorio. Recarga la página para reintentar.'; error.hidden = false; }
+  })();
 </script>

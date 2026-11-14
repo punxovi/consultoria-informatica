@@ -1,4 +1,5 @@
 import { camposDiagnosticoSchema, type CamposDiagnostico, type Diagnostico } from './modelo';
+import { confirmarDescarte } from '../ui/descartar-cambios';
 import { ApiError, createApiTransport } from '../api/transporte';
 import { getSupabaseClient } from '../supabase';
 import { crearClienteDiagnostico } from './cliente';
@@ -197,7 +198,7 @@ function formatearFecha(valor: string) {
 
 async function cargarDiagnostico() {
   if (ocupado) return;
-  if (!el<HTMLFormElement>('form-diagnostico').hidden && !window.confirm('Al recargar se descartarán los cambios del formulario. ¿Continuar?')) return;
+  if (!el<HTMLFormElement>('form-diagnostico').hidden && !(await confirmarDescarte('Al recargar se perderán los cambios del formulario.'))) return;
   ocupar(true);
   ocultarVistas();
   el<HTMLButtonElement>('btn-registrar-diagnostico').hidden = true;

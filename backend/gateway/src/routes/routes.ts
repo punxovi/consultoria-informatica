@@ -8,6 +8,7 @@ export interface GatewayTargets {
   programs: URL;
   interventions: URL;
   insights: URL;
+  guests?: URL; // Opcional o apuntando por defecto a auth
 }
 
 function responderJson(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -31,15 +32,46 @@ export async function routeRequest(
   }
 
   const authPrefix = `${API_PREFIX}/auth`;
+  const guestsPrefix = `${API_PREFIX}/guests`;
+  const publicQuotePrefix = `${API_PREFIX}/public`;
+  if (incomingUrl.pathname === `${publicQuotePrefix}/catalog` || incomingUrl.pathname === `${publicQuotePrefix}/quote-requests`
+    || /^\/api\/v1\/public\/catalog\/images\/[^/]+$/.test(incomingUrl.pathname)) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
+  const productsPrefix = `${API_PREFIX}/products`;
+  if (incomingUrl.pathname === productsPrefix || incomingUrl.pathname.startsWith(`${productsPrefix}/`)) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
+  const quoteRequestsPrefix = `${API_PREFIX}/quote-requests`;
+  if (incomingUrl.pathname === quoteRequestsPrefix || incomingUrl.pathname.startsWith(`${quoteRequestsPrefix}/`)) {
+    const internalPath = incomingUrl.pathname.slice('/api'.length);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.organizations);
+    await proxyRequest(request, response, targetUrl, requestId);
+    return;
+  }
+
   if (/^\/api\/v1\/public\/evidences\/[^/]+\/file$/.test(incomingUrl.pathname)) {
     const targetUrl = new URL(`${incomingUrl.pathname.slice('/api'.length)}${incomingUrl.search}`, targets.interventions);
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }
-  if (incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`) ||
-      incomingUrl.pathname === `${API_PREFIX}/coordinators` || incomingUrl.pathname.startsWith(`${API_PREFIX}/coordinators/`)) {
+
+  // Rutas de Autenticación, Coordinadores e Invitados
+  if (
+    incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`) ||
+    incomingUrl.pathname === `${API_PREFIX}/coordinators` || incomingUrl.pathname.startsWith(`${API_PREFIX}/coordinators/`) ||
+    incomingUrl.pathname === guestsPrefix || incomingUrl.pathname.startsWith(`${guestsPrefix}/`)
+  ) {
     const internalPath = incomingUrl.pathname.slice('/api'.length);
-    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.auth);
+    const targetUrl = new URL(`${internalPath}${incomingUrl.search}`, targets.guests ?? targets.auth);
     await proxyRequest(request, response, targetUrl, requestId);
     return;
   }

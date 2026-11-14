@@ -1,4 +1,5 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
@@ -23,19 +24,17 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
     </div>
   </header>
 
-  <p class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-neutral-600">
-    Los campos marcados con <span class="font-semibold text-danger">*</span> son obligatorios. Las evidencias son opcionales y puedes adjuntarlas desde el detalle después de guardar la acción.
-  </p>
+  <AvisoObligatorios />
 
   <p id="accion-estado" role="status" aria-live="polite" class="sr-only">Cargando formulario…</p>
   <div id="accion-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-300 bg-red-50 p-4 text-red-800"></div>
   <div id="accion-reintentar" hidden>
-    <Button id="recargar-accion" variant="outline">Recargar datos</Button>
+    <Button id="recargar-accion" variant="outline">Reintentar</Button>
   </div>
 
   <form id="accion-form" data-id-plan={idPlan} data-id-accion={idAccion} novalidate aria-busy="true" class="space-y-5">
     <fieldset id="accion-campos" disabled class="min-w-0 space-y-5">
-      <Card class="w-full border-t-4 border-t-primary p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-morado p-5 md:p-6">
         <section class="space-y-5" aria-labelledby="accion-info-titulo">
           <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
@@ -62,7 +61,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
             <Input id="responsable_nombre" label="Responsable" required maxlength={150} />
 
             <div class="space-y-1.5">
-              <label for="estado" class="block text-sm font-medium text-neutral-800">Estado <span class="text-danger">*</span></label>
+              <label for="estado" class="block text-sm font-medium text-neutral-800">Estado<span class="marca-obligatorio" aria-hidden="true">*</span></label>
               <select id="estado" name="estado" required class="min-h-[48px] w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary">
                 {estadosSeleccionables.map(({ valor, etiqueta }) => <option value={valor}>{etiqueta}</option>)}
               </select>
@@ -75,7 +74,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
         </section>
       </Card>
 
-      <Card class="w-full border-t-4 border-t-brand-green p-5 md:p-6">
+      <Card class="w-full tarjeta-acento acento-verde p-5 md:p-6">
         <section class="space-y-5" aria-labelledby="accion-resultados-titulo">
           <header class="flex items-start gap-3 border-b border-neutral-100 pb-4">
             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green" aria-hidden="true">
@@ -92,7 +91,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
           <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div class="space-y-1.5">
               <label id="motivo-label" for="observacion_motivo" class="block text-sm font-medium text-neutral-800">Observaciones <span class="font-normal text-neutral-500">(opcional)</span></label>
-              <textarea id="observacion_motivo" name="observacion_motivo" rows="4" maxlength="3000" class="w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+              <textarea id="observacion_motivo" name="observacion_motivo" data-mensaje-obligatorio="Debe ingresar un motivo para cancelar la acción." rows="4" maxlength="3000" class="w-full resize-y rounded-xl border border-neutral-300 bg-white px-3 py-3 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
             </div>
 
             <div class="space-y-1.5">
@@ -103,7 +102,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
         </section>
 
         <footer class="flex flex-wrap justify-end gap-3 border-t border-neutral-100 pt-5">
-          <Button href={volver} variant="outline">Cancelar</Button>
+          <Button href={volver} variant="outline" data-descartar>Cancelar</Button>
           <Button id="guardar-accion" type="submit">{idAccion ? 'Guardar cambios' : 'Crear acción'}</Button>
         </footer>
       </Card>
@@ -117,6 +116,7 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
   import { obtenerPlan } from '../../lib/planes/cliente';
   import { ErrorSolicitudPlan } from '../../lib/planes/transporte';
   import { estadosSeleccionables } from '../../lib/acciones/presentacion';
+  import { erroresPorCampo, limpiarErroresCampos, marcarCampos, quitarErroresAlEditar } from '../../lib/ui/validacion-formulario';
 
   const form = document.querySelector<HTMLFormElement>('#accion-form')!;
   const campos = document.querySelector<HTMLFieldSetElement>('#accion-campos')!;
@@ -145,30 +145,17 @@ const volver = `/planes/${encodeURIComponent(idPlan)}#acciones-plan`;
 
   function limpiarErrores() {
     error.hidden = true;
-    form.querySelectorAll('[data-error-campo]').forEach(elemento => elemento.remove());
-    form.querySelectorAll('[aria-invalid="true"]').forEach(elemento => {
-      elemento.setAttribute('aria-invalid', 'false');
-      elemento.removeAttribute('aria-describedby');
-    });
+    limpiarErroresCampos(form);
   }
 
   function mostrarError(mensaje: string, detalles: { campo: string; mensaje: string }[] = []) {
     error.textContent = mensaje;
-    for (const detalle of detalles) {
-      const control = form.elements.namedItem(detalle.campo.replace(/^cambios\./, ''));
-      if (!(control instanceof HTMLElement) || control.getAttribute('aria-invalid') === 'true') continue;
-      const aviso = document.createElement('p');
-      aviso.id = `${control.id}-validacion`;
-      aviso.dataset.errorCampo = '';
-      aviso.className = 'mt-1 text-sm text-red-800';
-      aviso.textContent = detalle.mensaje;
-      control.setAttribute('aria-invalid', 'true');
-      control.setAttribute('aria-describedby', aviso.id);
-      control.after(aviso);
-    }
     error.hidden = false;
-    error.focus();
+    const primero = detalles.length ? marcarCampos(form, erroresPorCampo(form, detalles)) : null;
+    (primero ?? error).focus();
   }
+
+  quitarErroresAlEditar(form);
 
   async function cargar() {
     limpiarErrores();

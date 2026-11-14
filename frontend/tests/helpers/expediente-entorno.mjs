@@ -1,3 +1,4 @@
+import { instalarAuditoriaRF62, esRpcAuditoria, ejecutarRpcAuditoria } from './auditoria-db.mjs';
 // Integración real de cliente HTTP, API Gateway, servicio de organizaciones y Supabase (PGlite).
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -40,6 +41,7 @@ export async function crearEntornoExpediente({ origin = 'http://127.0.0.1:4334' 
       await db.exec(await readFile(new URL('../../../supabase/migrations/' + nombre, import.meta.url), 'utf8'));
     }
 
+    await instalarAuditoriaRF62(db);
     await db.exec("INSERT INTO public.paises(codigo_iso,nombre) VALUES ('CL','Chile'),('AR','Argentina') ON CONFLICT DO NOTHING");
     const paises = (await db.query('SELECT * FROM public.paises')).rows;
     const paisCL = paises.find(p => p.codigo_iso === 'CL');
@@ -106,6 +108,7 @@ export async function crearEntornoExpediente({ origin = 'http://127.0.0.1:4334' 
         let texto = '';
         for await (const chunk of req) texto += chunk;
         const entrada = texto ? JSON.parse(texto) : null;
+        if(esRpcAuditoria(url.pathname))return responder(200,await ejecutarRpcAuditoria(db,user,url.pathname,entrada,req.headers));
 
         // RPC guardar_expediente_legal
         if (url.pathname === '/rest/v1/rpc/guardar_expediente_legal') {

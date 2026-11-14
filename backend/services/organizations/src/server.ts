@@ -1,7 +1,9 @@
-import { createServer, type Server } from 'node:http';
+import { createAuditedServer } from '../../../shared/observability/src/audit-context.ts';
+import { type Server } from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readPort } from '../../../shared/config/src/index.ts';
+import { readSupabaseConnection } from '../../../shared/config/src/supabase.ts';
 import { getRequestId, logEvent } from '../../../shared/observability/src/index.ts';
 import { createOrganizationsApplication, type OrganizationsApplication } from './application/organizations-service.ts';
 import { routeOrganizations } from './http/routes.ts';
@@ -15,8 +17,14 @@ import { routeCoverages } from './http/coverages-routes.ts';
 import { createAuditApplication, type AuditApplication } from './application/audit-service.ts';
 import { createSupabaseAuditRepositoryFromEnv } from './infrastructure/supabase-audit.repository.ts';
 import { routeAudit } from './http/audit-routes.ts';
+import { createPublicCatalogApplication, type PublicCatalogApplication } from './application/public-catalog-service.ts';
+import { routePublicCatalog } from './http/public-routes.ts';
+import { createProductsApplication, type ProductsApplication } from './application/products-service.ts';
+import { routeProducts } from './http/products-routes.ts';
+import { createQuoteRequestsApplication, type QuoteRequestsApplication } from './application/quote-requests-service.ts';
+import { routeQuoteRequests } from './http/quote-requests-routes.ts';
+import { createQuoteEmailWorker } from './infrastructure/quote-email-worker.ts';
 
-// Carga manual segura del archivo .env si no está cargado en el proceso
 function loadEnvManually() {
   try {
     const envPath = path.resolve(process.cwd(), '../../.env');
@@ -45,13 +53,37 @@ export function createOrganizationsServer(
   countries?: CountriesApplication,
   coverages?: CoveragesApplication,
   audit?: AuditApplication,
+  publicCatalog?: PublicCatalogApplication,
+  products?: ProductsApplication,
+  quoteRequests?: QuoteRequestsApplication,
 ): Server {
   const resolved = application ?? createOrganizationsApplication(createSupabaseOrganizationsRepositoryFromEnv());
   const resolvedCountries = countries ?? createCountriesApplication(createSupabaseCountriesRepositoryFromEnv());
   const resolvedCoverages = coverages ?? createCoveragesApplication(createSupabaseCoveragesRepositoryFromEnv());
   const resolvedAudit = audit ?? createAuditApplication(createSupabaseAuditRepositoryFromEnv());
+  const resolvedPublicCatalog = publicCatalog ?? createPublicCatalogApplication({
+    ...readSupabaseConnection(),
+    serverKey: process.env.SUPABASE_PUBLICATION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
+  const resolvedProducts = products ?? createProductsApplication({
+    supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? 'https://jjarthmbasxtjfyhscai.supabase.co',
+    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1',
+  });
+  const resolvedQuoteRequests = quoteRequests ?? createQuoteRequestsApplication(readSupabaseConnection());
+  const emailServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? '';
+  const emailApiKey = process.env.RESEND_API_KEY?.trim() ?? '';
+  const emailFrom = process.env.EMAIL_FROM?.trim() ?? '';
+  const emailWorker = emailServiceKey && emailApiKey && emailFrom
+    ? createQuoteEmailWorker({ supabaseUrl: process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL ?? '', serviceKey: emailServiceKey, apiKey: emailApiKey, from: emailFrom })
+    : undefined;
+  if (emailWorker) {
+    void emailWorker.drain();
+    const timer = setInterval(() => void emailWorker.drain(), 15_000);
+    timer.unref();
+  } else {
+    logEvent('warn', 'quote.email.disabled', { missing: [!emailServiceKey && 'SUPABASE_SERVICE_ROLE_KEY', !emailApiKey && 'RESEND_API_KEY', !emailFrom && 'EMAIL_FROM'].filter(Boolean) });
+  }
 
-  // Cliente Supabase utilizando variables de entorno de forma segura
   const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || 'https://jjarthmbasxtjfyhscai.supabase.co';
   const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_IvS9kcTa2VxlukF7W-G0g_d1Gs2N-1';
 
@@ -109,10 +141,25 @@ export function createOrganizationsServer(
     },
   };
 
-  return createServer(async (request, response) => {
+  return createAuditedServer(async (request, response) => {
     const requestId = getRequestId(request.headers['x-request-id']);
     logEvent('info', 'organizations.request', { requestId, method: request.method, path: request.url });
     const path = new URL(request.url ?? '/', 'http://organizations.local').pathname;
+
+    if (path === '/v1/public/catalog' || path === '/v1/public/quote-requests' || path.startsWith('/v1/public/catalog/images/')) {
+      await routePublicCatalog(request, response, requestId, resolvedPublicCatalog);
+      return;
+    }
+
+    if (path === '/v1/products' || path.startsWith('/v1/products/')) {
+      await routeProducts(request, response, requestId, resolvedProducts);
+      return;
+    }
+
+    if (path === '/v1/quote-requests' || path.startsWith('/v1/quote-requests/')) {
+      await routeQuoteRequests(request, response, requestId, resolvedQuoteRequests);
+      return;
+    }
 
     if (path === '/v1/audit/events') {
       await routeAudit(request, response, requestId, resolvedAudit);

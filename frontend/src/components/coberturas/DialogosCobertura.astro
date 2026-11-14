@@ -1,5 +1,25 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
 ---
+
+<dialog
+  id="cobertura-historial-dialog"
+  aria-labelledby="cobertura-historial-titulo"
+  class="m-auto w-[calc(100%_-_2rem)] max-w-2xl rounded-2xl border border-[#E8E5EF] bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-neutral-900/50"
+>
+  <header class="border-b border-[#EEEAF5] px-6 py-5">
+    <h2 id="cobertura-historial-titulo" class="text-lg font-bold">Historial de cobertura</h2>
+    <p id="cobertura-historial-subtitulo" class="mt-1 text-sm text-neutral-500"></p>
+  </header>
+  <div class="space-y-4 px-6 py-5">
+    <p id="cobertura-historial-carga" hidden class="text-sm text-neutral-500">Cargando historial…</p>
+    <p id="cobertura-historial-error" hidden role="alert" class="text-sm text-[#AD174F]"></p>
+    <ol id="cobertura-historial-lista" class="max-h-[50vh] space-y-3 overflow-y-auto"></ol>
+    <footer class="flex justify-end border-t border-[#EEEAF5] pt-4">
+      <button type="button" data-cobertura-cerrar="historial" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#4C4688] px-5 py-3 text-sm font-semibold text-[#4C4688] hover:bg-[#F0EEF8]">Cerrar</button>
+    </footer>
+  </div>
+</dialog>
 
 <dialog
   id="cobertura-extender-dialog"
@@ -29,9 +49,10 @@
   </header>
 
   <form id="cobertura-extender-form" class="space-y-4 px-6 py-5" novalidate>
+    <AvisoObligatorios />
     <div class="space-y-1.5">
       <label for="cobertura-extender-fecha" class="block text-sm font-medium">
-        Nueva fecha de término *
+        Nueva fecha de término<span class="marca-obligatorio" aria-hidden="true">*</span>
       </label>
 
       <input
@@ -90,10 +111,11 @@
     <p class="text-sm leading-6 text-neutral-600">
       Esta acción debe ser confirmada por el servicio antes de considerar revocada la cobertura.
     </p>
+    <AvisoObligatorios />
 
     <div class="space-y-1.5">
       <label for="cobertura-revocar-motivo" class="block text-sm font-medium">
-        Motivo de la revocación *
+        Motivo de la revocación<span class="marca-obligatorio" aria-hidden="true">*</span>
       </label>
       <textarea
         id="cobertura-revocar-motivo"

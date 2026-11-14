@@ -6,6 +6,7 @@ interface NavItem {
   label: string;
   href: string;
   roles?: string[];
+  grupo?: string;
 }
 
 interface Props {
@@ -14,6 +15,18 @@ interface Props {
 
 const { items } = Astro.props;
 const currentPath = Astro.url.pathname;
+
+// Secciones del menú en el orden de aparición. Si todos los enlaces de una
+// sección exigen roles, su título usa la unión de esos roles: el mismo script
+// que oculta los enlaces oculta el título cuando el usuario no ve ninguno.
+const grupos: { nombre: string; roles: string[] | null; items: NavItem[] }[] = [];
+for (const item of items) {
+  const nombre = item.grupo ?? '';
+  let grupo = grupos.find((g) => g.nombre === nombre);
+  if (!grupo) { grupo = { nombre, roles: [], items: [] }; grupos.push(grupo); }
+  grupo.items.push(item);
+  grupo.roles = grupo.roles && item.roles ? [...new Set([...grupo.roles, ...item.roles])] : null;
+}
 ---
 
 <aside
@@ -76,9 +89,23 @@ const currentPath = Astro.url.pathname;
   <!-- Navegación principal -->
   <nav
     aria-label="Navegación principal"
-    class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-1"
+    class="sidebar-scroll flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-1"
   >
-    {items.map((item) => {
+    {grupos.map((grupo, indiceGrupo) => (
+      <Fragment>
+        {grupo.nombre && (
+          <p
+            hidden={grupo.roles ? true : undefined}
+            data-nav-roles={grupo.roles ? JSON.stringify(grupo.roles) : undefined}
+            class:list={[
+              'shrink-0 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#B9B3E3]',
+              indiceGrupo === 0 ? 'pt-1' : 'pt-4',
+            ]}
+          >
+            {grupo.nombre}
+          </p>
+        )}
+    {grupo.items.map((item) => {
       const isActive =
         currentPath === item.href ||
         (item.href !== '/dashboard' &&
@@ -170,6 +197,21 @@ const currentPath = Astro.url.pathname;
                 </>
               )}
 
+              {item.href.startsWith('/administracion/solicitudes-invitado') && (
+                <>
+                  <circle cx="9" cy="8" r="3" />
+                  <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+                  <path d="M16 11h5M18.5 8.5v5" />
+                </>
+              )}
+
+              {item.href.startsWith('/administracion/productos') && (
+                <>
+                  <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+                  <path d="m3 8 9 5 9-5M12 13v8" />
+                </>
+              )}
+
               {item.href.startsWith('/administracion/auditoria') && (
                 <>
                   <path d="M4 5h10M4 10h7M4 15h5" />
@@ -178,6 +220,9 @@ const currentPath = Astro.url.pathname;
                 </>
               )}
 
+              {item.href === '/cotizaciones' && (
+                <><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></>
+              )}
               {item.href.startsWith('/reportes') && (
                 <>
                   <path d="M6 3h8l5 5v13H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
@@ -201,6 +246,8 @@ const currentPath = Astro.url.pathname;
           </span>
 
           <span class="min-w-0 flex-1">{item.label}</span>
+          {item.href === '/cotizaciones' && <span id="cotizaciones-nuevas" hidden class="rounded-full bg-white px-2 text-sm font-bold text-primary"></span>}
+          {item.href === '/administracion/solicitudes-invitado' && <span id="invitados-pendientes" hidden class="rounded-full bg-white px-2 text-sm font-bold text-primary"></span>}
 
           {isActive && (
             <span
@@ -211,6 +258,8 @@ const currentPath = Astro.url.pathname;
         </a>
       );
     })}
+      </Fragment>
+    ))}
   </nav>
 
   <!-- Cierre de sesión -->
@@ -255,3 +304,38 @@ const currentPath = Astro.url.pathname;
     }
   });
 </script>
+
+<style>
+  /*
+   * Barra de desplazamiento discreta: sin flechas ni fondo gris del navegador.
+   * Queda casi invisible y se aclara al pasar el cursor; la rueda y el
+   * trackpad siguen desplazando el menú normalmente.
+   */
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.2s;
+  }
+  .sidebar-scroll:hover,
+  .sidebar-scroll:focus-within {
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: transparent;
+  }
+  .sidebar-scroll:hover::-webkit-scrollbar-thumb,
+  .sidebar-scroll:focus-within::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+</style>

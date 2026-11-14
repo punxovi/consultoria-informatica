@@ -1,3 +1,4 @@
+import { iconoSvg } from '../ui/iconos.ts';
 import { listarPaisesOrganizaciones } from '../organizaciones/cliente.ts';
 import { clienteCoordinadoresNavegador, mensajeErrorCoordinadores, type ClienteCoordinadores } from './cliente.ts';
 import {
@@ -70,8 +71,8 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
   }
 
   function tarjeta(c: Coordinador) {
-    const li = crear('li', 'coord-tarjeta flex flex-col gap-4 rounded-2xl border border-[#E8E5EF] border-l-4 bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5');
-    li.classList.add(c.activo ? 'border-l-brand-green' : 'border-l-brand-yellow');
+    const li = crear('li', 'coord-tarjeta flex flex-col gap-4 rounded-2xl border border-[#E8E5EF] tarjeta-acento bg-white p-4 shadow-[0_2px_10px_rgba(47,39,83,0.06)] md:p-5');
+    li.classList.add(c.activo ? 'acento-verde' : 'acento-amarillo');
     li.dataset.id = c.id_usuario;
 
     const cabecera = crear('div', 'flex items-start gap-3');
@@ -101,6 +102,7 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     const editar = crear('a', 'inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl border border-[#4C4688] bg-white px-4 text-sm font-semibold text-[#4C4688] transition-colors hover:bg-[#F0EEF8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4C4688] focus-visible:ring-offset-2', 'Editar');
     editar.href = `/administracion/coordinadores/${encodeURIComponent(c.id_usuario)}/editar`;
     editar.setAttribute('aria-label', `Editar la cuenta de ${c.nombre}`);
+    editar.insertAdjacentHTML('afterbegin', iconoSvg('editar'));
     const cambiar = crear('button', `inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${c.activo ? 'border border-[#C81E5B] bg-white text-[#AD174F] hover:bg-[#FCE8F0] focus-visible:ring-[#C81E5B]' : 'border border-[#14784D] bg-white text-[#14784D] hover:bg-[#E5F6ED] focus-visible:ring-[#14784D]'}`) as HTMLButtonElement;
     cambiar.type = 'button';
     cambiar.dataset.accion = c.activo ? 'desactivar' : 'activar';
@@ -120,7 +122,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
   }
 
   function pintar() {
-    q<HTMLButtonElement>('recargar').disabled = cargando || enCurso !== null;
     q<HTMLButtonElement>('reintentar').disabled = cargando || enCurso !== null;
     pintarMetricas();
     q('limpiar').toggleAttribute('disabled', !hayFiltros());
@@ -156,7 +157,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     mostrarError(null);
     q('carga').hidden = false;
     lista.setAttribute('aria-busy', 'true');
-    q<HTMLButtonElement>('recargar').disabled = true;
     q<HTMLButtonElement>('reintentar').disabled = true;
     q('estado').textContent = 'Cargando cuentas…';
     pintar();
@@ -176,7 +176,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
       cargando = false;
       q('carga').hidden = true;
       lista.setAttribute('aria-busy', 'false');
-      q<HTMLButtonElement>('recargar').disabled = false;
       q<HTMLButtonElement>('reintentar').disabled = false;
       pintar();
     }
@@ -252,7 +251,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
     pintar();
     buscar.focus();
   });
-  q('recargar').addEventListener('click', () => void cargar());
   q('reintentar').addEventListener('click', () => void cargar());
 
   const resultado = new URLSearchParams(window.location.search).get('resultado');

@@ -1,3 +1,4 @@
+import { instalarAuditoriaRF62, esRpcAuditoria, ejecutarRpcAuditoria } from './auditoria-db.mjs';
 // HTTP/Gateway/Backend reales; adaptador Auth/PostgREST/Storage de pruebas sobre PGlite.
 // No sustituye la verificación adicional contra una instancia Supabase.
 import { createSupabaseIndicatorsRepository } from '../../../backend/services/interventions/src/infrastructure/supabase-indicators.repository.ts';
@@ -43,6 +44,7 @@ export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335',
     if (indicadores) for (const name of ['20261015120000_fge_tabla_indicadores.sql','20261015120100_fge_tabla_resultados.sql','20261015130000_fge_sprint6_rls.sql','20261017120000_fge_indicadores_integracion.sql']) {
       await db.exec(await readFile(new URL('../../../supabase/migrations/'+name,import.meta.url),'utf8'));
     }
+    await instalarAuditoriaRF62(db);
     await db.exec(`INSERT INTO public.paises(codigo_iso,nombre) VALUES ('CL','Chile'),('AR','Argentina') ON CONFLICT DO NOTHING;`);
     const paises=(await db.query('SELECT * FROM public.paises')).rows;
     await db.query("UPDATE public.asignaciones_roles SET alcance='pais',id_pais=$1 WHERE id_usuario=$2",[paises.find(p=>p.codigo_iso==='CL').id_pais,usuarios.COORD]);
@@ -104,6 +106,7 @@ export async function crearEntornoEvidencias({ origin = 'http://127.0.0.1:4335',
           res.writeHead(200,{'content-type':allowed.rows[0].metadata.mimetype});return res.end(objetos.get(path));
         }
         const input=bytes.length?JSON.parse(bytes.toString()):null;
+        if(esRpcAuditoria(url.pathname))return responder(200,await ejecutarRpcAuditoria(db,ids[token],url.pathname,input,req.headers));
         const table=url.pathname.split('/').at(-1);
         if(table==='obtener_archivo_evidencia_publicada')return responder(200,(await como(token,tx=>tx.query('SELECT * FROM public.obtener_archivo_evidencia_publicada($1)',[input.p_id]))).rows.map(normalizar));
         if(indicadores && url.pathname.startsWith('/rest/v1/rpc/')) {

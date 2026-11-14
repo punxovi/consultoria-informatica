@@ -1,5 +1,5 @@
 import { ApiError, createApiTransport } from '../api/transporte.ts';
-import type { CoberturaTemporalVista, CrearCoberturaFormulario } from './modelo.ts';
+import type { CoberturaTemporalVista, CrearCoberturaFormulario, EventoHistorialCobertura } from './modelo.ts';
 
 type CoberturaApi = {
   id_permiso_temporal: string;
@@ -82,6 +82,27 @@ export function crearClienteCoberturas(
       const respuesta = await http.request<{ coverages: unknown }>(ruta(), { accessToken: await token() });
       if (!Array.isArray(respuesta.data?.coverages)) throw errorRespuesta();
       return respuesta.data.coverages.map(validarCobertura);
+    },
+
+    async historial(id: string): Promise<EventoHistorialCobertura[]> {
+      const respuesta = await http.request<{ history: unknown }>(
+        `/api/v1/organizations/temporary-coverages/${encodeURIComponent(id)}/history`,
+        { accessToken: await token() },
+      );
+      if (!Array.isArray(respuesta.data?.history)) throw errorRespuesta();
+      return respuesta.data.history.map((evento) => {
+        if (!esObjeto(evento)
+          || typeof evento.id_historial !== 'string'
+          || typeof evento.id_permiso_temporal !== 'string'
+          || !['OTORGAR', 'EXTENDER', 'REVOCAR'].includes(String(evento.tipo_evento))
+          || (evento.fin_at_anterior !== null && typeof evento.fin_at_anterior !== 'string')
+          || (evento.fin_at_nuevo !== null && typeof evento.fin_at_nuevo !== 'string')
+          || typeof evento.motivo !== 'string'
+          || typeof evento.accion_por !== 'string'
+          || typeof evento.accion_por_nombre !== 'string'
+          || typeof evento.accion_at !== 'string') throw errorRespuesta();
+        return evento as unknown as EventoHistorialCobertura;
+      });
     },
 
     async crear(datos: CrearCoberturaFormulario): Promise<CoberturaTemporalVista> {

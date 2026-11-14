@@ -5,6 +5,8 @@ export interface ReportSection { key: string; title: string; columns: string[]; 
 export interface ReportDocument {
   title: string; destination: ReportDestination; generatedAt: string;
   period: { start: string; end: string }; filters: string[];
+  /** Filtros con nombres legibles para imprimir en el PDF (si falta, se usa `filters`). */
+  filterLabels?: string[];
   summary: Array<{ label: string; value: string }>;
   sections: ReportSection[];
 }
@@ -45,12 +47,38 @@ export function prepareReportDocument(snapshot: ConsolidatedReportSnapshot, requ
   const completed = s.actions.filter(row => row.estado === 'cumplida');
   const fulfilled = s.commitments.filter(row => row.estado === 'cumplido');
   const external = request.destination !== 'interno';
+  // Los filtros llegan como UUID; el PDF muestra los nombres resueltos desde el
+  // propio consolidado (que ya viene filtrado por esos mismos identificadores).
+  const sinRegistros = 'selección aplicada (sin registros en el período)';
+  const unico = (values: unknown[]) => {
+    const names = [...new Set(values.filter((v): v is string => typeof v === 'string' && v.trim() !== ''))];
+    return names.length ? names.map(text).join(', ') : sinRegistros;
+  };
+  const porId = <T>(rows: T[], idOf: (row: T) => unknown, nameOf: (row: T) => unknown, ids: string[]) => {
+    const found = ids.map(id => { const row = rows.find(r => idOf(r) === id); return row ? nameOf(row) : undefined; })
+      .filter((v): v is string => typeof v === 'string');
+    const missing = ids.length - found.length;
+    const names = found.map(text);
+    if (missing) names.push(`${missing} sin registros en el período`);
+    return names.join(', ');
+  };
+  const f = request.filters;
+  // `filters` es el contrato que la vista previa usa para verificar la
+  // correspondencia (declara los UUID aplicados); no debe cambiar de formato.
   const filters = [
-    request.filters.countryId ? `País: ${external ? 'selección aplicada' : request.filters.countryId}` : 'País: todos los visibles para la sesión',
-    request.filters.organizationId ? `Organización: ${external ? 'selección aplicada' : request.filters.organizationId}` : 'Organización: todas las visibles',
-    request.filters.programId ? `Programa: ${external ? 'selección aplicada' : request.filters.programId}` : 'Programa: todos los visibles',
-    request.filters.indicatorIds ? `Indicadores: ${external ? `${request.filters.indicatorIds.length} seleccionados` : request.filters.indicatorIds.join(', ')}` : 'Indicadores: sin selección adicional',
-    request.filters.resultIds ? `Resultados: ${external ? `${request.filters.resultIds.length} seleccionados` : request.filters.resultIds.join(', ')}` : 'Resultados: sin selección adicional',
+    f.countryId ? `País: ${external ? 'selección aplicada' : f.countryId}` : 'País: todos los visibles para la sesión',
+    f.organizationId ? `Organización: ${external ? 'selección aplicada' : f.organizationId}` : 'Organización: todas las visibles',
+    f.programId ? `Programa: ${external ? 'selección aplicada' : f.programId}` : 'Programa: todos los visibles',
+    f.indicatorIds ? `Indicadores: ${external ? `${f.indicatorIds.length} seleccionados` : f.indicatorIds.join(', ')}` : 'Indicadores: sin selección adicional',
+    f.resultIds ? `Resultados: ${external ? `${f.resultIds.length} seleccionados` : f.resultIds.join(', ')}` : 'Resultados: sin selección adicional',
+  ];
+  // `filterLabels` es lo que se imprime en el PDF: nombres legibles en lugar de UUID.
+  const filterLabels = external ? [...filters] : [
+    f.countryId ? `País: ${unico(s.organizations.map(r => r.pais))}` : filters[0],
+    f.organizationId ? `Organización: ${porId(s.organizations, r => r.id_organizacion, r => r.nombre, [f.organizationId])}` : filters[1],
+    f.programId ? `Programa: ${unico(s.plans.map(r => r.programa))}` : filters[2],
+    f.indicatorIds ? `Indicadores: ${porId(s.indicators, r => r.id_indicador, r => r.nombre, f.indicatorIds)}` : filters[3],
+    f.resultIds ? `Resultados: ${porId(s.results, r => r.id_resultado, r => r.descripcion, f.resultIds)}` : filters[4],
   ];
   const aggregate = (key: string, title: string, label: string, value: number): ReportSection =>
     ({key,title,columns:['Medida','Valor'],rows:[[label,number(value)]]});
@@ -70,12 +98,12 @@ export function prepareReportDocument(snapshot: ConsolidatedReportSnapshot, requ
     {key:'completedActions',title:'Acciones ejecutadas',columns:['Acción cumplida','Plan','Término registrado'],rows:completed.map(r=>[text(r.nombre),text(r.plan),text(r.fecha_termino)])},
     {key:'commitments',title:'Compromisos cumplidos',columns:['Acuerdo','Organización','Cumplimiento'],rows:fulfilled.map(r=>[text(r.acuerdo),text(r.organizacion),optionalText(r.fecha_cumplimiento)])},
     {key:'donations',title:'Donaciones y recursos',columns:['Fecha','Tipo de aporte','Organización','Monto','Cantidad'],rows:s.donations.map(r=>[text(r.fecha),text(r.tipo_aporte),text(r.organizacion),optionalNumber(r.monto),optionalNumber(r.cantidad)]),note:'El consolidado no informa moneda ni unidad de medida. Se reproducen los valores recibidos, sin asumirlas.'},
-    {key:'indicators',title:'Indicadores',columns:['Indicador','Organización','Valor obtenido'],rows:s.indicators.map(r=>[text(r.nombre),text(r.organizacion),number(r.valor_obtenido)])},
+    {key:'indicators',title:'Indicadores',columns:['Indicador','Organización','Valor obtenido'],rows:s.indicators.map(r=>[text(r.nombre),text(r.organizacion),optionalNumber(r.valor_obtenido)])},
     {key:'results',title:'Resultados obtenidos',columns:['Resultado','Organización','Fecha'],rows:s.results.map(r=>[text(r.descripcion),text(r.organizacion),text(r.fecha_obtencion)])},
   ];
   return {
     title:'Reporte consolidado de intervenciones',destination:request.destination,generatedAt:snapshot.generatedAt,
-    period:{...snapshot.period},filters,
+    period:{...snapshot.period},filters,filterLabels,
     summary:[
       {label:'Beneficiarios',value:number(snapshot.summary.totalBeneficiaries)},
       {label:'Acciones cumplidas',value:number(snapshot.summary.completedActions)},

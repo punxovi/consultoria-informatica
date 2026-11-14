@@ -1,3 +1,4 @@
+import { auditRequestContext } from '../../../shared/observability/src/audit-context.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { failure } from '../../../shared/contracts/src/index.ts';
 import { ServiceError } from '../../../shared/errors/src/index.ts';
@@ -35,6 +36,8 @@ export async function proxyRequest(
 ): Promise<void> {
   try {
     const headers = new Headers({ 'x-request-id': requestId });
+    const context = auditRequestContext(request, false);
+    if (context.ip) headers.set('x-fge-ip-origen', context.ip);
     for (const header of HEADERS_REENVIADOS) {
       const value = request.headers[header];
       if (typeof value === 'string') headers.set(header, value);
@@ -55,6 +58,8 @@ export async function proxyRequest(
     if (cacheControl) response.setHeader('cache-control', cacheControl);
     const contentTypeOptions = upstream.headers.get('x-content-type-options');
     if (contentTypeOptions) response.setHeader('x-content-type-options', contentTypeOptions);
+    const allow = upstream.headers.get('allow');
+    if (allow) response.setHeader('allow', allow);
     response.setHeader('x-request-id', requestId);
     response.end(Buffer.from(await upstream.arrayBuffer()));
   } catch (error) {

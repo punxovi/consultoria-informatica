@@ -1,4 +1,5 @@
 ---
+import Icono from '../../components/ui/Icono.astro';
 import '../../styles/organizaciones.css';
 import OrganizacionAcceso from '../../components/organizaciones/OrganizacionAcceso.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
@@ -11,6 +12,7 @@ import OrganizacionDiagnostico from '../../components/organizaciones/Organizacio
 import Card from '../../components/ui/Card.astro';
 import BackButton from '../../components/ui/BackButton.astro';
 import Button from '../../components/ui/Button.astro';
+import { retornoHaciaPlanes } from '../../lib/navegacion/retorno-organizaciones';
 
 const idOrganizacion = Astro.params.id ?? '';
 const filtrosRetorno = new URLSearchParams();
@@ -23,13 +25,15 @@ const hrefVolverOrganizaciones = `/organizaciones${queryRetorno ? `?${queryRetor
 const parametrosPlanes = new URLSearchParams({ id_organizacion: idOrganizacion });
 const programaContextual = Astro.url.searchParams.get('id_programa');
 if (programaContextual) parametrosPlanes.set('id_programa', programaContextual);
+// Los filtros del listado viajan con Planes para restaurarlos al volver desde un Plan.
+for (const [clave, valor] of retornoHaciaPlanes(Astro.url.searchParams)) parametrosPlanes.set(clave, valor);
 const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 ---
 
 <AppLayout
   title="Detalle de organización"
   navItems={mainNavItems}
-  allowedRoles={['ADMIN', 'COORD']}
+  allowedRoles={['ADMIN', 'COORD', 'INVIT']}
 >
   <Fragment slot="headerBreadcrumb">
     <BackButton href={hrefVolverOrganizaciones} />
@@ -59,10 +63,24 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     </Card>
   </section>
 
-  <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6">
-    
+  <!-- data-solo-lectura se quita solo si la sesión gestiona el país de la Organización. -->
+  <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6" data-solo-lectura>
+    <p id="organizacion-confirmacion" role="status" hidden class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success"></p>
+
     <!-- Encabezado -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+      <figure class="relative mx-auto w-full max-w-[320px] shrink-0 sm:mx-0 sm:w-48 lg:w-56">
+        <a id="org-imagen-enlace" class="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" target="_blank" rel="noopener" aria-disabled="true" tabindex="-1">
+          <img
+            id="org-imagen"
+            src="/images/organizacion-predeterminada.svg"
+            alt="Imagen predeterminada de organización"
+            class="aspect-[4/3] w-full rounded-2xl border border-[#E2DDED] bg-white object-contain object-center p-2 shadow-sm"
+          />
+        </a>
+        <figcaption id="org-imagen-estado" role="status" aria-live="polite" class="mt-1 text-center text-xs text-neutral-500 sm:text-left"></figcaption>
+      </figure>
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="break-words text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
@@ -81,23 +99,23 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
           <span id="pais-organizacion">—</span>
         </p>
       </div>
+      </div>
 
+      <!-- Visible solo si la sesión gestiona el país de la Organización. -->
+      <div id="gestion-organizacion" class="shrink-0" hidden data-gestion>
       <Button
         href={`/organizaciones/${encodeURIComponent(idOrganizacion)}/editar`}
         variant="outline"
         class="shrink-0 inline-flex items-center gap-2"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
-        </svg>
+        <Icono nombre="editar" />
         <span>Editar organización</span>
       </Button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
-        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#4C4688]"></span>
+      <div class="tarjeta-acento acento-morado relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
         <div class="flex min-h-[76px] items-center gap-4">
           <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -109,8 +127,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
           </div>
         </div>
       </div>
-      <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
-        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1BAAC1]"></span>
+      <div class="tarjeta-acento acento-celeste relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6">
         <div class="flex min-h-[76px] items-center gap-4">
           <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#E7F7FA] text-[#1BAAC1]" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
@@ -122,8 +139,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
           </div>
         </div>
       </div>
-      <div class="relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6 sm:col-span-2 xl:col-span-1">
-        <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#199D6B]"></span>
+      <div class="tarjeta-acento acento-verde relative overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-5 shadow-sm md:p-6 sm:col-span-2 xl:col-span-1">
         <div class="flex min-h-[76px] items-center gap-4">
           <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#E7F6EF] text-[#199D6B]" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
@@ -137,7 +153,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </div>
     </div>
     <!-- Navegación principal: solo tres categorías -->
-    <div class="rounded-2xl border border-[#E8E5EF] bg-white p-2">
+    <div class="pestanas rounded-2xl border border-[#E8E5EF] bg-white p-2">
       <nav
         id="organizacion-tabs"
         class="flex flex-wrap gap-2 overflow-x-auto"
@@ -176,22 +192,22 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </nav>
     </div>
 
-    <div id="tab-compromisos" data-main-panel="intervenciones" role="tabpanel" aria-label="Compromisos" class="contenido-tab hidden space-y-5">
+    <div id="tab-compromisos" data-main-panel="intervenciones" role="region" aria-label="Compromisos" class="contenido-tab hidden space-y-5">
       <OrganizacionCompromisos idOrganizacion={idOrganizacion} />
     </div>
 
-    <div id="tab-expediente-legal" data-main-panel="seguimiento" role="tabpanel" aria-label="Expediente legal" class="contenido-tab hidden space-y-5">
+    <div id="tab-expediente-legal" data-main-panel="seguimiento" role="region" aria-label="Expediente legal" class="contenido-tab hidden space-y-5">
       <OrganizacionExpedienteLegal idOrganizacion={idOrganizacion} />
     </div>
 
-    <div id="tab-donaciones" data-main-panel="seguimiento" role="tabpanel" aria-label="Donaciones y recursos" class="contenido-tab hidden space-y-5">
+    <div id="tab-donaciones" data-main-panel="seguimiento" role="region" aria-label="Donaciones y recursos" class="contenido-tab hidden space-y-5">
       <OrganizacionDonaciones idOrganizacion={idOrganizacion} />
     </div>
 
     <!-- Información -->
     <div id="tab-informacion" data-main-panel="informacion" role="tabpanel" aria-labelledby="tab-button-informacion" class="contenido-tab space-y-5">
       <!-- Información general -->
-      <Card class="border-t-4 border-t-[#4C4688] p-5 md:p-6">
+      <Card class="tarjeta-acento acento-morado p-5 md:p-6">
         <div class="mb-5">
           <h2 class="text-lg font-bold text-neutral-900">
             Información general
@@ -250,7 +266,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </Card>
 
       <!-- Información de contacto -->
-      <Card class="border-t-4 border-t-[#1BAAC1] p-5 md:p-6">
+      <Card class="tarjeta-acento acento-celeste p-5 md:p-6">
         <div class="mb-5">
           <h2 class="text-lg font-bold text-neutral-900">
             Información de contacto
@@ -309,7 +325,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </Card>
 
       <!-- Contexto -->
-      <Card class="border-t-4 border-t-[#199D6B] p-5 md:p-6">
+      <Card class="tarjeta-acento acento-verde p-5 md:p-6">
         <div class="mb-5">
           <h2 class="text-lg font-bold text-neutral-900">
             Contexto de la organización
@@ -342,12 +358,12 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     </div>
 
     <!-- Diagnóstico -->
-    <div id="tab-diagnostico" data-main-panel="intervenciones" role="tabpanel" aria-label="Diagnóstico" class="contenido-tab hidden space-y-5">
+    <div id="tab-diagnostico" data-main-panel="intervenciones" role="region" aria-label="Diagnóstico" class="contenido-tab hidden space-y-5">
       <OrganizacionDiagnostico />
     </div>
 
     <!-- Actas de Reunión -->
-    <div id="tab-actas" data-main-panel="intervenciones" role="tabpanel" aria-label="Actas de reunión" class="contenido-tab hidden space-y-5">
+    <div id="tab-actas" data-main-panel="intervenciones" role="region" aria-label="Actas de reunión" class="contenido-tab hidden space-y-5">
       <OrganizacionActas idOrganizacion={idOrganizacion} />
     </div>
 
@@ -355,25 +371,50 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       <div><h2 class="font-semibold">Intervenciones</h2><p class="mt-1 text-neutral-500">Accede a los planes, reuniones y acuerdos de trabajo.</p></div>
       <div class="org-accesos">
         <OrganizacionAcceso titulo="Planes de Intervención" descripcion="Consultar los planes asociados a esta organización." href={hrefPlanes} />
-        <OrganizacionAcceso titulo="Actas de Reunión" descripcion="Consultar reuniones y acuerdos de esta organización." destino="actas" tono="rosa" />
-        <OrganizacionAcceso titulo="Compromisos" descripcion="Revisar responsables, plazos y cumplimiento." destino="compromisos" tono="verde" />
-        <OrganizacionAcceso titulo="Diagnóstico" descripcion="Consultar necesidades y antecedentes de la comunidad." destino="diagnostico" tono="celeste" />
+        <OrganizacionAcceso soloEquipo titulo="Actas de Reunión" descripcion="Consultar reuniones y acuerdos de esta organización." destino="actas" tono="rosa" />
+        <OrganizacionAcceso soloEquipo titulo="Compromisos" descripcion="Revisar responsables, plazos y cumplimiento." destino="compromisos" tono="verde" />
+        <OrganizacionAcceso soloEquipo titulo="Diagnóstico" descripcion="Consultar necesidades y antecedentes de la comunidad." destino="diagnostico" tono="celeste" />
       </div>
     </div>
     <div id="tab-seguimiento" data-main-panel="seguimiento" role="tabpanel" aria-labelledby="tab-button-seguimiento" class="contenido-tab hidden space-y-5">
       <div><h2 class="font-semibold">Seguimiento</h2><p class="mt-1 text-neutral-500">Consulta los respaldos y resultados del trabajo con la organización.</p></div>
       <div class="org-accesos">
-        <OrganizacionAcceso titulo="Evidencias e indicadores" descripcion="Se consultan dentro de cada acción. Abre el listado de planes para acceder." href={hrefPlanes} tono="celeste" />
-        <OrganizacionAcceso titulo="Donaciones y recursos" descripcion="Consultar aportes y sus documentos de respaldo." destino="donaciones" tono="verde" />
-        <OrganizacionAcceso titulo="Expediente Legal" descripcion="Revisar antecedentes y documentos de la organización." destino="expediente-legal" />
+        <OrganizacionAcceso titulo="Indicadores" descripcion="Se consultan dentro de cada acción. Abre el listado de planes para acceder." href={hrefPlanes} tono="celeste" />
+        <OrganizacionAcceso soloEquipo titulo="Donaciones y recursos" descripcion="Consultar aportes y sus documentos de respaldo." destino="donaciones" tono="verde" />
+        <OrganizacionAcceso soloEquipo titulo="Expediente Legal" descripcion="Revisar antecedentes y documentos de la organización." destino="expediente-legal" />
       </div>
     </div>
   </section>
 </AppLayout>
 
+<style is:global>
+  /*
+   * Un Coordinador consulta Organizaciones de cualquier país, pero solo
+   * registra o edita Diagnóstico, Compromisos, Donaciones y Expediente Legal
+   * en su país principal o con cobertura vigente. La regla prevalece aunque
+   * cada módulo vuelva a mostrar sus botones; RLS sigue validando en el servidor.
+   */
+  #ficha-organizacion[data-solo-lectura] :is(
+    #btn-registrar-diagnostico,
+    #form-diagnostico,
+    #comp-nuevo,
+    #comp-editar,
+    #comp-form,
+    .solo-gestor,
+    #don-form-donacion,
+    #don-respaldo-form,
+    #legal-registrar,
+    #legal-editar,
+    #legal-form
+  ) {
+    display: none !important;
+  }
+</style>
+
 <script>
-  import { OrganizacionesApiError, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
+  import { OrganizacionesApiError, descargarImagenOrganizacion, obtenerOrganizacion } from '../../lib/organizaciones/cliente';
   import type { Organizacion } from '../../lib/modelos/organizaciones';
+  import { obtenerAlcanceGestion, puedeGestionarPais } from '../../lib/territorio/permisos';
 
   const estado = document.querySelector<HTMLElement>('#estado-organizacion')!;
   const ficha = document.querySelector<HTMLElement>('#ficha-organizacion')!;
@@ -472,9 +513,50 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     asignarTexto('publico-objetivo-organizacion', organizacion.publico_objetivo);
     asignarTexto('descripcion-organizacion', organizacion.descripcion_breve);
 
+    const resultado = new URLSearchParams(window.location.search).get('resultado');
+    if (resultado === 'creado' || resultado === 'actualizado') {
+      const confirmacion = elemento('organizacion-confirmacion');
+      confirmacion.textContent = resultado === 'creado'
+        ? 'Organización creada correctamente.'
+        : 'Organización modificada correctamente.';
+      confirmacion.hidden = false;
+      const urlLimpia = new URL(window.location.href);
+      urlLimpia.searchParams.delete('resultado');
+      history.replaceState(null, '', `${urlLimpia.pathname}${urlLimpia.search}${urlLimpia.hash}`);
+    }
+
     document.title = `${organizacion.nombre} | Detalle de organización`;
     estado.classList.add('hidden');
     ficha.classList.remove('hidden');
+  }
+
+  async function mostrarImagen(organizacion: Organizacion) {
+    const imagen = elemento('org-imagen') as HTMLImageElement;
+    const enlace = elemento('org-imagen-enlace') as HTMLAnchorElement;
+    const estadoImagen = elemento('org-imagen-estado');
+    if (!organizacion.imagen) {
+      imagen.alt = 'Imagen predeterminada de organización';
+      estadoImagen.textContent = 'Sin imagen registrada.';
+      return;
+    }
+    estadoImagen.textContent = 'Cargando imagen…';
+    imagen.classList.add('animate-pulse');
+    try {
+      const url = URL.createObjectURL(await descargarImagenOrganizacion(organizacion.id_organizacion));
+      imagen.src = url;
+      imagen.alt = `Imagen representativa de ${organizacion.nombre}`;
+      enlace.href = url;
+      enlace.removeAttribute('aria-disabled');
+      enlace.removeAttribute('tabindex');
+      enlace.title = 'Abrir imagen en tamaño completo';
+      estadoImagen.textContent = '';
+    } catch (error) {
+      estadoImagen.textContent = error instanceof Error
+        ? `No se pudo cargar la imagen: ${error.message}`
+        : 'No se pudo cargar la imagen.';
+    } finally {
+      imagen.classList.remove('animate-pulse');
+    }
   }
 
   async function cargarOrganizacion() {
@@ -489,7 +571,15 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     }
 
     try {
-      mostrarFicha(await obtenerOrganizacion(idOrganizacion));
+      const [organizacion, alcance] = await Promise.all([
+        obtenerOrganizacion(idOrganizacion),
+        obtenerAlcanceGestion(),
+      ]);
+      mostrarFicha(organizacion);
+      void mostrarImagen(organizacion);
+      const gestionable = puedeGestionarPais(alcance, organizacion.id_pais);
+      elemento('gestion-organizacion').hidden = !gestionable;
+      ficha.toggleAttribute('data-solo-lectura', !gestionable);
     } catch (error) {
       if (error instanceof OrganizacionesApiError && error.code === 'NO_ENCONTRADA') {
         mostrarEstado('Organización no encontrada', error.message);
@@ -550,10 +640,13 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       mostrarVista(categoria, null, true);
     });
     tab.addEventListener('keydown', (evento) => {
-      if (evento.key !== 'ArrowLeft' && evento.key !== 'ArrowRight') return;
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(evento.key)) return;
       evento.preventDefault();
-      const desplazamiento = evento.key === 'ArrowRight' ? 1 : -1;
-      const siguiente = (indice + desplazamiento + tabs.length) % tabs.length;
+      const siguiente = evento.key === 'Home'
+        ? 0
+        : evento.key === 'End'
+          ? tabs.length - 1
+          : (indice + (evento.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
       tabs[siguiente]?.focus();
       tabs[siguiente]?.click();
     });
@@ -571,15 +664,20 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     });
   });
 
-  // Permite enlazar directamente a una sección interna mediante el fragmento de URL.
-  const fragmento = window.location.hash.replace(/^#/, '');
-  if (fragmento in categoriaPorSubseccion) {
-    mostrarVista(categoriaPorSubseccion[fragmento], fragmento);
-  } else if (['intervenciones', 'seguimiento'].includes(fragmento)) {
-    mostrarVista(fragmento);
-  } else {
-    mostrarVista('informacion');
+  function aplicarFragmento() {
+    const fragmento = window.location.hash.replace(/^#/, '');
+    // Object.hasOwn evita que claves heredadas (#toString, #constructor) se tomen como subsecciones.
+    if (Object.hasOwn(categoriaPorSubseccion, fragmento)) {
+      mostrarVista(categoriaPorSubseccion[fragmento], fragmento);
+    } else if (['intervenciones', 'seguimiento'].includes(fragmento)) {
+      mostrarVista(fragmento);
+    } else {
+      mostrarVista('informacion');
+    }
   }
+  aplicarFragmento();
+  // Un enlace a otra subsección de esta misma ficha solo cambia el fragmento.
+  window.addEventListener('hashchange', aplicarFragmento);
 
   void cargarOrganizacion();
 </script>

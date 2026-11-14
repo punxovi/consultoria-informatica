@@ -1,0 +1,90 @@
+---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Button from '../ui/Button.astro';
+
+const campos = [
+  ['nombre', 'Nombre', 'text', 79, 'given-name', 'Tu nombre'],
+  ['apellido', 'Apellido', 'text', 80, 'family-name', 'Tu apellido'],
+  ['correo', 'Correo electrónico', 'email', 320, 'email', 'contacto@empresa.cl'],
+  ['telefono', 'Teléfono', 'tel', 60, 'tel', '+56 9 1234 5678'],
+] as const;
+const etiqueta = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-neutral-600';
+const control = 'min-h-12 w-full rounded-xl border border-[#DCD8EA] bg-white px-3 text-neutral-900 placeholder:text-neutral-500 focus:outline-2 focus:outline-primary';
+const marco = 'relative min-w-0 overflow-hidden rounded-2xl border border-[#E2DDED] bg-white p-4 shadow-sm md:p-5';
+const icono = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10';
+---
+<section id="cotizacion" aria-label="Solicitud de cotización" class="min-w-0 space-y-4">
+  <p id="cot-carga" role="status" class="text-sm text-neutral-600">Cargando selección…</p>
+  <div id="cot-error-carga" hidden role="alert" class="rounded-2xl border border-danger/30 bg-[#FFF5F8] p-4 text-sm">
+    <p id="cot-error-carga-texto">No fue posible cargar el catálogo. Tu selección se conserva.</p>
+    <Button id="cot-reintentar" variant="outline" size="sm" class="mt-3">Reintentar</Button>
+  </div>
+  <div id="cot-error-seleccion" hidden role="alert" class="rounded-2xl border border-danger/30 bg-[#FFF5F8] p-4 text-sm">
+    <p>No se pudo recuperar la selección guardada. Restablécela y agrega los productos nuevamente.</p>
+  </div>
+  <div id="cot-confirmacion" hidden role="status" tabindex="-1" class="rounded-2xl border border-success/30 bg-success/10 p-6 leading-relaxed text-neutral-800"></div>
+
+  <form id="cot-form" novalidate class="grid items-start gap-4 md:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+    <!-- Productos: al costado en escritorio y primero en pantallas pequeñas. -->
+    <div class={`tarjeta-acento acento-celeste ${marco} space-y-4 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1`}>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <span aria-hidden="true" class={`${icono} bg-[#E7F7FA] text-[#1BAAC1]`}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+          </span>
+          <h2 class="text-lg font-bold text-neutral-900">Tus productos</h2>
+        </div>
+        <Button id="cot-restablecer" variant="ghost" size="sm" class="shrink-0 text-[#AD174F]">Vaciar</Button>
+      </div>
+      <div id="cot-items" class="space-y-2.5"></div>
+      <p id="cot-error-items" hidden role="alert" class="text-sm text-danger"></p>
+      <div id="cot-resumen" aria-live="polite" class="space-y-1.5"></div>
+      <a href="/catalogo" class="inline-flex min-h-10 items-center text-sm font-semibold text-primary hover:underline">+ Agregar más productos</a>
+    </div>
+
+    <div class="min-w-0 space-y-4 md:space-y-5 lg:col-start-1 lg:row-start-1">
+      <aside class={`tarjeta-acento acento-amarillo ${marco} flex gap-3 md:gap-4`} aria-labelledby="cot-sin-pago">
+        <span aria-hidden="true" class={`${icono} bg-[#FFF4DB] text-[#B07800]`}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+        </span>
+        <div class="min-w-0">
+          <h2 id="cot-sin-pago" class="font-bold text-neutral-900">Sin pago directo</h2>
+          <p class="mt-1 text-sm leading-relaxed text-neutral-600">No se realizan pagos en línea. La Fundación te contactará con el precio, los plazos y la forma de entrega.</p>
+        </div>
+      </aside>
+
+      <fieldset id="cot-campos" class={`tarjeta-acento acento-morado ${marco} space-y-4 md:space-y-5 md:p-7`} disabled>
+        <legend class="sr-only">Datos de contacto</legend>
+        <div class="flex items-center gap-3">
+          <span aria-hidden="true" class={`${icono} bg-[#F0EDF8] text-[#4C4688]`}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
+          </span>
+          <div>
+            <h2 class="text-xl font-bold text-neutral-900" aria-hidden="true">Datos de contacto</h2>
+            <AvisoObligatorios />
+          </div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          {campos.map(([id, label, tipo, max, autocompletar, ejemplo]) => (
+            <div>
+              <label for={`cot-${id}`} class={etiqueta}>{label}<span class="marca-obligatorio" aria-hidden="true">*</span></label>
+              <input id={`cot-${id}`} name={id} type={tipo} maxlength={max} required autocomplete={autocompletar} placeholder={ejemplo} aria-describedby={`cot-error-${id}`} class={control} />
+              <p id={`cot-error-${id}`} hidden class="mt-1 text-sm text-danger"></p>
+            </div>
+          ))}
+        </div>
+        <div>
+          <label for="cot-mensaje" class={etiqueta}>Mensaje (opcional)</label>
+          <textarea id="cot-mensaje" name="mensaje" maxlength="2000" rows="4" placeholder="Fechas, destino, requisitos u otros antecedentes" aria-describedby="cot-error-mensaje" class="w-full rounded-xl border border-[#DCD8EA] bg-white p-3 placeholder:text-neutral-500 focus:outline-2 focus:outline-primary"></textarea>
+          <p id="cot-error-mensaje" hidden class="mt-1 text-sm text-danger"></p>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-neutral-600">Te contactaremos al correo indicado.</p>
+          <Button id="cot-enviar" type="submit" size="lg" class="w-full sm:w-auto sm:min-w-56">Enviar solicitud</Button>
+        </div>
+        <p id="cot-error-envio" hidden role="alert" class="text-sm text-danger"></p>
+        <p id="cot-enviando" role="status" class="text-sm text-primary"></p>
+      </fieldset>
+    </div>
+  </form>
+</section>

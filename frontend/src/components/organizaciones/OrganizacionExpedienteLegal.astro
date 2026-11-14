@@ -1,9 +1,12 @@
 ---
+import AvisoObligatorios from '../ui/AvisoObligatorios.astro';
+import Icono from '../ui/Icono.astro';
 import Button from '../ui/Button.astro';
 import Card from '../ui/Card.astro';
 import Input from '../ui/Input.astro';
 import Select from '../ui/Select.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import EncabezadoModulo from '../ui/EncabezadoModulo.astro';
 import { tiposDocumento } from '../../lib/expediente-legal/modelo';
 
 interface Props { idOrganizacion: string }
@@ -24,25 +27,15 @@ const camposResumen = [
   aria-labelledby="legal-titulo"
   class="space-y-6 text-slate-900"
 >
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div class="flex items-start gap-3">
-      <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F0EDF8] text-[#4C4688]" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7l4 4V20a.75.75 0 0 1-.75.75h-11.5A.75.75 0 0 1 5 20V4.5a.75.75 0 0 1 .75-.75H7Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3.75v4h4M8.5 12h7M8.5 15.5h7"/></svg>
-      </span>
-      <div>
-        <h2 id="legal-titulo" class="text-xl font-semibold tracking-tight">Expediente Legal</h2>
-        <p class="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">Consulta y actualiza los antecedentes legales y documentos de la organización.</p>
-      </div>
-    </div>
-    <p id="legal-demo" hidden class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-      Modo demostración: los cambios y archivos no se envían al servidor y se pierden al recargar la página.
-    </p>
-  </header>
+  <EncabezadoModulo id="legal-titulo" titulo="Expediente legal" descripcion="Antecedentes legales y documentos de la organización." />
+  <p id="legal-demo" hidden class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    Modo demostración: los cambios y archivos no se envían al servidor y se pierden al recargar la página.
+  </p>
 
   <div id="legal-carga" hidden role="status" aria-live="polite">
     <Card>
       <div class="flex items-center justify-center gap-3 py-5 text-sm text-slate-600">
-        <span class="h-5 w-5 animate-spin rounded-full border-2 border-[#DED9EE] border-t-[#4C4688]" aria-hidden="true"></span>
+        <span class="h-5 w-5 animate-spin rounded-full border-2 border-[#DED9EE] border-t-primary" aria-hidden="true"></span>
         <span id="legal-carga-texto">Cargando expediente legal…</span>
       </div>
     </Card>
@@ -50,7 +43,7 @@ const camposResumen = [
   <p id="legal-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"></p>
   <p id="legal-confirmacion" hidden role="status" aria-live="polite" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"></p>
   <div id="legal-recarga" hidden class="flex justify-end">
-    <Button id="legal-reintentar" type="button" variant="outline">Reintentar carga</Button>
+    <Button id="legal-reintentar" type="button" variant="outline">Reintentar</Button>
   </div>
 
   <div id="legal-vacio" hidden>
@@ -64,56 +57,53 @@ const camposResumen = [
   </div>
 
   <div id="legal-resumen" hidden class="space-y-4">
-    <Card class="border-t-2 border-t-[#D8D3E8]">
-      <div class="flex flex-col gap-3 border-b border-[#F0EDF6] pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]">Ficha de la organización</p>
-          <h3 class="mt-1 text-lg font-semibold">Antecedentes registrados</h3>
-        </div>
-        <Button id="legal-editar" type="button" variant="outline">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-2 h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14 5 5 5M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z"/></svg>
-          Editar antecedentes
+    <section class="ficha-panel tarjeta-acento acento-morado" aria-labelledby="legal-antecedentes-titulo">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 id="legal-antecedentes-titulo" class="ficha-panel-titulo !mb-0">Antecedentes</h3>
+        <Button id="legal-editar" type="button" variant="outline" size="sm">
+          <Icono nombre="editar" />
+          Editar
         </Button>
       </div>
-      <dl class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <dl class="ficha-datos">
         {camposResumen.map(([campo, etiqueta]) => (
-          <div class="min-w-0 rounded-xl border border-[#E5E1F0] bg-[#F7F5FB] p-4">
-            <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{etiqueta}</dt>
-            <dd data-legal-resumen={campo} class="mt-2 break-words whitespace-pre-wrap text-sm font-medium text-slate-900"></dd>
+          <div>
+            <dt>{etiqueta}</dt>
+            <dd data-legal-resumen={campo}></dd>
           </div>
         ))}
       </dl>
-      <p id="legal-actualizacion" class="mt-4 text-xs text-slate-500"></p>
-    </Card>
+      <p id="legal-actualizacion" class="modulo-conteo mt-4"></p>
+    </section>
 
-    <Card class="border-t-2 border-t-[#1BAAC1]">
-      <div class="mb-5">
-        <h3 class="text-lg font-semibold">Documentos del expediente</h3>
-        <p class="mt-1 text-sm leading-6 text-slate-500">Estado de los documentos legales asociados a la organización.</p>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <section class="ficha-panel tarjeta-acento acento-celeste" aria-labelledby="legal-documentos-titulo">
+      <h3 id="legal-documentos-titulo" class="ficha-panel-titulo">Documentos</h3>
+      <ul class="legal-documentos">
         {tiposDocumento.map(({ id, nombre }) => (
-          <article class="min-w-0 rounded-xl border border-[#D7EBEF] bg-[#F0F9FA] p-4">
-            <h4 class="text-sm font-semibold text-slate-900">{nombre}</h4>
-            <p data-legal-estado={id} class="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#167F91]"></p>
-            <p data-legal-archivo={id} class="mt-2 break-words text-sm leading-5 text-slate-500"></p>
-          </article>
+          <li>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-neutral-900">{nombre}</p>
+              <p data-legal-archivo={id} class="mt-0.5 break-words text-xs text-neutral-500"></p>
+            </div>
+            <span data-legal-estado={id} class="registro-insignia registro-insignia--neutro"></span>
+          </li>
         ))}
-      </div>
-    </Card>
+      </ul>
+    </section>
   </div>
 
   <form id="legal-form" hidden novalidate class="space-y-4" aria-labelledby="legal-form-titulo">
     <fieldset id="legal-campos" class="m-0 min-w-0 space-y-4 border-0 p-0">
-      <Card class="border-t-2 border-t-[#4C4688]">
+      <Card class="tarjeta-acento acento-morado">
         <div class="mb-5 border-b border-[#F0EDF6] pb-4">
           <p class="text-xs font-semibold uppercase tracking-[0.12em] text-[#77719F]">Información institucional</p>
           <h3 id="legal-form-titulo" class="mt-1 text-lg font-semibold">Registrar antecedentes legales</h3>
-          <p class="mt-1 text-sm leading-6 text-slate-500">Los campos con * son obligatorios. Puedes completar los documentos más adelante.</p>
+          <p class="mt-1 text-sm leading-6 text-slate-500">Puedes completar los documentos más adelante.</p>
+          <AvisoObligatorios class="mt-1" />
         </div>
         <div class="grid min-w-0 gap-5 md:grid-cols-2">
           <div class="space-y-1.5">
-            <label for="legal-personalidad" class="block text-sm font-medium text-slate-800">¿Posee personalidad jurídica? <span class="text-rose-600">*</span></label>
+            <label for="legal-personalidad" class="block text-sm font-medium text-slate-800">¿Posee personalidad jurídica?<span class="marca-obligatorio" aria-hidden="true">*</span></label>
             <select id="legal-personalidad" name="estado_personalidad_juridica" required class="min-h-[48px] w-full rounded-xl border border-[#D9D4E8] bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-[#4C4688] focus:ring-2 focus:ring-[#4C4688]/15">
               <option value="">Selecciona una opción</option><option value="si">Sí</option><option value="no">No</option><option value="en_proceso">En proceso</option>
             </select>
@@ -130,7 +120,7 @@ const camposResumen = [
         </div>
       </Card>
 
-      <Card class="border-t-2 border-t-[#1BAAC1]">
+      <Card class="tarjeta-acento acento-celeste">
         <div class="mb-5">
           <h3 class="text-lg font-semibold">Documentos legales</h3>
           <p class="mt-1 text-sm leading-6 text-slate-500">PDF de hasta 10 MB por documento. El estado «Cargado» se asigna al adjuntar un archivo.</p>
@@ -151,7 +141,7 @@ const camposResumen = [
                 </div>
                 <div class="min-w-0 space-y-1.5">
                   <label for={`legal-pdf-${id}`} class="block text-sm font-medium text-slate-800">Adjuntar o reemplazar PDF <span class="text-slate-400">(opcional)</span></label>
-                  <input id={`legal-pdf-${id}`} data-documento-pdf={id} type="file" accept="application/pdf,.pdf" class="block min-h-[48px] w-full min-w-0 rounded-xl border border-[#D9D4E8] bg-white text-sm text-slate-500 file:mr-3 file:min-h-[46px] file:cursor-pointer file:border-0 file:bg-[#F0EDF8] file:px-3 file:text-sm file:font-medium file:text-[#4C4688] hover:file:bg-[#E8E3F5]" />
+                  <input id={`legal-pdf-${id}`} data-documento-pdf={id} type="file" accept="application/pdf,.pdf" />
                   <p class="text-xs text-slate-500">Solo PDF, máximo 10 MB.</p>
                   <button type="button" data-quitar-seleccion={id} hidden class="min-h-8 text-sm font-medium text-[#4C4688] underline underline-offset-2">Quitar archivo seleccionado</button>
                 </div>
@@ -162,7 +152,7 @@ const camposResumen = [
       </Card>
 
       <div class="flex flex-col-reverse gap-3 border-t border-[#E8E5EF] pt-5 sm:flex-row sm:justify-end">
-        <Button id="legal-cancelar" type="button" variant="outline">Cancelar</Button>
+        <Button id="legal-cancelar" data-descartar type="button" variant="outline">Cancelar</Button>
         <Button id="legal-guardar" type="submit">Guardar antecedentes</Button>
       </div>
     </fieldset>
@@ -176,11 +166,13 @@ const camposResumen = [
   #expediente-legal button {
     font-family: inherit;
   }
-  #expediente-legal input[aria-invalid="true"],
-  #expediente-legal select[aria-invalid="true"],
-  #expediente-legal textarea[aria-invalid="true"] {
-    border-color: #E11D48;
+  .legal-documentos { display: grid; margin: 0; padding: 0; list-style: none; }
+  .legal-documentos li {
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    border-top: 1px solid #f0edf6; padding: .75rem 0;
   }
+  .legal-documentos li:first-child { border-top: 0; padding-top: 0; }
+  .legal-documentos li:last-child { padding-bottom: 0; }
 </style>
 
 <script>

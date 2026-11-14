@@ -1,3 +1,7 @@
+import { createCommitmentsPdfService } from './commitments-pdf-service.ts';
+import { generateCommitmentsPdf } from '../infrastructure/commitments-pdf.ts';
+import { parseCreateDonationFile } from '../domain/donations.ts';
+import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type {
   OrganizationFields,
   OrganizationFilters,
@@ -8,10 +12,12 @@ import type {
   ActualizarCompromisoInput,
   ActualizarDiagnosticoInput,
   CamposDiagnostico,
+  OrganizationImageUpload,
 } from '../domain/organizations.ts';
 
 export function createOrganizationsApplication(repository: OrganizationsRepository) {
   return {
+    downloadCommitmentsPdf: createCommitmentsPdfService(repository, generateCommitmentsPdf),
     list(accessToken: string, filters: OrganizationFilters) {
       return repository.list(accessToken, filters);
     },
@@ -85,7 +91,11 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
       return repository.getDonationFileById(accessToken, donationId, fileId);
     },
     reserveDonationFile(accessToken: string, donationId: string, input: import('../domain/organizations.ts').CreateDonationFileInput) {
-      return repository.reserveDonationFile(accessToken, donationId, input);
+      const parsed = parseCreateDonationFile(input);
+      if (parsed.id_donacion && parsed.id_donacion !== donationId) {
+        throw new ServiceError('DONACION_NO_COINCIDE', 'La donación del respaldo no coincide con la ruta.', 400);
+      }
+      return repository.reserveDonationFile(accessToken, donationId, parsed);
     },
     uploadDonationFile(
       accessToken: string,
@@ -99,6 +109,12 @@ export function createOrganizationsApplication(repository: OrganizationsReposito
     },
     downloadDonationFile(accessToken: string, donationId: string, fileId: string) {
       return repository.downloadDonationFile(accessToken, donationId, fileId);
+    },
+    replaceOrganizationImage(accessToken: string, orgId: string, upload: OrganizationImageUpload) {
+      return repository.replaceOrganizationImage(accessToken, orgId, upload);
+    },
+    downloadOrganizationImage(accessToken: string, orgId: string) {
+      return repository.downloadOrganizationImage(accessToken, orgId);
     },
   };
 }

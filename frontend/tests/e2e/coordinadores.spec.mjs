@@ -62,33 +62,21 @@ async function listado(page) {
 const tarjeta = (page, nombre) => page.locator('.coord-tarjeta', { hasText: nombre });
 const soloEscrituras = () => servidor.solicitudes.filter((s) => s.metodo !== 'GET');
 
-test('recargar recupera el catálogo de países después de un fallo temporal', async ({ page }) => {
+test('recargar la página recupera el catálogo de países después de un fallo temporal', async ({ page }) => {
   servidor.fallar.paises = true;
   await listado(page);
   await expect(page.locator('#coord-filtro-pais')).toBeDisabled();
   servidor.fallar.paises = false;
-  await page.locator('#coord-recargar').click();
+  await page.reload();
   await expect(page.locator('#coord-filtro-pais')).toBeEnabled();
   await expect(page.locator('#coord-filtro-pais option')).toHaveCount(3);
   await page.locator('#coord-filtro-pais').selectOption(peru);
   await expect(page.locator('.coord-tarjeta h3')).toHaveText(['Bruno Díaz']);
 });
 
-test('recarga y cambio de estado no pueden solaparse ni mostrar una versión antigua', async ({ page }) => {
+test('cambio de estado bloquea las acciones y muestra la versión nueva', async ({ page }) => {
   await listado(page);
-  let liberarListado;
-  const esperaListado = new Promise(resolve => { liberarListado = resolve; });
   const anteriores = structuredClone(servidor.cuentas);
-  await page.route('**/api/v1/coordinators', async r => {
-    await esperaListado;
-    await r.fulfill(ok({ coordinators: anteriores }));
-  });
-  await page.locator('#coord-recargar').click();
-  await expect(tarjeta(page, 'Bruno Díaz').getByRole('button')).toBeDisabled();
-  await expect(tarjeta(page, 'Ana Ñúñez').getByRole('button')).toBeDisabled();
-  expect(soloEscrituras()).toEqual([]);
-  liberarListado();
-  await expect(tarjeta(page, 'Bruno Díaz').getByRole('button')).toBeEnabled();
 
   let liberarEstado;
   const esperaEstado = new Promise(resolve => { liberarEstado = resolve; });
@@ -97,12 +85,10 @@ test('recarga y cambio de estado no pueden solaparse ni mostrar una versión ant
     await r.fulfill(ok({ coordinator: { ...anteriores[1], activo: true, version: 3 } }));
   });
   await tarjeta(page, 'Bruno Díaz').getByRole('button').click();
-  await expect(page.locator('#coord-recargar')).toBeDisabled();
   await expect(tarjeta(page, 'Ana Ñúñez').getByRole('button')).toBeDisabled();
   liberarEstado();
   await expect(tarjeta(page, 'Bruno Díaz').locator('.coord-estado-badge')).toHaveText('Activa');
   await expect(page.locator('#coord-confirmacion')).toContainText('fue activada');
-  await expect(page.locator('#coord-recargar')).toBeEnabled();
 });
 async function captura(page, info, nombre) {
   await page.addStyleTag({ content: 'astro-dev-toolbar { display: none !important; }' });
@@ -162,14 +148,14 @@ test('estados: carga, error con reintento, servicio no disponible y ausencia de 
 
   servidor.retrasoListado = 0;
   servidor.listadoVacio = true;
-  await page.locator('#coord-recargar').click();
+  await page.reload();
   await expect(page.locator('#coord-vacio')).toBeVisible();
   await expect(page.locator('#coord-vacio')).toContainText('Todavía no hay cuentas de Coordinadores');
   await expect(page.locator('#coord-vacio').getByRole('link', { name: 'Crear el primer coordinador' })).toBeVisible();
   await expect(page.locator('#coord-total')).toHaveText('0');
 
   servidor.sinRuta = true;
-  await page.locator('#coord-recargar').click();
+  await page.reload();
   await expect(page.locator('#coord-error-texto')).toHaveText('El servicio de cuentas de Coordinadores todavía no está disponible.');
   await expect(page.locator('#coord-vacio')).toBeHidden();
 });
