@@ -1,4 +1,3 @@
--- Acceso de las Astro Actions de Acciones asociadas a Planes.
 BEGIN;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE public.acciones TO authenticated;

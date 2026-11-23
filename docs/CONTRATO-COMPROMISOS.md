@@ -1,8 +1,7 @@
 ﻿# Contrato implementado — Compromisos
 
 La integración está implementada en el servicio de Organizaciones y se enruta
-por el API Gateway. Los pasos de Supabase y las pruebas están en
-[ENTREGA-COMPROMISOS-API.md](ENTREGA-COMPROMISOS-API.md).
+por el API Gateway.
 
 Todas las rutas reciben `Authorization: Bearer <token>` y usan el sobre
 `{ok:true,data:...}`. Base: `/api/v1/organizations/:org/commitments`.

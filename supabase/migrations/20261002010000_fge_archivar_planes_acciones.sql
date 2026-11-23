@@ -1,4 +1,3 @@
--- Borrado lógico explícito y atómico. No habilita DELETE ni abre las políticas UPDATE.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.archivar_plan_seguro(p_id uuid, p_version bigint)
@@ -31,7 +30,6 @@ BEGIN
   IF NOT FOUND OR plan.archived_at IS NOT NULL OR NOT fge_private.usuario_puede_gestionar_organizacion(plan.id_organizacion) THEN
     RAISE EXCEPTION 'Sin permiso' USING ERRCODE = '42501';
   END IF;
-  -- Si cambió la asociación mientras se esperaba el bloqueo, exigir recarga.
   SELECT * INTO registro FROM public.acciones WHERE id_accion = p_id FOR UPDATE;
   IF NOT FOUND OR registro.id_plan <> plan.id_plan OR p_version IS NULL OR p_version < 1 OR registro.archived_at IS NOT NULL OR registro.version <> p_version THEN
     RAISE EXCEPTION 'Registro desactualizado' USING ERRCODE = '40001';
@@ -46,7 +44,6 @@ REVOKE ALL ON FUNCTION public.archivar_accion_seguro(uuid, bigint) FROM PUBLIC, 
 GRANT EXECUTE ON FUNCTION public.archivar_plan_seguro(uuid, bigint) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.archivar_accion_seguro(uuid, bigint) TO authenticated;
 
--- Serializa la creación/reasociación de acciones con el archivo del plan padre.
 CREATE OR REPLACE FUNCTION fge_private.exigir_plan_activo_accion()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE archivado timestamptz;

@@ -1,5 +1,3 @@
-// Cliente HTTP de Coordinadores con respuestas SIMULADAS (fetch de prueba): verifica rutas,
-// cuerpos y validación de respuestas según docs/CONTRATO-COORDINADORES.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError } from '../../src/lib/api/transporte.ts';

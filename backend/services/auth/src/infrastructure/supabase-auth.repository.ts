@@ -94,7 +94,6 @@ export function createSupabaseAuthRepository(options: RepositoryOptions): AuthRe
   return {
     async login(input: LoginInput) {
       try {
-        // Éxitos: fuente autoritativa auth.audit_log_entries, sin RPC del cliente.
         const session = validSession(await request('/token?grant_type=password', {
           method: 'POST', body: JSON.stringify({ email: input.correo, password: input.password }),
         }));

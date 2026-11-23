@@ -1,11 +1,5 @@
 @import "tailwindcss";
 
-/*
- * Tipografía de marca (Manual de marca FGE 2025):
- *  - Títulos: Evolventa Bold. Evolventa no se distribuye por npm ni Google Fonts,
- *    así que se usa Jost (geométrica y de formas redondas, licencia OFL) como equivalente.
- *  - Textos: Lato.
- */
 @import "@fontsource/lato/400.css";
 @import "@fontsource/lato/400-italic.css";
 @import "@fontsource/lato/700.css";
@@ -17,7 +11,6 @@
   --font-sans: "Lato", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Jost", "Lato", ui-sans-serif, system-ui, sans-serif;
 
-  /* Colores institucionales FGE */
   --color-primary: #4c4688;
   --color-secondary: #423c76;
 
@@ -27,12 +20,10 @@
   --color-brand-pink: #ff2471;
   --color-brand-yellow: #ffc04c;
 
-  /* Estados */
   --color-success: #199d6b;
   --color-warning: #ffc04c;
   --color-danger: #ff2471;
 
-  /* Neutros */
   --color-neutral-50: #fafafa;
   --color-neutral-100: #f5f5f5;
   --color-neutral-200: #e5e5e5;
@@ -76,12 +67,6 @@ textarea {
   outline-offset: 2px;
 }
 
-/*
- * Escala tipográfica única. Estas reglas no están en una capa de Tailwind,
- * así que prevalecen sobre clases como text-lg o font-bold en los títulos:
- * todos los títulos del mismo nivel se ven iguales en toda la aplicación.
- * Las etiquetas pequeñas en mayúsculas (h3.uppercase) conservan su estilo.
- */
 :where(h1, h2, h3, h4, h5, h6) {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
@@ -105,18 +90,11 @@ textarea {
   color: var(--color-neutral-700);
 }
 
-/* Barra de desplazamiento discreta */
 #main-content {
   scrollbar-color: #d5d1e3 transparent;
   scrollbar-width: thin;
 }
 
-/*
- * Tarjetas con acento de color: un único estilo para toda la plataforma.
- * El acento va siempre al costado izquierdo, fino, y solo con los colores
- * del Manual de marca FGE 2025. Uso: class="tarjeta-acento acento-verde".
- * Se usa !important porque reemplaza los bordes que fijan otras utilidades.
- */
 .tarjeta-acento {
   --acento: var(--color-primary);
   border-left-width: 3px !important;
@@ -131,11 +109,6 @@ textarea {
 .acento-amarillo { --acento: var(--color-brand-yellow); }
 .acento-neutro { --acento: var(--color-neutral-500); }
 
-/*
- * Módulos de la ficha de organización (Actas, Compromisos, Diagnóstico,
- * Donaciones, Expediente legal): mismo encabezado, mismas tarjetas y
- * mismos bloques de datos. Pensado para verse liviano también en móvil.
- */
 .modulo-encabezado {
   display: flex;
   flex-direction: column;
@@ -170,7 +143,6 @@ textarea {
   font-size: 0.8125rem;
 }
 
-/* Tarjeta de un registro del listado (ver lib/ui/registro.ts). */
 .registro {
   display: flex;
   min-width: 0;
@@ -234,7 +206,6 @@ textarea {
 .registro-insignia--rosado { background: #fce8f0; color: #ad174f; }
 .registro-insignia--neutro { background: #f3f2f5; color: #706e78; }
 
-/* Datos clave (tarjetas y fichas): etiqueta pequeña y valor, sin cajas. */
 .registro-datos,
 .ficha-datos {
   display: grid;
@@ -285,7 +256,6 @@ textarea {
 .registro-enlace:hover { background: #f5f3fa; }
 .registro-pie { flex-wrap: wrap; gap: 0.5rem; }
 .registro-pie .registro-enlace:not(:only-child) { order: -1; margin-right: auto; }
-/* Imagen o ícono junto al título (listados de Organizaciones, Programas, Planes). */
 .registro-identidad {
   display: flex;
   min-width: 0;
@@ -348,7 +318,6 @@ span.registro-media { border: 0; background: #f0edf8; padding: 0; }
 @media (min-width: 640px) { .registro-boton { flex: 0 0 auto; } }
 .registro-enlace:disabled { cursor: not-allowed; opacity: 0.6; }
 
-/* Panel de contenido de una ficha (diagnóstico, expediente…). */
 .ficha-panel {
   min-width: 0;
   border: 1px solid #e8e5ef;
@@ -376,19 +345,8 @@ span.registro-media { border: 0; background: #f0edf8; padding: 0; }
   .registro, .ficha-panel { padding: 1.25rem; }
 }
 
-/*
- * Invitado (rol INVIT): solo consulta. AppLayout marca <html data-solo-lectura>
- * y aquí se ocultan todas las acciones de gestión (crear, editar, eliminar…) y
- * los accesos a secciones que su rol no puede ver. La autorización efectiva
- * sigue en Supabase (RLS); esto evita ofrecer acciones que fallarían.
- */
 html[data-solo-lectura] :is([data-gestion], [data-oculto-invitado]) { display: none !important; }
 
-/*
- * Pestañas de detalle (organización, plan, acción) en móvil: en vez de píldoras que
- * saltan de línea, texto con subrayado en una sola fila que se desliza si no cabe.
- * El estado activo sale de aria-selected, que ya actualiza el script de cada página.
- */
 @media (max-width: 767.98px) {
   .pestanas {
     padding: 0 !important;
@@ -421,12 +379,6 @@ html[data-solo-lectura] :is([data-gestion], [data-oculto-invitado]) { display: n
   }
 }
 
-/*
- * Formularios: un único estilo para todos los campos de la plataforma
- * (gestión, login, cotizaciones, catálogo…), igual al de components/ui/Input.astro.
- * Va fuera de las capas de Tailwind para prevalecer sobre las clases de cada
- * vista; así ningún formulario queda con otra letra, borde o color.
- */
 .marca-obligatorio {
   margin-left: 0.125rem;
   color: #c81e5b;
@@ -511,10 +463,6 @@ textarea {
   color: #706e78;
 }
 
-/*
- * Selector de archivos: un único estilo para toda la plataforma (el de
- * Programas). Botón con borde morado y, al lado, el nombre del archivo.
- */
 input[type="file"]:not(.sr-only) {
   display: block;
   width: 100%;
@@ -565,10 +513,4 @@ input[type="file"]:disabled::file-selector-button {
   cursor: not-allowed;
 }
 
-/*
- * Solo consulta por país: un Coordinador ve registros de otros países, pero
- * solo gestiona su país principal y los países con cobertura temporal vigente.
- * La vista marca <html data-solo-consulta> y aquí se ocultan las acciones de
- * gestión (indicadores, evidencias…). La autorización efectiva sigue en RLS.
- */
 html[data-solo-consulta] [data-gestion] { display: none !important; }

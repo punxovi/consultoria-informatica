@@ -1,10 +1,5 @@
--- Los programas son un catálogo institucional de FGE. La organización de una
--- intervención pertenece al plan, no al programa. No se altera el UUID ni el
--- contenido de los programas y sus archivos siguen apuntando a id_programa.
 BEGIN;
 
--- No es posible inferir la organización real de un plan asociado al registro
--- ficticio. Detener toda la migración si alguien creó uno desde la auditoría.
 DO $$
 BEGIN
   IF EXISTS (
@@ -20,8 +15,6 @@ $$;
 
 ALTER TABLE public.planes ADD COLUMN id_organizacion uuid;
 
--- Si existen planes bajo organizaciones reales en algún entorno, conservar su
--- asociación antes de retirar la columna antigua de programas.
 UPDATE public.planes AS plan
 SET id_organizacion = programa.id_organizacion
 FROM public.programas AS programa
@@ -38,9 +31,6 @@ CREATE INDEX planes_id_organizacion_fk_idx
 
 ALTER TABLE public.programas DROP COLUMN id_organizacion;
 
--- El registro de desarrollo ya no tiene razón de existir. El UUID y el nombre
--- exactos evitan borrar otra organización; las FK RESTRICT impiden el borrado
--- y revierten toda la transacción si algún dato nuevo depende de ella.
 DELETE FROM public.organizaciones
 WHERE id_organizacion = '15800000-0000-4000-8000-000000000000'
   AND nombre = 'Organización temporal FGE (FICTICIA)';

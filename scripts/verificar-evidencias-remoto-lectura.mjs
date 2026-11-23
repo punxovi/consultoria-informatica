@@ -1,5 +1,3 @@
-// Comprobación remota de solo lectura con la clave pública del proyecto.
-// No sustituye las pruebas con una sesión autenticada y permisos sobre una Acción.
 import { loadEnvFile } from 'node:process';
 
 loadEnvFile(new URL('../backend/.env', import.meta.url));

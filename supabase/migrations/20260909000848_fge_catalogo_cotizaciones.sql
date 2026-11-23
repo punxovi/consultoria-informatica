@@ -1,4 +1,3 @@
--- Catálogo único. Estructura de datos; publicación y recepción web pendientes.
 BEGIN;
 CREATE TABLE public.productos (
   id_producto uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,7 +32,6 @@ CREATE TABLE public.solicitud_cotizacion_detalles (
   id_solicitud uuid NOT NULL REFERENCES public.solicitudes_cotizacion(id_solicitud) ON DELETE RESTRICT,
   id_producto uuid NOT NULL REFERENCES public.productos(id_producto) ON DELETE RESTRICT,
   cantidad numeric NOT NULL CHECK (cantidad > 0 AND cantidad < 'Infinity'::numeric),
-  -- Copia histórica del catálogo al solicitar; no la proporciona el visitante.
   nombre_producto text NOT NULL,
   unidad_medida text NOT NULL,
   UNIQUE (id_solicitud,id_producto),
@@ -58,7 +56,6 @@ ALTER TABLE public.archivos ADD CONSTRAINT archivo_categoria_destino CHECK (
  (id_donacion IS NOT NULL AND categoria = 'respaldo_donacion') OR
  (id_producto IS NOT NULL AND categoria = 'imagen_producto' AND mime_type IN ('image/jpeg','image/png','image/webp'))
 );
--- No cambiar de organización un producto ya solicitado; archivar y crear otro.
 CREATE FUNCTION fge_private.validar_producto_cotizado() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 BEGIN
@@ -100,14 +97,11 @@ $$;
 CREATE TRIGGER preparar_detalle BEFORE INSERT OR UPDATE ON public.solicitud_cotizacion_detalles
  FOR EACH ROW EXECUTE FUNCTION fge_private.preparar_detalle_cotizacion();
 
--- Cabecera y detalles se guardan en la misma transacción.
--- Se comprueba al finalizar, permitiendo insertar primero la cabecera.
 CREATE FUNCTION fge_private.exigir_detalle_cotizacion() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 DECLARE solicitud uuid;
 BEGIN
  IF TG_OP = 'DELETE' THEN solicitud := OLD.id_solicitud; ELSE solicitud := NEW.id_solicitud; END IF;
- -- Serializar comprobaciones concurrentes de la misma solicitud.
  PERFORM 1 FROM public.solicitudes_cotizacion WHERE id_solicitud = solicitud FOR NO KEY UPDATE;
  IF EXISTS (SELECT FROM public.solicitudes_cotizacion WHERE id_solicitud = solicitud)
  AND NOT EXISTS (SELECT FROM public.solicitud_cotizacion_detalles WHERE id_solicitud = solicitud AND archived_at IS NULL) THEN

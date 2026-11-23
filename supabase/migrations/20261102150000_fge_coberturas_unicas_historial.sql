@@ -1,5 +1,3 @@
--- Coberturas: una fila vigente por Coordinador/país en el listado administrativo
--- y consulta explícita del historial inmutable.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.administrar_coberturas(
@@ -77,8 +75,6 @@ BEGIN
     IF p_datos <> '{}'::jsonb THEN
       RAISE EXCEPTION 'La consulta no admite datos adicionales' USING ERRCODE = '22023';
     END IF;
-    -- DISTINCT ON evita tarjetas duplicadas por coberturas revocadas y luego
-    -- reemplazadas. No elimina filas: el historial sigue ligado a cada ID.
     SELECT coalesce(jsonb_agg(fge_private.cobertura_administracion_json(actuales.cobertura)
       ORDER BY (actuales.cobertura).created_at DESC, (actuales.cobertura).id_permiso_temporal), '[]'::jsonb)
     INTO v_resultado

@@ -11,7 +11,6 @@ export function createGuestApplication(repository: GuestRepository) {
     consume: (token: string): Promise<Guest> => repository.execute(token, 'consume', {}),
     
     async create(input: CreateGuestInput): Promise<Guest> {
-      // El registro de solicitud es público (no requiere token de sesión)
       const guest = await repository.execute('', 'create', input);
       if (!guest) {
         throw new GuestError('ERROR_REGISTRO', 'No fue posible registrar la solicitud de invitado.', 500);
@@ -25,7 +24,6 @@ export function createGuestApplication(repository: GuestRepository) {
         throw new GuestError('INVITADO_NO_ENCONTRADO', 'La solicitud de invitado no existe.', 404);
       }
       
-      // El proveedor Auth genera y envía su enlace de un solo uso.
       if (typeof result.correo !== 'string' || !result.correo) {
         throw new GuestError('RESPUESTA_INVALIDA', 'No fue posible preparar el correo de acceso.', 502);
       }

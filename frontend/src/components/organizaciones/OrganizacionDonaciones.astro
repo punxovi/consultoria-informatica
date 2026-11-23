@@ -44,13 +44,11 @@ const tiposRespaldo = [
       <span aria-hidden="true">＋</span> Registrar ofrecimiento o donación
     </Button>
   </EncabezadoModulo>
-  <!-- Notificaciones y estados -->
   <div id="don-carga" hidden role="status" class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-sm font-medium text-blue-800 animate-pulse">
     Cargando información...
   </div>
   <div id="don-error" hidden role="alert" tabindex="-1" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 focus:outline-none"></div>
   <div id="don-exito" hidden role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"></div>
-  <!-- Vista 1: Listado de Donaciones -->
   <div id="don-listado" class="space-y-3">
     <EmptyState
       id="don-vacio"
@@ -61,7 +59,6 @@ const tiposRespaldo = [
     <p id="don-cantidad" class="modulo-conteo" hidden></p>
     <div id="don-lista" class="grid gap-3"></div>
   </div>
-  <!-- Vista 2: Formulario Nueva Donación -->
   <div id="don-form-donacion" hidden>
     <Card>
       <h3 id="don-form-titulo" class="text-lg font-semibold text-neutral-900">Registrar nueva donación</h3>
@@ -185,14 +182,12 @@ const tiposRespaldo = [
       </form>
     </Card>
   </div>
-  <!-- Vista 3: Detalle de Donación y Respaldos -->
   <div id="don-detalle" hidden class="space-y-5">
     <div class="flex items-center justify-between">
       <Button id="don-detalle-volver" variant="outline" size="sm">
         &larr; Volver a donaciones
       </Button>
     </div>
-    <!-- Ficha resumen de la donación -->
     <Card>
       <div class="flex flex-col gap-3 border-b border-[#EEEAF5] pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -228,7 +223,6 @@ const tiposRespaldo = [
         ))}
       </dl>
     </Card>
-    <!-- Sección de Respaldos Documentales -->
     <Card>
       <div class="flex flex-col gap-4 border-b border-[#EEEAF5] pb-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -250,7 +244,6 @@ const tiposRespaldo = [
         <p class="text-sm text-neutral-600">Si el aporte de una empresa incluye un certificado de donación, adjúntalo aquí. Podrás consultarlo después con el filtro Certificados.</p>
         <Button id="don-adjuntar-certificado" variant="outline" size="sm" class="solo-gestor mt-3">Adjuntar certificado de donación</Button>
       </div>
-      <!-- Filtro por tipo de respaldo -->
       <div class="don-filtros mt-4 flex flex-wrap gap-2">
         {filtrosRespaldo.map((filtro, indice) => (
           <button type="button" data-tipo={filtro.value}
@@ -259,7 +252,6 @@ const tiposRespaldo = [
           </button>
         ))}
       </div>
-      <!-- Formulario para adjuntar respaldo -->
       <div id="don-respaldo-form-contenedor" hidden class="don-respaldo-form mt-5 rounded-xl border p-5">
         <h5 class="text-sm font-bold text-neutral-900">Adjuntar nuevo respaldo documental</h5>
         <div id="don-respaldo-pendiente-alerta" hidden class="mt-2 rounded-lg bg-amber-100 p-3 text-xs text-amber-900 font-medium"></div>
@@ -319,7 +311,6 @@ const tiposRespaldo = [
           </div>
         </form>
       </div>
-      <!-- Lista de respaldos adjuntos -->
       <div id="don-respaldos-vacio" hidden class="mt-6 rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 p-6 text-center text-sm text-neutral-500">
         Esta donación no tiene respaldos asociados para el filtro seleccionado.
       </div>

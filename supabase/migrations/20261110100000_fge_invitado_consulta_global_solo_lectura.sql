@@ -1,7 +1,3 @@
--- Permisos del Invitado: consulta global de todo el contenido de negocio,
--- sin ninguna operación de modificación.
--- Las tablas de seguridad, administración y auditoría permanecen fuera de
--- este alcance.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.usuario_puede_consultar_organizacion(
@@ -49,8 +45,6 @@ BEGIN
       'CREATE POLICY invitado_consulta_global ON public.%I AS PERMISSIVE FOR SELECT TO authenticated USING (%s)',
       nombre_tabla, filtro_lectura
     );
-    -- Un veto RESTRICTIVE FOR ALL también bloquearía el SELECT del Invitado.
-    -- Se separa por operación para mantener lectura global y bloquear escrituras.
     EXECUTE format('DROP POLICY IF EXISTS invitado_solo_lectura ON public.%I', nombre_tabla);
     EXECUTE format('DROP POLICY IF EXISTS invitado_solo_insertar ON public.%I', nombre_tabla);
     EXECUTE format('DROP POLICY IF EXISTS invitado_solo_actualizar ON public.%I', nombre_tabla);
@@ -70,8 +64,6 @@ BEGIN
   END LOOP;
 END $$;
 
--- Esta política histórica impedía leer organizaciones directamente aunque la
--- nueva política global ya autorice su consulta.
 DROP POLICY IF EXISTS organizaciones_invitado_sin_acceso_directo ON public.organizaciones;
 
 GRANT SELECT ON public.organizaciones_invitado TO authenticated;

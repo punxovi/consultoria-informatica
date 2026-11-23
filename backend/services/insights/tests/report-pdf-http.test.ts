@@ -54,7 +54,6 @@ test('HTTP: descarga no acepta cambiar filtros, otra identidad ni referencias ca
       [report.download.url,{},401],
       ['/api/v1/reports/invalido/pdf',{headers},400],
     ] as const)assert.equal((await fetch(new URL(url,env.url),options)).status,status);
-    // El actor puede renovar su token sin perder el snapshot preparado.
     assert.equal((await fetch(new URL(report.download.url,env.url),{headers:{authorization:'Bearer renewed-token'}})).status,200);
     env.expire();assert.equal((await fetch(new URL(report.download.url,env.url),{headers})).status,404);
     assert.equal(env.loads(),1);

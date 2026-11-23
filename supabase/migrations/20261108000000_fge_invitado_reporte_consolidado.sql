@@ -47,10 +47,8 @@ BEGIN
     v_resultados := ARRAY(SELECT value::uuid FROM jsonb_array_elements_text(p_filtros->'resultIds'));
   END IF;
 
-  -- Las subconsultas EXISTS evitan multiplicar organizaciones y beneficiarios.
   WITH orgs AS MATERIALIZED (
     SELECT o.id_organizacion,o.nombre,o.numero_beneficiarios,p.nombre AS pais
-    -- Vista segura: mismas organizaciones para ADMIN/COORD y acceso de consulta para el Invitado.
     FROM public.organizaciones_invitado o JOIN public.paises p ON p.id_pais=o.id_pais
     WHERE o.archived_at IS NULL AND p.archived_at IS NULL
       AND fge_private.usuario_puede_consultar_organizacion(o.id_organizacion)

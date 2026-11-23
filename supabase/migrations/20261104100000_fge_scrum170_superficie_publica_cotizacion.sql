@@ -1,4 +1,3 @@
--- SCRUM-170: superficie pública mínima para catálogo y solicitudes.
 BEGIN;
 
 CREATE OR REPLACE VIEW public.catalogo_cotizacion_publico

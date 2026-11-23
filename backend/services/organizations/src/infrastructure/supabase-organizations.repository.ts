@@ -277,8 +277,6 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
     return adjuntarImagenesInvitado(accessToken, body.map(organization));
   }
 
-  // El Invitado usa el mismo contrato de lectura que el resto de la aplicación;
-  // si una imagen falla, se conserva el listado.
   async function adjuntarImagenesInvitado(accessToken: string, filas: Organization[]): Promise<Organization[]> {
     const ids = filas.map((fila) => fila.id_organizacion).filter((id): id is string => typeof id === 'string');
     if (ids.length === 0) return filas;
@@ -394,7 +392,7 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       await request('rpc/registrar_acceso_documento', accessToken, new URLSearchParams(), {
         method: 'POST',
         body: JSON.stringify({ p_id_documento: body[0].id_informacion_legal })
-      }); // No entregar datos personales si falla su registro de acceso.
+      });
     }
 
     return body[0] ? legalRecord(body[0]) : null;
@@ -564,8 +562,6 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
         throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió una respuesta inválida.', 502);
       }
       if (body.length > 0) return body.map(country);
-      // Si el catálogo llega vacío (caso del Invitado), se usan los países de las
-      // organizaciones que la sesión puede consultar en la vista segura.
       return paisesDeOrganizacionesVisibles(accessToken);
     },
 
@@ -895,8 +891,6 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
       }
       assertFileSignature(bytes, mimeType);
 
-      // A failed upload remains auditable. Re-open only that same reservation
-      // before retrying it, so Storage keeps accepting the exact private path.
       if (file.estado_carga === 'fallido') {
         const reactivated = await request('archivos', accessToken, new URLSearchParams({
           id_archivo: `eq.${fileId}`,
@@ -1015,7 +1009,6 @@ export function createSupabaseOrganizationsRepository(options: RepositoryOptions
           }),
         });
       } catch (error) {
-        // Sin registro, el objeto quedaría huérfano: se retira de Storage.
         await storageRequest(accessToken, path, { method: 'DELETE' }, 'fge-archivos').catch(() => null);
         if (error instanceof ServiceError && ['PGRST202', '42883'].includes(String(record(error.cause).code))) {
           throw new ServiceError('MIGRACION_PENDIENTE', 'La base de datos requiere la migración SCRUM-175.', 503);

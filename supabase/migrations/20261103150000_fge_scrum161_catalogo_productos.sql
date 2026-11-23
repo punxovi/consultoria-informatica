@@ -1,4 +1,3 @@
--- SCRUM-161. Extiende el catálogo existente sin cambiar UUID ni cotizaciones.
 BEGIN;
 
 ALTER TABLE public.productos
@@ -14,10 +13,6 @@ COMMENT ON COLUMN public.productos.publicado IS 'Habilita la publicación; solo 
 COMMENT ON COLUMN public.productos.caracteristicas IS 'Atributos descriptivos del producto o servicio como objeto JSON; no contiene existencias ni operaciones de inventario.';
 COMMENT ON COLUMN public.archivos.id_producto IS 'Una o más imágenes de producto, en el bucket privado fge-archivos. Se conserva el historial mediante archived_at.';
 
--- Un producto conserva su Organización y las imágenes conservan su destino.
--- Así no se puede mover un registro a otro territorio ni romper referencias.
--- Sustituye la comprobación antigua contra detalles de cotización: esa tabla
--- permanece privada y no se concede acceso a ella para editar un producto.
 DROP TRIGGER validar_producto_cotizado ON public.productos;
 CREATE FUNCTION fge_private.conservar_identidad_producto() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
@@ -45,8 +40,6 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'La imagen debe conservar su identidad, destino y objeto; archive y registre otra' USING ERRCODE = '23514';
   END IF;
-  -- Los metadatos históricos permanecen legibles y archivables. Las nuevas
-  -- reservas usan un objeto único, sin permitir rutas ajenas al producto.
   IF NEW.id_producto IS NOT NULL AND (TG_OP = 'INSERT' OR OLD.id_producto IS NULL) THEN
     IF NEW.bucket_id <> 'fge-archivos'
       OR NEW.ruta_objeto !~ ('^productos/' || NEW.id_producto::text || '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$')
@@ -99,7 +92,6 @@ GRANT EXECUTE ON FUNCTION fge_private.acceso_organizacion_producto(uuid, boolean
   fge_private.acceso_producto(uuid, boolean), fge_private.acceso_objeto_producto(text, text, boolean) TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE ON public.productos TO authenticated;
--- RLS y auditoría ya existen. No se concede borrado físico ni acceso anónimo.
 CREATE POLICY productos_consulta ON public.productos FOR SELECT TO authenticated
 USING (fge_private.acceso_organizacion_producto(id_organizacion, false));
 CREATE POLICY productos_alta ON public.productos FOR INSERT TO authenticated
@@ -117,7 +109,6 @@ CREATE POLICY archivos_producto_modificacion ON public.archivos FOR UPDATE TO au
 USING (id_producto IS NOT NULL AND archived_at IS NULL AND fge_private.acceso_producto(id_producto, true))
 WITH CHECK (id_producto IS NOT NULL AND categoria = 'imagen_producto' AND fge_private.acceso_producto(id_producto, true));
 
--- Bucket existente: se conserva privado y no se alteran los límites de otros módulos.
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'fge-archivos' AND NOT public) THEN
     RAISE EXCEPTION 'Se requiere el bucket privado fge-archivos existente' USING ERRCODE = '55000';
@@ -129,8 +120,6 @@ USING (fge_private.acceso_objeto_producto(bucket_id, name, false));
 CREATE POLICY storage_producto_alta ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (fge_private.acceso_objeto_producto(bucket_id, name, true));
 
--- Una fila por producto; las imágenes se consultan aparte para no duplicarlo.
--- El país se obtiene siempre de la Organización, sin una copia desnormalizada.
 CREATE VIEW public.productos_por_territorio WITH (security_invoker = true) AS
 SELECT p.id_producto, p.id_organizacion, o.id_pais, p.nombre, p.descripcion,
   p.tipo_item, p.categoria, p.material_terminacion, p.caracteristicas,

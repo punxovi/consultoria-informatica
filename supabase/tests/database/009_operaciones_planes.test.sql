@@ -1,4 +1,3 @@
--- Astro Actions de Planes: relaciones, permisos, fechas y auditoria.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

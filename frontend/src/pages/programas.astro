@@ -197,8 +197,6 @@ import Button from '../components/ui/Button.astro';
     } : null;
   }
 
-  // Las imágenes llegan después del listado para no retrasarlo; si fallan,
-  // las tarjetas conservan la imagen predeterminada.
   async function cargarMiniaturas() {
     try {
       miniaturas = await obtenerMiniaturas(programas.map((programa) => String(programa.id_programa)));
@@ -308,7 +306,6 @@ import Button from '../components/ui/Button.astro';
     conteoFiltrado.textContent = programas.length
       ? `${coincidencias.length} de ${programas.length} ${programas.length === 1 ? 'programa registrado' : 'programas registrados'}.`
       : 'No hay programas registrados actualmente.';
-    // Con datos no se muestra un aviso: el conteo ya está en la tarjeta de filtros.
     estado.textContent = programas.length ? '' : 'No hay programas registrados actualmente.';
     listado.setAttribute('aria-busy', 'false');
   }

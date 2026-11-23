@@ -2,7 +2,6 @@
 
 const texto = (max: number) => z.string().trim().min(1, 'Este campo es obligatorio.').max(max);
 
-// Un diagnóstico institucional completo por organización.
 export const crearDiagnosticoZodSchema = z.object({
   mision: texto(500),
   vision: texto(500),

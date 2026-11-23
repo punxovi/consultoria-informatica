@@ -1,4 +1,3 @@
--- SCRUM-157: copiar o mover un documento privado también accede a su contenido.
 BEGIN;
 CREATE OR REPLACE FUNCTION fge_private.auditar_acceso_storage(p_id uuid,p_bucket text,p_ruta text) RETURNS boolean
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $$

@@ -67,8 +67,6 @@ BEGIN
     RAISE EXCEPTION 'Se requiere un objeto de datos' USING ERRCODE = '22023';
   END IF;
 
-  -- Consultar las propias coberturas vigentes es la única operación disponible
-  -- para Coordinadores. El resultado se liga siempre a auth.uid().
   IF p_operacion = 'mine' THEN
     SELECT coalesce(jsonb_agg(jsonb_build_object(
       'id_permiso_temporal', cobertura.id_permiso_temporal,

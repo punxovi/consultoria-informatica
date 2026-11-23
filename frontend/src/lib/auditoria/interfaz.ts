@@ -5,7 +5,6 @@ import { filtrosSchema, vacios, type Filtros, type Evento } from './modelo.ts';
 import { describirEvento, opcionesAccion, opcionesSeccion, type Tono } from './presentacion.ts';
 import { clientePaisesNavegador } from '../paises/cliente.ts';
 
-// Mismos colores de marca que el resto de las tarjetas (ver global.css).
 const tonos: Record<Tono, { insignia: string; acento: string }> = {
   crear: { insignia: 'verde', acento: 'verde' },
   modificar: { insignia: 'morado', acento: 'celeste' },
@@ -33,7 +32,6 @@ export async function iniciarAuditoria() {
   let objetivo = 0;
   let autorizado = false;
   let revision = 0;
-  // Si se cambia un filtro mientras se consulta, se vuelve a consultar al terminar.
   let repetir = false;
   let espera: ReturnType<typeof setTimeout> | undefined;
   const cliente = crearClienteAuditoria(import.meta.env.PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000', async () => {
@@ -46,7 +44,6 @@ export async function iniciarAuditoria() {
     q<HTMLButtonElement>('anterior').disabled = curso || numero === 0;
     q<HTMLButtonElement>('siguiente').disabled = curso || !siguiente;
     q<HTMLButtonElement>('reintentar').disabled = curso || !autorizado;
-    // Los filtros no se bloquean mientras se consulta para no interrumpir la escritura.
     for (const campo of campos) q<HTMLInputElement | HTMLSelectElement>(campo).disabled = !autorizado;
     q('resultados').setAttribute('aria-busy', String(curso));
   }
@@ -65,8 +62,6 @@ export async function iniciarAuditoria() {
     grupo.append(crear('dt', etiqueta), dd);
     return grupo;
   }
-  // El Administrador opera con alcance regional (todos los países), por eso sus
-  // eventos sin país concreto se muestran como «Regional».
   function paisEvento(evento: Evento): string {
     if (evento.pais) return evento.pais;
     if (evento.rol?.toUpperCase() === 'ADMIN') return 'Regional';
@@ -124,7 +119,6 @@ export async function iniciarAuditoria() {
       if (repetir && autorizado) { repetir = false; void cargar(0); }
     }
   }
-  // Los filtros se aplican solos: al elegir una opción o fecha, y en «Persona» al dejar de escribir.
   function aplicar() {
     if (!autorizado) return;
     errores();
@@ -171,13 +165,12 @@ export async function iniciarAuditoria() {
     q('error').hidden = true; q('reintento').hidden = true; controles();
   }
   window.addEventListener('fge:sesion-perdida', retirarHistorialPorSesionPerdida);
-  // País como lista: se usan los países registrados; si no cargan, se puede filtrar por los demás campos.
   async function cargarPaises() {
     try {
       const paises = await clientePaisesNavegador().listar();
       const selector = q<HTMLSelectElement>('pais');
       for (const pais of [...paises].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))) selector.add(new Option(pais.nombre, pais.nombre));
-    } catch { /* El selector queda con «Todos los países». */ }
+    } catch {}
   }
   controles();
   getSupabaseClient().auth.onAuthStateChange((evento, sesion) => {

@@ -1,6 +1,5 @@
 import type { IndicadorAccion } from '../indicadores/modelo.ts';
 
-/** Dónde vive un indicador o resultado: sirve para mostrar solo los relacionados con los filtros. */
 export type ContextoOpcion = { id_pais: string; id_organizacion: string; id_programa: string };
 
 export type OpcionReporte = {
@@ -8,7 +7,6 @@ export type OpcionReporte = {
   etiqueta: string;
   detalle?: string;
   contexto?: ContextoOpcion;
-  /** Solo en resultados: indicador al que pertenece. */
   id_indicador?: string;
 };
 
@@ -18,8 +16,6 @@ type AccionConPlan = {
   plan?: { id_organizacion: string; id_programa: string };
 };
 
-// Los informes filtran por el ID del indicador asociado a una acción, no por
-// el ID del indicador del catálogo global.
 export async function cargarOpcionesIndicadoresYResultados(
   listarAcciones: () => Promise<AccionConPlan[]>,
   listarIndicadores: (accion: string) => Promise<IndicadorAccion[]>,
@@ -75,15 +71,9 @@ export type FiltrosOpciones = {
   id_pais: string;
   id_organizacion: string;
   id_programa: string;
-  /** Indicadores marcados: si hay alguno, solo se ofrecen sus resultados. */
   indicadores: string[];
 };
 
-/**
- * Deja solo los indicadores y resultados relacionados con el país, la
- * organización y el programa elegidos. Los resultados además se limitan a los
- * indicadores marcados, si hay alguno.
- */
 export function filtrarOpcionesReporte(
   opciones: { indicadores: OpcionReporte[]; resultados: OpcionReporte[] },
   filtros: FiltrosOpciones,

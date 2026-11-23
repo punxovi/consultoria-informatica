@@ -73,7 +73,6 @@ export function createQuoteEmailWorker(options: {
       if (running) return;
       running = true;
       try {
-        // Five sequential sends and acknowledgements fit within the five-minute SQL lease.
         const jobs: unknown = await rpc('tomar_notificaciones_email_cotizacion', { p_limite: 5 });
         if (!Array.isArray(jobs)) throw new Error('El servicio devolvió una cola de correos inválida.');
         for (const job of jobs as EmailJob[]) {
@@ -87,7 +86,6 @@ export function createQuoteEmailWorker(options: {
           try {
             await rpc('cerrar_notificacion_email_cotizacion', { p_id: job.id_notificacion, p_error: detail });
           } catch {
-            // A lost acknowledgement is not a send failure. The lease permits recovery with the same key.
             console.error(JSON.stringify({ level: 'error', event: 'quote.email.ack_failed', id: job.id_notificacion }));
           }
         }

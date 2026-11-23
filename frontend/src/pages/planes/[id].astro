@@ -17,7 +17,6 @@ for (const parametro of ['anio', 'id_programa', 'id_organizacion']) {
   const valor = Astro.url.searchParams.get(parametro);
   if (valor) filtrosRetorno.set(parametro, valor);
 }
-// Conserva también los filtros originales del listado de Organizaciones (org_*).
 agregarRetorno(filtrosRetorno, Astro.url.searchParams);
 const queryRetorno = filtrosRetorno.toString();
 const hrefVolverPlanes = `/planes${queryRetorno ? `?${queryRetorno}` : ''}`;
@@ -72,7 +71,6 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
           <p data-plan="resumen" class="mt-2 text-base text-neutral-600 md:text-lg"></p>
         </div>
 
-        <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
         <div data-gestion-plan data-gestion hidden class="shrink-0">
           <MenuAcciones etiqueta="Acciones del plan">
             <Button href={`/planes/${encodeURIComponent(idPlan)}/editar`} variant="outline">
@@ -206,7 +204,6 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
       estado.hidden = true;
       contenido.hidden = false;
 
-      // Si llegamos desde crear/editar una acción, muestra y enfoca su pestaña.
       if (window.location.hash === '#acciones-plan') {
         requestAnimationFrame(() => {
           document.querySelector<HTMLElement>('#acciones-plan')?.scrollIntoView({
@@ -246,7 +243,6 @@ const hrefTrasEliminar = `/planes?resultado=eliminado${queryRetorno ? `&${queryR
     }
   }
 
-  // Los enlaces con #acciones-plan deben abrir directamente la pestaña Seguimiento.
   activarTab(window.location.hash === '#acciones-plan' ? 'seguimiento' : 'resumen');
 
   botonesTab.forEach((boton, indice) => {

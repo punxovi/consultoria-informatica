@@ -1,6 +1,4 @@
 import { instalarAuditoriaRF62, esRpcAuditoria, ejecutarRpcAuditoria } from './auditoria-db.mjs';
-// HTTP/Gateway/Backend reales; adaptador Auth/PostgREST/Storage de pruebas sobre PGlite.
-// No sustituye la verificación adicional contra una instancia Supabase.
 import { createSupabaseIndicatorsRepository } from '../../../backend/services/interventions/src/infrastructure/supabase-indicators.repository.ts';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';

@@ -1,17 +1,9 @@
--- Datos semilla para FGE
--- Estos datos se insertan al hacer `supabase start` o `supabase db reset`
---
--- Los seis Programas Institucionales son un catálogo global de FGE. La
--- relación con cada organización se establece mediante un Plan de Intervención.
-
--- Insertar roles básicos de la plataforma
 INSERT INTO public.roles (codigo, nombre) VALUES
 ('ADMIN', 'Administrador'),
 ('COORD', 'Coordinador'),
 ('INVIT', 'Invitado')
 ON CONFLICT (codigo) DO UPDATE SET nombre = EXCLUDED.nombre;
 
--- El nombre no es UNIQUE: las asociaciones a Acciones pueden repetirlo.
 WITH catalogo(nombre, descripcion, unidad_medida, criterio_medicion) AS (VALUES
   ('Personas beneficiadas', 'Cantidad de personas beneficiadas por la accion.', 'Personas', 'Conteo de personas beneficiadas.'),
   ('Participantes', 'Cantidad de participantes de la actividad.', 'Personas', 'Conteo de participantes.'),
@@ -31,8 +23,6 @@ FROM catalogo c WHERE NOT EXISTS (
   SELECT 1 FROM public.indicadores i WHERE i.id_accion IS NULL AND i.nombre = c.nombre
 );
 
--- Cuenta de prueba para validar que un Coordinador no puede administrar
--- paises, cuentas, coberturas ni auditoria. Credencial local: password.
 INSERT INTO auth.users (
   id, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data
@@ -70,8 +60,6 @@ WHERE p.codigo_iso = 'CL'
 ON CONFLICT (id_usuario) DO UPDATE SET
   id_pais = EXCLUDED.id_pais, id_pais_aplicado = EXCLUDED.id_pais_aplicado;
 
--- Cuenta Administrador y Organización de demostración para probar la gestión
--- del catálogo al iniciar el entorno local. Credencial local: password.
 INSERT INTO auth.users (
   id, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data
@@ -112,9 +100,6 @@ FROM public.paises p WHERE p.codigo_iso = 'CL'
 ON CONFLICT (id_organizacion) DO UPDATE SET
   nombre = EXCLUDED.nombre, archived_at = NULL;
 
--- Los contenidos de estos seis programas provienen del documento oficial
--- `PROGRAMAS FGE.docx`, entregado por la clienta el 20 de agosto de 2026.
--- Sus UUID permanecen estables para conservar imágenes y futuras referencias.
 INSERT INTO public.programas (
   id_programa,
   nombre,

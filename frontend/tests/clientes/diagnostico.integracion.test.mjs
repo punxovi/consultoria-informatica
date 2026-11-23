@@ -45,7 +45,6 @@ test('SCRUM-98: cliente → Gateway → servicio → PostgreSQL, persistencia, v
     await assert.rejects(coord.crear(otra.id_organizacion, { campos }), { code: 'SIN_PERMISO', status: 403 });
     const sinRol = crearClienteDiagnostico(transport, async () => 'qa-sin-rol');
     await assert.rejects(sinRol.obtener(id), { code: 'NO_ENCONTRADA', status: 404 });
-    // RLS se comprueba directamente, además de la protección del servicio.
     await db.transaction(async tx => {
       await tx.exec('SET LOCAL ROLE authenticated');
       await tx.query("SELECT set_config('request.jwt.claim.sub',$1,true)", [entorno.usuarios.SIN_ROL]);

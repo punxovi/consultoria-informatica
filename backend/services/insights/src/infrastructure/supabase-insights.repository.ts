@@ -34,7 +34,6 @@ function country(value: unknown): CountryInsight {
   return item as unknown as CountryInsight;
 }
 
-// Adaptación para aceptar el nombre de la organización
 function organization(value: unknown): OrganizationInsight {
   const item = record(value);
   if (typeof item.id_organizacion !== 'string' || typeof item.id_pais !== 'string') {
@@ -43,7 +42,6 @@ function organization(value: unknown): OrganizationInsight {
   return { ...item, nombre: typeof item.nombre === 'string' ? item.nombre : 'Sin nombre' } as unknown as OrganizationInsight;
 }
 
-// Adaptación para aceptar el nombre del plan y del programa asociado
 function plan(value: unknown): PlanInsight {
   const item = record(value);
   if (typeof item.id_plan !== 'string' || typeof item.id_organizacion !== 'string' || typeof item.fecha_inicio !== 'string' || typeof item.fecha_termino !== 'string') {
@@ -58,7 +56,6 @@ function plan(value: unknown): PlanInsight {
   } as unknown as PlanInsight;
 }
 
-// Adaptación para aceptar el nombre de la acción
 function action(value: unknown): ActionInsight {
   const item = record(value);
   if (typeof item.id_accion !== 'string' || typeof item.id_plan !== 'string' || typeof item.estado !== 'string' || typeof item.fecha_termino !== 'string') {
@@ -146,26 +143,17 @@ export function createSupabaseInsightsRepository(options: RepositoryOptions): In
       return body.id;
     },
     async load(token): Promise<RawInsights> {
-      // Modificamos las proyecciones `select` para el Dashboard Territorial
       const [countries, organizations, plans, actions] = await Promise.all([
         request('paises', new URLSearchParams({ select: 'id_pais,codigo_iso,nombre', archived_at: 'is.null', order: 'nombre.asc' }), token),
-        // Se añade 'nombre' a organizaciones
         request('organizaciones', new URLSearchParams({ select: 'id_organizacion,nombre,id_pais,numero_beneficiarios', archived_at: 'is.null' }), token),
-        // Se añade 'nombre', 'id_programa' y la relación 'programas(nombre)'
         request('planes', new URLSearchParams({ select: 'id_plan,nombre,id_organizacion,id_programa,fecha_inicio,fecha_termino,programa:programas(nombre)', archived_at: 'is.null' }), token),
-        // Se añade 'nombre' a las acciones
         request('acciones', new URLSearchParams({ select: 'id_accion,nombre,id_plan,fecha_inicio,fecha_termino,estado', archived_at: 'is.null' }), token),
       ]);
       
-      // El Invitado no puede leer public.organizaciones (SCRUM-171): recibe una
-      // lista vacía. En ese caso se usa la vista segura organizaciones_invitado,
-      // que expone justo los campos que necesita el panel.
       const organizacionesVisibles = Array.isArray(organizations) && organizations.length === 0
         ? await request('organizaciones_invitado', new URLSearchParams({ select: 'id_organizacion,nombre,id_pais,numero_beneficiarios' }), token)
         : organizations;
 
-      // Si el catálogo de países llega vacío (caso del Invitado), se usan los
-      // países de las organizaciones visibles en la vista segura.
       let paisesVisibles = countries;
       if (Array.isArray(countries) && countries.length === 0) {
         const filas = await request('organizaciones_invitado', new URLSearchParams({ select: 'pais' }), token).catch(() => []);

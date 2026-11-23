@@ -6,8 +6,6 @@ import {
   type DatosEditarCoordinador,
 } from './modelo.ts';
 
-// Cliente HTTP de cuentas de Coordinadores. Las rutas siguen el contrato propuesto en
-// docs/CONTRATO-COORDINADORES.md; el Backend debe exponerlas a través del API Gateway.
 export function crearClienteCoordinadores(
   baseUrl: string,
   token: () => Promise<string>,
@@ -69,7 +67,6 @@ export function crearClienteCoordinadores(
 
 export type ClienteCoordinadores = ReturnType<typeof crearClienteCoordinadores>;
 
-// Mensajes para la interfaz según el error del servicio.
 export function mensajeErrorCoordinadores(error: unknown, accion: string): string {
   if (error instanceof ApiError) {
     if (error.code === 'RUTA_NO_ENCONTRADA') return 'El servicio de cuentas de Coordinadores todavía no está disponible.';

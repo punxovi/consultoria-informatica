@@ -1,5 +1,3 @@
--- SQL Editor: prueba con datos ficticios; todo se revierte al terminar.
--- Ejecutar el archivo completo. Si falla, ejecutar ROLLBACK antes de reintentar.
 BEGIN;
 CREATE TEMP TABLE scrum130_prueba (id uuid PRIMARY KEY) ON COMMIT DROP;
 INSERT INTO scrum130_prueba VALUES (gen_random_uuid());

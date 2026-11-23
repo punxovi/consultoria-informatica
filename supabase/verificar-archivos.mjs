@@ -1,4 +1,3 @@
-// Revisión estática; no es un parser SQL ni ejecuta PostgreSQL.
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +26,6 @@ for (let i=0;i<files.length;i++) {
   assert.match(sql[i],/COMMIT;/);
  }
  assert.ok(!/DROP\s+(TABLE|SCHEMA|DATABASE)/i.test(sql[i]),'Sin borrado de estructuras existentes');
- // Equilibrio de paréntesis ignorando comentarios y literales.
  const plain=sql[i].replace(/--[^\n]*/g,'').replace(/'(?:''|[^'])*'/g,"''");
  let depth=0;
  for(const c of plain) { if(c==='(')depth++; if(c===')')depth--; assert.ok(depth>=0,'Paréntesis'); }
@@ -39,7 +37,7 @@ assert.equal(tables.length,29,'29 tablas public');
 const known=new Set();
 for(const [,name,body] of tables) {
  assert.ok(!known.has(name),'Tabla única');
- known.add(name); // Permitir FK a la propia tabla.
+ known.add(name);
  for(const m of body.matchAll(/REFERENCES public\.(\w+)\((\w+)\)/g)) {
   assert.ok(known.has(m[1]),'FK creada después de su destino: '+name+' -> '+m[1]);
   const target=tables.find(t=>t[1]===m[1]);
@@ -51,7 +49,6 @@ for(const [,name,body] of tables) {
  assert.ok(allSql.includes('AFTER INSERT OR UPDATE OR DELETE ON public.'+name),'Auditoría '+name);
 }
 const body=n=>tables.find(t=>t[1]===n)[2];
-// La migración inicial es histórica: el esquema final se verifica abajo.
 assert.match(body('programas'),/id_organizacion uuid NOT NULL/);
 assert.ok(!body('planes').includes('id_organizacion'));
 assert.ok(!known.has('organizacion_programas'));
@@ -268,7 +265,6 @@ for(const operacion of ['INSERT INTO public.acciones','FROM public.acciones','UP
 const assertions=(tests.match(/SELECT (?:has_table|has_column|hasnt_column|hasnt_table|fk_ok|throws_ok|lives_ok|is|ok)\(/g)||[]).length;
 console.log(JSON.stringify({migraciones:files.length,tablas_public:tables.length,tablas_auditoria:1,programas_institucionales_seed:programasOficiales.length,operaciones_organizaciones:4,operaciones_programas:4,operaciones_planes:4,operaciones_acciones:4,aserciones_pgtap_preparadas:assertions,revision_estatica:'correcta',nota:'Este script no ejecuta PostgreSQL; usar supabase test db --local'},null,2));
 
-// SCRUM-84/87: contratos nuevos y acceso mínimo de las relaciones.
 assert.match(allSql,/periodo_anual BETWEEN 1 AND 9999/);
 assert.match(allSql,/ALTER COLUMN periodo_anual SET NOT NULL/);
 assert.match(allSql,/GRANT SELECT \(id_organizacion, id_pais, nombre, archived_at\) ON public\.organizaciones/);

@@ -51,7 +51,6 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
       </Card>
     </div>
 
-    <!-- Formulario de alta y edición -->
     <div id="productos-panel" hidden>
       <Card class="tarjeta-acento acento-morado p-5">
         <h2 id="productos-form-titulo" class="text-lg font-semibold text-neutral-900">Nuevo producto</h2>
@@ -170,7 +169,6 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
       </div>
     </Card>
 
-    <!-- Listado -->
     <section id="productos-listado" aria-labelledby="productos-listado-titulo" class="space-y-4" aria-busy="false">
       <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -203,7 +201,6 @@ const controlBase = 'min-h-12 w-full min-w-0 rounded-xl border border-[#DCD8E8] 
       <ul id="productos-lista" hidden class="grid grid-cols-1 gap-4" aria-label="Productos registrados"></ul>
     </section>
 
-    <!-- Confirmación de cambios en la disponibilidad pública -->
     <dialog id="productos-dialogo" aria-labelledby="productos-dialogo-titulo" aria-describedby="productos-dialogo-texto"
       class="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[#E8E5EF] bg-white p-0 shadow-xl backdrop:bg-[#2F2753]/40">
       <div class="space-y-4 p-5 md:p-6">

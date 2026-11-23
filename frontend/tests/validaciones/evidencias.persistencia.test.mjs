@@ -6,7 +6,6 @@ import { crearBaseProgramas, comoUsuario, usuarios } from '../helpers/programas-
 test('Evidencias: migración, CRUD, consentimiento, publicación, RLS y catálogo Storage', async t => {
   const db = await crearBaseProgramas();
   try {
-    // Solo el catálogo simulado en memoria. No representa una carga real vía Storage API.
     await db.exec(`ALTER TABLE storage.buckets ADD COLUMN name text, ADD COLUMN public boolean DEFAULT false;
       ALTER TABLE storage.objects ADD COLUMN metadata jsonb;
       ALTER TABLE storage.objects ALTER COLUMN id SET DEFAULT gen_random_uuid();
@@ -93,7 +92,6 @@ test('Evidencias: migración, CRUD, consentimiento, publicación, RLS y catálog
       await assert.rejects(upload('otro-bucket',evidence.ruta_objeto),{code:'42501'});
       await upload('fge-evidencias',evidence.ruta_objeto,{size:99,mimetype:'image/png'});
       await assert.rejects(update("estado_carga='disponible'"),{code:'23514'});
-      // Ajuste exclusivo del fixture de catálogo: en Supabase se carga mediante Storage API.
       await db.query("UPDATE storage.objects SET metadata=$1 WHERE name=$2",[{size:12,mimetype:'image/png'},evidence.ruta_objeto]);
       assert.equal((await update("estado_carga='disponible'")).rows[0].estado_carga,'disponible');
     });

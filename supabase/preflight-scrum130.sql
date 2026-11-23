@@ -1,4 +1,3 @@
--- Solo lectura; no muestra identidades ni respaldos. Ejecutar antes del despliegue.
 SELECT count(*) AS donaciones, count(*) FILTER (WHERE archived_at IS NOT NULL) AS historicas,
   count(*) FILTER (WHERE tipo_aporte = 'dinero') AS dinero,
   count(*) FILTER (WHERE tipo_aporte = 'recurso') AS recursos_por_clasificar

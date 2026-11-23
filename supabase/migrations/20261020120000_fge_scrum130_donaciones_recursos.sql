@@ -1,4 +1,3 @@
--- SCRUM-130. Extiende la entidad existente; no duplica recursos ni Storage.
 BEGIN;
 
 ALTER TABLE public.donaciones
@@ -13,8 +12,6 @@ ALTER TABLE public.donaciones
   ADD COLUMN moneda_valorizacion text CHECK (moneda_valorizacion ~ '^[A-Z]{3}$'),
   ADD COLUMN metodo_valorizacion text CHECK (metodo_valorizacion IS NULL OR btrim(metodo_valorizacion) <> '');
 
--- Solo se deriva información inequívoca. No inventar clasificación de recursos,
--- tipo de donante, origen ni estado actual de los movimientos históricos.
 UPDATE public.donaciones d SET id_pais = o.id_pais
 FROM public.organizaciones o WHERE o.id_organizacion = d.id_organizacion;
 UPDATE public.donaciones SET categoria = 'Dinero' WHERE tipo_aporte = 'dinero';
@@ -39,8 +36,6 @@ ALTER TABLE public.donaciones
       AND valor_estimado NOT IN ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric)
       AND moneda_valorizacion IS NOT NULL AND metodo_valorizacion IS NOT NULL));
 
--- RF51: cantidad y unidad solo cuando correspondan. Se conserva el monto
--- efectivo separado de la valorización y se rechazan pares parciales.
 ALTER TABLE public.donaciones DROP CONSTRAINT donacion_valores_validos;
 ALTER TABLE public.donaciones ADD CONSTRAINT donacion_valores_validos CHECK (
   (tipo_aporte = 'dinero' AND monto IS NOT NULL AND monto > 0
@@ -52,8 +47,6 @@ ALTER TABLE public.donaciones ADD CONSTRAINT donacion_valores_validos CHECK (
       AND cantidad NOT IN ('NaN'::numeric,'Infinity'::numeric,'-Infinity'::numeric)
       AND NULLIF(btrim(unidad),'') IS NOT NULL))));
 
--- El país omitido por clientes anteriores se obtiene de la Organización. La FK
--- compuesta impide inconsistencias, incluso ante cambios de país concurrentes.
 CREATE FUNCTION fge_private.validar_donacion_relaciones() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
@@ -65,7 +58,6 @@ BEGIN
     END IF;
   END IF;
   IF NEW.categoria IS NULL AND NEW.tipo_aporte = 'dinero' THEN NEW.categoria := 'Dinero'; END IF;
-  -- Archivar no exige que las referencias históricas sigan activas.
   IF TG_OP = 'INSERT' OR NEW.id_organizacion IS DISTINCT FROM OLD.id_organizacion
      OR NEW.id_pais IS DISTINCT FROM OLD.id_pais
      OR NEW.id_programa IS DISTINCT FROM OLD.id_programa THEN
@@ -91,6 +83,5 @@ COMMENT ON COLUMN public.donaciones.origen IS 'Procedencia declarada del aporte.
 COMMENT ON COLUMN public.donaciones.estado IS 'Estado del aporte, independiente de la dirección del movimiento. NULL: pendiente de completar por el cliente legado.';
 COMMENT ON COLUMN public.donaciones.valor_estimado IS 'Valorización opcional de dinero o recursos; no reemplaza el monto efectivo.';
 COMMENT ON COLUMN public.donaciones.id_programa IS 'Programa institucional global opcional; no requiere inventar un Plan.';
--- RLS, archivado seguro, sellado, auditoría y archivos.id_donacion existentes se conservan.
 NOTIFY pgrst, 'reload schema';
 COMMIT;

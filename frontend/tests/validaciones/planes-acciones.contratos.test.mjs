@@ -27,7 +27,7 @@ test('SCRUM-87: descripción opcional y cuatro estados, sin Vencida asignable', 
 test('edición parcial conserva campos omitidos y permite limpiar descripción explícitamente', () => {
   assert.deepEqual(actualizarAccionSchema.parse({id_accion:id,version_esperada:2,cambios:{responsable_nombre:'Otro'}}).cambios,{responsable_nombre:'Otro'});
   assert.deepEqual(actualizarAccionSchema.parse({id_accion:id,version_esperada:2,cambios:{descripcion:null}}).cambios,{descripcion:null});
-  assert.equal(actualizarAccionSchema.safeParse({id_accion:id,version_esperada:2,cambios:{estado:'cancelada'}}).success,true); // El CHECK valida el motivo persistido.
+  assert.equal(actualizarAccionSchema.safeParse({id_accion:id,version_esperada:2,cambios:{estado:'cancelada'}}).success,true);
   assert.equal(actualizarAccionSchema.safeParse({id_accion:id,version_esperada:2,cambios:{estado:'cancelada',observacion_motivo:null}}).success,false);
 });
 

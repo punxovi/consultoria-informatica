@@ -1,4 +1,3 @@
--- KAN-172: operaciones de Programas en Supabase local. Se revierte todo.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

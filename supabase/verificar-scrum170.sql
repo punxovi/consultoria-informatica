@@ -1,8 +1,3 @@
--- SCRUM-170: validación de la migración y de la superficie pública de cotización.
--- Ejecutar en Supabase SQL Editor DESPUÉS de aplicar:
--- 20261104100000_fge_scrum170_superficie_publica_cotizacion.sql
--- La transacción termina en ROLLBACK y no deja datos de prueba.
-
 BEGIN;
 SET LOCAL search_path = public, extensions;
 
@@ -58,7 +53,6 @@ BEGIN
   INSERT INTO public.productos(id_producto, id_organizacion, nombre, descripcion, unidad_medida, tipo_item, publicado, caracteristicas)
   VALUES (producto, organizacion, 'SCRUM-170 QA', 'Registro sintético revertido al terminar', 'unidad', 'producto', true, '{"origen":"qa"}'::jsonb);
 
-  -- La vista pública no debe revelar la Organización ni campos de auditoría.
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'catalogo_cotizacion_publico'
@@ -87,7 +81,6 @@ BEGIN
     RAISE EXCEPTION 'La RPC no devolvió una solicitud válida: %', solicitud;
   END IF;
 
-  -- La escritura pública está encapsulada: no se permite INSERT directo como anon.
   BEGIN
     INSERT INTO public.solicitudes_cotizacion(nombre_solicitante, correo)
     VALUES ('No permitido', 'no-permitido@example.invalid');
@@ -125,4 +118,3 @@ END $$;
 SELECT * FROM scrum170_resultados ORDER BY prueba;
 ROLLBACK;
 
--- Resultado esperado: todas las filas deben tener resultado = OK.

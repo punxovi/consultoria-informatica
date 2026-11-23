@@ -5,7 +5,6 @@ export interface ReportSection { key: string; title: string; columns: string[]; 
 export interface ReportDocument {
   title: string; destination: ReportDestination; generatedAt: string;
   period: { start: string; end: string }; filters: string[];
-  /** Filtros con nombres legibles para imprimir en el PDF (si falta, se usa `filters`). */
   filterLabels?: string[];
   summary: Array<{ label: string; value: string }>;
   sections: ReportSection[];
@@ -47,8 +46,6 @@ export function prepareReportDocument(snapshot: ConsolidatedReportSnapshot, requ
   const completed = s.actions.filter(row => row.estado === 'cumplida');
   const fulfilled = s.commitments.filter(row => row.estado === 'cumplido');
   const external = request.destination !== 'interno';
-  // Los filtros llegan como UUID; el PDF muestra los nombres resueltos desde el
-  // propio consolidado (que ya viene filtrado por esos mismos identificadores).
   const sinRegistros = 'selección aplicada (sin registros en el período)';
   const unico = (values: unknown[]) => {
     const names = [...new Set(values.filter((v): v is string => typeof v === 'string' && v.trim() !== ''))];
@@ -63,8 +60,6 @@ export function prepareReportDocument(snapshot: ConsolidatedReportSnapshot, requ
     return names.join(', ');
   };
   const f = request.filters;
-  // `filters` es el contrato que la vista previa usa para verificar la
-  // correspondencia (declara los UUID aplicados); no debe cambiar de formato.
   const filters = [
     f.countryId ? `País: ${external ? 'selección aplicada' : f.countryId}` : 'País: todos los visibles para la sesión',
     f.organizationId ? `Organización: ${external ? 'selección aplicada' : f.organizationId}` : 'Organización: todas las visibles',
@@ -72,7 +67,6 @@ export function prepareReportDocument(snapshot: ConsolidatedReportSnapshot, requ
     f.indicatorIds ? `Indicadores: ${external ? `${f.indicatorIds.length} seleccionados` : f.indicatorIds.join(', ')}` : 'Indicadores: sin selección adicional',
     f.resultIds ? `Resultados: ${external ? `${f.resultIds.length} seleccionados` : f.resultIds.join(', ')}` : 'Resultados: sin selección adicional',
   ];
-  // `filterLabels` es lo que se imprime en el PDF: nombres legibles en lugar de UUID.
   const filterLabels = external ? [...filters] : [
     f.countryId ? `País: ${unico(s.organizations.map(r => r.pais))}` : filters[0],
     f.organizationId ? `Organización: ${porId(s.organizations, r => r.id_organizacion, r => r.nombre, [f.organizationId])}` : filters[1],

@@ -1,30 +1,17 @@
--- Políticas RLS para Sprint 6: Indicadores, Resultados y control de acceso
 BEGIN;
 
--- ==============================================================================
--- 1. Estructura y permisos para Indicadores y Resultados
--- ==============================================================================
-
--- Permitir que id_accion sea opcional para el catálogo estándar de indicadores
 ALTER TABLE public.indicadores ALTER COLUMN id_accion DROP NOT NULL;
 
 
--- Asegurar que Row Level Security esté activo
 ALTER TABLE public.indicadores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resultados ENABLE ROW LEVEL SECURITY;
 
--- Revocar accesos públicos y anónimos, conceder a usuarios autenticados
 REVOKE ALL ON TABLE public.indicadores FROM PUBLIC, anon;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.indicadores TO authenticated;
 
 REVOKE ALL ON TABLE public.resultados FROM PUBLIC, anon;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.resultados TO authenticated;
 
--- ==============================================================================
--- 2. Funciones auxiliares de acceso para Indicadores y Resultados
--- ==============================================================================
-
--- Función para verificar si el usuario actual tiene rol de Administrador activo
 CREATE OR REPLACE FUNCTION fge_private.usuario_es_administrador()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT EXISTS (
@@ -39,7 +26,6 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   );
 $$;
 
--- Función para verificar si el usuario tiene algún rol activo en la plataforma
 CREATE OR REPLACE FUNCTION fge_private.usuario_tiene_rol_activo()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT EXISTS (
@@ -54,17 +40,14 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   );
 $$;
 
--- Control de acceso para indicadores (asociados a una Acción o del catálogo estándar)
 CREATE OR REPLACE FUNCTION fge_private.acceso_indicador_accion(p_accion uuid, p_gestion boolean)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT CASE
-    -- Catálogo estándar de indicadores (sin acción vinculada)
     WHEN p_accion IS NULL THEN
       CASE
         WHEN p_gestion THEN fge_private.usuario_es_administrador()
         ELSE fge_private.usuario_tiene_rol_activo()
       END
-    -- Indicador asociado a una Acción específica (hereda organización territorial)
     ELSE
       EXISTS (
         SELECT 1 FROM public.acciones a
@@ -88,10 +71,6 @@ GRANT EXECUTE ON FUNCTION fge_private.usuario_tiene_rol_activo() TO authenticate
 
 REVOKE ALL ON FUNCTION fge_private.acceso_indicador_accion(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION fge_private.acceso_indicador_accion(uuid, boolean) TO authenticated;
-
--- ==============================================================================
--- 3. Políticas RLS para Indicadores
--- ==============================================================================
 
 CREATE POLICY indicadores_lectura
 ON public.indicadores FOR SELECT TO authenticated
@@ -117,10 +96,6 @@ WITH CHECK (
   archived_at IS NULL
   AND fge_private.acceso_indicador_accion(id_accion, true)
 );
-
--- ==============================================================================
--- 4. Políticas RLS para Resultados
--- ==============================================================================
 
 CREATE POLICY resultados_lectura
 ON public.resultados FOR SELECT TO authenticated
@@ -166,10 +141,6 @@ WITH CHECK (
       AND fge_private.acceso_indicador_accion(i.id_accion, true)
   )
 );
-
--- ==============================================================================
--- 5. Funciones seguras de archivado (Soft Delete)
--- ==============================================================================
 
 CREATE OR REPLACE FUNCTION public.archivar_indicador_seguro(p_id uuid, p_version bigint)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$

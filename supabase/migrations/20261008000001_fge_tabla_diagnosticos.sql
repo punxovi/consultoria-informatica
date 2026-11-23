@@ -1,4 +1,3 @@
--- Creación de la tabla de diagnósticos para SCRUM-96 y SCRUM-97
 create table if not exists public.diagnosticos (
     id_diagnostico uuid primary key default gen_random_uuid(),
     id_organizacion uuid not null references public.organizaciones(id_organizacion) on delete cascade,
@@ -13,10 +12,8 @@ create table if not exists public.diagnosticos (
     updated_by uuid null
 );
 
--- Índice para optimizar consultas por organización
 create index if not exists idx_diagnosticos_organizacion on public.diagnosticos(id_organizacion);
 
--- Políticas de seguridad (RLS)
 alter table public.diagnosticos enable row level security;
 
 create policy "Acceso por organización para diagnósticos"

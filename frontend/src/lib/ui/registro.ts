@@ -5,15 +5,11 @@ export interface OpcionesRegistro {
   acento?: AcentoRegistro;
   contexto?: string;
   titulo: string;
-  /** Imagen o ícono junto al título. */
   media?: HTMLElement;
-  /** Texto breve bajo el título (máximo 2 líneas). */
   resumen?: string;
   insignias?: { texto: string; tono: TonoInsignia; etiqueta?: string }[];
   datos?: [etiqueta: string, valor: string | null | undefined][];
-  /** Enlace discreto «Ver detalle →». */
   accion?: { texto: string; etiquetaAccesible?: string; atributos?: Record<string, string>; alPulsar: () => void };
-  /** Botones de decisión (por ejemplo Aprobar / Rechazar). */
   botones?: { texto: string; variante?: 'primario' | 'secundario' | 'peligro'; deshabilitado?: boolean; alPulsar: () => void }[];
 }
 

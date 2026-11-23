@@ -1,9 +1,5 @@
--- KAN-176: guardado atómico desde las Actions, con permisos de la sesión.
 BEGIN;
 
--- PostgreSQL verifica SELECT también sobre la fila resultante del archivado.
--- Solo ADMIN puede leer el historial de líneas de un programa activo.
--- Los repositorios del catálogo siguen filtrando archived_at IS NULL.
 CREATE POLICY programa_lineas_accion_admin_lectura_archivadas
 ON public.programa_lineas_accion FOR SELECT TO authenticated
 USING (
@@ -134,8 +130,6 @@ BEGIN
   END IF;
 
   IF p_datos ? 'lineas_accion' THEN
-    -- Conservar las líneas por nombre; retirar las ausentes antes de insertar.
-    -- Así quitar la primera línea o reutilizar un nombre no produce colisiones.
     UPDATE public.programa_lineas_accion AS existente SET archived_at = now()
     WHERE existente.id_programa = v_programa.id_programa AND existente.archived_at IS NULL
       AND NOT EXISTS (

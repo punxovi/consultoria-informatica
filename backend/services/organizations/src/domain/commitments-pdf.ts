@@ -6,7 +6,6 @@ export const MAX_PDF_COMMITMENTS = 500;
 const date = z.iso.date();
 const optionalText = (max: number) => z.string().max(max).nullable();
 
-/** Proyección validada de los registros persistidos, no de datos del cliente. */
 export const pdfCommitmentSchema = z.object({
   id_compromiso: z.uuid(),
   id_organizacion: z.uuid(),
@@ -32,9 +31,7 @@ export interface CommitmentsPdfDocument {
   organization: { id_organizacion: string; nombre: string; pais?: { nombre: string } | null };
   context: CommitmentsPdfContext;
   commitments: PdfCommitment[];
-  /** Nombre legible de cada acta de origen («Acta del AAAA-MM-DD: título»), si está disponible. */
   actas?: Record<string, string>;
-  /** Momento de generación (ISO); por defecto, el instante actual. */
   generatedAt?: string;
 }
 export interface CommitmentsPdfFile {

@@ -1,7 +1,5 @@
 BEGIN;
 
--- SQL Editor permite ejecutar archivos fuera de orden. Verificar la dependencia
--- antes de instalar funciones que, sin sus políticas, no pueden funcionar.
 DO $prerequisitos$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid='public.indicadores'::regclass
@@ -120,7 +118,6 @@ BEGIN
   IF jsonb_array_length(p_indicadores) NOT BETWEEN 1 AND 100 THEN
     RAISE EXCEPTION 'Selecciona entre 1 y 100 indicadores.' USING ERRCODE = '22023';
   END IF;
-  -- Cada INSERT está en la misma transacción: un duplicado invalida el lote completo.
   FOR entrada IN SELECT * FROM jsonb_to_recordset(p_indicadores) AS x(id_indicador uuid, meta numeric)
   LOOP
     IF entrada.id_indicador IS NULL OR entrada.meta IS NULL OR entrada.meta < 0 OR entrada.meta > 9007199254740991 THEN
@@ -172,7 +169,6 @@ BEGIN
   IF NOT fge_private.acceso_indicador_accion(ind.id_accion, true) THEN
     RAISE EXCEPTION 'Sin permiso para registrar resultados.' USING ERRCODE = '42501';
   END IF;
-  -- Serializa el primer registro y el archivado del padre. No altera la versión de la meta.
   PERFORM 1 FROM public.indicadores WHERE id_indicador = p_indicador AND archived_at IS NULL FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Indicador no disponible.' USING ERRCODE = 'P0002'; END IF;
   IF p_valor IS NULL OR p_valor < 0 OR p_valor > 9007199254740991 OR p_fecha IS NULL

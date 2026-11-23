@@ -333,8 +333,6 @@ export async function iniciarActasReunion() {
       }
     }
 
-    // Los archivos cargados correctamente dejan de aparecer en la lista pendiente.
-    // Solo conservamos los que fallaron para que puedan reintentarse.
     const transferencia = new DataTransfer();
     for (const archivo of archivosPendientes) transferencia.items.add(archivo);
     archivosAdjuntos.files = transferencia.files;
@@ -455,7 +453,6 @@ export async function iniciarActasReunion() {
   subirAdjuntos.addEventListener('click', () => void procesarAdjuntos());
   nueva.addEventListener('click', () => abrirFormulario());
   editar.addEventListener('click', () => { if (actual) abrirFormulario(actual); });
-  // Mismo PDF que «Descargar PDF del acta» en el detalle de un compromiso.
   botonPdf.addEventListener('click', async () => {
     if (!actual || ocupado) return;
     limpiarMensajes(); ocupar(true);

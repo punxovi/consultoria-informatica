@@ -18,7 +18,6 @@ test('cada filtro puede enviarse solo y se codifica sin inyectar parámetros',()
 test('envía la zona horaria del navegador para interpretar las fechas en hora local',()=>{
   const p=new URLSearchParams(parametros({...vacios,desde:'2026-11-06',hasta:'2026-11-06'},undefined,'America/Santiago'));
   assert.equal(p.get('zona_horaria'),'America/Santiago'); assert.equal(p.get('desde'),'2026-11-06');
-  // Por defecto toma la del navegador (en Node es la del sistema).
   assert.equal(new URLSearchParams(parametros(vacios)).get('zona_horaria'),zonaHorariaLocal());
   assert.match(zonaHorariaLocal(),/^[A-Za-z]+/);
 });

@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import { ApiError, type ApiTransport } from '../api/transporte.ts';
 import { camposCompromisoSchema } from '../compromisos/modelo.ts';
@@ -12,7 +11,6 @@ const catalogoSchema = z.object({
 });
 
 const registroSchema = camposActaSchema.extend({
-  // Los registros históricos pueden carecer de asistentes o valores opcionales.
   asistentes: z.array(z.string()),
   asistentes_externos: z.string().max(500),
   objetivo: z.string().max(1000),

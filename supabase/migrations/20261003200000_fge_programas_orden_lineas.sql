@@ -3,7 +3,6 @@ BEGIN;
 ALTER TABLE public.programa_lineas_accion
   ADD COLUMN orden integer NOT NULL DEFAULT 0 CHECK (orden >= 0);
 
--- Para las filas existentes se conserva el orden que mostraba el repositorio.
 WITH posiciones AS (
   SELECT id_linea_accion,
          row_number() OVER (PARTITION BY id_programa ORDER BY created_at, id_linea_accion)::integer AS orden
@@ -133,8 +132,6 @@ BEGIN
   END IF;
 
   IF p_datos ? 'lineas_accion' THEN
-    -- Conservar las líneas por nombre; retirar las ausentes antes de insertar.
-    -- Así quitar la primera línea o reutilizar un nombre no produce colisiones.
     UPDATE public.programa_lineas_accion AS existente SET archived_at = now()
     WHERE existente.id_programa = v_programa.id_programa AND existente.archived_at IS NULL
       AND NOT EXISTS (

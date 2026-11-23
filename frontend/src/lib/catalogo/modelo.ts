@@ -16,7 +16,6 @@ export function urlImagen(valor?: string | null): string {
     return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : imagenPredeterminada;
   } catch { return imagenPredeterminada; }
 }
-// El Backend entrega las fotos de productos publicados; el bucket es privado.
 export function fuenteImagen(imagen: { url?: string | null; id_archivo?: string } | undefined, apiBase: string): string | null {
   if (imagen?.id_archivo) return `${apiBase.replace(/\/$/, '')}/api/v1/public/catalog/images/${encodeURIComponent(imagen.id_archivo)}`;
   return imagen?.url ?? null;
@@ -26,7 +25,6 @@ export function filtrarCatalogo(items: ItemPublico[], pais: string, organizacion
     (!pais || item.organizacion?.pais?.id_pais === pais) &&
     (!organizacion || item.organizacion?.id_organizacion === organizacion));
 }
-// Solo características públicas: nunca renderizar campos arbitrarios como precio o stock.
 export function caracteristicasPublicas(item: ItemPublico): [string, string][] {
   const texto = (v: unknown) => typeof v === 'string' ? v.trim() : '';
   return [

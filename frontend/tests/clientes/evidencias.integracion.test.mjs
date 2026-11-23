@@ -18,7 +18,6 @@ test('Evidencias: cliente → Gateway → Backend → SQL/RLS y Storage simulado
       const missing='ffffffff-ffff-4fff-8fff-ffffffffffff';
       const resolved=await env.como('qa-publication',tx=>tx.query('SELECT * FROM public.obtener_archivo_evidencia_publicada($1)',[missing]));
       assert.deepEqual(resolved.rows,[]);
-      // La prueba no debe ocultar un GRANT faltante concediendo acceso a todas las tablas.
       await assert.rejects(env.como('qa-publication',tx=>tx.query('SELECT correo FROM public.organizaciones LIMIT 0')),{code:'42501'});
       await assert.rejects(env.como('qa-publication',tx=>tx.query('SELECT descripcion FROM public.evidencias LIMIT 0')),{code:'42501'});
     });

@@ -1,8 +1,3 @@
--- Adecuación de permisos territoriales para Coordinadores.
---
--- COORD tiene consulta transversal sobre todos los países. La autorización
--- para escribir permanece en usuario_puede_gestionar_organizacion(), que solo
--- admite el país principal o una cobertura temporal vigente.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.usuario_puede_consultar_organizacion(

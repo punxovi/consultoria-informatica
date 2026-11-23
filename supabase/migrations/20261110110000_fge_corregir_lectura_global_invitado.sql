@@ -1,5 +1,3 @@
--- Corrige la política global del Invitado si la migración anterior ya fue aplicada.
--- SELECT debe quedar permitido; INSERT/UPDATE/DELETE deben seguir bloqueados.
 BEGIN;
 
 DROP POLICY IF EXISTS invitado_solo_lectura ON public.organizaciones;

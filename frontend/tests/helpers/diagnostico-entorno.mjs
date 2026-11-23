@@ -1,5 +1,3 @@
-// Integración real de cliente, Gateway, servicio, repositorio y SQL/RLS.
-// Este adaptador sustituye únicamente Auth/PostgREST de Supabase por PGlite local.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { crearBaseProgramas, usuarios } from './programas-db.mjs';

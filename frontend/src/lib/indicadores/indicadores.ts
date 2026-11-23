@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { catalogoSchema, indicadorAccionSchema, resultadoSchema, numeroFormularioSchema, resultadoFormularioSchema } from './modelo.ts';
 import { getSupabaseClient } from '../supabase.ts';
 
-// Clase de error local autocontenida
 class ServiceError extends Error {
   codigo: string;
   status: number;
@@ -18,7 +17,6 @@ class ServiceError extends Error {
   }
 }
 
-// 1. Obtener el catálogo global de indicadores estándar
 export const obtenerCatalogoIndicadores = defineAction({
   handler: async () => {
     const supabase = getSupabaseClient();
@@ -44,7 +42,6 @@ export const obtenerCatalogoIndicadores = defineAction({
   },
 });
 
-// 2. Listar indicadores asociados a una Acción
 export const listarIndicadoresAccion = defineAction({
   handler: async ({ accionId }: { accionId: string }) => {
     const supabase = getSupabaseClient();
@@ -99,7 +96,6 @@ export const listarIndicadoresAccion = defineAction({
   },
 });
 
-// 3. Asociar indicadores a una Acción
 export const asociarIndicadoresAccion = defineAction({
   accept: 'json',
   handler: async ({ accionId, indicadores }: { accionId: string; indicadores: Array<{ id_indicador: string; meta: number }> }) => {
@@ -153,7 +149,6 @@ export const asociarIndicadoresAccion = defineAction({
   },
 });
 
-// 4. Actualizar meta de un indicador asociado
 export const actualizarMetaIndicador = defineAction({
   accept: 'json',
   handler: async ({ id, cambios }: { id: string; version_esperada?: number; cambios: { meta: number } }) => {
@@ -216,7 +211,6 @@ export const actualizarMetaIndicador = defineAction({
   },
 });
 
-// 5. Guardar o actualizar resultados
 export const guardarResultadoIndicador = defineAction({
   accept: 'json',
   handler: async (input: { id_resultado?: string; id_indicador?: string; valor_medido: number; fecha_medicion: string; observaciones?: string | null }) => {

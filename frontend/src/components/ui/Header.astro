@@ -67,7 +67,6 @@ const {
   <div class="ml-4 flex shrink-0 items-center gap-2 md:gap-3">
     <slot name="actions" />
 
-    <!-- El perfil se completa desde AppLayout con la sesión autenticada. -->
     <div class="relative" data-session-profile hidden>
       <button
         type="button"
@@ -217,18 +216,11 @@ const {
 
 
 <style>
-  /* Normaliza títulos y breadcrumbs aunque las páginas tengan clases tipográficas propias. */
   :global(.header-page-title *) {
     font-size: inherit !important;
     line-height: inherit !important;
   }
 
-  /*
-   * Breadcrumb responsivo. Todas las páginas siguen el patrón:
-   * <BackButton> · links intermedios · separadores › · página actual (span.font-semibold).
-   * Móvil: solo la flecha y la página actual ("‹ Club de Fútbol…"), sin niveles cortados.
-   * Escritorio: breadcrumb completo y sin flecha (los links ya permiten volver).
-   */
   @media (max-width: 767.98px) {
     :global(.header-migas a:not([data-migas-volver])),
     :global(.header-migas span:not(.font-semibold)) {

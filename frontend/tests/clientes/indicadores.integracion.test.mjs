@@ -13,7 +13,7 @@ test('la carga inicial de sprint 9 es repetible y conserva los indicadores de la
     const catalog = await client.catalogo();
     const [item] = await client.asociar(accion.id_accion, [{ id_indicador: catalog[0].id_indicador, meta: 42 }]);
     const seed = await readFile(new URL('../../../supabase/seed.sql', import.meta.url), 'utf8');
-    const sql = seed.slice(seed.indexOf('WITH catalogo('), seed.indexOf('-- Cuenta de prueba'));
+    const sql = seed.slice(seed.indexOf('WITH catalogo('), seed.indexOf('INSERT INTO auth.users ('));
     const before = await client.listar(accion.id_accion);
     await env.db.exec(sql);
     const first = await client.catalogo();
@@ -81,7 +81,6 @@ test('SCRUM-118: cliente HTTP → Gateway → Intervenciones → PostgreSQL con 
       assert.equal((await http('results',{...values,id_indicador:catalog[0].id_indicador},'qa-admin')).status,404);
       assert.equal((await fetch(env.gatewayUrl+'/api/v1/indicators/catalog')).status,401);
       await assert.rejects(client.listar('ffffffff-ffff-4fff-8fff-ffffffffffff'),e=>e.status===404);
-      // COORD tiene lectura global según las políticas existentes; la escritura es territorial.
       assert.deepEqual(await client.listar(ar.accion.id_accion),[]);
       await assert.rejects(client.asociar(ar.accion.id_accion,[{id_indicador:catalog[0].id_indicador,meta:20}]),e=>e.status===403);
       const [foreign]=await admin.asociar(ar.accion.id_accion,[{id_indicador:catalog[0].id_indicador,meta:20}]);

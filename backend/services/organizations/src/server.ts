@@ -42,7 +42,6 @@ function loadEnvManually() {
       }
     }
   } catch (e) {
-    // Ignorar errores de lectura
   }
 }
 

@@ -31,7 +31,6 @@ export async function routeInsights(
       respond(response, 200, health('insights-service'), requestId); return;
     }
     
-    // Actualizamos las capabilities para indicar que el reporte consolidado ya existe
     if (request.method === 'GET' && ['/v1/dashboard/capabilities', '/v1/reports/capabilities'].includes(url.pathname)) {
       respond(response, 200, success('INSIGHTS_MIGRADOS', 'El servicio de Dashboard y Reportes está disponible.', {
         migrated: true, dashboard: ['snapshot', 'country-filter', 'year-filter', 'pending-actions'], reports: ['overview', 'consolidated','pdf'],
@@ -66,7 +65,6 @@ export async function routeInsights(
       respond(response, 200, success('REPORTE_RESUMEN_OBTENIDO', 'El resumen del reporte fue consultado correctamente.', { report }), requestId); return;
     }
 
-    // --- NUEVA RUTA: REPORTE CONSOLIDADO ---
     if (request.method === 'GET' && url.pathname === '/v1/reports/consolidated') {
       const reportRequest = parseConsolidatedFilters(url);
       const report = await application.consolidatedReport(token, reportRequest);

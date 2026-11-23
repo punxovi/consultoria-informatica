@@ -22,7 +22,7 @@ Este documento describe las políticas de *Row Level Security* (RLS) y permisos 
    - La publicación exige consentimiento afirmativo registrado y archivo disponible.
 3. **Privacidad y Rutas Públicas**:
    - El bucket `fge-evidencias` es **privado** (`public = false`). Los archivos no son accesibles a personas externas ni anónimas.
-   - El estado `publicado = true` no altera las políticas de Storage ni abre acceso anónimo directo. SCRUM-115 agrega la ruta institucional del Backend y su resolver exclusivo para `service_role`; requiere aplicar `20261016120000_fge_publicacion_evidencias.sql` y configurar la credencial privada. Ver [PROBAR-SCRUM-115](PROBAR-SCRUM-115.md).
+   - El estado `publicado = true` no altera las políticas de Storage ni abre acceso anónimo directo. SCRUM-115 agrega la ruta institucional del Backend y su resolver exclusivo para `service_role`; requiere aplicar `20261016120000_fge_publicacion_evidencias.sql` y configurar la credencial privada.
 
 ### Archivos (`storage.objects`)
 - **`storage_evidencias_insert`**: Solo se permite cargar en la ruta reservada `id_accion/id_evidencia` si el usuario tiene permiso de gestión sobre la Acción asociada.

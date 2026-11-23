@@ -1,11 +1,9 @@
 ---
-// TEMPORAL: página de programas de la simulación del sitio de la fundación.
 import SimulacionLayout from '../../layouts/SimulacionLayout.astro';
 import { programasSimulacion } from '../../lib/simulacion/programas';
 ---
 
 <SimulacionLayout title="Programas · Simulación sitio Fundación Gestionar Esperanzas" actual="programas">
-  <!-- Portada -->
   <section class="relative overflow-hidden bg-[#4C4688] text-white">
     <div class="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[#1EAFDA]/40" aria-hidden="true"></div>
     <div class="relative mx-auto max-w-6xl px-4 py-14 md:py-20">
@@ -17,7 +15,6 @@ import { programasSimulacion } from '../../lib/simulacion/programas';
     </div>
   </section>
 
-  <!-- Índice de programas -->
   <nav
     aria-label="Ir a un programa"
     class="sticky top-16 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-sm md:top-20"
@@ -37,7 +34,6 @@ import { programasSimulacion } from '../../lib/simulacion/programas';
     </ul>
   </nav>
 
-  <!-- Programas -->
   <div class="mx-auto max-w-6xl space-y-8 px-4 py-12 md:space-y-10 md:py-16">
     {programasSimulacion.map((programa, indice) => (
       <article

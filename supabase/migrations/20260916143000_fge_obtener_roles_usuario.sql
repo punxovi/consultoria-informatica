@@ -1,7 +1,3 @@
--- Migración para obtener los roles del usuario autenticado
--- Se crea una función con SECURITY DEFINER para saltarse el RLS de asignaciones_roles
--- y permitir que el frontend valide los accesos del usuario actual.
-
 CREATE OR REPLACE FUNCTION public.get_user_roles()
 RETURNS TABLE (
   codigo text,
@@ -22,5 +18,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Otorgar permiso de ejecución a usuarios autenticados
 GRANT EXECUTE ON FUNCTION public.get_user_roles() TO authenticated;

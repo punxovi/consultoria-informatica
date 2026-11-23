@@ -26,7 +26,6 @@ import { mainNavItems } from '../../config/nav';
       class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success focus:outline-none"
     ></p>
 
-    <!-- Encabezado -->
     <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div class="min-w-0">
         <p class="text-sm font-medium text-primary">
@@ -57,7 +56,6 @@ import { mainNavItems } from '../../config/nav';
       </Button>
     </header>
 
-    <!-- Indicadores -->
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {[
         {
@@ -156,7 +154,6 @@ import { mainNavItems } from '../../config/nav';
       ))}
     </div>
 
-    <!-- Filtros -->
     <Card class="p-4 md:p-5">
       <div class="mb-4 flex items-start gap-3">
         <span class="rounded-xl bg-primary/10 p-2.5 text-primary" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M7 12h10m-7 7h4" /></svg></span>
@@ -216,7 +213,6 @@ import { mainNavItems } from '../../config/nav';
       </div>
     </Card>
 
-    <!-- Estado de carga -->
     <div
       id="coberturas-carga"
       hidden
@@ -232,7 +228,6 @@ import { mainNavItems } from '../../config/nav';
       Cargando coberturas...
     </div>
 
-    <!-- Estado de error -->
     <div
       id="coberturas-error"
       hidden
@@ -246,7 +241,6 @@ import { mainNavItems } from '../../config/nav';
       <p id="coberturas-error-texto" class="mt-1"></p>
     </div>
 
-    <!-- Listado -->
     <section
       aria-labelledby="coberturas-listado-title"
       class="space-y-4"
@@ -268,7 +262,6 @@ import { mainNavItems } from '../../config/nav';
         </Button>
       </EmptyState>
 
-      <!-- Sin registros después de una consulta real -->
       <div
         id="coberturas-sin-registros"
         hidden
@@ -290,7 +283,6 @@ import { mainNavItems } from '../../config/nav';
         </div>
       </div>
 
-      <!-- Búsqueda sin coincidencias -->
       <div
         id="coberturas-sin-resultados"
         hidden
@@ -305,7 +297,6 @@ import { mainNavItems } from '../../config/nav';
         </p>
       </div>
 
-      <!-- Tarjetas generadas a partir de datos recibidos del servicio -->
       <ul
         id="coberturas-lista"
         data-cliente-coberturas="integrado"
@@ -316,7 +307,6 @@ import { mainNavItems } from '../../config/nav';
     </section>
   </section>
 
-  <!-- Los diálogos se renderizan dentro del AppLayout -->
   <DialogosCobertura />
 </AppLayout>
 

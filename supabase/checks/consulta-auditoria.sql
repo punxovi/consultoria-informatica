@@ -1,4 +1,3 @@
--- Ejecutar después de la migración. Los fixtures se revierten.
 BEGIN;
 DO $qa$
 DECLARE actor uuid; country uuid; ref uuid:=gen_random_uuid(); filters jsonb;

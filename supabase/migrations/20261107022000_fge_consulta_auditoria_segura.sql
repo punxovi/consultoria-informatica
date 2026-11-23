@@ -1,4 +1,3 @@
--- Consulta RF62: filtros exactos, paginación sin pérdidas y salida mínima.
 BEGIN;
 CREATE INDEX IF NOT EXISTS historial_cursor_idx ON fge_private.historial_cambios(fecha_hora DESC,id_historial_cambio DESC);
 CREATE INDEX IF NOT EXISTS historial_pais_cursor_idx ON fge_private.historial_cambios(id_pais,fecha_hora DESC,id_historial_cambio DESC);
@@ -125,13 +124,11 @@ BEGIN
       ), '') AS referencia,
       historial.id_historial_cambio,
       perfil.nombre AS nombre_usuario,
-      -- Nombre legible del registro afectado, si la fila lo tiene.
       left(coalesce(
         historial.despues ->> 'nombre', historial.antes ->> 'nombre',
         historial.despues ->> 'titulo', historial.antes ->> 'titulo',
         historial.despues ->> 'nombre_producto', historial.antes ->> 'nombre_producto'
       ), 160) AS nombre_registro,
-      -- Campos que cambiaron en una modificación, sin columnas técnicas.
       CASE WHEN historial.tipo_accion = 'UPDATE' AND historial.antes IS NOT NULL AND historial.despues IS NOT NULL THEN (
         SELECT coalesce(jsonb_agg(campo.key ORDER BY campo.key), '[]'::jsonb)
         FROM jsonb_each(historial.despues) AS campo
@@ -142,7 +139,6 @@ BEGIN
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NULL AND historial.despues ->> 'archived_at' IS NOT NULL THEN 'archivado'
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NOT NULL AND historial.despues ->> 'archived_at' IS NULL THEN 'restaurado'
       END AS cambio_estado,
-      -- Eventos que no son cambios de una fila: inicio de sesión y consulta de documentos.
       CASE
         WHEN historial.tabla_afectada = 'autenticacion' THEN
           CASE WHEN historial.tipo_evento IN ('auth:login','auth:login_backend') THEN 'inicio_sesion' WHEN historial.clave_registro->>'exitoso'='false' THEN 'inicio_sesion_fallido' ELSE NULL END

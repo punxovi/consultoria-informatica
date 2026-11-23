@@ -1,6 +1,5 @@
 BEGIN;
 
--- 1. Políticas para Diagnósticos
 CREATE POLICY diagnosticos_lectura
 ON public.diagnosticos FOR SELECT TO authenticated
 USING (
@@ -26,7 +25,6 @@ WITH CHECK (
   AND fge_private.usuario_puede_gestionar_organizacion(id_organizacion)
 );
 
--- 2. Políticas para Actas
 CREATE POLICY actas_lectura
 ON public.actas FOR SELECT TO authenticated
 USING (
@@ -52,7 +50,6 @@ WITH CHECK (
   AND fge_private.usuario_puede_gestionar_organizacion(id_organizacion)
 );
 
--- 3. Políticas para Compromisos
 CREATE POLICY compromisos_lectura
 ON public.compromisos FOR SELECT TO authenticated
 USING (

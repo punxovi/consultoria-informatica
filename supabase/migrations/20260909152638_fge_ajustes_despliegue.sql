@@ -1,5 +1,4 @@
 BEGIN;
--- La función solo existe si se activó RLS automático al crear el proyecto.
 DO $$
 BEGIN
  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN

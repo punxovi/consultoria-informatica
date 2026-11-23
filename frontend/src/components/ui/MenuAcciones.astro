@@ -58,7 +58,6 @@ const { etiqueta = 'Más acciones', class: className = '' } = Astro.props;
       transform: none;
     }
 
-    /* Los diálogos de confirmación deben verse aunque el menú se cierre. */
     .menu-acciones-panel dialog {
       visibility: visible;
     }
@@ -98,7 +97,6 @@ const { etiqueta = 'Más acciones', class: className = '' } = Astro.props;
       toggle.setAttribute('aria-expanded', String(abierto));
     }
 
-    // Sin acciones visibles (por permisos) no se ofrece el botón ⋮.
     function actualizarToggle() {
       const hayAcciones = Array.from(panel.children).some(
         (hijo) => !(hijo as HTMLElement).hidden && getComputedStyle(hijo).display !== 'none',
@@ -112,7 +110,6 @@ const { etiqueta = 'Más acciones', class: className = '' } = Astro.props;
       abrir(!menu.hasAttribute('data-abierto'));
     });
 
-    // Elegir una opción cierra el menú (el diálogo de confirmación sigue visible).
     panel.addEventListener('click', (evento) => {
       const objetivo = evento.target as HTMLElement;
       if (objetivo.closest('dialog')) return;

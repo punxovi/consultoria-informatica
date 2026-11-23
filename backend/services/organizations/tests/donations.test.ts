@@ -56,7 +56,6 @@ test('SCRUM-130: contrato HU20 y valorización independiente del monto efectivo'
 });
 
 test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () => {
-  // Dinero válido
   const dineroValido = parseCreateDonation({
     ...hu20, categoria: 'Dinero',
     fecha: '2026-10-19',
@@ -70,7 +69,6 @@ test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () =>
   assert.equal(dineroValido.monto, 500000);
   assert.equal(dineroValido.moneda, 'CLP');
 
-  // Recurso válido
   const recursoValido = parseCreateDonation({
     ...hu20, categoria: 'Producto',
     fecha: '2026-10-19',
@@ -84,7 +82,6 @@ test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () =>
   assert.equal(recursoValido.cantidad, 20);
   assert.equal(recursoValido.unidad, 'cajas');
 
-  // Dinero sin monto debe fallar
   assert.throws(
     () => parseCreateDonation({
       ...hu20, categoria: 'Dinero',
@@ -97,7 +94,6 @@ test('Donaciones: normaliza y valida tipos de aporte (dinero y recursos)', () =>
     /El aporte en dinero exige un monto mayor a 0/
   );
 
-  // Recurso sin unidad debe fallar
   assert.throws(
     () => parseCreateDonation({
       ...hu20, categoria: 'Producto',
@@ -122,7 +118,6 @@ test('Respaldos de donación: normaliza los tipos contemplados y valida formatos
 
   assert.throws(() => normalizarTipoRespaldo('invalido'), /El tipo de respaldo debe ser/);
 
-  // Reserva válida
   const reserva = parseCreateDonationFile({
     tipo_respaldo: 'acta de entrega',
     nombre_original: 'acta_donacion.pdf',
@@ -133,7 +128,6 @@ test('Respaldos de donación: normaliza los tipos contemplados y valida formatos
   assert.equal(reserva.tipo_respaldo, 'acta_entrega');
   assert.equal(reserva.mime_type, 'application/pdf');
 
-  // Extensión inconsistente debe fallar
   assert.throws(
     () => parseCreateDonationFile({
       tipo_respaldo: 'fotografia',
@@ -144,7 +138,6 @@ test('Respaldos de donación: normaliza los tipos contemplados y valida formatos
     /La extensión del archivo no corresponde/
   );
 
-  // Archivo vacío debe fallar
   assert.throws(
     () => parseCreateDonationFile({
       tipo_respaldo: 'comprobante',
@@ -155,7 +148,6 @@ test('Respaldos de donación: normaliza los tipos contemplados y valida formatos
     /El archivo no puede estar vacío/
   );
 
-  // Archivo mayor a 50 MiB debe fallar
   assert.throws(
     () => parseCreateDonationFile({
       tipo_respaldo: 'comprobante',
@@ -347,13 +339,11 @@ test('HTTP: flujo completo de creación de donación, reserva, carga y descarga 
   try {
     const authHeaders = { authorization: 'Bearer test-token' };
 
-    // 1. Listar donaciones
     const listRes = await fetch(`${baseUrl}/v1/organizations/${orgId}/donations`, { headers: authHeaders });
     assert.equal(listRes.status, 200);
     const listData = await listRes.json();
     assert.equal(listData.data.donations.length, 1);
 
-    // 2. Crear donación
     const createRes = await fetch(`${baseUrl}/v1/organizations/${orgId}/donations`, {
       method: 'POST',
       headers: { ...authHeaders, 'content-type': 'application/json' },
@@ -372,7 +362,6 @@ test('HTTP: flujo completo de creación de donación, reserva, carga y descarga 
     const createData = await createRes.json();
     assert.equal(createData.data.donation.descripcion, 'Donación empresarial');
 
-    // 3. Listar archivos de la donación
     const listFilesRes = await fetch(`${baseUrl}/v1/organizations/${orgId}/donations/${donationId}/files`, {
       headers: authHeaders,
     });
@@ -380,7 +369,6 @@ test('HTTP: flujo completo de creación de donación, reserva, carga y descarga 
     const listFilesData = await listFilesRes.json();
     assert.equal(listFilesData.data.files.length, 1);
 
-    // 4. Reservar respaldo
     const reserveRes = await fetch(`${baseUrl}/v1/organizations/${orgId}/donations/${donationId}/files`, {
       method: 'POST',
       headers: { ...authHeaders, 'content-type': 'application/json' },
@@ -397,7 +385,6 @@ test('HTTP: flujo completo de creación de donación, reserva, carga y descarga 
     assert.equal(reserveData.data.file.estado_carga, 'reservado');
     assert.equal(reserveData.data.file.tipo_respaldo, 'acta_entrega');
 
-    // 5. Cargar archivo binario
     const uploadRes = await fetch(
       `${baseUrl}/v1/organizations/${orgId}/donations/${donationId}/files/${fileId}?version_esperada=1`,
       {
@@ -410,7 +397,6 @@ test('HTTP: flujo completo de creación de donación, reserva, carga y descarga 
     const uploadData = await uploadRes.json();
     assert.equal(uploadData.data.file.estado_carga, 'disponible');
 
-    // 6. Descargar archivo
     const downloadRes = await fetch(
       `${baseUrl}/v1/organizations/${orgId}/donations/${donationId}/files/${fileId}/file`,
       { headers: authHeaders },

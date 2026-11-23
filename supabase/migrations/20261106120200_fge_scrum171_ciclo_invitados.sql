@@ -1,4 +1,3 @@
--- SCRUM-171: solicitudes, primer uso y autorización temporal de Invitados.
 BEGIN;
 CREATE TABLE public.solicitudes_invitado (
   id_invitado uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,8 +31,6 @@ REVOKE ALL ON public.solicitudes_invitado FROM PUBLIC, anon, authenticated;
 CREATE TRIGGER auditar AFTER INSERT OR UPDATE ON public.solicitudes_invitado
   FOR EACH ROW EXECUTE FUNCTION fge_private.auditar_registro('id_invitado');
 
--- Solo esta función definer puede escribir solicitudes. Ningún campo de autoridad
--- procede de metadatos editables del usuario; identidad/sesión vienen del JWT validado.
 CREATE FUNCTION fge_private.acceso_invitado_vigente() RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT NOT EXISTS (SELECT 1 FROM public.solicitudes_invitado s WHERE s.id_usuario = auth.uid())
@@ -49,8 +46,6 @@ $$;
 REVOKE ALL ON FUNCTION fge_private.acceso_invitado_vigente(), public.validar_acceso_invitado() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION fge_private.acceso_invitado_vigente(), public.validar_acceso_invitado() TO authenticated;
 
--- Algunos proyectos tienen una versión anterior instalada manualmente, sin consume.
--- Conservar firma y permisos dependientes al actualizar su implementación.
 CREATE OR REPLACE FUNCTION public.gestionar_invitados(p_operacion text, p_datos jsonb DEFAULT '{}') RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
@@ -73,7 +68,6 @@ BEGIN
       RAISE EXCEPTION 'Datos inválidos' USING ERRCODE='G0145';
     END IF;
     correo_ingresado := lower(btrim(p_datos->>'correo'));
-    -- Serializa altas del mismo correo, también al reciclar un acceso expirado.
     PERFORM pg_advisory_xact_lock(hashtextextended(correo_ingresado, 171));
     UPDATE public.asignaciones_roles a SET revocado_at=now(),revocado_por=s.aprobado_por
       FROM public.solicitudes_invitado s WHERE a.id_asignacion=s.id_asignacion
@@ -88,7 +82,6 @@ BEGIN
     INSERT INTO public.solicitudes_invitado(nombre,correo,institucion,motivo)
       VALUES(btrim(p_datos->>'nombre'),correo_ingresado,nullif(btrim(p_datos->>'institucion'),''),nullif(btrim(p_datos->>'motivo'),''))
       RETURNING * INTO registro;
-    -- Respuesta pública sin exponer identidad interna ni los datos de terceros.
     RETURN jsonb_build_object('id_invitado',registro.id_invitado,'estado',registro.estado,'created_at',registro.created_at);
   END IF;
 
@@ -101,7 +94,6 @@ BEGIN
     IF NOT FOUND OR registro.utilizado_en IS NOT NULL OR nullif(auth.jwt()->>'session_id','') IS NULL THEN
       RAISE EXCEPTION 'Enlace usado o no autorizado' USING ERRCODE='G0149';
     END IF;
-    -- No convertir una cuenta interna en Invitado ni aceptar una sesión anterior a la aprobación.
     IF EXISTS (SELECT 1 FROM public.asignaciones_roles a JOIN public.roles r USING(id_rol)
       WHERE a.id_usuario=actor AND a.revocado_at IS NULL AND a.archived_at IS NULL AND r.codigo <> 'INVIT')
       OR to_timestamp(coalesce((auth.jwt()->>'iat')::double precision,0)) < date_trunc('second',registro.aprobado_en) THEN
@@ -183,19 +175,14 @@ $$;
 REVOKE ALL ON FUNCTION public.get_user_roles() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.get_user_roles() TO authenticated;
 
--- Respeta las políticas permisivas existentes y agrega un veto global al acceso
--- del Invitado expirado/revocado, incluso usando directamente PostgREST/Storage.
 DO $$ DECLARE t record; BEGIN
   FOR t IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    -- No modificar tablas internas de Storage (p. ej. buckets_vectors), que
-    -- pertenecen a roles administrados de Supabase y no guardan nuestros archivos.
     WHERE (n.nspname='public' OR (n.nspname='storage' AND c.relname='objects'))
       AND c.relkind='r' AND c.relrowsecurity LOOP
     EXECUTE format('CREATE POLICY acceso_invitado_vigente ON %I.%I AS RESTRICTIVE FOR ALL TO authenticated USING (fge_private.acceso_invitado_vigente()) WITH CHECK (fge_private.acceso_invitado_vigente())',t.nspname,t.relname);
   END LOOP;
 END $$;
 
--- También los helpers definer deben comprobar vigencia antes de saltarse RLS.
 CREATE OR REPLACE FUNCTION fge_private.usuario_tiene_rol(codigos text[]) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT EXISTS(SELECT 1 FROM public.get_user_roles() r WHERE r.codigo=ANY(codigos));

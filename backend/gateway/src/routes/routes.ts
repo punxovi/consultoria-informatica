@@ -8,7 +8,7 @@ export interface GatewayTargets {
   programs: URL;
   interventions: URL;
   insights: URL;
-  guests?: URL; // Opcional o apuntando por defecto a auth
+  guests?: URL;
 }
 
 function responderJson(response: ServerResponse, status: number, body: unknown, requestId: string): void {
@@ -64,7 +64,6 @@ export async function routeRequest(
     return;
   }
 
-  // Rutas de Autenticación, Coordinadores e Invitados
   if (
     incomingUrl.pathname === authPrefix || incomingUrl.pathname.startsWith(`${authPrefix}/`) ||
     incomingUrl.pathname === `${API_PREFIX}/coordinators` || incomingUrl.pathname.startsWith(`${API_PREFIX}/coordinators/`) ||

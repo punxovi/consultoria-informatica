@@ -1,4 +1,3 @@
--- HU22: lectura completa y consistente bajo el JWT/RLS del solicitante.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.consultar_reporte_consolidado(p_filtros jsonb)
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = '' AS $$
@@ -48,7 +47,6 @@ BEGIN
     v_resultados := ARRAY(SELECT value::uuid FROM jsonb_array_elements_text(p_filtros->'resultIds'));
   END IF;
 
-  -- Las subconsultas EXISTS evitan multiplicar organizaciones y beneficiarios.
   WITH orgs AS MATERIALIZED (
     SELECT o.id_organizacion,o.nombre,o.numero_beneficiarios,p.nombre AS pais
     FROM public.organizaciones o JOIN public.paises p ON p.id_pais=o.id_pais

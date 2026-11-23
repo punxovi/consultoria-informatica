@@ -1,4 +1,3 @@
--- Auditoría: mostrar solo lo que hacen las personas, no los procesos del sistema.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.consultar_eventos_auditoria(
   p_filtros jsonb DEFAULT '{}'::jsonb
@@ -81,7 +80,6 @@ BEGIN
     OR coalesce(v_usuario,'') ~ '[[:cntrl:]]' OR coalesce(v_pais,'') ~ '[[:cntrl:]]' THEN
     RAISE EXCEPTION 'Filtro o cursor inválido' USING ERRCODE='22023';
   END IF;
-  -- Las fechas «Desde/Hasta» se interpretan en la zona horaria de quien consulta.
   v_zona := coalesce(nullif(btrim(p_filtros ->> 'zona_horaria'), ''), 'UTC');
   IF length(v_zona) > 64 OR NOT EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = v_zona) THEN
     RAISE EXCEPTION 'Zona horaria inválida' USING ERRCODE = '22023';
@@ -127,13 +125,11 @@ BEGIN
       ), '') AS referencia,
       historial.id_historial_cambio,
       perfil.nombre AS nombre_usuario,
-      -- Nombre legible del registro afectado, si la fila lo tiene.
       left(coalesce(
         historial.despues ->> 'nombre', historial.antes ->> 'nombre',
         historial.despues ->> 'titulo', historial.antes ->> 'titulo',
         historial.despues ->> 'nombre_producto', historial.antes ->> 'nombre_producto'
       ), 160) AS nombre_registro,
-      -- Campos que cambiaron en una modificación, sin columnas técnicas.
       CASE WHEN historial.tipo_accion = 'UPDATE' AND historial.antes IS NOT NULL AND historial.despues IS NOT NULL THEN (
         SELECT coalesce(jsonb_agg(campo.key ORDER BY campo.key), '[]'::jsonb)
         FROM jsonb_each(historial.despues) AS campo
@@ -144,7 +140,6 @@ BEGIN
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NULL AND historial.despues ->> 'archived_at' IS NOT NULL THEN 'archivado'
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NOT NULL AND historial.despues ->> 'archived_at' IS NULL THEN 'restaurado'
       END AS cambio_estado,
-      -- Eventos que no son cambios de una fila: inicio de sesión y consulta de documentos.
       CASE
         WHEN historial.tabla_afectada = 'autenticacion' THEN
           CASE WHEN historial.tipo_evento IN ('auth:login','auth:login_backend') THEN 'inicio_sesion' WHEN historial.clave_registro->>'exitoso'='false' THEN 'inicio_sesion_fallido' ELSE NULL END
@@ -160,9 +155,6 @@ BEGIN
       CASE WHEN coalesce(historial.despues->>'id_pais',historial.antes->>'id_pais') ~* v_uuid_pattern
         THEN coalesce(historial.despues->>'id_pais',historial.antes->>'id_pais')::uuid END,
       cobertura.id_pais, asignacion.id_pais)
-    -- Solo acciones de personas: los cambios automáticos del sistema (triggers,
-    -- procesos internos, service role) no tienen usuario y no se muestran. Los
-    -- intentos fallidos de inicio de sesión sí se conservan.
     WHERE (historial.id_usuario IS NOT NULL OR historial.tabla_afectada = 'autenticacion')
       AND (v_usuario_id IS NULL OR historial.id_usuario = v_usuario_id)
       AND (v_pais_id IS NULL OR historial.id_pais = v_pais_id OR (historial.id_pais IS NULL AND pais_evento.id_pais = v_pais_id))
@@ -170,8 +162,6 @@ BEGIN
         OR strpos(lower(cuenta.email),lower(v_usuario)) > 0)
       AND (v_pais IS NULL OR strpos(lower(pais_evento.nombre),lower(v_pais)) > 0
         OR lower(pais_evento.codigo_iso)=lower(v_pais))
-      -- «Qué hizo» usa las mismas categorías que muestra la aplicación (crear, modificar,
-      -- archivar…); también se aceptan la operación técnica y el tipo de evento.
       AND (v_operacion IS NULL OR historial.tipo_accion=upper(v_operacion) OR historial.tipo_evento=lower(v_operacion)
         OR lower(v_operacion) = CASE
           WHEN historial.tabla_afectada = 'autenticacion' THEN

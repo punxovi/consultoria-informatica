@@ -1,5 +1,3 @@
--- Verifica los datos iniciales definidos por KAN-158.
--- Ejecutar solamente en Supabase LOCAL de pruebas.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

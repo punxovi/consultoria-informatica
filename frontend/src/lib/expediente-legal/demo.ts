@@ -1,6 +1,5 @@
 import type { ExpedienteLegal, GuardarExpediente, ServicioExpediente } from './modelo.ts';
 
-/** Solo se importa en desarrollo, por solicitud explícita. No persiste datos ni archivos. */
 export function crearDemoExpediente(): ServicioExpediente {
   const registros = new Map<string, ExpedienteLegal>();
   async function guardar(id: string, entrada: GuardarExpediente): Promise<ExpedienteLegal> {
