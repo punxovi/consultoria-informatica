@@ -1,5 +1,3 @@
-// PostgreSQL real embebido; Auth y Storage tienen el soporte mínimo de pruebas.
-// No se conecta a Supabase remoto ni modifica datos del usuario.
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -33,8 +31,6 @@ try {
     '20260929090000_fge_acciones_actions_rls.sql', '20261002120000_fge_reforzar_rls_planes_acciones.sql',
     '20261002225129_fge_planes_periodo_anual.sql', '20261023150000_fge_paises_catalogo_dashboard.sql',
   ]) await load(name);
-  // Las funciones territoriales vigentes requieren la zona horaria de SCRUM-149.
-  // Se incluye esa columna sin simular las funciones de autorización.
   await db.exec("ALTER TABLE public.paises ADD COLUMN zona_horaria text NOT NULL DEFAULT 'UTC'");
   await load('20261029100000_fge_autorizacion_territorial_caducidad.sql');
   await load('20261102120000_fge_consulta_transversal_coordinadores.sql');
@@ -51,7 +47,6 @@ try {
   await db.query(`INSERT INTO public.organizaciones(id_organizacion,id_pais,nombre,nombre_representante,telefono,correo,region_departamento,comuna_municipio_ciudad,direccion,publico_objetivo,descripcion_breve,tipo_organizacion,numero_beneficiarios)
     VALUES($1,$3,'Organización CL QA','QA','123','qa@example.invalid','Región','Ciudad','Dirección','Comunidad','Prueba','comedor_merendero',10),
     ($2,$4,'Organización AR QA','QA','123','qa@example.invalid','Región','Ciudad','Dirección','Comunidad','Prueba','comedor_merendero',10)`, [orgCL, orgAR, cl, ar]);
-  // Filas anteriores a la migración: UUID, imágenes y referencias deben sobrevivir.
   await db.query("INSERT INTO public.productos(id_producto,id_organizacion,nombre,descripcion,unidad_medida,publicado) VALUES($1,$2,'Bolso previo','Hecho a mano','unidad',true)", [product, orgCL]);
   await db.query("INSERT INTO public.archivos(id_archivo,id_producto,ruta_objeto,nombre_original,mime_type,tamano_bytes,categoria,estado_carga) VALUES($1,$2,'productos/previa.png','previa.png','image/png',100,'imagen_producto','disponible')", [catalogImage, product]);
   await db.transaction(async tx => {
@@ -93,7 +88,7 @@ try {
   const image = id(30), path = `productos/${product}/${id(31)}.png`;
   await db.query("INSERT INTO public.archivos(id_archivo,id_producto,ruta_objeto,nombre_original,mime_type,tamano_bytes,categoria) VALUES($1,$2,$3,'foto.png','image/png',100,'imagen_producto')", [image, product, path]);
   await db.query("INSERT INTO storage.objects(bucket_id,name) VALUES('fge-archivos',$1)", [path]);
-  check(await scalar("SELECT count(*)::int FROM storage.objects WHERE name=$1", [path]), 0); // reservado aún no se entrega
+  check(await scalar("SELECT count(*)::int FROM storage.objects WHERE name=$1", [path]), 0);
   await db.query("UPDATE public.archivos SET estado_carga='disponible' WHERE id_archivo=$1", [image]);
   check(await scalar('SELECT count(*)::int FROM public.archivos WHERE id_producto=$1', [product]), 2);
   check(await scalar('SELECT count(*)::int FROM storage.objects WHERE name=$1', [path]), 1);
@@ -104,7 +99,7 @@ try {
     await reject("INSERT INTO public.archivos(id_producto,ruta_objeto,nombre_original,mime_type,tamano_bytes,categoria) VALUES($1,$2,'foto.png',$3,$4,'imagen_producto')", [product, ruta, mime, size], '23514');
   }
   await user(coord);
-  check(await scalar('SELECT count(*)::int FROM public.productos_por_territorio'), 2); // consulta transversal vigente
+  check(await scalar('SELECT count(*)::int FROM public.productos_por_territorio'), 2);
   check((await db.query("UPDATE public.productos SET nombre='Cambio fuera de país' WHERE id_producto=$1 RETURNING id_producto", [service])).rows.length, 0);
   await db.query("UPDATE public.productos SET informacion_adicional='Edición autorizada' WHERE id_producto=$1", [product]);
   check(await scalar('SELECT informacion_adicional FROM public.productos WHERE id_producto=$1', [product]), 'Edición autorizada');
@@ -126,7 +121,7 @@ try {
   check(await scalar('SELECT count(*)::int FROM public.productos_por_territorio WHERE id_producto=$1', [product]), 0);
   await db.exec('RESET ROLE');
   check(await scalar('SELECT nombre_producto FROM public.solicitud_cotizacion_detalles WHERE id_producto=$1', [product]), 'Bolso previo');
-  check(await scalar('SELECT count(*)::int FROM public.productos WHERE id_producto=$1', [product]), 1); // archivado conserva persistencia
+  check(await scalar('SELECT count(*)::int FROM public.productos WHERE id_producto=$1', [product]), 1);
   check(await scalar("SELECT count(*)::int > 0 FROM fge_private.historial_cambios WHERE tabla_afectada='productos'"), true);
   check(await scalar("SELECT count(*)::int FROM information_schema.columns WHERE table_schema='public' AND table_name='productos' AND column_name IN ('stock','inventario','compras','despacho','id_pais')"), 0);
   check(await scalar("SELECT public FROM storage.buckets WHERE id='fge-archivos'"), false);

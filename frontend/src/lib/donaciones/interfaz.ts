@@ -451,7 +451,6 @@ export function iniciarDonaciones() {
     q('grupo-otro').hidden = !otro;
     const campoOtro = q<HTMLInputElement>('categoria-otro');
     campoOtro.required = otro;
-    // El texto de "Otro" no debe viajar con otra categoría aunque el campo esté oculto.
     if (!otro) campoOtro.value = '';
     for (const nombre of ['monto', 'moneda']) q<HTMLInputElement>(nombre).required = dinero;
     raiz.querySelectorAll('[data-error-campo]').forEach((n) => n.remove());
@@ -537,7 +536,6 @@ export function iniciarDonaciones() {
   q('nueva').addEventListener('click', abrirFormularioCreacion);
   q('editar').addEventListener('click', () => { void abrirFormularioEdicion(); });
 
-  // Quita el error de un campo en cuanto la persona lo corrige.
   formDonacion.addEventListener('input', (e) => {
     const campo = (e.target as HTMLInputElement).name;
     formDonacion.querySelectorAll<HTMLElement>(`[data-error-campo][data-campo="${campo}"]`).forEach((n) => n.remove());
@@ -579,8 +577,6 @@ export function iniciarDonaciones() {
     return Object.fromEntries(Object.entries(candidatos).filter(([campo, valor]) => {
       const previo = (donacionActual as Record<string, unknown>)[campo] ?? null;
       if (previo === valor) return false;
-      // El layout capitaliza textos al enviar. No debe generar una escritura
-      // accidental al editar otro campo de un registro ya existente.
       return !(typeof previo === 'string' && typeof valor === 'string'
         && previo.localeCompare(valor, 'es-CL', { sensitivity: 'accent' }) === 0);
     }));
@@ -723,7 +719,6 @@ export function iniciarDonaciones() {
       bloquear(true, 'Subiendo archivo al almacenamiento...');
       const confirmado = await cliente.subirRespaldo(idOrganizacion, reserva, file);
 
-      // Actualizar listado local
       const idx = respaldosActuales.findIndex((r) => r.id_archivo === confirmado.id_archivo);
       if (idx >= 0) {
         respaldosActuales[idx] = confirmado;
@@ -735,7 +730,6 @@ export function iniciarDonaciones() {
       renderRespaldos();
       mostrarExito(`Respaldo «${confirmado.nombre_original}» incorporado exitosamente.`);
     } catch (err) {
-      // Si la carga falla, el backend actualiza el estado a fallido o lo mantenemos en lista para reintento
       if (reserva) {
         try {
           const actualizado = await cliente.obtenerRespaldo(
@@ -748,7 +742,6 @@ export function iniciarDonaciones() {
           else respaldosActuales.unshift(actualizado);
           renderRespaldos();
         } catch {
-          // ignore
         }
       }
       mostrarError(
@@ -790,7 +783,6 @@ export function iniciarDonaciones() {
     void cargarDonaciones();
   });
 
-  // La ficha entrega el nombre de la organización y del país después de montar la sección.
   raiz.addEventListener('organizacion-cargada', () => {
     renderListadoDonaciones();
     if (donacionActual && !q('detalle').hidden) renderDetalle(donacionActual);

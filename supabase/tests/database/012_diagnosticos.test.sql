@@ -1,18 +1,15 @@
 BEGIN;
 SELECT plan(13);
 
--- 1. Verificar existencia de tabla y restricciones básicas
 SELECT has_table('public', 'diagnosticos', 'La tabla diagnosticos debe existir');
 SELECT has_pk('public', 'diagnosticos', 'Debe tener clave primaria');
 SELECT col_is_uuid('public', 'diagnosticos', 'id_diagnostico', 'El id_diagnostico debe ser UUID');
 SELECT col_is_uuid('public', 'diagnosticos', 'id_organizacion', 'El id_organizacion debe ser UUID');
 SELECT has_unique('public', 'diagnosticos', 'diagnosticos_organizacion_uq', 'Debe tener restricción UNIQUE para id_organizacion');
 
--- Insertar organización de prueba
 INSERT INTO public.organizaciones (id_organizacion, id_pais, nombre, nombre_representante, telefono, correo, region_departamento, comuna_municipio_ciudad, direccion, publico_objetivo, descripcion_breve, tipo_organizacion, numero_beneficiarios)
 VALUES ('00000000-0000-0000-0000-000000000001', (SELECT id_pais FROM public.paises LIMIT 1), 'Org Test', 'Rep', '123', 'correo@test.com', 'Reg', 'Com', 'Dir', 'Pub', 'Desc', 'otra', 10);
 
--- 2. Inserción válida de diagnóstico
 PREPARE insert_valid AS
   INSERT INTO public.diagnosticos (
     id_organizacion, fecha_diagnostico, mision, vision, caracteristicas_infraestructura,
@@ -24,7 +21,6 @@ PREPARE insert_valid AS
   );
 SELECT lives_ok('insert_valid', 'Debe permitir insertar un diagnóstico válido');
 
--- 3. Restricción de unicidad por organización
 PREPARE insert_duplicate AS
   INSERT INTO public.diagnosticos (
     id_organizacion, fecha_diagnostico, mision, vision, caracteristicas_infraestructura,
@@ -36,7 +32,6 @@ PREPARE insert_duplicate AS
   );
 SELECT throws_ok('insert_duplicate', '23505', NULL, 'No debe permitir más de un diagnóstico por organización');
 
--- 4. Restricción raciones y periodo_raciones (ambos nulos = OK)
 INSERT INTO public.organizaciones (id_organizacion, id_pais, nombre, nombre_representante, telefono, correo, region_departamento, comuna_municipio_ciudad, direccion, publico_objetivo, descripcion_breve, tipo_organizacion, numero_beneficiarios)
 VALUES ('00000000-0000-0000-0000-000000000002', (SELECT id_pais FROM public.paises LIMIT 1), 'Org Test 2', 'Rep', '123', 'correo@test.com', 'Reg', 'Com', 'Dir', 'Pub', 'Desc', 'otra', 10);
 
@@ -50,7 +45,6 @@ PREPARE insert_null_raciones AS
   );
 SELECT lives_ok('insert_null_raciones', 'Debe permitir raciones y periodo nulos simultáneamente');
 
--- 5. Restricción raciones (raciones not null, periodo null = ERROR)
 PREPARE insert_raciones_no_periodo AS
   INSERT INTO public.diagnosticos (
     id_organizacion, fecha_diagnostico, mision, vision, caracteristicas_infraestructura,
@@ -61,7 +55,6 @@ PREPARE insert_raciones_no_periodo AS
   );
 SELECT throws_ok('insert_raciones_no_periodo', '23514', NULL, 'No debe permitir raciones sin periodo');
 
--- 6. Restricción periodo (raciones null, periodo not null = ERROR)
 PREPARE insert_periodo_no_raciones AS
   INSERT INTO public.diagnosticos (
     id_organizacion, fecha_diagnostico, mision, vision, caracteristicas_infraestructura,
@@ -72,7 +65,6 @@ PREPARE insert_periodo_no_raciones AS
   );
 SELECT throws_ok('insert_periodo_no_raciones', '23514', NULL, 'No debe permitir periodo sin raciones');
 
--- 7. Restricciones de longitud vacía
 PREPARE insert_empty_mision AS
   INSERT INTO public.diagnosticos (
     id_organizacion, fecha_diagnostico, mision, vision, caracteristicas_infraestructura,
@@ -83,7 +75,6 @@ PREPARE insert_empty_mision AS
   );
 SELECT throws_ok('insert_empty_mision', '23514', NULL, 'No debe permitir campos vacíos');
 
--- 8. Validar actualización y trigger de versión
 UPDATE public.diagnosticos SET raciones = 20, periodo_raciones = 'mensual' WHERE id_organizacion = '00000000-0000-0000-0000-000000000001';
 SELECT results_eq(
   $$ SELECT version FROM public.diagnosticos WHERE id_organizacion = '00000000-0000-0000-0000-000000000001' $$,
@@ -91,7 +82,6 @@ SELECT results_eq(
   'La versión debe incrementar en 1 al actualizar'
 );
 
--- 9. Validar auditoría
 SELECT results_eq(
   $$ SELECT count(*) > 0 FROM fge_private.historial_cambios WHERE tabla = 'diagnosticos' $$,
   ARRAY[true],

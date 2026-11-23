@@ -12,7 +12,6 @@ export function createCommitmentsPdfService(repository: Repository, render: Comm
   return async (token: string, input: CommitmentsPdfContext): Promise<CommitmentsPdfFile> => {
     if (!token.trim()) throw new ServiceError('SESION_REQUERIDA', 'Debes iniciar sesión para descargar compromisos.', 401);
     const context = parseCommitmentsPdfContext(input);
-    // Ambas lecturas conservan el JWT: RLS y la RPC autorizan el contexto real.
     const organization = await repository.getById(token, context.id_organizacion);
     if (organization.id_organizacion !== context.id_organizacion || !organization.nombre?.trim()) {
       throw new ServiceError('RESPUESTA_INVALIDA', 'La organización recibida no corresponde al contexto solicitado.', 502);
@@ -33,14 +32,13 @@ export function createCommitmentsPdfService(repository: Repository, render: Comm
     }
     const commitments = parsed.data.sort((a, b) =>
       a.fecha_limite.localeCompare(b.fecha_limite) || a.id_compromiso.localeCompare(b.id_compromiso));
-    // Nombres legibles de las actas: si no están disponibles, el PDF se genera igual.
     const actas: Record<string, string> = {};
     try {
       const origenes = await repository.listCommitmentOrigins?.(token, context.id_organizacion);
       for (const acta of origenes?.actas ?? []) {
         if (typeof acta?.id_acta === 'string' && typeof acta.nombre === 'string' && acta.nombre.trim()) actas[acta.id_acta] = acta.nombre.trim();
       }
-    } catch { /* se usa una etiqueta genérica para el acta */ }
+    } catch {}
     let bytes: Buffer;
     try {
       bytes = await render({ organization, context, commitments, actas, generatedAt: new Date().toISOString() });

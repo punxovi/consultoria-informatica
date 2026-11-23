@@ -18,7 +18,6 @@ export function createSupabaseCoordinatorRepository(options: Options): Coordinat
     let data: any;
     try { data = await response.json(); } catch { throw new CoordinatorError('RESPUESTA_CUENTAS_INVALIDA', 'El servicio devolvió una respuesta inválida.', 502); }
     if (!response.ok) {
-      // Only translate known codes. Never return/log provider bodies, keys or tokens.
       const codes: Record<string, [string, string, number, string?]> = {
         '42501': ['SIN_PERMISO', 'Solo un Administrador activo puede administrar Coordinadores.', 403],
         P0145: ['PAIS_PRINCIPAL_INVALIDO', 'Selecciona un país principal existente y activo.', 400, 'id_pais'],

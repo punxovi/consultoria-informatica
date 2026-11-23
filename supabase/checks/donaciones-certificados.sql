@@ -1,5 +1,3 @@
--- Ejecutar después de 20261105010000 en SQL Editor o psql.
--- Usa un ADMIN y una organización existentes. Todas las escrituras se revierten.
 BEGIN;
 CREATE TEMP TABLE qa_donacion_certificados_resultado(resultado jsonb) ON COMMIT DROP;
 DO $qa$

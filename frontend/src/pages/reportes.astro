@@ -3,7 +3,6 @@ import Button from '../components/ui/Button.astro';
 import { mainNavItems } from '../config/nav';
 import AppLayout from '../layouts/AppLayout.astro';
 
-// Tarjetas con acento lateral de color (estilo común definido en global.css).
 const pasos = [
   { numero: '1', titulo: 'Configura', texto: 'Elige el período y, si quieres, país, organización, programa, indicadores y destino.', color: 'bg-[#4C4688]' },
   { numero: '2', titulo: 'Revisa la vista previa', texto: 'Comprueba la información en pantalla antes de generar el documento.', color: 'bg-brand-cyan' },
@@ -87,7 +86,6 @@ const contenido = [
 </AppLayout>
 
 <script>
-  // Al volver tras descargar un PDF se confirma la descarga y se limpia la dirección.
   const parametros = new URLSearchParams(window.location.search);
   const archivo = parametros.get('pdf');
   const aviso = document.querySelector<HTMLElement>('#reportes-descargado');

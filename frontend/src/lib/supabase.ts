@@ -26,7 +26,6 @@ export function getSupabaseClient(): SupabaseClient {
   return supabaseClient;
 }
 
-/** Obtiene los roles asignados al usuario autenticado actual. */
 export async function getUserRoles(): Promise<UserRole[]> {
   const { data, error } = await getSupabaseClient().rpc('get_user_roles');
 

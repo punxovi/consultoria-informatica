@@ -1,7 +1,4 @@
 import { test, expect } from '@playwright/test';
-// Invitado (INVIT): consulta Inicio, Organizaciones, Programas, Planes y Reportes,
-// pero no ve ninguna acción de crear, editar ni eliminar, ni las secciones
-// reservadas al equipo (actas, compromisos, diagnóstico, donaciones, expediente, evidencias).
 const id = '17600000-0000-4000-8000-000000000001';
 const pais = { id_pais: id, nombre: 'Chile', codigo_iso: 'CL' };
 const org = { id_organizacion: id, id_pais: id, nombre: 'Comedor Las Palmas', region_departamento: 'RM', comuna_municipio_ciudad: 'Santiago', publico_objetivo: 'Familias', descripcion_breve: 'Comedor comunitario.', tipo_organizacion: 'comedor', numero_beneficiarios: 40, pais, archived_at: null, version: 1 };
@@ -29,7 +26,6 @@ test('Invitado consulta Organizaciones sin opciones de gestión', async ({ page 
   await expect(page.locator('#organizaciones-lista')).toContainText('Comedor Las Palmas');
   await soloLectura(page);
   await expect(page.getByRole('link', { name: /Nueva organización/ })).toBeHidden();
-  // El filtro de país se carga para el Invitado.
   await expect(page.locator('#filtro-pais option', { hasText: 'Chile' })).toHaveCount(1);
 });
 test('Invitado entra a la ficha y consulta todas las secciones de contenido', async ({ page }) => {

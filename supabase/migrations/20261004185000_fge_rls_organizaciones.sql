@@ -1,7 +1,3 @@
--- Habilita la inserción y actualización de organizaciones mediante RLS.
--- El Administrador puede gestionar en cualquier país.
--- El Coordinador solo puede gestionar en los países donde tiene cobertura.
-
 BEGIN;
 
 DROP POLICY IF EXISTS organizaciones_gestion_insert ON public.organizaciones;

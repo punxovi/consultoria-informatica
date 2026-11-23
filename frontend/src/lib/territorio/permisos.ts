@@ -1,14 +1,6 @@
 import { getUserRoles, type UserRole } from '../supabase';
 import { listarMisCoberturasVigentes } from '../organizaciones/cliente';
 
-/**
- * Países en los que la sesión puede crear, editar o archivar Organizaciones y
- * Planes de Intervención. Un Coordinador consulta todos los países, pero solo
- * gestiona su país principal y los países con cobertura temporal vigente.
- *
- * La interfaz usa este alcance para ocultar acciones; la autorización efectiva
- * sigue en RLS (fge_private.usuario_puede_gestionar_pais).
- */
 export type AlcanceGestion =
   | { todos: true }
   | { todos: false; paises: ReadonlySet<string> };
@@ -17,7 +9,6 @@ const SIN_ALCANCE: AlcanceGestion = { todos: false, paises: new Set() };
 
 let alcanceEnCurso: Promise<AlcanceGestion> | undefined;
 
-/** Descarta el alcance memoizado cuando cambia una cobertura o la sesión. */
 export function invalidarAlcanceGestion(): void {
   alcanceEnCurso = undefined;
 }
@@ -43,7 +34,6 @@ async function calcularAlcance(): Promise<AlcanceGestion> {
   return { todos: false, paises };
 }
 
-/** Fallo cerrado: si no se puede verificar el alcance, no se ofrece gestionar. */
 export function obtenerAlcanceGestion(): Promise<AlcanceGestion> {
   alcanceEnCurso ??= calcularAlcance().catch((error) => {
     console.error('No fue posible verificar los países gestionables:', error);

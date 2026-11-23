@@ -2,8 +2,6 @@ import { ApiError } from '../api/transporte.ts';
 import type { ReportFilters, ReportPreview } from './pdf.ts';
 import { verificarCorrespondencia } from './vista-previa.ts';
 
-// Estados del proceso de consulta de la vista previa. "preparada" significa que los
-// parámetros son válidos pero todavía nadie atendió la solicitud.
 export type EstadoConsulta =
   | { tipo: 'inactivo' }
   | { tipo: 'preparada'; parametros: ReportFilters }
@@ -12,8 +10,6 @@ export type EstadoConsulta =
   | { tipo: 'vacio'; parametros: ReportFilters; vista: ReportPreview }
   | { tipo: 'exito'; parametros: ReportFilters; vista: ReportPreview };
 
-// Detalle del evento `reporte:solicitar`. La integración HTTP debe llamar a
-// `responder(cliente.preparar(parametros))` para que la pantalla refleje la consulta.
 export interface SolicitudReporte {
   parametros: ReportFilters;
   responder(respuesta: Promise<ReportPreview>): void;
@@ -21,8 +17,6 @@ export interface SolicitudReporte {
 
 const celdaCero = /^0+([.,]0+)?$/;
 
-// Sin resultados: ninguna sección trae filas, o (en reportes agregados para donantes
-// y externos) todas las medidas valen cero. La primera columna es la etiqueta.
 export function reporteSinResultados(vista: ReportPreview): boolean {
   return vista.document.sections.every((seccion) =>
     seccion.rows.length === 0 || seccion.rows.every((fila) => fila.slice(1).every((celda) => celdaCero.test(celda.trim()))),
@@ -59,14 +53,11 @@ export function crearControladorConsulta(alCambiar: (estado: EstadoConsulta) => 
       return estado;
     },
 
-    // Cualquier cambio de criterios invalida la solicitud y descarta respuestas pendientes.
     reiniciar() {
       turno++;
       cambiar({ tipo: 'inactivo' });
     },
 
-    // Devuelve el `responder` de esta solicitud: se usa una sola vez y se ignora si
-    // los criterios cambiaron o se preparó otra solicitud después.
     preparar(parametros: ReportFilters): SolicitudReporte['responder'] {
       const propio = ++turno;
       cambiar({ tipo: 'preparada', parametros });

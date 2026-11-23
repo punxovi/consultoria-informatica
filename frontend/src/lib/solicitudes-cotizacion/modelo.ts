@@ -5,7 +5,6 @@ export const solicitudSchema = z.object({
   id_solicitud: z.string().min(1), nombre_solicitante: z.string(), correo: z.string(),
   telefono: z.string().nullable(), mensaje: z.string().nullable(),
   created_at: z.iso.datetime({offset:true}), estado: estadoSchema, version: z.number().int().positive(),
-  // El servicio decide las transiciones, especialmente en solicitudes multinacionales.
   estados_permitidos: z.array(estadoSchema),
   items: z.array(z.object({
     id_producto: z.string().min(1), nombre_producto: z.string(), unidad_medida: z.string(), cantidad: z.number().positive(),

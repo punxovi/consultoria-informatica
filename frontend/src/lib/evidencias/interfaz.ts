@@ -32,7 +32,6 @@ export function iniciarEvidencias() {
     q<HTMLButtonElement>('nueva').disabled = estado || !habilitado;
     if (!estado && seleccion) controles();
   }
-  // Igual que en Actas: el listado es la vista principal y el formulario se abre con «Agregar evidencia».
   function vista(formulario: boolean) {
     q('vista-lista').hidden = formulario; q('vista-form').hidden = !formulario; q('nueva').hidden = formulario;
   }

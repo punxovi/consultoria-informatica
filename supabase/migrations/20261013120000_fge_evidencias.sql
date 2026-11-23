@@ -1,4 +1,3 @@
--- Evidencias de acciones (Acción -> Plan de intervención -> Organización).
 BEGIN;
 
 CREATE TABLE public.evidencias (
@@ -131,7 +130,6 @@ BEGIN
     NEW.consentimiento_por := OLD.consentimiento_por;
   END IF;
   IF NEW.estado_carga = 'disponible' THEN
-    -- Se lee el catálogo de Storage; nunca se insertan ni eliminan objetos por SQL.
     SELECT o.metadata INTO objeto_metadata FROM storage.objects o
     WHERE o.bucket_id = NEW.bucket_id AND o.name = NEW.id_accion::text || '/' || NEW.id_evidencia::text;
     IF NOT FOUND THEN
@@ -153,8 +151,6 @@ FOR EACH ROW EXECUTE FUNCTION fge_private.sellar_registro();
 CREATE TRIGGER auditar AFTER INSERT OR UPDATE OR DELETE ON public.evidencias
 FOR EACH ROW EXECUTE FUNCTION fge_private.auditar_registro('id_evidencia');
 
--- El registro archivado deja de ser visible por RLS; archivar por RPC evita
--- exigir SELECT sobre la fila resultante de UPDATE ... RETURNING.
 CREATE FUNCTION public.archivar_evidencia_segura(p_id uuid,p_version bigint) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE fila public.evidencias;
@@ -197,7 +193,6 @@ CREATE POLICY storage_evidencias_insert ON storage.objects FOR INSERT TO authent
 WITH CHECK (bucket_id = 'fge-evidencias' AND fge_private.acceso_objeto_evidencia(bucket_id,name,true));
 CREATE POLICY storage_evidencias_select ON storage.objects FOR SELECT TO authenticated
 USING (bucket_id = 'fge-evidencias' AND fge_private.acceso_objeto_evidencia(bucket_id,name,false));
--- Sin UPDATE/DELETE: no se reemplaza el archivo que respalda una evidencia.
 
 COMMENT ON TABLE public.evidencias IS 'Metadatos de un archivo que respalda una acción. Storage privado, consentimiento y publicación auditados.';
 COMMENT ON COLUMN public.evidencias.origen IS 'Procedencia declarada del archivo (texto), no una URL firmada.';

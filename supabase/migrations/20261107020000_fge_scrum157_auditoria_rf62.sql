@@ -1,4 +1,3 @@
--- SCRUM-157: anexado inmutable y metadatos comunes para RF62.
 BEGIN;
 ALTER TABLE fge_private.historial_cambios
  ADD COLUMN IF NOT EXISTS tipo_evento text,
@@ -17,7 +16,6 @@ DO $$ DECLARE c record; BEGIN
 END $$;
 ALTER TABLE fge_private.historial_cambios ADD CONSTRAINT auditoria_fuente_ip_check
  CHECK(fuente_ip IN ('aplicacion','conexion_bd','proveedor_auth'));
--- Garantiza que también se ejecuten ante session_replication_role=replica.
 ALTER TABLE fge_private.historial_cambios ENABLE ALWAYS TRIGGER historial_inmutable;
 ALTER TABLE fge_private.historial_cambios ENABLE ALWAYS TRIGGER historial_no_truncate;
 CREATE OR REPLACE FUNCTION fge_private.completar_contexto_auditoria() RETURNS trigger
@@ -87,9 +85,7 @@ DO $$ BEGIN
  END IF;
 END $$;
 
--- Ya no se aceptan afirmaciones de login emitidas por usuarios de la aplicación.
 REVOKE ALL ON FUNCTION public.registrar_evento_autenticacion(boolean,jsonb) FROM PUBLIC,anon,authenticated;
--- Atestación del proceso Auth tras respuesta verificada del proveedor.
 CREATE OR REPLACE FUNCTION public.registrar_evento_autenticacion(p_exitoso boolean,p_detalles jsonb DEFAULT '{}') RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE target uuid; actor uuid; op text:=p_detalles->>'operacion';
@@ -113,7 +109,6 @@ DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN
  GRANT EXECUTE ON FUNCTION public.registrar_evento_autenticacion(boolean,jsonb) TO service_role;
 END IF; END $$;
 
--- Auth es un esquema administrado: copiar por lectura, sin triggers sobre sus tablas.
 CREATE TABLE fge_private.auditoria_fuentes(fuente text PRIMARY KEY,desde timestamptz NOT NULL DEFAULT clock_timestamp());
 ALTER TABLE fge_private.auditoria_fuentes ENABLE ROW LEVEL SECURITY;
 INSERT INTO fge_private.auditoria_fuentes(fuente) VALUES('auth.audit_log_entries');
@@ -161,7 +156,6 @@ DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN
  REVOKE ALL ON fge_private.auditoria_fuentes FROM service_role;
 END IF; END $$;
 
--- Solo el proceso Auth puede atestiguar el rechazo de credenciales sin sesión.
 CREATE FUNCTION public.registrar_intento_autenticacion(p_request_id text,p_ip inet,p_codigo integer) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 BEGIN
@@ -270,8 +264,6 @@ GRANT EXECUTE ON FUNCTION public.registrar_exportacion_reporte(text, jsonb)
   TO authenticated;
 
 
--- Intercepción adicional en Storage: incluye accesos que no pasan por Node.js.
--- Una política RESTRICTIVE nunca concede permisos: conserva las RLS existentes.
 CREATE FUNCTION fge_private.auditar_acceso_storage(p_id uuid,p_bucket text,p_ruta text) RETURNS boolean
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $$
 DECLARE personal boolean:=false; actor uuid;
@@ -391,7 +383,6 @@ BEGIN
       historial.id_historial_cambio,
       cuenta.email::text AS correo,
       perfil.nombre AS nombre_usuario,
-      -- Nombre legible del registro afectado, si la fila lo tiene.
       left(coalesce(
         historial.despues ->> 'nombre', historial.antes ->> 'nombre',
         historial.despues ->> 'titulo', historial.antes ->> 'titulo',
@@ -399,7 +390,6 @@ BEGIN
         historial.despues ->> 'nombre_solicitante', historial.antes ->> 'nombre_solicitante',
         historial.despues ->> 'nombre_original', historial.antes ->> 'nombre_original'
       ), 160) AS nombre_registro,
-      -- Campos que cambiaron en una modificación, sin columnas técnicas.
       CASE WHEN historial.tipo_accion = 'UPDATE' AND historial.antes IS NOT NULL AND historial.despues IS NOT NULL THEN (
         SELECT coalesce(jsonb_agg(campo.key ORDER BY campo.key), '[]'::jsonb)
         FROM jsonb_each(historial.despues) AS campo
@@ -410,7 +400,6 @@ BEGIN
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NULL AND historial.despues ->> 'archived_at' IS NOT NULL THEN 'archivado'
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NOT NULL AND historial.despues ->> 'archived_at' IS NULL THEN 'restaurado'
       END AS cambio_estado,
-      -- Eventos que no son cambios de una fila: inicio de sesión y consulta de documentos.
       CASE
         WHEN historial.tabla_afectada = 'autenticacion' THEN
           CASE WHEN historial.tipo_evento IN ('auth:login','auth:login_backend') THEN 'inicio_sesion' WHEN historial.clave_registro->>'exitoso'='false' THEN 'inicio_sesion_fallido' ELSE NULL END

@@ -1,6 +1,3 @@
--- SCRUM-183: una tarjeta representa la combinación Coordinador + país.
--- El historial debe incluir todas las coberturas de esa combinación, no solo
--- la cobertura más reciente que se muestra en la tarjeta.
 BEGIN;
 
 DO $migration$

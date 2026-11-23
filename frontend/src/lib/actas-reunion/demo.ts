@@ -68,7 +68,6 @@ const actasDemo: ActaReunion[] = [
   },
 ];
 
-// Una misma sesión de demostración permite navegar entre Actas y Compromisos.
 const registros = new Map(actasDemo.map((acta) => [acta.id_acta, structuredClone(acta)]));
 
 export function crearDemoActas(): ServicioActasReunion {
@@ -83,7 +82,6 @@ export function crearDemoActas(): ServicioActasReunion {
     },
 
     async crear(idOrganizacion, entrada: GuardarActa) {
-      // Validar todo antes de modificar los mapas de la demostración.
       const compromisos = (entrada.compromisos ?? []).map(c => camposCompromisoSchema.parse(c));
       await new Promise((resolve) => setTimeout(resolve, 500));
 

@@ -61,7 +61,6 @@ test('Compromisos: cliente → Gateway → Organizaciones → SQL, estados, rela
     assert.ok((await env.db.query("SELECT * FROM fge_private.historial_cambios WHERE tabla_afectada='compromisos' AND tipo_accion='UPDATE' AND id_usuario=$1",[env.usuarios.ADMIN])).rows.length>0);
     const lote=await actas.crear(org,{campos:camposActa,compromisos:[{...campos,id_acta:undefined,estado:undefined}]});
     assert.ok((await cliente.listar(org)).some(r=>r.id_acta===lote.id_acta));
-    // Simula un registro archivado desde administración, sin exponer esa operación al cliente.
     await env.db.transaction(async tx=>{
       await tx.query("SELECT set_config('request.jwt.claim.sub',$1,true)",[env.usuarios.ADMIN]);
       await tx.query('UPDATE public.compromisos SET archived_at=now() WHERE id_compromiso=$1',[c.id_compromiso]);

@@ -29,7 +29,7 @@ export function iniciarCotizacion() {
     try {
       const borrador = leerBorrador();
       campos.forEach(c=>{q<HTMLInputElement|HTMLTextAreaElement>(c).value=borrador?.[c] ?? '';});
-    } catch { /* Si el navegador bloquea Storage, se conservan los valores visibles. */ }
+    } catch {}
   }
   restaurarContacto();
   campos.forEach(c=>{
@@ -44,7 +44,6 @@ export function iniciarCotizacion() {
   function controles() {
     q<HTMLFieldSetElement>('campos').disabled = confirmado;
     q<HTMLButtonElement>('enviar').disabled = ocupado || !listo || confirmado || seleccion.length === 0 || seleccion.some(i => !productos.has(i.id_producto));
-    // Con una selección dañada, «Vaciar» es la forma de recuperarse aunque no haya ítems.
     q<HTMLButtonElement>('restablecer').disabled = ocupado || confirmado || (seleccion.length === 0 && q('error-seleccion').hidden === true);
     q<HTMLButtonElement>('reintentar').disabled = ocupado;
     q('items').querySelectorAll<HTMLInputElement|HTMLButtonElement>('input,button').forEach(e=>e.disabled=ocupado||confirmado);
@@ -124,7 +123,6 @@ export function iniciarCotizacion() {
         input.setAttribute('aria-invalid',String(!ok));error.hidden=ok;error.textContent=ok?'':'Ingresa una cantidad válida mayor que cero.'; return ok;
       };
       const actualizar=()=>{validar();if(seleccion.every(i=>cantidadSchema.safeParse(i.cantidad).success))guardar();resumen();controles();};
-      // No hay stock: la cantidad no tiene tope, solo debe ser mayor que cero.
       const restar=botonCantidad('−',`Disminuir cantidad de ${nombre}`);restar.dataset.restar=String(indice);
       const sumar=botonCantidad('+',`Aumentar cantidad de ${nombre}`);
       restar.addEventListener('click',()=>{if(item.cantidad>1){item.cantidad=Number((item.cantidad-1).toFixed(10));input.value=String(item.cantidad);actualizar();}});
@@ -157,7 +155,6 @@ export function iniciarCotizacion() {
     }
     finally {ocupado=false;controles();}
   }
-  // El catálogo agrega productos en la misma pestaña: se refleja de inmediato.
   window.addEventListener(EVENTO_SELECCION,()=>{
     if(guardandoPropio)return;
     leer();
@@ -188,7 +185,6 @@ export function iniciarCotizacion() {
     }
     ocupado=true;controles();q('enviando').textContent='Enviando solicitud…';
     try {
-      // Actualizar publicación antes de enviar; el servidor valida nuevamente al registrar.
       productos=new Map((await catalogo.listar()).map(i=>[i.id_producto,i]));
       if(seleccion.some(i=>!productos.has(i.id_producto))){pintar();throw new Error('Un producto dejó de estar disponible. Quítalo de la selección para continuar.');}
       const respuesta=await cliente.enviar(validacion.data,seleccion);
@@ -200,8 +196,6 @@ export function iniciarCotizacion() {
       seleccion=[];form.reset();
       try { limpiarBorrador(); } catch {confirmacion.append(crear('p','No se pudo limpiar el borrador en este navegador. Tu solicitud ya está registrada; no vuelvas a enviarla.','mt-3'));}
     } catch(error) {
-      // Solo una caída de conexión o una respuesta ilegible deja dudas sobre si quedó registrada;
-      // los rechazos del servidor explican el motivo y no registraron nada.
       const incierto=error instanceof ApiError && ['SERVICIO_NO_DISPONIBLE','RESPUESTA_INVALIDA','CONFIRMACION_INVALIDA'].includes(error.code);
       q('error-envio').textContent=error instanceof ApiError
         ? incierto

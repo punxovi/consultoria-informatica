@@ -1,4 +1,3 @@
-// Artefactos de QA con datos sintéticos. No consulta Supabase.
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {generateCommitmentsPdf} from '../backend/services/organizations/src/infrastructure/commitments-pdf.ts';

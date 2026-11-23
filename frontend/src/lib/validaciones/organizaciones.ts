@@ -24,7 +24,6 @@ export const tipoOrganizacionSchema = z.enum(TIPOS_ORGANIZACION, {
     'El tipo de organización debe ser comedor_merendero, centro_comunitario, emprendimiento_uv u otra.',
 });
 
-/** Campos persistibles compartidos por las Actions de creación y actualización. */
 export const camposOrganizacionSchema = z
   .object({
     id_pais: uuid('El país'),
@@ -104,7 +103,6 @@ function validarTipoOtro(
   }
 }
 
-/** Schema Zod completo de una Organización nueva. */
 export const organizacionSchema = camposOrganizacionSchema.superRefine(
   validarTipoOtro,
 );
@@ -170,7 +168,6 @@ export interface ErrorValidacionOrganizacion {
   mensaje: string;
 }
 
-/** Convierte ZodError a una estructura estable para formularios y pruebas. */
 export function formatearErroresOrganizacion(
   error: z.ZodError,
 ): ErrorValidacionOrganizacion[] {

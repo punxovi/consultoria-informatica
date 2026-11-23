@@ -138,7 +138,6 @@ BEGIN
 END;
 $$;
 
--- Auth debe completar en la misma transacción cuando el proveedor ejecute triggers.
 CREATE OR REPLACE FUNCTION fge_private.completar_alta_coordinador()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -156,7 +155,6 @@ BEGIN
 END;
 $$;
 
--- Recupera altas previas que Auth creó pero cuyo trigger no llegó a completar.
 DO $$
 DECLARE
   v_reserva record;

@@ -1,5 +1,3 @@
--- FGE/TDT. Instalación inicial; no transforma un esquema previo.
--- Todos los accesos de aplicación permanecen cerrados hasta definir roles.
 BEGIN;
 CREATE SCHEMA fge_private;
 REVOKE ALL ON SCHEMA fge_private FROM PUBLIC, anon, authenticated;
@@ -293,7 +291,6 @@ CREATE TABLE public.acciones (
   observacion_motivo text,
   resultado_esperado text,
   CHECK (fecha_termino >= fecha_inicio),
-  -- Regla provisional: el documento oficial sitúa el motivo junto a cancelada.
   CHECK (estado <> 'cancelada' OR NULLIF(btrim(observacion_motivo),'') IS NOT NULL),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -366,7 +363,6 @@ CREATE TABLE public.indicadores (
   descripcion text,
   unidad_medida text NOT NULL CHECK (btrim(unidad_medida) <> ''),
   meta numeric,
-  -- No se calcula avance hasta acordar unidades, periodos y agregación.
   criterio_medicion text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -398,7 +394,6 @@ CREATE TABLE public.donaciones (
   id_donacion uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   id_organizacion uuid NOT NULL REFERENCES public.organizaciones(id_organizacion) ON DELETE RESTRICT,
   fecha date NOT NULL,
-  -- Perspectiva de la organización de esta fila, no de FGE.
   tipo_movimiento text NOT NULL CHECK (tipo_movimiento IN ('recibida','entregada')),
   contraparte_nombre text NOT NULL CHECK (btrim(contraparte_nombre) <> ''),
   descripcion text NOT NULL CHECK (btrim(descripcion) <> ''),

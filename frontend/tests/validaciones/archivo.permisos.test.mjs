@@ -27,7 +27,6 @@ test('archivo con permisos reales: ADMIN, COORD por país, versiones, cascada y 
     const cl = planes.find(plan => plan.nombre === 'QA CL');
     const ar = planes.find(plan => plan.nombre === 'QA AR');
     assert.ok(cl && ar);
-    // ADMIN también puede editar Acciones con la migración de permisos aplicada.
     const editada = await comoUsuario(db, 'ADMIN', tx => tx.query("UPDATE public.acciones SET nombre='Acción editada' WHERE id_accion=$1 RETURNING *", [ar.accion.id_accion]));
     assert.equal(editada.rows[0].nombre, 'Acción editada');
     await db.query(`UPDATE public.asignaciones_roles SET alcance='pais',id_pais=(SELECT id_pais FROM public.paises WHERE codigo_iso='CL') WHERE id_usuario=$1`, [usuarios.COORD]);
@@ -36,7 +35,6 @@ test('archivo con permisos reales: ADMIN, COORD por país, versiones, cascada y 
     await assert.rejects(comoUsuario(db, 'ADMIN', tx => tx.query('SELECT public.archivar_accion_seguro($1,NULL)', [cl.accion.id_accion])), { code: '40001' });
     await comoUsuario(db, 'COORD', tx => tx.query('SELECT public.archivar_accion_seguro($1,$2)', [cl.accion.id_accion, cl.accion.version]));
     assert.ok((await db.query('SELECT archived_at FROM public.acciones WHERE id_accion=$1', [cl.accion.id_accion])).rows[0].archived_at);
-    // Si falla una acción hija se revierte toda la eliminación del plan.
     await db.exec(`CREATE FUNCTION public.qa_impedir_archivo() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Fallo simulado'; END $$;
       CREATE TRIGGER qa_impedir_archivo BEFORE UPDATE ON public.acciones FOR EACH ROW EXECUTE FUNCTION public.qa_impedir_archivo();`);
     await assert.rejects(comoUsuario(db, 'ADMIN', tx => tx.query('SELECT public.archivar_plan_seguro($1,$2)', [ar.id_plan, ar.version])));

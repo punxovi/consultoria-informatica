@@ -1,5 +1,3 @@
--- Ejecutar completa en SQL Editor después de la migración SCRUM-118.
--- Verifica instalación y permisos; el flujo autenticado se prueba desde el navegador.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

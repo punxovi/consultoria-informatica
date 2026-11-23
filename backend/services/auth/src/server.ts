@@ -9,7 +9,6 @@ import { createSupabaseAuthRepositoryFromEnv } from './infrastructure/supabase-a
 import { createCoordinatorApplication, type CoordinatorApplication } from './application/coordinators-service.ts';
 import { createSupabaseCoordinatorRepositoryFromEnv } from './infrastructure/supabase-coordinators.repository.ts';
 import { routeCoordinators } from './http/coordinators-routes.ts';
-// Importaciones del módulo de invitados que creamos
 import { createGuestApplication, type GuestApplication } from '../../guests/src/application/guests-service.ts';
 import { createSupabaseGuestRepositoryFromEnv } from '../../guests/src/infrastructure/supabase-guests.repository.ts';
 import { routeGuests } from '../../guests/src/http/guests-routes.ts';

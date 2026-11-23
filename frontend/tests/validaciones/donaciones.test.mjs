@@ -22,7 +22,6 @@ test('tipoArchivo: valida formatos permitidos (PDF, JPG, PNG, WebP) y límites',
   assert.equal(tipoArchivo({ name: 'documento.webp', type: 'image/webp', size: 512 }), 'image/webp');
   assert.equal(tipoArchivo({ name: 'sin-mime.PDF', type: '', size: MAX_BYTES }), 'application/pdf');
 
-  // Rechaza archivos inválidos
   assert.throws(() => tipoArchivo({ name: 'malicioso.exe', type: 'application/x-msdownload', size: 100 }));
   assert.throws(() => tipoArchivo({ name: 'inconsistente.pdf', type: 'image/png', size: 100 }));
   assert.throws(() => tipoArchivo({ name: 'vacio.pdf', type: 'application/pdf', size: 0 }));
@@ -44,7 +43,6 @@ test('normalizarTipoRespaldo: normaliza comprobante, acta de entrega, certificad
 });
 
 test('donacionFormSchema: valida donaciones en dinero y recursos', () => {
-  // Donación dinero válida
   const dineroOk = donacionFormSchema.safeParse({
     fecha: '2026-10-19',
     tipo_movimiento: 'recibida',
@@ -56,7 +54,6 @@ test('donacionFormSchema: valida donaciones en dinero y recursos', () => {
   });
   assert.ok(dineroOk.success);
 
-  // Donación dinero sin monto o moneda
   const dineroInvalido = donacionFormSchema.safeParse({
     fecha: '2026-10-19',
     tipo_movimiento: 'recibida',
@@ -66,7 +63,6 @@ test('donacionFormSchema: valida donaciones en dinero y recursos', () => {
   });
   assert.equal(dineroInvalido.success, false);
 
-  // Donación recurso válida
   const recursoOk = donacionFormSchema.safeParse({
     fecha: '2026-10-19',
     tipo_movimiento: 'entregada',
@@ -78,7 +74,6 @@ test('donacionFormSchema: valida donaciones en dinero y recursos', () => {
   });
   assert.ok(recursoOk.success);
 
-  // Donación recurso sin cantidad
   const recursoInvalido = donacionFormSchema.safeParse({
     fecha: '2026-10-19',
     tipo_movimiento: 'entregada',

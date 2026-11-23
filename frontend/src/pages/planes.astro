@@ -226,7 +226,6 @@ import AppLayout from '../layouts/AppLayout.astro';
     if (opciones.some(opcion => opcion.valor === valorAnterior)) selector.value = valorAnterior;
   }
 
-  // Un Coordinador consulta planes de todos los países; el filtro parte en su territorio activo.
   function aplicarPais() {
     const pais = filtroPais.value;
     planes = pais ? planesTodos.filter(plan => plan.organizacion.id_pais === pais) : planesTodos;
@@ -242,7 +241,6 @@ import AppLayout from '../layouts/AppLayout.astro';
       [...paises].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).forEach(pais => filtroPais.add(new Option(pais.nombre, pais.id_pais)));
       paisesCargados = true;
     } catch {
-      // Sin catálogo de países se listan todos los planes visibles.
     }
     filtroPais.disabled = false;
   }
@@ -430,7 +428,6 @@ import AppLayout from '../layouts/AppLayout.astro';
       try {
         organizacionesTodas = await listarOrganizaciones({});
       } catch {
-        // El listado de planes puede funcionar aunque falle la carga del catálogo de organizaciones.
         organizacionesTodas = [];
       }
       if (solicitud !== solicitudActual) return;

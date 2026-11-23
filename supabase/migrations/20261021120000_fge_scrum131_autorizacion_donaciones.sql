@@ -1,4 +1,3 @@
--- Prevalidación de gestión con la misma regla territorial usada por RLS.
 BEGIN;
 CREATE FUNCTION public.puede_gestionar_donaciones(p_id_organizacion uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$

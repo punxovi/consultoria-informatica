@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const MAX_BYTES = 52_428_800; // 50 MiB
+export const MAX_BYTES = 52_428_800;
 
 export const tiposArchivos = {
   'application/pdf': ['pdf'],
@@ -62,7 +62,6 @@ export const etiquetasTipoDonante: Record<(typeof TIPOS_DONANTE)[number], string
   organizacion: 'Organización',
 };
 
-// Secuencia autorizada: Comprometida → Recibida → Entregada → Cerrada, sin saltos ni retrocesos.
 export function siguienteEstado(estado?: string | null): EstadoDonacion | null {
   if (!estado) return 'Comprometida';
   const indice = ESTADOS_DONACION.indexOf(estado as EstadoDonacion);
@@ -74,7 +73,6 @@ export function esDinero(categoria?: string): boolean {
 }
 
 const camposDonacion = {
-  // El Backend valida catálogos, relaciones y reglas cruzadas de HU20.
   id_pais: z.string().optional(),
   id_programa: z.string().optional(),
   categoria: z.string().optional(),
@@ -156,7 +154,6 @@ function reglasAporte(d: Partial<CamposDonacion>, ctx: z.RefinementCtx) {
 
 export const donacionFormSchema = z.object(camposDonacion).superRefine(reglasAporte);
 
-// Registro desde la interfaz: HU20 exige estos campos además de los comunes.
 export const donacionRegistroSchema = z
   .object({
     ...camposDonacion,
@@ -184,8 +181,6 @@ export type CambiosDonacion = Partial<Omit<DatosDonacionForm, 'id_pais'>> & {
 
 export type ErrorRegistro = { path: PropertyKey[]; message: string };
 
-// Zod omite las reglas cruzadas si fallan campos simples; se evalúan igualmente
-// para mostrar al usuario todos los errores del formulario en un solo intento.
 export function validarRegistroDonacion(
   raw: unknown,
 ): { success: true; data: DatosDonacionRegistro } | { success: false; issues: ErrorRegistro[] } {
@@ -244,7 +239,6 @@ export const donacionSchema = z.object({
 
 export type Donacion = z.infer<typeof donacionSchema>;
 
-// Conserva la perspectiva histórica del servicio: el movimiento pertenece a la organización.
 export function partesDonacion(
   donacion: Pick<Donacion, 'tipo_movimiento' | 'contraparte_nombre'>,
   organizacion: string,

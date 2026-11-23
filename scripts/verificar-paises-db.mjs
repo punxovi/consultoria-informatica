@@ -1,5 +1,3 @@
-// QA sin red. Instalar @electric-sql/pglite fuera del repositorio y pasar
-// el directorio node_modules como argumento. Auth se representa con un esquema mínimo.
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -32,7 +30,6 @@ try {
   await db.query("INSERT INTO public.paises(id_pais,nombre,codigo_iso) VALUES($1,'Chile','CL'),($2,'País heredado','XX')", [chile, extra]);
   await db.query("INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,id_pais,otorgado_por) SELECT $1,id_rol,'pais',$2,$3 FROM public.roles WHERE codigo='COORD'", [coord, chile, admin]);
   await load('20261023150000_fge_paises_catalogo_dashboard.sql');
-  // Una relación real del modelo, creada antes de migrar, debe conservar su UUID.
   await db.query(`INSERT INTO public.organizaciones(id_pais,nombre,nombre_representante,telefono,correo,region_departamento,comuna_municipio_ciudad,direccion,publico_objetivo,descripcion_breve,tipo_organizacion,numero_beneficiarios)
    VALUES($1,'Organización QA','Persona QA','+56912345678','qa@example.invalid','Región','Comuna','Dirección','Público','Descripción','comedor_merendero',10)`, [chile]);
   const organizationCountry = await scalar('SELECT id_pais FROM public.organizaciones');
@@ -74,7 +71,7 @@ try {
   await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [coord]);
   await db.exec('SET ROLE authenticated');
   for (const op of ['authorize','list','get','create','update']) await rejectRpc(op, input, '42501');
-  check(await scalar('SELECT count(*)::int FROM public.paises'), 5); // lectura básica permitida
+  check(await scalar('SELECT count(*)::int FROM public.paises'), 5);
   await reject('SELECT zona_horaria FROM public.paises', [], '42501');
   await reject('SELECT fge_private.inicializar_paises_base()', [], '42501');
   await reject("UPDATE public.paises SET nombre='Prohibido' WHERE id_pais=$1", [chile], '42501');
@@ -85,7 +82,6 @@ try {
   await db.query('UPDATE public.paises SET archived_at=now() WHERE id_pais=$1', [pe.id_pais]);
   await rejectRpc('get', { id_pais: pe.id_pais }, 'P0149');
   check((await rpc('list')).some(p => p.id_pais === pe.id_pais), false);
-  // La clave raíz no puede alterarse siquiera por una escritura SQL privilegiada.
   await reject('UPDATE public.paises SET id_pais=$1 WHERE id_pais=$2', ['14900000-0000-4000-8000-000000000099', pe.id_pais], '22023');
   await db.query('UPDATE public.perfiles SET activo=false WHERE id_usuario=$1', [admin]);
   await rejectRpc('list', {}, '42501');

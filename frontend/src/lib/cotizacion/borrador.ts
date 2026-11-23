@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type { Contacto } from './modelo.ts';
 
 const clave = 'fge-cotizacion-contacto-v1';
-// El borrador admite datos incompletos: la validación de envío ocurre aparte.
 const schema = z.strictObject({
   nombre: z.string().max(79), apellido: z.string().max(80), correo: z.string().max(320),
   telefono: z.string().max(60), mensaje: z.string().max(2000),

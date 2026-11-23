@@ -1,5 +1,3 @@
-// Prueba optativa sobre una instancia Supabase con la migración ya aplicada.
-// Crea una evidencia QA y un PNG real; finalmente archiva el registro (sin borrar auditoría).
 import assert from 'node:assert/strict';
 import { loadEnvFile } from 'node:process';
 
@@ -17,7 +15,6 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 async function request(path, options={}) {
   const res = await fetch(new URL(path,base), {...options,headers:{...headers,...options.headers}});
   if (!res.ok) {
-    // No imprimir cabeceras ni JWT. Solo el código de error del servicio.
     const error = await res.json().catch(()=>({}));
     throw new Error(`HTTP ${res.status}: ${error.code ?? error.error ?? 'fallo de operación'}`);
   }
@@ -56,7 +53,6 @@ try {
   console.log('Registro, carga, confirmación, descarga idéntica, consentimiento, publicación y retiro: OK.');
 } finally {
   if (evidence) {
-    // Se retira antes de archivar si hubo un fallo después de publicar.
     if (evidence.publicado) await patch({estado_publicacion:'retirada'});
     await request('/rest/v1/rpc/archivar_evidencia_segura',{
       method:'POST',headers:{'content-type':'application/json'},

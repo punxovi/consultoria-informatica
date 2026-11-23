@@ -1,4 +1,3 @@
--- Solo Supabase local. Datos de prueba revertidos.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

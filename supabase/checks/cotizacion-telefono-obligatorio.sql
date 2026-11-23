@@ -1,5 +1,3 @@
--- Comprobación del nuevo INSERT: sin modificar solicitudes históricas.
--- Las filas sintéticas no se confirman y se revierten al terminar.
 BEGIN;
 CREATE TEMP TABLE qa_telefono_resultado(resultado jsonb) ON COMMIT DROP;
 DO $qa$

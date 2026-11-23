@@ -1,6 +1,4 @@
 ---
-// TEMPORAL: header y footer de la simulación del sitio de fundaciongestionar.org.
-// Quitar junto con las páginas /simulacion-fundacion cuando los accesos estén en el sitio real.
 import Layout from './Layout.astro';
 import { RUTA_PROGRAMAS_SIMULACION } from '../lib/simulacion/programas';
 
@@ -12,7 +10,6 @@ interface Props {
 const { title, actual = 'inicio' } = Astro.props;
 const INICIO = '/simulacion-fundacion';
 
-// Solo páginas propias: la simulación no enlaza al sitio real de la fundación.
 const menu = [
   { texto: 'Inicio', href: INICIO, activo: actual === 'inicio' },
   { texto: 'Programas', href: RUTA_PROGRAMAS_SIMULACION, activo: actual === 'programas' },
@@ -20,16 +17,13 @@ const menu = [
 ---
 
 <Layout title={title}>
-  <!-- Contenedor propio: Layout fija body en height:100% y el header sticky dejaría de pegarse al pasar la primera pantalla. -->
   <div class="min-h-full">
   <header class="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
     <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 md:h-20">
       <a href={INICIO} class="shrink-0" aria-label="Fundación Gestionar Esperanzas · Inicio">
-        <!-- El PNG es cuadrado con mucho aire: se recorta a la franja donde está el logo. -->
         <img src="/Logo-FGE-SIN-FONDO.png" alt="Fundación Gestionar Esperanzas" class="h-10 w-[142px] object-cover object-[50%_47.6%] md:h-12 md:w-[170px]" />
       </a>
 
-      <!-- ml-auto: el menú se agrupa a la derecha, junto a Catálogo y Plataforma interna. -->
       <nav class="ml-auto mr-2 hidden items-center gap-6 text-sm font-medium text-neutral-700 md:flex" aria-label="Menú del sitio">
         {menu.map((item) => (
           <a
@@ -40,7 +34,6 @@ const menu = [
         ))}
       </nav>
 
-      <!-- Accesos nuevos -->
       <div class="flex shrink-0 items-center gap-2">
         <a
           href="/catalogo"
@@ -68,7 +61,6 @@ const menu = [
       </div>
     </div>
 
-    <!-- Menú móvil -->
     <nav id="sim-menu" hidden class="border-t border-neutral-200 bg-white px-4 py-3 md:hidden" aria-label="Menú del sitio">
       <ul class="space-y-1 text-sm font-medium text-neutral-700">
         {menu.map((item) => (

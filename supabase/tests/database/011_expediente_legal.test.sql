@@ -1,4 +1,3 @@
--- Verifica directamente en PostgreSQL el expediente legal de Organizaciones. Todo se revierte.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

@@ -3,7 +3,6 @@ import type { ReportPreview } from './pdf.ts';
 import { FILAS_POR_TRAMO, seccionesDeVista, type SeccionVista } from './vista-previa.ts';
 
 export interface ContextoVistaPrevia {
-  // Criterios elegidos por el usuario, con los nombres de los catálogos.
   criterios: [string, string][];
 }
 
@@ -178,7 +177,6 @@ function pintarSeccion(item: SeccionVista, indice: number) {
   return articulo;
 }
 
-// Presenta la respuesta del servicio tal como llegó: no recalcula ni formatea valores de negocio.
 export function renderizarVistaPrevia(contenedor: HTMLElement, vista: ReportPreview, contexto: ContextoVistaPrevia) {
   const secciones = seccionesDeVista(vista);
   contenedor.replaceChildren(

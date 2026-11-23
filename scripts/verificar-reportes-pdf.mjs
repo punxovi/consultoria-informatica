@@ -1,4 +1,3 @@
-// QA reproducible con datos ficticios. No consulta Supabase ni utiliza una sesión.
 import { mkdir,writeFile } from 'node:fs/promises';
 import { resolve,join } from 'node:path';
 import { performance } from 'node:perf_hooks';

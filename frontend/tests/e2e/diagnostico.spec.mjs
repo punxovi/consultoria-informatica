@@ -16,7 +16,6 @@ test.beforeEach(async ({ context, request }) => {
     expires_at: Math.floor(Date.now() / 1000) + 3600,
     user: { id: '17600000-0000-4000-8000-000000000001', email: 'qa@example.invalid', user_metadata: {} },
   })));
-  // Auth es el único dominio simulado; Diagnóstico y Organización atraviesan el Gateway real.
   await context.route('**/api/v1/auth/session', route => route.fulfill({ json: { ok: true, data: { authenticated: true, user: { id: '17600000-0000-4000-8000-000000000001' } } } }));
 });
 

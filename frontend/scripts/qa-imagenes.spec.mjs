@@ -1,5 +1,3 @@
-// QA: UI y Actions reales; PostgreSQL embebido; transporte de archivos simulado.
-// Desde frontend: npx playwright test --config scripts/qa-imagenes.config.mjs
 import { test, expect } from '@playwright/test';
 
 const origen = 'http://127.0.0.1:54329';
@@ -235,7 +233,6 @@ test('muestra error de consulta de imagen en el detalle', async ({ page, context
   await page.reload();
   await expect(page.locator('#detalle-contenido')).toBeVisible();
   await expect(page.locator('#detalle-imagen')).toHaveAttribute('src', /programa-predeterminado.svg/);
-  // PostgREST reintenta lecturas 503 con espera de 1, 2 y 4 segundos.
   await expect(page.getByText(/No se pudo consultar la imagen|No se pudo cargar la imagen/)).toBeVisible({ timeout: 12000 });
   storage.fallarConsulta = false;
   await page.locator('#reintentar-imagen').click();

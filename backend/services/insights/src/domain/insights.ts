@@ -26,7 +26,6 @@ export interface ReportAudit {
 }
 export interface MonthlyActions { key: string; label: string; completed: number; pending: number }
 
-// - Interfaz detallada para las acciones pendientes en el Dashboard
 export interface DashboardPendingAction {
   id_accion: string;
   nombre: string;
@@ -109,9 +108,6 @@ function monthWindow(now: Date, year?: number): Array<{ key: string; label: stri
 }
 
 export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = new Date()): DashboardSnapshot {
-  // Las organizaciones se filtran por país, pero no por año.
-  // El contador y los beneficiarios representan todas las organizaciones
-  // no archivadas del territorio, tengan o no planes en el período seleccionado.
   const organizations = filters.countryId
     ? raw.organizations.filter((item) => item.id_pais === filters.countryId)
     : raw.organizations;
@@ -120,7 +116,6 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
     organizations.map((item) => item.id_organizacion),
   );
 
-  // El filtro de año se aplica únicamente a los planes y sus acciones.
   let plans = raw.plans.filter((item) =>
     organizationIds.has(item.id_organizacion),
   );
@@ -158,17 +153,10 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
   const months = monthWindow(now, filters.year);
   const plansInScope = filters.year ? plans.length : plans.filter((item) => item.fecha_inicio <= today && item.fecha_termino >= today).length;
 
-  // Porcentaje de avance de los Planes de Intervención.
-  // Fórmula definida: (Acciones cumplidas / Total de acciones vinculadas a planes activos) * 100
-  // Si no hay acciones, el porcentaje es 0.
   const percentage = actions.length ? Math.round((completed / actions.length) * 100) : 0;
 
-  // Identificar acciones próximas a vencer o vencidas (atrasadas, en desarrollo, no iniciadas)
-  // Excluyendo explÃcitamente cumplidas y canceladas.
   const pendingActions: DashboardPendingAction[] = actions
     .filter(a => ['no_iniciada', 'en_desarrollo', 'atrasada'].includes(a.estado))
-    // Si el plan o la organización no son visibles para la sesión (por ejemplo,
-    // un Invitado), la acción se omite en vez de romper todo el panel.
     .flatMap(action => {
       const plan = plans.find(p => p.id_plan === action.id_plan);
       const org = plan && organizations.find(o => o.id_organizacion === plan.id_organizacion);
@@ -183,10 +171,8 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
         programa: plan.id_programa && plan.programa_nombre ? { id_programa: plan.id_programa, nombre: plan.programa_nombre } : null
       }];
     })
-    .sort((a, b) => a.fecha_termino.localeCompare(b.fecha_termino)); // Las más urgentes primero
+    .sort((a, b) => a.fecha_termino.localeCompare(b.fecha_termino));
 
-  // El indicador superior de Alertas utiliza exactamente el mismo conjunto
-  // de acciones que se presenta en Acciones prioritarias.
   const activeAlerts = pendingActions.length;
 
   return {
@@ -195,7 +181,6 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
     countries: raw.countries,
     metrics: {
       organizations: organizations.length,
-      // Planes activos (fecha actual entre inicio y término)
       activePlans: plansInScope,
       beneficiaries: organizations.reduce((total, item) => total + Math.max(0, item.numero_beneficiarios ?? 0), 0),
       activeAlerts,
@@ -214,7 +199,7 @@ export function buildSnapshot(raw: RawInsights, filters: InsightFilters, now = n
         pending: values.filter((item) => item.estado !== 'cumplida' && item.estado !== 'cancelada').length,
       };
     }),
-    pendingActions // Nueva propiedad agregada para la HU del Dashboard Territorial
+    pendingActions
   };
 }
 
@@ -237,10 +222,6 @@ export function prepareReport(snapshot: DashboardSnapshot, request: ReportReques
     monthlyActions: snapshot.monthlyActions,
   };
 }
-
-// ============================================================================
-// CONTRATOS Y VALIDACIONES PARA REPORTE CONSOLIDADO
-// ============================================================================
 
 export interface ConsolidatedReportFilters {
   startDate: string;

@@ -23,7 +23,6 @@ function iniciar(form: HTMLFormElement) {
   const imagenCambio = document.querySelector<HTMLElement>('#imagen-cambio');
   
   let id = form.dataset.id || '';
-  // Si al crear falla solo la imagen, el reintento sigue contando como creación.
   const esCreacion = !id;
   let version: number | undefined;
   let ultimoContenidoGuardado: string | null = null;
@@ -238,8 +237,6 @@ function iniciar(form: HTMLFormElement) {
     try {
       const datos = validacion.data;
       const contenido = JSON.stringify('id_programa' in datos ? datos.cambios : datos);
-      // Si solo falló la imagen, reintentar esa fase sin volver a guardar los textos.
-      // Si el usuario los cambió, se actualiza el mismo programa con su nueva versión.
       if (contenido !== ultimoContenidoGuardado) {
         const programa = 'id_programa' in datos ? await actualizarPrograma(datos) : await crearPrograma(datos);
         id = programa.id_programa;

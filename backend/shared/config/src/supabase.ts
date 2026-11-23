@@ -3,7 +3,6 @@ import { loadEnvFile } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { ServiceError } from '../../errors/src/index.ts';
 
-/** La ruta no depende del directorio desde el que se inicia el workspace. */
 export function loadBackendEnvironment(envFile: URL = new URL('../../../.env', import.meta.url)): void {
   const path = fileURLToPath(envFile);
   if (existsSync(path)) loadEnvFile(path);

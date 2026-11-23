@@ -112,7 +112,6 @@ import Button from '../components/ui/Button.astro';
         </div>
       </div>
 
-      <!-- Solo se muestra si no se pudo cargar el catálogo de programas. -->
       <p id="filtro-programa-hint" role="status" hidden class="mt-3 rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger"></p>
       <p id="aviso-solo-consulta" role="status" aria-live="polite" hidden class="mt-3 rounded-lg bg-[#F0EEF9] px-3 py-2 text-sm text-[#423C76]"></p>
 
@@ -244,7 +243,6 @@ import Button from '../components/ui/Button.astro';
     }
   }
 
-  // Igual que en Programas y Planes: sin bloque de «filtros activos»; solo se habilita «Limpiar filtros».
   function renderizarFiltrosActivos(filtros = obtenerFiltrosSeleccionados()) {
     limpiarBoton.disabled = !catalogosListos || !(filtros.q || filtros.id_pais !== (territorio ?? '') || filtros.id_programa);
   }
@@ -295,8 +293,6 @@ import Button from '../components/ui/Button.astro';
     return organizacion.tipo_organizacion_otro?.trim() || 'Otra organización';
   }
 
-  // Las imágenes son privadas: se descargan con la sesión cuando la tarjeta
-  // entra en pantalla y se reutilizan entre búsquedas mientras no cambien.
   const miniaturasCargadas = new Map<string, Promise<string>>();
   const observadorMiniaturas = 'IntersectionObserver' in window
     ? new IntersectionObserver((entradas) => {
@@ -389,7 +385,6 @@ import Button from '../components/ui/Button.astro';
     return tarjeta;
   }
 
-  // Total sin filtros, para mostrar «X de Y organizaciones registradas» como Programas y Planes.
   let totalRegistradas: number | null = null;
   const numero = new Intl.NumberFormat('es-CL');
   function textoConteo(visibles: number) {
@@ -454,7 +449,6 @@ import Button from '../components/ui/Button.astro';
           idPais: filtros.id_pais || undefined,
           idPrograma: filtros.id_programa || undefined,
         }),
-        // El total sin filtros se consulta solo si aún no se conoce.
         hayFiltros && totalRegistradas === null ? listarOrganizaciones({}).catch(() => null) : Promise.resolve(null),
       ]);
       if (solicitud !== solicitudActual) return;

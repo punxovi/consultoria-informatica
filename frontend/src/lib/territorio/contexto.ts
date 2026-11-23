@@ -1,6 +1,5 @@
 import { getUserRoles } from '../supabase';
 
-/** Contexto visual; los servicios siguen validando la autorización. */
 export async function paisOperativo(): Promise<string | null> {
   const roles = await getUserRoles();
   if (roles.some(r => r.codigo === 'ADMIN')) return null;

@@ -44,7 +44,6 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
           </p>
         </div>
 
-        <!-- Visible solo si la sesión gestiona el país de la Organización del plan. -->
         <div id="gestion-accion" data-gestion hidden class="shrink-0">
           <MenuAcciones etiqueta="Acciones de la acción">
             <Button href={`${rutaAccion}/editar`} variant="outline">
@@ -145,7 +144,6 @@ const rutaAccion = `/planes/${encodeURIComponent(idPlan)}/acciones/${encodeURICo
       }
       const gestionable = puedeGestionarPais(alcance, plan.organizacion.id_pais);
       document.querySelector<HTMLElement>('#gestion-accion')!.hidden = !gestionable;
-      // Fuera del país propio o de una cobertura vigente, Indicadores y Evidencias quedan en solo consulta.
       document.documentElement.toggleAttribute('data-solo-consulta', !gestionable);
 
       const raizEliminar = document.querySelector<HTMLElement>('#eliminar-registro');

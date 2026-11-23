@@ -1,7 +1,6 @@
 BEGIN;
 SELECT plan(6);
 
--- Verificamos que existen las políticas que acabamos de crear
 SELECT policies_are(
   'public', 'diagnosticos',
   ARRAY['diagnosticos_lectura', 'diagnosticos_insert', 'diagnosticos_update'],
@@ -20,7 +19,6 @@ SELECT policies_are(
   'La tabla compromisos debe tener las políticas requeridas'
 );
 
--- Pruebas de acceso "anon" denegado
 SET LOCAL ROLE anon;
 
 PREPARE anon_select_diag AS SELECT 1 FROM public.diagnosticos;

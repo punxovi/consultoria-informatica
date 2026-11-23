@@ -1,5 +1,3 @@
--- Ejecutar después de 20261106120000_fge_scrum171_ciclo_invitados.sql.
--- No envía correos; usa un usuario sintético y revierte todas las escrituras.
 BEGIN;
 CREATE TEMP TABLE qa_invitados_resultado(resultado jsonb) ON COMMIT DROP;
 DO $qa$
@@ -15,7 +13,6 @@ BEGIN
   IF admin_id IS NULL THEN RAISE EXCEPTION 'Se requiere un ADMIN activo'; END IF;
   INSERT INTO auth.users(id,email,email_confirmed_at,raw_user_meta_data,raw_app_meta_data)
     VALUES(guest_id,email_qa,now(),'{}','{}');
-  -- Compatibilidad con proyectos cuya creación de perfiles utiliza otro trigger.
   INSERT INTO public.perfiles(id_usuario,nombre) VALUES(guest_id,'Invitado QA') ON CONFLICT DO NOTHING;
   PERFORM set_config('request.jwt.claim.sub','',true);
   PERFORM set_config('request.jwt.claims','{"role":"anon"}',true);

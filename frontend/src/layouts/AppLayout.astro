@@ -1,5 +1,4 @@
 ---
-// frontend/src/layouts/AppLayout.astro
 import Layout from './Layout.astro';
 import Header from '../components/ui/Header.astro';
 import Sidebar from '../components/ui/Sidebar.astro';
@@ -19,10 +18,8 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 
 <Layout title={title}>
   <div class="flex h-screen overflow-hidden bg-[#F7F6FA]">
-    <!-- Menú lateral de altura completa -->
     <Sidebar items={navItems} />
 
-    <!-- Columna principal: encabezado y contenido -->
     <div class="flex min-w-0 flex-1 flex-col md:ml-64">
       <Header
         title={title ?? 'Fundación Gestionar Esperanzas'}
@@ -66,7 +63,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
           <button id="session-retry" type="button" class="ml-2 font-semibold underline">Reintentar</button>
         </div>
 
-        <!-- Mensaje de acceso denegado -->
         <div
           id="unauthorized-message"
           class="hidden h-full flex-col items-center
@@ -101,7 +97,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
         </div>
       </main>
 
-      <!-- Roles permitidos para la página actual -->
       <div
         id="auth-config"
         data-allowed-roles={JSON.stringify(allowedRoles)}
@@ -251,7 +246,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       '[data-session-country-name]',
     );
 
-    // Mantener la inicial mientras no se haya cargado la bandera.
     if (inicialEl) inicialEl.hidden = false;
 
     if (banderaEl) {
@@ -362,7 +356,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       if (rolesErrorTemporal) document.getElementById('session-error')?.removeAttribute('hidden');
     }
 
-    // Completar el perfil del encabezado con los datos de la sesión autenticada.
     try {
       const { data, error } = await getSupabaseClient().auth.getUser();
       const usuario = data.user;
@@ -408,8 +401,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
 
         actualizarDatosPerfil(nombre, correo, rol, paisPrincipal);
 
-        // Compartir los datos ya consultados con el dashboard para personalizar el saludo.
-        // No se realiza una segunda consulta a Supabase desde dashboard.astro.
         const codigosRol = roles
           .map((item) => String(item.codigo ?? '').trim())
           .filter(Boolean);
@@ -436,7 +427,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       iniciarContadorInvitados();
     }
 
-    // Mantener la visibilidad original del menú según los roles asignados.
     document.querySelectorAll<HTMLElement>('[data-nav-roles]').forEach((enlace) => {
       let rolesItem: string[] = [];
       try {
@@ -447,7 +437,6 @@ const hasHeaderBreadcrumb = Astro.slots.has('headerBreadcrumb');
       enlace.hidden = !roles.some((role) => rolesItem.includes(role.codigo));
     });
 
-    // Invitado: solo consulta. Se ocultan todas las acciones de gestión (ver global.css).
     const soloLectura = roles.some((role) => role.codigo === 'INVIT')
       && !roles.some((role) => role.codigo === 'ADMIN' || role.codigo === 'COORD');
     document.documentElement.toggleAttribute('data-solo-lectura', soloLectura);

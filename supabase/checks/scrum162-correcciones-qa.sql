@@ -1,6 +1,3 @@
--- Ejecutar tras 20261109120000_fge_scrum162_correcciones_qa.sql.
--- Prueba de persistencia real; las comprobaciones HTTP se ejecutan localmente.
--- No envía correos ni modifica imágenes. Todas las escrituras se revierten.
 BEGIN;
 CREATE TEMP TABLE qa_scrum162_resultado(resultado jsonb) ON COMMIT DROP;
 DO $qa$

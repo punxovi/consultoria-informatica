@@ -1,5 +1,3 @@
--- SCRUM-140: privacidad de reportes externos y auditoría de exportaciones.
--- Reutiliza fge_private.historial_cambios; no crea un sistema paralelo.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.registrar_exportacion_reporte(

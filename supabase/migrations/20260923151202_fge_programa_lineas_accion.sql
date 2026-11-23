@@ -1,6 +1,3 @@
--- KAN-173: cada línea institucional tiene su propio resultado esperado.
--- Los textos legados de programas se conservan: no indican qué resultado
--- corresponde a cada componente y no se pueden descomponer sin inventar datos.
 BEGIN;
 
 CREATE TABLE public.programa_lineas_accion (

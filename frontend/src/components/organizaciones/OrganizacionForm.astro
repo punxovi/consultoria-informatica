@@ -266,8 +266,6 @@ const tiposOrganizacion = [
     throw new Error('No se encontraron los elementos del formulario de organización.');
   }
 
-  // Tras crear la organización, un fallo al subir la imagen deja el formulario
-  // en modo edición para reintentar sin duplicar el registro.
   let esEdicion = form.dataset.modo === 'editar';
   const esCreacionInicial = !esEdicion;
   let idOrganizacion = form.dataset.id ?? '';
@@ -380,8 +378,6 @@ const tiposOrganizacion = [
     recuperacion!.hidden = !requiereSesion;
   }
 
-  // Mismo patrón que Programas y Planes: aviso general arriba y, debajo de
-  // cada campo con problemas, su propio mensaje (todos a la vez).
   const MENSAJES_OBLIGATORIOS: Record<string, string> = {
     nombre: 'El nombre es obligatorio.',
     nombre_representante: 'El nombre del representante es obligatorio.',
@@ -451,13 +447,11 @@ const tiposOrganizacion = [
   function erroresDeValidacion(issues: { path: PropertyKey[]; message: string }[]) {
     const errores: Record<string, string> = {};
 
-    // Primero los obligatorios vacíos, con un mensaje claro por campo.
     for (const [nombre, mensaje] of Object.entries(MENSAJES_OBLIGATORIOS)) {
       const control = controlCampo(nombre);
       if (control?.required && !control.value.trim()) errores[nombre] = mensaje;
     }
 
-    // Luego el resto de reglas (formato, largo, etc.), una por campo.
     for (const issue of issues) {
       const nombre = String(issue.path[issue.path[0] === 'cambios' ? 1 : 0] ?? '');
       if (nombre && !errores[nombre]) errores[nombre] = issue.message;

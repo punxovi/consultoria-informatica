@@ -33,7 +33,7 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
       throw new ServiceError('SUPABASE_NO_DISPONIBLE', 'No fue posible conectar con la base de datos.', 503, error);
     }
     let body: unknown = null;
-    try { body = await response.json(); } catch { /* sin contenido */ }
+    try { body = await response.json(); } catch {}
     if (!response.ok) {
       const detail = body && typeof body === 'object' ? body as Record<string, unknown> : {};
       if (response.status === 401 || response.status === 403) throw new ServiceError('SIN_PERMISO', 'No tienes permiso para gestionar productos.', response.status);
@@ -57,9 +57,6 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
       throw new ServiceError('SIN_PERMISO', 'Solo el Administrador puede gestionar los productos de cotización.', 403);
     }
   }
-  // El bucket es privado: para que el Administrador vea las fotos se firman
-  // enlaces temporales con su propia sesión (la política de Storage decide).
-  // Si la firma falla, el producto se entrega igual, solo sin vista previa.
   async function signImages(token: string, paths: string[]): Promise<Map<string, string>> {
     const urls = new Map<string, string>();
     if (!paths.length) return urls;
@@ -76,7 +73,7 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
           urls.set(item.path, firmada.startsWith('http') ? firmada : `${base}/storage/v1${firmada}`);
         }
       }
-    } catch { /* sin vista previa */ }
+    } catch {}
     return urls;
   }
   async function enrich(token: string, rows: unknown[]): Promise<unknown[]> {
@@ -164,7 +161,7 @@ export function createProductsApplication(options: { supabaseUrl: string; anonKe
       const rows = await call(`productos?id_producto=eq.${encodeURIComponent(id)}&version=eq.${version}&archived_at=is.null&select=${PRODUCT_FIELDS}`, token, { method: 'PATCH', headers: { prefer: 'return=representation' }, body: JSON.stringify(body) });
       if (!Array.isArray(rows)) throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un producto inválido.', 502);
       if (!rows.length) {
-        await find(token,id); // Si no existe, 404. Si existe con otra versión, 409.
+        await find(token,id);
         throw new ServiceError('CONFLICTO_CONCURRENCIA', 'El producto cambió en otra sesión. Recarga antes de volver a intentarlo.', 409);
       }
       return (await enrich(token, rows))[0];

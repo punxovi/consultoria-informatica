@@ -6,7 +6,6 @@ export const usuarios = {
   COORD: '17600000-0000-4000-8000-000000000002',
 };
 
-/** PostgreSQL embebido con migraciones reales; Auth y Storage solo tienen su soporte mínimo. */
 export async function crearBaseProgramas({ planesAcciones = true, ordenLineas = true } = {}) {
   const db = new PGlite();
   await db.exec(`
@@ -44,10 +43,8 @@ export async function crearBaseProgramas({ planesAcciones = true, ordenLineas = 
   for (const nombre of migraciones) {
     await db.exec(await readFile(new URL(`../../../supabase/migrations/${nombre}`, import.meta.url), 'utf8'));
   }
-  // Esta base carga un subconjunto histórico de migraciones. Los seeds de cuentas
-  // e indicadores requieren migraciones posteriores y se prueban por separado.
   const seed = await readFile(new URL('../../../supabase/seed.sql', import.meta.url), 'utf8');
-  await db.exec(seed.slice(0, seed.indexOf('-- El nombre no es UNIQUE:'))
+  await db.exec(seed.slice(0, seed.indexOf('WITH catalogo('))
     + seed.slice(seed.indexOf('INSERT INTO public.programas (')));
   for (const [rol, id] of Object.entries(usuarios)) {
     await db.query('INSERT INTO auth.users VALUES ($1)', [id]);

@@ -12,7 +12,7 @@ export const ALLOWED_DONATION_FILE_MIME_TYPES = [
   'image/webp',
 ] as const;
 
-export const MAX_DONATION_FILE_BYTES = 52_428_800; // 50 MiB
+export const MAX_DONATION_FILE_BYTES = 52_428_800;
 export const CATEGORIAS_DONACION = ['Dinero', 'Producto', 'Servicio', 'Insumos', 'Otro'] as const;
 export const ESTADOS_DONACION = ['Comprometida', 'Recibida', 'Entregada', 'Cerrada'] as const;
 export type EstadoDonacion = typeof ESTADOS_DONACION[number];

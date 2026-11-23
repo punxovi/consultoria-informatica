@@ -1,7 +1,4 @@
--- SCRUM-84: año explícito, sin inferir el período de registros históricos.
 BEGIN;
--- Los joins y el selector de Planes solo necesitan identidad, nombre y país.
--- Conceder lectura de estas columnas no habilita el CRUD de Organizaciones.
 GRANT SELECT (id_organizacion, id_pais, nombre, archived_at) ON public.organizaciones TO authenticated;
 CREATE POLICY organizaciones_lectura_planes ON public.organizaciones
 FOR SELECT TO authenticated USING (
@@ -14,8 +11,6 @@ FOR SELECT TO authenticated USING (
 );
 ALTER TABLE public.planes ADD COLUMN IF NOT EXISTS periodo_anual smallint;
 
--- Para una actualización con datos, suministrar un mapa UUID -> año aprobado
--- mediante SET fge.migracion_periodos_planes = '{"uuid-del-plan":2026}'.
 DO $$
 DECLARE periodos jsonb := coalesce(nullif(current_setting('fge.migracion_periodos_planes', true), ''), '{}')::jsonb;
 BEGIN

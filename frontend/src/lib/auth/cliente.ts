@@ -119,9 +119,6 @@ export async function verificarSesion(): Promise<boolean> {
     });
     return result.data.authenticated === true;
   } catch (error) {
-    // Una sesión local válida no debe destruirse por una caída, timeout o
-    // respuesta de autorización de un módulo. Solo un 401 confirma que el
-    // access token dejó de ser válido y justifica intentar refrescarlo.
     if (!(error instanceof AuthApiError) || error.status !== 401) return true;
     session = await refreshSession(session);
     if (!session) return false;

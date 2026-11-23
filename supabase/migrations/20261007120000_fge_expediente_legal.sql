@@ -1,4 +1,3 @@
--- Expediente legal de Organizaciones: integridad, documentos, RLS y guardado atomico.
 BEGIN;
 
 ALTER TABLE public.informacion_legal
@@ -181,7 +180,6 @@ WITH CHECK (
   )
 );
 
--- Bucket independiente y privado: no se amplían los límites de imágenes existentes.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'fge-expedientes-legales', 'fge-expedientes-legales', false, 10485760,

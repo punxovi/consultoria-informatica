@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-// Cuenta de Coordinador según el contrato propuesto en docs/CONTRATO-COORDINADORES.md:
-// perfiles (nombre, activo, version) + correo de auth.users + país de su asignación COORD.
 export const coordinadorSchema = z.object({
   id_usuario: z.uuid(),
   nombre: z.string().min(1),
@@ -45,7 +43,6 @@ export const crearCoordinadorSchema = z.object({
   id_pais: idPais,
 });
 
-// El correo identifica el inicio de sesión: no se modifica desde la edición.
 export const editarCoordinadorSchema = z.object({ nombre, id_pais: idPais });
 
 export type DatosCrearCoordinador = z.infer<typeof crearCoordinadorSchema>;

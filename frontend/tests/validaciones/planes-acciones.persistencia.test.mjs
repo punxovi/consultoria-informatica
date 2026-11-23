@@ -82,7 +82,7 @@ test('SCRUM-84/87: persistencia real, integridad, versiones, permisos y auditorÃ
         await db.query('INSERT INTO auth.users VALUES($1)',[id]); await db.query("INSERT INTO public.perfiles(id_usuario,nombre) VALUES($1,'QA observador')",[id]);
         if (rol) await db.query("INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,otorgado_por) SELECT $1,id_rol,'global',$2 FROM public.roles WHERE codigo=$3",[id,usuarios.ADMIN,rol]);
         if (rol) await assert.rejects(porId(db,id,tx=>insertarPlan(tx,cl.id_organizacion)),{code:'42501'});
-        else assert.equal(await porId(db,id,tx=>insertarPlan(tx,cl.id_organizacion)),undefined); // SELECT de Programas no revela filas.
+        else assert.equal(await porId(db,id,tx=>insertarPlan(tx,cl.id_organizacion)),undefined);
         assert.equal((await porId(db,id,tx=>tx.query("UPDATE public.acciones SET nombre='No autorizado' WHERE id_accion=$1 RETURNING *",[accion.id_accion]))).rows.length,0);
       }
       await db.query('UPDATE public.asignaciones_roles SET revocado_at=now(),revocado_por=$1 WHERE id_usuario=$2',[usuarios.ADMIN,usuarios.COORD]);

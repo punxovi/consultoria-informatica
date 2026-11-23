@@ -1,4 +1,3 @@
-// Pruebas de la vista previa con respuestas SIMULADAS generadas con el contrato real del Backend.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SECCIONES_ESPERADAS, seccionesDeVista, verificarCorrespondencia } from '../../src/lib/reportes/vista-previa.ts';
@@ -14,10 +13,8 @@ test('seccionesDeVista: las 8 secciones de HU22 llegan en orden, con títulos y 
   assert.deepEqual(secciones.map((s) => s.key), SECCIONES_ESPERADAS.map((s) => s.key));
   assert.ok(secciones.every((s) => s.informada));
   const porClave = Object.fromEntries(secciones.map((s) => [s.key, s.seccion]));
-  // Acciones ejecutadas y compromisos cumplidos son los que el servicio filtró, no recalculados aquí.
   assert.deepEqual(porClave.completedActions.rows.map((r) => r[0]), ['Entrega de canastas']);
   assert.deepEqual(porClave.commitments.rows.map((r) => r[0]), ['Habilitar bodega']);
-  // Los valores se conservan como texto recibido (sin redondear ni formatear).
   assert.equal(porClave.donations.rows[0][3], '150000.5');
 });
 

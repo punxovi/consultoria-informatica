@@ -1,4 +1,3 @@
--- Ejecutar con propietario SQL. Los fixtures y las comprobaciones son reversibles.
 BEGIN;
 DO $qa$
 DECLARE actor uuid; country uuid; before_count bigint; log_id uuid:=gen_random_uuid(); row_id bigint; captured fge_private.historial_cambios; object_id uuid:=gen_random_uuid(); org uuid;

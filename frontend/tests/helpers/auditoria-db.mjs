@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-/** Soporte mínimo Auth/Storage del adaptador; el registro se ejecuta con SQL real. */
 export async function instalarAuditoriaRF62(db) {
  if((await db.query("SELECT to_regprocedure('public.registrar_acceso_archivo(text,uuid)') IS NOT NULL AS instalado")).rows[0].instalado)return;
  await db.exec(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role; END IF; END $$;

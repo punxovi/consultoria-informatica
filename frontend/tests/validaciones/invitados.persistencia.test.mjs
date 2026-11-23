@@ -14,7 +14,6 @@ test('Invitados: ciclo real SQL, permisos, primer uso, vencimiento y revocación
     await db.query(`INSERT INTO auth.users(id,email,email_confirmed_at) VALUES ($1,'guest@example.invalid',now());
       `,[external]);
     await db.query(`INSERT INTO public.perfiles(id_usuario,nombre) VALUES ($1,'Identidad declarada')`,[external]);
-    // Reproduce el proyecto remoto: RPC anterior creada fuera de las migraciones.
     await db.exec(`CREATE FUNCTION public.gestionar_invitados(p_operacion text,p_datos jsonb DEFAULT '{}') RETURNS jsonb
       LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Operación no soportada' USING ERRCODE='G0145'; END $$;`);
     await db.exec(`CREATE ROLE qa_storage_owner;

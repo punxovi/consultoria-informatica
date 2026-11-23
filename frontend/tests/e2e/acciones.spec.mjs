@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// Pruebas de interfaz con servicios HTTP simulados; no escriben en la base remota.
 const idPlan = '17600000-0000-4000-8000-000000000001';
 const idAccion = '17600000-0000-4000-8000-000000000002';
 const rutaPlan = `/planes/${idPlan}`;

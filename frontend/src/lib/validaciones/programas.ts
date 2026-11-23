@@ -14,10 +14,6 @@ const textoObligatorio = (campo: string, maximo: number) =>
     .min(1, `${campo} es obligatorio.`)
     .max(maximo, `${campo} no puede superar ${maximo} caracteres.`);
 
-/**
- * Mantiene unida cada línea de acción con el resultado que debe producir.
- * Así las Actions no pueden recibir dos listas con posiciones desalineadas.
- */
 export const lineaAccionProgramaSchema = z
   .strictObject({
     linea_accion: textoObligatorio('La línea de acción', 500),
@@ -34,7 +30,6 @@ const lineasAccionProgramaSchema = z
     `El programa no puede incluir más de ${MAXIMO_LINEAS_ACCION} líneas de acción.`,
   );
 
-/** Campos editables que comparten la creación y la actualización. */
 export const camposProgramaSchema = z
   .strictObject({
     nombre: textoObligatorio('El nombre', 150),
@@ -74,16 +69,13 @@ function validarLineasUnicas(
   });
 }
 
-/** Schema completo que debe utilizar la Action de creación de Programas. */
 export const crearProgramaSchema = camposProgramaSchema.superRefine(
   validarLineasUnicas,
 );
 
-/** El listado no admite filtros hasta que el producto los defina. */
 export const listarProgramasSchema = z
   .strictObject({}, { error: 'No se permiten filtros adicionales.' });
 
-/** Identificador utilizado por la Action de detalle. */
 export const obtenerProgramaPorIdSchema = z
   .strictObject({
     id_programa: uuid('El programa'),
@@ -102,7 +94,6 @@ const cambiosProgramaSchema = camposProgramaSchema
     validarLineasUnicas(datos, contexto);
   });
 
-/** Schema que debe utilizar la Action de actualización de Programas. */
 export const actualizarProgramaSchema = z
   .strictObject({
     id_programa: uuid('El programa'),
@@ -137,7 +128,6 @@ export interface ErrorValidacionPrograma {
   mensaje: string;
 }
 
-/** Convierte ZodError a una respuesta estable para formularios y Actions. */
 export function formatearErroresPrograma(
   error: z.ZodError,
 ): ErrorValidacionPrograma[] {

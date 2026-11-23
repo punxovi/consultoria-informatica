@@ -1,11 +1,8 @@
--- SCRUM-87 / RF36: descripción propia y cuatro estados de flujo.
 BEGIN;
 ALTER TABLE public.acciones ADD COLUMN descripcion text;
 ALTER TABLE public.acciones ADD CONSTRAINT acciones_descripcion_chk
   CHECK (descripcion IS NULL OR (btrim(descripcion) <> '' AND char_length(descripcion) <= 5000));
 
--- Atrasada no identifica si la Acción comenzó. Solo convertir datos con una
--- correspondencia UUID -> estado de flujo confirmada por su responsable.
 DO $$
 DECLARE estados jsonb := coalesce(nullif(current_setting('fge.migracion_estados_acciones', true), ''), '{}')::jsonb;
 BEGIN

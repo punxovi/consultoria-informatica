@@ -1,8 +1,5 @@
--- SCRUM-133: Asociación de respaldos documentales a Donaciones
--- Permisos, políticas RLS para Donaciones y Archivos de respaldo (bucket fge-archivos).
 BEGIN;
 
--- La consulta territorial debe aplicar el mismo alcance de COORD que la gestión.
 CREATE OR REPLACE FUNCTION fge_private.usuario_puede_consultar_organizacion(
   p_id_organizacion uuid
 ) RETURNS boolean
@@ -36,16 +33,11 @@ AS $$
   );
 $$;
 
--- 1. Añadir columna tipo_respaldo a la tabla archivos para diferenciar subtipos de respaldo documental
--- (comprobante, acta_entrega, certificado, fotografia). La columna es nullable para mantener compatibilidad
--- con archivos de otros módulos (expediente legal, evidencias, etc.) que no usan tipo_respaldo.
 ALTER TABLE public.archivos ADD COLUMN IF NOT EXISTS tipo_respaldo text
   CHECK (tipo_respaldo IS NULL OR tipo_respaldo IN ('comprobante','acta_entrega','certificado','fotografia','respaldo_donacion'));
 
--- 2. Habilitar permisos de Data API para Donaciones
 GRANT SELECT, INSERT, UPDATE ON TABLE public.donaciones TO authenticated;
 
--- 2. Políticas RLS para Donaciones
 DROP POLICY IF EXISTS donaciones_lectura ON public.donaciones;
 CREATE POLICY donaciones_lectura
 ON public.donaciones FOR SELECT TO authenticated
@@ -74,7 +66,6 @@ WITH CHECK (
   AND fge_private.usuario_puede_gestionar_organizacion(id_organizacion)
 );
 
--- 3. Función auxiliar para verificar acceso a respaldos de donaciones
 CREATE OR REPLACE FUNCTION fge_private.acceso_archivo_donacion(p_donacion uuid, p_gestion boolean)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT EXISTS (
@@ -91,9 +82,6 @@ $$;
 REVOKE ALL ON FUNCTION fge_private.acceso_archivo_donacion(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION fge_private.acceso_archivo_donacion(uuid, boolean) TO authenticated;
 
--- 4. Adaptar categorías de archivos para contemplar los tipos de respaldo de donación:
--- comprobante, acta_entrega, certificado, fotografia (y mantener compatibilidad con respaldo_donacion).
--- La rama id_producto sólo se incluye si la columna existe (evita errores en entornos sin el catálogo de cotizaciones).
 ALTER TABLE public.archivos DROP CONSTRAINT IF EXISTS archivo_categoria_destino;
 DO $$
 BEGIN
@@ -122,12 +110,10 @@ END;
 $$;
 
 
--- Índice para optimizar consulta de archivos por donación
 CREATE INDEX IF NOT EXISTS archivos_donacion_idx
   ON public.archivos(id_donacion)
   WHERE id_donacion IS NOT NULL AND archived_at IS NULL;
 
--- 5. Políticas RLS en public.archivos para respaldos de donaciones
 DROP POLICY IF EXISTS archivos_donacion_lectura ON public.archivos;
 CREATE POLICY archivos_donacion_lectura
 ON public.archivos FOR SELECT TO authenticated
@@ -160,7 +146,6 @@ WITH CHECK (
   AND fge_private.acceso_archivo_donacion(id_donacion, true)
 );
 
--- 6. Función para verificar acceso al Storage para objetos de donación
 CREATE OR REPLACE FUNCTION fge_private.acceso_objeto_donacion(p_bucket text, p_name text, p_gestion boolean)
 RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
@@ -171,7 +156,6 @@ BEGIN
   IF p_bucket <> 'fge-archivos' THEN
     RETURN false;
   END IF;
-  -- Patrón de ruta: donaciones/<id_donacion>/<id_archivo>.<ext>
   IF NOT (p_name LIKE 'donaciones/%') THEN
     RETURN false;
   END IF;
@@ -203,7 +187,6 @@ $$;
 REVOKE ALL ON FUNCTION fge_private.acceso_objeto_donacion(text, text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION fge_private.acceso_objeto_donacion(text, text, boolean) TO authenticated;
 
--- Políticas de Storage para objetos de donaciones en fge-archivos
 DROP POLICY IF EXISTS storage_donaciones_lectura ON storage.objects;
 CREATE POLICY storage_donaciones_lectura
 ON storage.objects FOR SELECT TO authenticated
@@ -232,7 +215,6 @@ WITH CHECK (
   AND fge_private.acceso_objeto_donacion(bucket_id, name, true)
 );
 
--- 7. Funciones RPC seguras de archivado (Soft Delete)
 CREATE OR REPLACE FUNCTION public.archivar_donacion_segura(p_id uuid, p_version bigint)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
@@ -246,7 +228,6 @@ BEGIN
   IF p_version IS NULL OR fila.version <> p_version OR fila.archived_at IS NOT NULL THEN
     RAISE EXCEPTION 'La donación cambió; recargue antes de archivar.' USING ERRCODE = '40001';
   END IF;
-  -- Archivar también los archivos asociados a la donación
   UPDATE public.archivos SET archived_at = clock_timestamp() WHERE id_donacion = p_id AND archived_at IS NULL;
   UPDATE public.donaciones SET archived_at = clock_timestamp() WHERE id_donacion = p_id;
 END;

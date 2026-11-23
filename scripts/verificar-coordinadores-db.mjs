@@ -1,5 +1,3 @@
-// PostgreSQL real embebido (PGlite). Instalar @electric-sql/pglite en una carpeta
-// temporal y pasar su directorio node_modules como primer argumento. No usa red.
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -41,7 +39,6 @@ try {
   const input = { nombre: 'Persona QA', correo: 'qa@example.invalid', id_pais: chile };
   const reservation = await rpc('prepare', input);
   check((await rpc('prepare', input)).id_solicitud, reservation.id_solicitud);
-  // Auth Admin inserta la identidad. Su trigger completa TODO en la misma transacción.
   await db.query("SELECT set_config('request.jwt.claim.sub','',false)");
   await db.query('INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES($1,$2,$3)', [coord, input.correo, JSON.stringify({ fge_coordinator_request: reservation.id_solicitud })]);
   await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [admin]);
@@ -62,7 +59,7 @@ try {
   const appliedCountry = () => scalar("SELECT a.id_pais FROM public.asignaciones_roles a JOIN public.roles r USING(id_rol) WHERE a.id_usuario=$1 AND r.codigo='COORD' AND a.revocado_at IS NULL", [coord]);
   check(await appliedCountry(), chile);
   await db.query('UPDATE auth.sessions SET updated_at=clock_timestamp() WHERE user_id=$1', [coord]);
-  check(await appliedCountry(), chile); // renovar no aplica el cambio pendiente
+  check(await appliedCountry(), chile);
   await db.query('INSERT INTO auth.sessions(user_id) VALUES($1)', [coord]);
   check(await appliedCountry(), peru);
   check((await rpc('get', { id_usuario: coord })).cambio_pais_pendiente, false);
@@ -83,7 +80,6 @@ try {
   check(await scalar('SELECT banned_until IS NULL FROM auth.users WHERE id=$1', [coord]), true);
   await rejected('edit', { id_usuario: coord, version_esperada: c.version, cambios: { id_pais: '14500000-0000-4000-8000-000000000099' } }, 'P0145');
   check((await rpc('get', { id_usuario: coord })).version, c.version);
-  // Un alta cuyo país fue archivado no deja ni identidad ni perfil parcial.
   const badReservation = await rpc('prepare', { nombre: 'Fallida', correo: 'fallida@example.invalid', id_pais: chile });
   await db.query('UPDATE public.paises SET archived_at=now() WHERE id_pais=$1', [chile]);
   const failedId = '14500000-0000-4000-8000-000000000098';
@@ -102,7 +98,6 @@ try {
   await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)", [admin]);
   await assert.rejects(db.query('UPDATE public.perfiles SET activo=false WHERE id_usuario=$1', [admin]), error => error.code === 'P0152'); checks++;
   check(await rpc('list'), { denied: true });
-  // El trigger no afecta altas normales sin la marca privada de provisionamiento.
   await db.query('INSERT INTO auth.users(id,email,raw_app_meta_data) VALUES($1,$2,NULL)', ['14500000-0000-4000-8000-000000000097', 'normal@example.invalid']);
   check(await scalar('SELECT count(*)::int FROM fge_private.cuentas_coordinadores'), 1);
   console.log(JSON.stringify({ ok: true, checks, engine: 'PostgreSQL/PGlite', remoteSupabaseModified: false }));

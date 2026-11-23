@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// Pruebas de interfaz: las respuestas HTTP de los servicios están simuladas, sin tocar Supabase.
 const id = '17600000-0000-4000-8000-000000000001';
 const datos = {
   id_organizacion: id, id_programa: id, nombre: 'Plan comunitario', periodo_anual: 2026,

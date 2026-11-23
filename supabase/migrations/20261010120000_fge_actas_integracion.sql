@@ -73,7 +73,6 @@ CREATE POLICY compromisos_insert ON public.compromisos FOR INSERT TO authenticat
 WITH CHECK (archived_at IS NULL AND estado='pendiente' AND cumplido_at IS NULL AND EXISTS (SELECT 1 FROM public.actas a
   WHERE a.id_acta=compromisos.id_acta AND a.archived_at IS NULL
   AND fge_private.usuario_puede_gestionar_organizacion(a.id_organizacion)));
--- Se preserva la política de edición por organización para la gestión de Compromisos.
 CREATE POLICY compromisos_update ON public.compromisos FOR UPDATE TO authenticated
 USING (archived_at IS NULL AND EXISTS (SELECT 1 FROM public.actas a WHERE a.id_acta=compromisos.id_acta
   AND fge_private.usuario_puede_gestionar_organizacion(a.id_organizacion)))

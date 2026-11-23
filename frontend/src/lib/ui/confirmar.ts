@@ -1,6 +1,3 @@
-// Ventana de confirmación con el mismo diseño que «Eliminar acción» (EliminarRegistro.astro).
-// Reemplaza a window.confirm para que todas las confirmaciones se vean igual en la aplicación.
-
 export type OpcionesConfirmacion = {
   titulo: string;
   mensaje: string;

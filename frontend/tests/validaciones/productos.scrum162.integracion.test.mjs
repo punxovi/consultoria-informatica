@@ -36,7 +36,6 @@ test('SCRUM-162: HTTP → Gateway → servicio → SQL real, regresión de los c
     assert.equal(migrated.material,historical.material_terminacion);assert.equal(migrated.terminacion,null);
     assert.equal(migrated.id_organizacion,historical.id_organizacion);
 
-    // Adaptador PostgREST de pruebas: SQL y RLS reales, Auth/transporte simulado.
     const fetchImpl=async(input,init={})=>{
       const url=new URL(String(input)),table=url.pathname.split('/').pop();
       const token=new Headers(init.headers).get('authorization')?.replace(/^Bearer /,'');

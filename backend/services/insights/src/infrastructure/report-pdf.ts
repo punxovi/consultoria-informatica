@@ -12,11 +12,10 @@ const assets = {
 let fonts: {regular:Buffer;bold:Buffer} | undefined;
 const brand={primary:'#4c4688',green:'#199d6b',ink:'#1a1a1a',muted:'#706e78',light:'#f4f2f9',line:'#e5e5e5'};
 
-/** Solo recibe el documento preparado. No tiene acceso a módulos, sesiones ni red. */
 export async function generateReportPdf(report:ReportDocument):Promise<Buffer> {
   try {
     fonts ??= {regular:readFileSync(assets.regular),bold:readFileSync(assets.bold)};
-    readFileSync(assets.logo); // Falla antes de preparar una respuesta si falta el recurso aprobado.
+    readFileSync(assets.logo);
   } catch {
     throw new ServiceError('PDF_PREPARACION_FALLIDA','No fue posible cargar los recursos institucionales del PDF.',500);
   }
@@ -40,7 +39,6 @@ export async function generateReportPdf(report:ReportDocument):Promise<Buffer> {
     });
     try {
       doc.registerFont('regular',fonts!.regular).registerFont('bold',fonts!.bold).font('regular');
-      // Evita emitir cuadrados o perder caracteres silenciosamente en una fuente.
       const seen=new Set<number>();
       const printed=[report.title,report.generatedAt,report.period.start,report.period.end,...report.filters,
         ...report.summary.flatMap(item=>[item.label,item.value]),
@@ -60,7 +58,6 @@ export async function generateReportPdf(report:ReportDocument):Promise<Buffer> {
       const page=()=>{
         if(++pageCount>400)throw new ServiceError('REPORTE_DEMASIADO_GRANDE','El reporte supera el límite de páginas; reduce los filtros.',413);
         doc.addPage({size:'A4',margins:{top:0,bottom:0,left:0,right:0}});
-        // Recorta solo el margen transparente al componer; el PNG oficial no se modifica.
         doc.save().rect(margin,23,225,64).clip().image(assets.logo,margin,-53,{width:225}).restore();
         line('REPORTE INSTITUCIONAL',350,35,9,'bold',brand.primary);
         line(destination,350,51,9,'regular',brand.muted);

@@ -1,9 +1,3 @@
--- SCRUM-153: autorización territorial de escrituras y caducidad local.
---
--- Las coberturas temporales son permisos para países adicionales. El país
--- principal se obtiene de la asignación COORD activa. El fin de una cobertura
--- se interpreta como fecha calendario del país autorizado y conserva el
--- permiso hasta el último instante de ese día local.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.usuario_tiene_cobertura_pais(
@@ -26,8 +20,6 @@ AS $$
       AND cobertura.revocado_at IS NULL
       AND cobertura.archived_at IS NULL
       AND now() >= cobertura.inicio_at
-      -- fin_at aporta la fecha; el límite efectivo es medianoche siguiente
-      -- en la zona del país, por lo que todo el día de término permanece válido.
       AND now() < (
         (
           ((cobertura.fin_at AT TIME ZONE pais.zona_horaria)::date + 1)::timestamp
@@ -36,9 +28,6 @@ AS $$
   );
 $$;
 
--- Una escritura de un Coordinador se autoriza únicamente para su país
--- principal o para un país con cobertura temporal vigente. La función se usa
--- desde las políticas RLS, de modo que la decisión no depende de la interfaz.
 CREATE OR REPLACE FUNCTION fge_private.usuario_puede_gestionar_pais(
   p_id_pais uuid
 ) RETURNS boolean
@@ -111,8 +100,6 @@ GRANT EXECUTE ON FUNCTION fge_private.usuario_puede_gestionar_pais(uuid)
 GRANT EXECUTE ON FUNCTION fge_private.usuario_puede_gestionar_organizacion(uuid)
   TO authenticated;
 
--- El país principal también debe poder gestionar Organizaciones. Las demás
--- operaciones ya delegan en usuario_puede_gestionar_organizacion mediante RLS.
 DROP POLICY IF EXISTS organizaciones_gestion_insert ON public.organizaciones;
 CREATE POLICY organizaciones_gestion_insert
 ON public.organizaciones

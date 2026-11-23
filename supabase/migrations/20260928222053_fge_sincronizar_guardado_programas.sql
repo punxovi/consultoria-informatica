@@ -1,5 +1,3 @@
--- Sincroniza una instancia que ya registró una versión anterior de KAN-176.
--- Una migración aplicada no vuelve a ejecutarse aunque luego cambie su archivo.
 BEGIN;
 
 ALTER TABLE public.programas
@@ -8,9 +6,6 @@ ALTER TABLE public.programas
   ADD COLUMN IF NOT EXISTS referencias_esg text NOT NULL DEFAULT ''
     CHECK (char_length(referencias_esg) <= 2000);
 
--- PostgreSQL verifica SELECT también sobre la fila resultante del archivado.
--- Solo ADMIN puede leer el historial de líneas de un programa activo.
--- Los repositorios del catálogo siguen filtrando archived_at IS NULL.
 DROP POLICY IF EXISTS programa_lineas_accion_admin_lectura_archivadas
 ON public.programa_lineas_accion;
 
@@ -144,8 +139,6 @@ BEGIN
   END IF;
 
   IF p_datos ? 'lineas_accion' THEN
-    -- Conservar las líneas por nombre; retirar las ausentes antes de insertar.
-    -- Así quitar la primera línea o reutilizar un nombre no produce colisiones.
     UPDATE public.programa_lineas_accion AS existente SET archived_at = now()
     WHERE existente.id_programa = v_programa.id_programa AND existente.archived_at IS NULL
       AND NOT EXISTS (

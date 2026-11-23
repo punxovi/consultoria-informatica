@@ -1,4 +1,3 @@
--- Verifica el CRUD requerido por KAN-159 sobre PostgreSQL local. Todo se revierte.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

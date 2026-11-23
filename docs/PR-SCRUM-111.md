@@ -1,8 +1,0 @@
-- Agregué Evidencias dentro del detalle de cada acción, con carga, consulta y descarga de archivos.
-- Incluí origen, descripción y declaraciones de consentimiento, también para el padre, madre o tutor cuando aparecen menores.
-- Conecté la interfaz al backend real de sprint-6 y agregué publicación, retiro y revocación del consentimiento.
-- Si falla la subida, se puede completar la carga sin crear otro registro. Si falla la publicación, se informa que el archivo sí quedó guardado.
-- Mejoré los títulos y la jerarquía de información en las vistas de gestión, aumenté la legibilidad y aproveché mejor el ancho de las pantallas.
-- Dejé una guía corta para probarlo en `docs/ENTREGA-SCRUM-111.md`.
-- Pasaron 77 pruebas del frontend, 7 de navegador, compilación y chequeo de tipos. Las pruebas de navegador simulan HTTP; falta verificar con la cuenta y Supabase del equipo.
-- Para usarlo con datos reales debe estar aplicada la migración `20261013120000_fge_evidencias.sql`. Esta tarea no aplica migraciones remotas y no utiliza demo.

@@ -33,7 +33,6 @@ test('interfaz → cliente HTTP → Gateway → Backend: carga, persistencia, de
     expect((await request.get(publicUrl)).status()).toBe(404);
     expect((await request.get(`${gatewayUrl}/api/v1/evidences/${evidence.id_evidencia}/file`)).status()).toBe(401);
     expect((await request.get(`${supabaseUrl}/storage/v1/object/public/fge-evidencias/${actionId}/${evidence.id_evidencia}`)).ok()).toBe(false);
-    // Lectura directa del registro persistido (incluida la ejecución con Supabase real).
     const stored=await request.get(`${supabaseUrl}/rest/v1/evidencias?id_evidencia=eq.${evidence.id_evidencia}&select=id_evidencia,id_accion,estado_carga`,{headers:{...auth,apikey:anonKey}});
     expect(stored.ok()).toBe(true);expect((await stored.json())[0].id_accion).toBe(actionId);
     await page.reload();await expect(page.locator('#ev-lista')).toContainText(nombre);
@@ -56,7 +55,6 @@ test('interfaz → cliente HTTP → Gateway → Backend: carga, persistencia, de
     expect(calls.filter(c=>c.method==='POST')).toHaveLength(1);
   } finally {
     if(real) {
-      // Solo datos sintéticos de esta ejecución. Se conserva auditoría y archivo privado.
       if(!evidence) {
         const list=await request.get(`${gatewayUrl}/api/v1/evidences?id_accion=${actionId}`,{headers:auth});
         if(list.ok())evidence=(await list.json()).data.evidences.find(e=>e.nombre_original===nombre);

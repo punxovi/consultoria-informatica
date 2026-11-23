@@ -29,7 +29,6 @@ const periodoAnual = z.number({ error: 'El período anual debe ser un año numé
   .min(PERIODO_ANUAL_MINIMO, MENSAJE_PERIODO_ANUAL)
   .max(PERIODO_ANUAL_MAXIMO, MENSAJE_PERIODO_ANUAL);
 
-// Los filtros siguen aceptando cualquier año para poder consultar registros históricos.
 const periodoAnualFiltro = z.number({ error: 'El período anual debe ser un año numérico.' })
   .int('El período anual debe ser entero.')
   .min(1, 'El período anual debe ser mayor que cero.')

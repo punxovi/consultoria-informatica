@@ -1,4 +1,3 @@
--- SCRUM-171: Invitado consulta únicamente la matriz de visibilidad HU23.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.usuario_es_invitado()
@@ -26,8 +25,6 @@ $$;
 REVOKE ALL ON FUNCTION fge_private.usuario_es_invitado() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION fge_private.usuario_es_invitado() TO authenticated;
 
--- La tabla interna no es consultable directamente por Invitados; el Backend usa
--- la proyección segura de abajo para entregar solo los campos autorizados.
 DROP POLICY IF EXISTS organizaciones_invitado_sin_acceso_directo ON public.organizaciones;
 CREATE POLICY organizaciones_invitado_sin_acceso_directo
 ON public.organizaciones AS RESTRICTIVE FOR SELECT TO authenticated
@@ -48,7 +45,6 @@ WHERE o.archived_at IS NULL AND p.archived_at IS NULL
 REVOKE ALL ON public.organizaciones_invitado FROM PUBLIC, anon;
 GRANT SELECT ON public.organizaciones_invitado TO authenticated;
 
--- La información siguiente está fuera de la matriz de visibilidad del Invitado.
 DROP POLICY IF EXISTS evidencias_lectura ON public.evidencias;
 CREATE POLICY evidencias_lectura ON public.evidencias FOR SELECT TO authenticated
 USING (archived_at IS NULL AND NOT fge_private.usuario_es_invitado()

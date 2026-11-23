@@ -34,7 +34,6 @@ export async function obtenerImagen(idPrograma: string) {
 
 export const IMAGEN_PROGRAMA_PREDETERMINADA = '/images/programa-predeterminado.svg';
 
-/** Miniaturas del listado: una consulta y una firma por lote, no por tarjeta. */
 export async function obtenerMiniaturas(idsProgramas: string[]): Promise<Map<string, string>> {
   const miniaturas = new Map<string, string>();
   if (idsProgramas.length === 0) return miniaturas;
@@ -53,7 +52,6 @@ export async function obtenerMiniaturas(idsProgramas: string[]): Promise<Map<str
   return miniaturas;
 }
 
-/** Archiva todas las imágenes activas para que no reaparezca una versión anterior. */
 export async function quitarImagen(idPrograma: string) {
   const { data, error } = await clienteProgramas.from('archivos')
     .update({ archived_at: new Date().toISOString() })
@@ -66,7 +64,6 @@ export async function quitarImagen(idPrograma: string) {
   }
 }
 
-/** Conserva las imágenes anteriores como historial, sin eliminaciones físicas. */
 export async function guardarImagen(idPrograma: string, imagen: Blob, nombre: string) {
   const ruta = `programas/${idPrograma}/${crypto.randomUUID()}.webp`;
   const bucket = clienteProgramas.storage.from('fge-archivos');

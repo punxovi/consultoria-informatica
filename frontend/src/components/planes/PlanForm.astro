@@ -136,7 +136,6 @@ const textos = [
     limpiarErroresCampos(form);
   }
 
-  // Aviso general arriba; el detalle de cada error va bajo su campo.
   function mostrarError(mensaje: string, detalles: { campo: string; mensaje: string }[] = []) {
     errores.textContent = mensaje;
     errores.hidden = false;
@@ -166,8 +165,6 @@ const textos = [
         idPlan ? obtenerPlan(idPlan) : Promise.resolve(null),
         obtenerAlcanceGestion(),
       ]);
-      // Un Coordinador consulta todos los países, pero solo registra o edita
-      // Planes de su país principal o de un país con cobertura vigente.
       if (plan && !puedeGestionarPais(alcance, plan.organizacion.id_pais)) {
         estado.textContent = '';
         mostrarError(MENSAJE_SIN_PERMISO_TERRITORIAL);
@@ -186,7 +183,6 @@ const textos = [
       }
       if (plan) {
         version = plan.version;
-        // Conserva el vínculo histórico si el catálogo ya no incluye esta entidad.
         if (!organizaciones.some(item => item.id_organizacion === plan.id_organizacion)) {
           selectOrganizacion.add(new Option(`${plan.organizacion.nombre} (actual, no disponible)`, plan.id_organizacion));
         }
@@ -255,8 +251,6 @@ const textos = [
     }
   });
 
-  // El período anual normalmente coincide con las fechas del plan, pero puede
-  // diferir (p. ej. planes que comienzan tarde), así que solo se advierte.
   const inputPeriodo = document.querySelector<HTMLInputElement>('#periodo_anual')!;
   const inputInicio = document.querySelector<HTMLInputElement>('#fecha_inicio')!;
   const inputTermino = document.querySelector<HTMLInputElement>('#fecha_termino')!;

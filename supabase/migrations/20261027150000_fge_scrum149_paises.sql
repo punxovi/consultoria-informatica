@@ -3,7 +3,6 @@ ALTER TABLE public.paises
  ADD COLUMN IF NOT EXISTS codigo_area_telefonica text,
  ADD COLUMN IF NOT EXISTS zona_horaria text;
 
--- No fusionar ni borrar duplicados: eso alteraría referencias territoriales.
 DO $$ BEGIN
  IF EXISTS(SELECT 1 FROM public.paises GROUP BY lower(btrim(nombre)) HAVING count(*)>1) THEN
    RAISE EXCEPTION 'Existen nombres de países duplicados. Resolver manualmente conservando referencias antes de migrar.';
@@ -51,7 +50,6 @@ BEGIN
      INSERT INTO public.paises(nombre,codigo_iso,codigo_area_telefonica,zona_horaria)
      VALUES(seed.nombre,seed.iso,seed.prefijo,seed.zona);
    ELSE
-     -- No sobrescribir configuración válida o datos editados; mantener UUID.
      UPDATE public.paises SET codigo_iso=seed.iso,
        codigo_area_telefonica=coalesce(nullif(btrim(codigo_area_telefonica),''),seed.prefijo),
        zona_horaria=coalesce(nullif(btrim(zona_horaria),''),seed.zona), archived_at=NULL
@@ -63,8 +61,6 @@ END;
 $$;
 SELECT fge_private.inicializar_paises_base();
 
--- NOT VALID conserva territorios adicionales antiguos sin inventar prefijos/zonas.
--- Exige completar esos datos en su próxima modificación y en cada alta nueva.
 ALTER TABLE public.paises ADD CONSTRAINT paises_configuracion_requerida CHECK (
  codigo_area_telefonica IS NOT NULL AND zona_horaria IS NOT NULL
 ) NOT VALID;
@@ -140,8 +136,6 @@ BEGIN
 END;
 $$;
 
--- Los módulos existentes mantienen solo su proyección básica de catálogo.
--- La configuración completa se consulta por RPC exclusivamente ADMIN.
 REVOKE SELECT ON public.paises FROM authenticated;
 REVOKE INSERT,UPDATE,DELETE ON public.paises FROM anon,authenticated;
 GRANT SELECT(id_pais,nombre,codigo_iso,archived_at) ON public.paises TO authenticated;

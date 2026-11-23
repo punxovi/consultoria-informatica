@@ -73,7 +73,6 @@ test('solo ofrece indicadores y resultados relacionados con los filtros elegidos
   const conIndicador = filtrarOpcionesReporte(opciones, { id_pais: 'cl', id_organizacion: '', id_programa: '', indicadores: ['i-cl'] });
   assert.deepEqual(conIndicador.resultados.map((o) => o.valor), ['r-cl']);
 
-  // Un indicador marcado de otro país no limita los resultados del país elegido.
   const marcadoAjeno = filtrarOpcionesReporte(opciones, { id_pais: 'cl', id_organizacion: '', id_programa: '', indicadores: ['i-uy'] });
   assert.deepEqual(marcadoAjeno.resultados.map((o) => o.valor), ['r-cl', 'r-cl-2']);
 });

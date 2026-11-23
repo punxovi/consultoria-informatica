@@ -4,8 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { ServiceError } from '../../../../shared/errors/src/index.ts';
 import type { CommitmentsPdfDocument, CommitmentsPdfRenderer, PdfCommitment } from '../domain/commitments-pdf.ts';
 
-// Misma composición institucional que el reporte consolidado (Insights):
-// logo y encabezado en cada página, tarjetas de resumen y tabla con cabecera violeta.
 const assets = {
   regular: fileURLToPath(new URL('../../assets/LiberationSans-Regular.ttf', import.meta.url)),
   bold: fileURLToPath(new URL('../../assets/LiberationSans-Bold.ttf', import.meta.url)),
@@ -22,14 +20,13 @@ function estado(item: PdfCommitment, hoy: string): Estado {
   return item.fecha_limite < hoy ? 'Vencido' : 'Pendiente';
 }
 
-/** Renderizador sin acceso a sesión, base de datos ni red. */
 export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: CommitmentsPdfDocument) => {
   let regular: Buffer;
   let bold: Buffer;
   try {
     regular = readFileSync(assets.regular);
     bold = readFileSync(assets.bold);
-    readFileSync(assets.logo); // Falla antes de componer si falta el recurso institucional.
+    readFileSync(assets.logo);
   } catch (error) {
     throw new ServiceError('PDF_PREPARACION_FALLIDA', 'No fue posible cargar los recursos institucionales del PDF.', 500, error);
   }
@@ -85,7 +82,6 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
       const page = () => {
         if (++pages > MAX_PAGES) throw new ServiceError('PDF_DEMASIADO_GRANDE', 'El PDF supera 200 páginas; filtra por acta.', 413);
         doc.addPage({ size: 'A4', margins: { top: 0, bottom: 0, left: 0, right: 0 } });
-        // Recorta solo el margen transparente del PNG oficial, igual que el reporte.
         doc.save().rect(margin, 23, 225, 64).clip().image(assets.logo, margin, -53, { width: 225 }).restore();
         line('COMPROMISOS', 350, 35, 9, 'bold', brand.primary);
         line(wrap(document.organization.nombre, 205, 9)[0] ?? '', 350, 51, 9, 'regular', brand.muted);
@@ -97,7 +93,6 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
       line(porActa ? 'Compromisos' : 'Compromisos de la', margin, y, 25, 'bold', brand.primary); y += 30;
       line(porActa ? 'del acta' : 'organización', margin, y, 25, 'bold', brand.primary); y += 43;
 
-      // Recuadro de contexto: organización, país y alcance del documento.
       const cajaOrg = wrap(document.organization.nombre + (document.organization.pais?.nombre ? ` · ${document.organization.pais.nombre}` : ''), width - 24, 11, 'bold');
       const cajaCtx = wrap(contexto, width - 24, 9);
       const bloques = [
@@ -121,7 +116,6 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
       }
       if (y + 110 > bottom) page();
 
-      // Tarjetas de resumen con el estado de cumplimiento.
       const conteo = { Pendiente: 0, Vencido: 0, Cumplido: 0 } as Record<Estado, number>;
       for (const item of document.commitments) conteo[estado(item, hoy)]++;
       const tarjetas: Array<[string, string, string]> = [
@@ -142,7 +136,6 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
       line(`Generado: ${generadoTexto}. «Vencido» indica un compromiso pendiente cuya fecha límite ya pasó.`, margin, y, 8, 'regular', brand.muted);
       y += 24;
 
-      // Tabla de compromisos.
       const columnas = ['N°', 'Acuerdo', 'Responsable', 'Fecha límite', 'Estado'];
       const widths = [0.06, 0.44, 0.22, 0.13, 0.15].map(w => w * width);
       const heading = (continuacion = false) => {
@@ -161,7 +154,6 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
         const responsable = [item.responsable_nombre];
         if (item.responsable_contacto) responsable.push(item.responsable_contacto);
         const estadoTexto = est === 'Cumplido' && item.cumplido_at ? `Cumplido\nel ${civilDate(item.cumplido_at)}` : est;
-        // La descripción va en negrita: se mide con esa fuente para que no invada la columna vecina.
         const descripcion = wrap(item.descripcion, widths[1] - 10, 8.5, 'bold');
         const celdas = [
           wrap(String(index + 1), widths[0] - 10),
@@ -181,7 +173,6 @@ export const generateCommitmentsPdf: CommitmentsPdfRenderer = async (document: C
           let x = margin;
           celdas.forEach((lineas, i) => {
             lineas.slice(offset, offset + cantidad).forEach((valor, j) => {
-              // La primera línea del acuerdo es la descripción: se destaca sobre acta y observaciones.
               const destacado = i === 1 && offset + j < descripcion.length;
               line(valor, x + 5, y + 5 + j * lineHeight, 8.5, i === 4 || destacado ? 'bold' : 'regular',
                 i === 4 ? colorEstado : i === 1 && !destacado ? brand.muted : brand.ink);

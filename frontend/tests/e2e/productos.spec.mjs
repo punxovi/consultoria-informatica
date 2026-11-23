@@ -27,7 +27,7 @@ test.beforeEach(async ({ context }) => {
     if (estado.delay) await new Promise((resolve) => setTimeout(resolve, estado.delay));
     if (estado.error) return r.fulfill({ status: 404, json: { ok: false, error: { code: 'RUTA_NO_ENCONTRADA', message: 'No existe' }, data: null } });
     const url = new URL(req.url());
-    const partes = url.pathname.split('/').filter(Boolean); // api v1 products [id] [images]
+    const partes = url.pathname.split('/').filter(Boolean);
     if (req.method() === 'GET') return r.fulfill({ json: { ok: true, data: { products: estado.productos } } });
     if (req.method() === 'POST' && partes.length === 3) {
       const body = req.postDataJSON();
@@ -94,7 +94,6 @@ test('agregar producto: validación, Organización, atributos, vista previa e im
   await page.locator('#productos-unidad_medida').fill('set');
   await page.locator('#productos-id_organizacion').selectOption(ORG_CL);
   await expect(page.locator('#productos-pais')).toHaveText('Chile');
-  // Valores ya registrados se ofrecen para seleccionar; uno nuevo se registra escribiéndolo.
   await expect(page.locator('#productos-opciones-categoria option')).toHaveCount(2);
   await page.locator('#productos-categoria').fill('Textil');
   await page.locator('#productos-material').fill('Corcho recuperado');

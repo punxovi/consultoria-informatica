@@ -1,5 +1,3 @@
-// SCRUM-147 — Gestión de cuentas de Coordinadores con un Backend SIMULADO en la prueba:
-// las rutas de docs/CONTRATO-COORDINADORES.md se atienden desde memoria (no hay servicio real).
 import { test, expect } from '@playwright/test';
 
 const chile = '14700000-0000-4000-8000-000000000001';
@@ -109,14 +107,12 @@ test('listado: nombre, correo, país principal y estado de cada Coordinador, con
   await expect(bruno).toContainText('Perú');
   await expect(bruno.locator('.coord-estado-badge')).toHaveText('Inactiva');
   await expect(bruno).toContainText('Acceso bloqueado');
-  // Activas primero y luego por nombre.
   await expect(page.locator('.coord-tarjeta h3')).toHaveText(['Ana Ñúñez', 'Carla Soto', 'Bruno Díaz']);
   await expect(page.locator('#coord-total')).toHaveText('3');
   await expect(page.locator('#coord-activas')).toHaveText('2');
   await expect(page.locator('#coord-inactivas')).toHaveText('1');
   await expect(bruno.getByRole('button', { name: 'Activar la cuenta de Bruno Díaz' })).toBeVisible();
   await expect(ana.getByRole('link', { name: 'Editar la cuenta de Ana Ñúñez' })).toHaveAttribute('href', `/administracion/coordinadores/${uid(11)}/editar`);
-  // Acceso desde el menú solo para el Administrador.
   await expect(page.getByRole('link', { name: 'Coordinadores' })).toBeVisible();
   await captura(page, info, 'coordinadores-escritorio');
   expect(errores).toEqual([]);
@@ -246,7 +242,6 @@ test('crear: campos obligatorios, validación junto al campo y confirmación al 
   await page.locator('#cf-correo').fill('diego@');
   await page.locator('#cf-guardar').click();
   await expect(page.locator('#cf-correo-error')).toContainText('correo electrónico válido');
-  // HU01: sin país principal no se envía e indica el campo faltante.
   await page.locator('#cf-correo').fill(' Diego@FGE.org ');
   await page.locator('#cf-guardar').click();
   await expect(page.locator('#cf-id_pais-error')).toHaveText('Selecciona el país principal.');

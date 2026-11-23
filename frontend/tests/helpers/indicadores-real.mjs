@@ -1,4 +1,3 @@
-// Solo inicia servicios locales. El esquema remoto se prepara desde SQL Editor.
 import { existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { loadEnvFile } from 'node:process';
@@ -32,7 +31,6 @@ export async function crearEntornoIndicadoresReal({origin='http://127.0.0.1:4336
   async function cerrar(){
     try {
       if(qaAction) {
-        // Solo la Acción creada por esta ejecución. También cubre una prueba interrumpida.
         console.log('Limpiando Acción QA SCRUM-118:',qaAction.id_accion);
         const {indicadores}=await request(`actions/${qaAction.id_accion}/indicators`);
         for(const item of indicadores) {

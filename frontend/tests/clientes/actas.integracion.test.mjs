@@ -39,7 +39,6 @@ test('Actas: cliente → Gateway → servicio → PostgreSQL, asociaciones, RLS,
     for(const body of [{}, {...campos,id_organizacion:org.id_organizacion,objetivo:''}, {...campos,id_organizacion:org.id_organizacion,asistentes:['QA','qa']}]) {
       await assert.rejects(http.request('/api/v1/meeting-minutes',{ method:'POST',accessToken:'qa-admin',body }),{ code:'DATOS_INVALIDOS',status:400 });
     }
-    // Se fuerza un fallo SQL del segundo compromiso tras insertar el acta y el primero.
     const antes = Number((await env.db.query('SELECT count(*) FROM public.actas')).rows[0].count);
     await assert.rejects(env.como('qa-admin',tx=>tx.query('SELECT public.crear_acta_completa($1::jsonb,$2::jsonb)',[
       JSON.stringify({...campos,id_organizacion:org.id_organizacion}),JSON.stringify([c,{...c,responsable_contacto:''}]),

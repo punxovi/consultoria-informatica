@@ -10,12 +10,10 @@ type PublishedFile = {
 };
 const unavailable = () => new ServiceError('PUBLICACION_NO_ENCONTRADA', 'La publicación no está disponible.', 404);
 
-/** Credencial exclusiva del servidor. Nunca se utiliza en las operaciones de gestión. */
 export function createSupabasePublicEvidencesRepository(options: Options): PublicEvidencesRepository {
   const base = options.supabaseUrl.replace(/\/$/, '');
   const fetchImpl = withAuditFetch(options.fetchImpl ?? fetch, options.supabaseUrl);
   const headers: Record<string,string> = { apikey: options.publicationKey };
-  // Las nuevas secret keys no son JWT. Las service_role legacy sí usan Bearer.
   if (!options.publicationKey.startsWith('sb_secret_')) headers.authorization = `Bearer ${options.publicationKey}`;
   async function request(path: string, init: RequestInit = {}) {
     try {
@@ -57,7 +55,6 @@ export function createSupabasePublicEvidencesRepository(options: Options): Publi
       }
       const bytes = Buffer.from(await response.arrayBuffer());
       if (bytes.length !== file.tamano_bytes) throw new ServiceError('ARCHIVO_INVALIDO', 'No fue posible verificar el archivo.', 502);
-      // Un retiro/revocación durante la descarga impide entregar el contenido.
       const current = await resolve(id);
       if (current.version !== file.version) throw unavailable();
       return { bytes, mimeType: file.mime_type, fileName: file.nombre_original };

@@ -1,5 +1,3 @@
-// Adaptador HTTP de pruebas: las Actions y repositorios usan PostgreSQL real
-// embebido. Solo se simulan Auth y el transporte PostgREST, sin conexión remota.
 import { createServer } from 'node:http';
 import { dev } from 'astro';
 import { crearBaseProgramas, comoUsuario, guardar } from './programas-db.mjs';

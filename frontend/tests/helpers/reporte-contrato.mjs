@@ -1,11 +1,7 @@
-// Respuestas SIMULADAS del servicio de reportes para pruebas. Se construyen con la misma
-// función del Backend que arma el documento (prepareReportDocument), para que las pruebas
-// de la vista previa usen el contrato real y no un formato inventado.
 import { prepareReportDocument } from '../../../backend/services/insights/src/domain/report-document.ts';
 
 const vacias = () => ({ organizations: [], plans: [], actions: [], commitments: [], donations: [], indicators: [], results: [] });
 
-// `parametros` usa el formato del frontend (ReportFilters); `secciones` el del consolidado.
 export function respuestaSimulada(parametros, secciones = {}, resumen = {}) {
   const filters = {
     startDate: parametros.fecha_inicio,
@@ -39,8 +35,6 @@ export function respuestaSimulada(parametros, secciones = {}, resumen = {}) {
   };
 }
 
-// Consolidado con al menos un registro por sección (las acciones y compromisos cumplidos
-// alimentan "Acciones ejecutadas" y "Compromisos cumplidos").
 export const consolidadoConDatos = {
   organizations: [
     { id_organizacion: 'o1', nombre: 'Comedor Las Palmas', numero_beneficiarios: 120, pais: 'Chile' },

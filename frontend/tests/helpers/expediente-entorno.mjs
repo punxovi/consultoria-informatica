@@ -1,5 +1,4 @@
 import { instalarAuditoriaRF62, esRpcAuditoria, ejecutarRpcAuditoria } from './auditoria-db.mjs';
-// Integración real de cliente HTTP, API Gateway, servicio de organizaciones y Supabase (PGlite).
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { crearBaseProgramas, usuarios } from './programas-db.mjs';
@@ -89,7 +88,6 @@ export async function crearEntornoExpediente({ origin = 'http://127.0.0.1:4334' 
       const user = ids[token];
       if (!user) return responder(401, { code: '42501', message: 'Sesión requerida' });
 
-      // Simulación de Supabase Storage para expedientes
       if (url.pathname.startsWith('/storage/v1/object/fge-expedientes-legales/')) {
         const rutaObjeto = url.pathname.replace('/storage/v1/object/fge-expedientes-legales/', '');
         if (req.method === 'POST') {
@@ -110,7 +108,6 @@ export async function crearEntornoExpediente({ origin = 'http://127.0.0.1:4334' 
         const entrada = texto ? JSON.parse(texto) : null;
         if(esRpcAuditoria(url.pathname))return responder(200,await ejecutarRpcAuditoria(db,user,url.pathname,entrada,req.headers));
 
-        // RPC guardar_expediente_legal
         if (url.pathname === '/rest/v1/rpc/guardar_expediente_legal') {
           solicitudes.push({ ruta: 'guardar_expediente_legal', token, entrada });
           const idCreado = await db.transaction(async tx => {
@@ -125,7 +122,6 @@ export async function crearEntornoExpediente({ origin = 'http://127.0.0.1:4334' 
           return responder(200, idCreado);
         }
 
-        // Consultas PostgREST
         const tabla = url.pathname.split('/').pop();
 
         if (tabla === 'organizaciones') {

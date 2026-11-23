@@ -1,4 +1,3 @@
-// Ejecuta la prueba real y oculta credenciales incluso en errores de Playwright.
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';

@@ -66,7 +66,6 @@ export function validarImagenProducto(archivo: Pick<File, 'name' | 'size' | 'typ
   return null;
 }
 
-/** Valores ya usados en el catálogo, para seleccionar uno existente o registrar uno nuevo. */
 export function valoresRegistrados(productos: Producto[], campo: 'categoria' | 'material' | 'terminacion'): string[] {
   const valores = new Map<string, string>();
   for (const producto of productos) {

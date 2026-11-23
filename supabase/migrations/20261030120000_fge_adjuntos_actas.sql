@@ -51,7 +51,6 @@ CREATE INDEX adjuntos_acta_id_acta_idx
   ON public.adjuntos_acta(id_acta)
   WHERE archived_at IS NULL;
 
--- Validación de modificaciones y actualización de fecha.
 CREATE OR REPLACE FUNCTION fge_private.validar_actualizacion_adjunto_acta()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -179,7 +178,6 @@ WITH CHECK (
   )
 );
 
--- Acceso independiente para objetos asociados a actas.
 CREATE OR REPLACE FUNCTION fge_private.acceso_objeto_adjunto_acta(
   p_bucket text,
   p_ruta text,

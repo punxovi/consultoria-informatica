@@ -1,4 +1,3 @@
-// Datos exclusivos de pruebas: nunca se cargan en el producto.
 export const catalogoDemo = [
   { id_indicador: '11200000-0000-4000-8000-000000000001', codigo: 'beneficiarios', nombre: 'Número de beneficiarios', unidad_medida: 'Beneficiarios', descripcion: 'Personas beneficiadas por la acción.' },
   { id_indicador: '11200000-0000-4000-8000-000000000002', codigo: 'participantes', nombre: 'Número de participantes', unidad_medida: 'Participantes', descripcion: 'Personas que participan en la actividad.' },

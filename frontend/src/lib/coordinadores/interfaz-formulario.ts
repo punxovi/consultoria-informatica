@@ -124,7 +124,6 @@ export function iniciarFormularioCoordinador(cliente: ClienteCoordinadores = cli
         original = cuenta;
         nombre.value = cuenta.nombre;
         correo.value = cuenta.correo;
-        // Un país que ya no está en el catálogo se conserva como opción para no perderlo.
         if (!paises.some((p) => p.id_pais === cuenta.id_pais)) pais.append(new Option(cuenta.pais?.nombre ?? 'País actual', cuenta.id_pais));
         pais.value = cuenta.id_pais;
         pintarEstadoCuenta(cuenta);

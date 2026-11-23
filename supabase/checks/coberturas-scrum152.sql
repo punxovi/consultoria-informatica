@@ -1,4 +1,3 @@
--- Ejecutar en SQL Editor después de la migración; todos los datos QA se revierten.
 BEGIN;
 DO $qa$
 DECLARE actor uuid; coord uuid; country uuid:=gen_random_uuid(); iso text;

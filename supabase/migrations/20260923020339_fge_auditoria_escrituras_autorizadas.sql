@@ -1,7 +1,3 @@
--- Los triggers de auditoría se instalaron como SECURITY INVOKER cuando solo
--- escribía el administrador SQL. Una política RLS que permita a un usuario
--- escribir Programas falla al insertar el historial privado. La función
--- trigger se eleva de forma acotada; nunca se concede INSERT directo.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.auditar_registro() RETURNS trigger

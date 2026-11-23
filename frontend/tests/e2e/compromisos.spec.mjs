@@ -13,13 +13,11 @@ async function crearActa(request) {
   expect(r.ok()).toBe(true);return (await r.json()).data.meetingMinute;
 }
 async function sesion(context,token='qa-admin') {
-  // El middleware SSR valida esta cookie contra /auth/v1/user del Supabase simulado.
   await context.addCookies([{name:'fge_access_token',value:token,url:'http://127.0.0.1:4334'}]);
   await context.addInitScript(token=>localStorage.setItem('sb-127-auth-token',JSON.stringify({access_token:token,refresh_token:'qa-refresh',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'17600000-0000-4000-8000-000000000001',email:'qa@example.invalid',user_metadata:{}}})),token);
   await context.route('**/api/v1/auth/session',r=>r.fulfill({json:{ok:true,data:{authenticated:true,user:{id:'17600000-0000-4000-8000-000000000001'}}}}));
 }
 test.beforeEach(async({context,request})=>{f=await datos(request);acta=await crearActa(request);await sesion(context);});
-// La ficha agrupa Actas y Compromisos dentro de la categoría «Intervenciones».
 async function seccion(page,nombre){await page.locator('[data-tab="intervenciones"]').click();await page.locator(`[data-org-seccion="${nombre}"]`).click();}
 async function abrir(page){await page.goto(`/organizaciones/${f.organizacion.id_organizacion}`);await seccion(page,'compromisos');}
 async function completar(page){
@@ -124,7 +122,6 @@ test('descarga el PDF de los compromisos del acta desde el detalle (SCRUM-178)',
   await expect(page.locator('#comp-exito')).toContainText('compromisos del acta');
   const bytes=await (await import('node:fs/promises')).readFile(await descarga.path());
   expect(bytes.subarray(0,5).toString()).toBe('%PDF-');
-  // No se ofrece un PDF con todos los compromisos de la organización.
   await page.locator('#comp-volver').click();await expect(page.locator('#comp-lista article')).toHaveCount(1);
   await expect(page.locator('#compromisos').getByRole('button',{name:/Descargar PDF/})).toHaveCount(0);
 });

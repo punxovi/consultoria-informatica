@@ -11,7 +11,6 @@ const fechaIsoSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
 }).refine((val) => {
   const fecha = new Date(val);
   const hoy = new Date();
-  // Validar que sea una fecha válida y no una fecha en un futuro lejano o pasado imposible
   return !isNaN(fecha.getTime()) && fecha <= hoy;
 }, {
   message: 'La fecha de medición no puede ser una fecha futura.',

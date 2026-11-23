@@ -1,6 +1,3 @@
-// Pruebas del manejo de estados de la consulta de reportes con respuestas SIMULADAS:
-// no se llama al Backend; cada promesa representa lo que devolvería cliente.preparar().
-// Los documentos se generan con la función real del Backend (tests/helpers/reporte-contrato.mjs).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError } from '../../src/lib/api/transporte.ts';
@@ -30,7 +27,6 @@ test('reporteSinResultados: secciones vacías o agregados en cero son ausencia d
   const donante = { ...parametros, destino: 'donante' };
   assert.equal(reporteSinResultados(respuestaSimulada(donante)), true, 'agregados en cero');
   assert.equal(reporteSinResultados(respuestaSimulada(donante, consolidadoConDatos, resumenConDatos)), false);
-  // Una fila con texto cuenta como dato aunque su número sea 0.
   const organizacionSinBeneficiarios = respuestaSimulada(parametros, { organizations: [{ nombre: 'Comedor', pais: 'Chile', numero_beneficiarios: 0 }] });
   assert.equal(reporteSinResultados(organizacionSinBeneficiarios), false);
 });
@@ -119,7 +115,7 @@ test('una solicitud nueva invalida el responder y el error de la anterior', asyn
   responderPrimera(primera.promesa);
   const segunda = { ...parametros, fecha_inicio: '2026-06-01' };
   const responderSegunda = c.preparar(segunda);
-  responderPrimera(Promise.resolve(conDatos)); // ya no corresponde: se ignora
+  responderPrimera(Promise.resolve(conDatos));
   assert.equal(c.estado.tipo, 'preparada');
   responderSegunda(Promise.resolve(respuestaSimulada(segunda)));
   primera.rechazar(new ApiError('ERROR_INTERNO', 'x', 503));

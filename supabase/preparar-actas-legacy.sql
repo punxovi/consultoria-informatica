@@ -1,6 +1,3 @@
--- Alternativa de preparación a 20261008121000 cuando hay actas históricas.
--- Conserva los registros y deriva organización/plan de su acción original.
--- Ejecutar desde SQL Editor antes de 20261010120000_fge_actas_integracion.sql.
 BEGIN;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='actas' AND column_name='fecha') THEN
@@ -19,7 +16,6 @@ ALTER TABLE public.actas
 UPDATE public.actas a SET id_plan=coalesce(a.id_plan,x.id_plan),id_organizacion=coalesce(a.id_organizacion,p.id_organizacion)
 FROM public.acciones x JOIN public.planes p ON p.id_plan=x.id_plan
 WHERE a.id_accion=x.id_accion AND (a.id_plan IS NULL OR a.id_organizacion IS NULL);
--- Conservar los nombres ya registrados en la estructura original de participantes.
 UPDATE public.actas a SET asistentes=ARRAY(
   SELECT DISTINCT btrim(p.nombre_registrado) FROM public.acta_participantes p
   WHERE p.id_acta=a.id_acta AND p.archived_at IS NULL ORDER BY btrim(p.nombre_registrado)

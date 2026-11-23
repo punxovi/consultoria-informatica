@@ -1,4 +1,3 @@
--- Perspectiva de la organización y conservación de certificados en archivos.
 BEGIN;
 
 COMMENT ON COLUMN public.donaciones.tipo_movimiento IS
@@ -6,8 +5,6 @@ COMMENT ON COLUMN public.donaciones.tipo_movimiento IS
 COMMENT ON COLUMN public.donaciones.contraparte_nombre IS
   'Emisor externo en recibidas; receptor externo en entregadas. La organización se identifica mediante id_organizacion y su país por la FK compuesta.';
 
--- Proyección sin duplicar datos editables. SECURITY INVOKER mantiene el RLS
--- de donaciones para ADMIN/COORD y las restricciones vigentes de invitados.
 CREATE VIEW public.donaciones_partes WITH (security_invoker = true) AS
 SELECT d.*,
   CASE WHEN d.tipo_movimiento = 'recibida'
@@ -26,7 +23,6 @@ CREATE OR REPLACE FUNCTION fge_private.validar_archivo_donacion()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_extension text;
 BEGIN
-  -- También comprueba OLD: quitar id_donacion no puede eludir el validador.
   IF TG_OP = 'UPDATE' AND OLD.id_donacion IS NOT NULL THEN
     IF ROW(NEW.id_archivo, NEW.id_donacion, NEW.bucket_id, NEW.ruta_objeto,
            NEW.nombre_original, NEW.mime_type, NEW.tamano_bytes, NEW.categoria, NEW.tipo_respaldo)
@@ -53,7 +49,6 @@ BEGIN
     RAISE EXCEPTION 'RESPALDO_INVALIDO: categoría, bucket o ruta no corresponden a la donación.' USING ERRCODE = '23514';
   END IF;
   IF TG_OP = 'INSERT' THEN
-    -- Serializa reserva y archivado: nunca se agrega un respaldo a una donación archivada.
     PERFORM 1 FROM public.donaciones WHERE id_donacion = NEW.id_donacion AND archived_at IS NULL FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'DONACION_NO_DISPONIBLE: la donación no existe o está archivada.' USING ERRCODE = '23503';
@@ -66,7 +61,6 @@ BEGIN
       RAISE EXCEPTION 'RESPALDO_INVALIDO: reserva, tipo, tamaño o nombre de objeto inválido.' USING ERRCODE = '23514';
     END IF;
   END IF;
-  -- Sin reemplazar los triggers de sellado, auditoría, FKs o políticas de Storage.
   RETURN NEW;
 END;
 $$;

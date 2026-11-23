@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 import { crearBaseProgramas, comoUsuario, usuarios } from '../helpers/programas-db.mjs';
 import { createSupabaseInsightsRepository } from '../../../backend/services/insights/src/infrastructure/supabase-insights.repository.ts';
 
-// Datos realmente persistidos en PostgreSQL: no se simulan las consultas del informe.
 test('HU22: consolidación persistida, fechas, programa, RLS y más de 1000 registros', async t => {
   const db = await crearBaseProgramas();
   try {

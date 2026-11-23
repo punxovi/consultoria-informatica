@@ -1,5 +1,3 @@
--- Catalogo inicial para asociar indicadores a acciones.
--- nombre no es UNIQUE, por eso no se usa ON CONFLICT.
 BEGIN;
 
 WITH catalogo(nombre, descripcion, unidad_medida, criterio_medicion) AS (

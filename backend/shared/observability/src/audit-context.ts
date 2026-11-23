@@ -26,7 +26,6 @@ export function auditHeaders(): Record<string,string> {
   const context = storage.getStore();
   return {...(context?.ip?{'x-fge-ip-origen':context.ip}:{}),...(context?.requestId?{'x-fge-request-id':context.requestId}:{})};
 }
-/** Añade contexto aislado por petición únicamente al origen Supabase configurado. */
 export function withAuditFetch(fetchImpl: typeof fetch, supabaseUrl: string): typeof fetch {
   const origin = new URL(supabaseUrl || 'https://unconfigured.invalid').origin;
   return async (input,init) => {

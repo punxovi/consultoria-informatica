@@ -34,7 +34,6 @@ test('consulta auditoría: acepta la zona horaria IANA y solo las categorías qu
     assert.throws(() => parseAuditQuery(new URLSearchParams({ zona_horaria: zona })),
       error => error instanceof AuditError && error.fields?.zona_horaria?.length === 1, zona);
   }
-  // Los valores técnicos mezclaban inicios de sesión con «Creó»; ya no se admiten.
   for (const operacion of ['cualquiera']) {
     assert.throws(() => parseAuditQuery(new URLSearchParams({ operacion })),
       error => error instanceof AuditError && error.fields?.operacion?.[0] === 'Selecciona una acción válida.', operacion);

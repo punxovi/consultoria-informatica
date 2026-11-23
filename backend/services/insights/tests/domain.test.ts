@@ -50,7 +50,6 @@ describe('calculo de Dashboard y privacidad de Reportes', () => {
 
   test('el filtro de año afecta planes y acciones, pero no el total de organizaciones ni beneficiarios del país', () => {
     const result = buildSnapshot(raw, { year: 2026 }, new Date('2026-10-01T12:00:00.000Z'));
-    // Las dos organizaciones se conservan aunque una no tenga un plan durante 2026.
     assert.equal(result.metrics.organizations, 2);
     assert.equal(result.metrics.activePlans, 1);
     assert.equal(result.metrics.beneficiaries, 30);

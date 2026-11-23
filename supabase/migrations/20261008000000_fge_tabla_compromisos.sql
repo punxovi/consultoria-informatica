@@ -1,4 +1,3 @@
--- Creación de la tabla de compromisos para SCRUM-106
 create table if not exists public.compromisos (
     id_compromiso uuid primary key default gen_random_uuid(),
     id_organizacion uuid not null references public.organizaciones(id_organizacion) on delete cascade,
@@ -18,15 +17,10 @@ create table if not exists public.compromisos (
     updated_by uuid null
 );
 
--- La organización de un compromiso se obtiene a través de su acta; la tabla
--- canónica (creada en 20260908002323_fge_estructura.sql) no tiene id_organizacion.
--- Indexamos la FK que usan las consultas y políticas posteriores.
 create index if not exists idx_compromisos_acta on public.compromisos(id_acta);
 
--- Políticas de seguridad (RLS)
 alter table public.compromisos enable row level security;
 
--- Política de lectura y escritura alineada con las organizaciones
 create policy "Acceso por país y organización para compromisos"
     on public.compromisos
     for all

@@ -1,4 +1,3 @@
--- Refuerza RLS de Planes y Acciones con alcance territorial y coberturas temporales.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.usuario_tiene_cobertura_pais(
