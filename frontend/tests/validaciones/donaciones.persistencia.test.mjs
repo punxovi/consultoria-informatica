@@ -9,7 +9,6 @@ const migracion = (nombre) =>
 test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage y aislamiento', async (t) => {
   const db = await crearBaseProgramas();
   try {
-    // Preparar shim mínimo de storage (igual que evidencias.persistencia.test.mjs)
     await db.exec(`
       ALTER TABLE storage.buckets ADD COLUMN name text;
       ALTER TABLE storage.buckets ADD COLUMN public boolean DEFAULT false;
@@ -20,7 +19,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
       GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO authenticated;
     `);
 
-    // Cargar migraciones necesarias en orden: RLS planes/acciones → RLS org → permisos org → donaciones
     for (const nombre of [
       '20261002120000_fge_reforzar_rls_planes_acciones.sql',
       '20261004185000_fge_rls_organizaciones.sql',
@@ -33,7 +31,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
       await db.exec(await migracion(nombre));
     }
 
-    // Insertar países de prueba
     await db.exec(`
       INSERT INTO public.paises (codigo_iso, nombre) VALUES ('CL', 'Chile'), ('AR', 'Argentina');
     `);
@@ -42,7 +39,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
     const paiCL = paises.find((p) => p.codigo_iso === 'CL');
     const paiAR = paises.find((p) => p.codigo_iso === 'AR');
 
-    // Crear organizaciones para cada país (como ADMIN, que tiene alcance global)
     const orgCL = (
       await comoUsuario(db, 'ADMIN', (tx) =>
         tx.query(
@@ -73,7 +69,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
       )
     ).rows[0];
 
-    // COORD sólo tiene alcance en Chile
     await db.query(
       "UPDATE public.asignaciones_roles SET alcance = 'pais', id_pais = $1 WHERE id_usuario = $2",
       [paiCL.id_pais, usuarios.COORD],
@@ -187,7 +182,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
     });
 
     await t.test('garantiza aislamiento: archivos de donación 1 no se mezclan con donación 2', async () => {
-      // Insertar archivo exclusivo para donación 2
       await comoUsuario(db, 'ADMIN', (tx) =>
         tx.query(
           `INSERT INTO public.archivos (
@@ -217,7 +211,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
     });
 
     await t.test('RLS territorial: COORD (Chile) accede a donación 1 pero no a donación 2', async () => {
-      // COORD puede consultar Org Chile → donación 1
       const c1 = await comoUsuario(db, 'COORD', (tx) =>
         tx.query('SELECT * FROM public.donaciones WHERE id_donacion = $1;', [donacion1Id]),
       );
@@ -228,7 +221,6 @@ test('Donaciones y Respaldos: persistencia, asociación documental, RLS, storage
       );
       assert.equal(f1.rows.length, 4);
 
-      // COORD no puede consultar Org Argentina → donación 2
       const c2 = await comoUsuario(db, 'COORD', (tx) =>
         tx.query('SELECT * FROM public.donaciones WHERE id_donacion = $1;', [donacion2Id]),
       );

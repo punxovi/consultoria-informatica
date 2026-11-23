@@ -107,7 +107,6 @@ export async function routeOrganizations(
       return;
     }
 
-    // Rutas para Compromisos de una Organización
     const commitmentsMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/commitments(?:\/([^/]+))?$/);
     if (commitmentsMatch) {
       const orgId = parseUuid(decodeURIComponent(commitmentsMatch[1]), 'La organización');
@@ -128,7 +127,6 @@ export async function routeOrganizations(
         response.end(file.bytes);
         return;
       }
-      // Subruta para orígenes (actas)
       if (commitmentsMatch[2] === 'origins' && request.method === 'GET') {
         const origins = await application.listCommitmentOrigins(token, orgId);
         respond(response, 200, success('ORIGENES_COMPROMISOS_LISTADOS', 'Los orígenes de compromisos fueron consultados correctamente.', origins), requestId);
@@ -226,7 +224,6 @@ export async function routeOrganizations(
       }
     }
 
-    // Rutas para Diagnósticos de una Organización
     const diagnosticosMatch = url.pathname.match(/^\/v1\/organizations\/([^/]+)\/diagnosticos(?:\/([^/]+))?$/);
     if (diagnosticosMatch) {
       const orgId = parseUuid(decodeURIComponent(diagnosticosMatch[1]), 'La organización');
@@ -259,7 +256,6 @@ export async function routeOrganizations(
       }
     }
 
-    // Rutas para Donaciones y Respaldos Documentales
     if (url.pathname === '/v1/donations') {
       if (request.method === 'GET') {
         const donations = await application.listDonations(token, '');

@@ -1,4 +1,3 @@
--- Ejecutar solamente en Supabase LOCAL de pruebas. Todo se revierte.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
@@ -9,8 +8,6 @@ VALUES
   ('90000000-0000-4000-8000-000000000001','admin-programas@example.invalid'),
   ('90000000-0000-4000-8000-000000000002','coord-programas@example.invalid'),
   ('90000000-0000-4000-8000-000000000003','sin-rol-programas@example.invalid');
-
--- La migración del trigger Auth ya creó public.perfiles para estos usuarios.
 
 INSERT INTO public.asignaciones_roles(id_usuario,id_rol,alcance,otorgado_por)
 SELECT '90000000-0000-4000-8000-000000000001', id_rol, 'global', '90000000-0000-4000-8000-000000000001'

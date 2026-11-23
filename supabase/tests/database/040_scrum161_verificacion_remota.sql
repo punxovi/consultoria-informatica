@@ -1,6 +1,3 @@
--- Ejecutar en SQL Editor DESPUÉS de aplicar 20261103150000_fge_scrum161_catalogo_productos.sql.
--- Usa una Organización existente. Los datos sintéticos se revierten al terminar.
--- No sube imágenes: verifica sus metadatos y relación con el almacenamiento existente.
 BEGIN;
 CREATE TEMP TABLE scrum161_verificacion(resultado jsonb) ON COMMIT DROP;
 DO $$

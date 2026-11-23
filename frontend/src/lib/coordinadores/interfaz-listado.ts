@@ -145,7 +145,6 @@ export function iniciarListadoCoordinadores(cliente: ClienteCoordinadores = clie
       filtroPais.value = seleccionado;
       filtroPais.disabled = false;
     } catch {
-      // Sin catálogo se puede seguir consultando; el país se muestra si viene en la cuenta.
       filtroPais.disabled = true;
     }
     pintar();

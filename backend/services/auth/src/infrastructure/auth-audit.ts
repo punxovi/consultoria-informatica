@@ -5,7 +5,6 @@ export function createAuthAuditSynchronizer(options: Options) {
  const fetchImpl=options.fetchImpl??fetch;
  return async (userId?:string):Promise<void>=>{
   if(!options.auditKey)throw new ServiceError('AUDITORIA_NO_DISPONIBLE','Falta configurar el registro seguro de autenticación.',503);
-  // Acotado, idempotente y sin transmitir sesiones, contraseñas o payload de Auth.
   for(let batch=0;batch<10;batch++) {
    let response:Response;
    try {response=await fetchImpl(`${options.supabaseUrl.replace(/\/$/,'')}/rest/v1/rpc/sincronizar_eventos_autenticacion`,{
@@ -33,7 +32,6 @@ export function createAuthEventRecorder(options: Options) {
  };
 }
 
-/** Recupera también eventos de Auth ocurridos fuera del backend. Un fallo no avanza cursor. */
 export function startAuthAuditWorker(server:import('node:http').Server):void {
  const url=process.env.SUPABASE_URL??process.env.PUBLIC_SUPABASE_URL;
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;

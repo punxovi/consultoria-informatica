@@ -1,8 +1,0 @@
-- Agregué la sección Compromisos dentro de la ficha de Organización, con listado, detalle, registro y edición.
-- Incluí acuerdo, responsable, contacto, fecha límite, observaciones y cambio entre Pendiente y Cumplido. Los pendientes atrasados se muestran como Vencidos sin cambiar su estado.
-- Permití agregar varios compromisos al crear un acta y consultar su relación en la demostración.
-- Agregué validaciones, mensajes de carga/error/confirmación y diseño para móvil.
-- Dejé el botón «Probar demostración» para revisar la interfaz en desarrollo. Los datos son temporales y se pierden al recargar.
-- **Falta implementar el backend:** rutas, permisos, persistencia, auditoría y guardado conjunto de actas con compromisos. El cliente HTTP está preparado, pero todavía no hay guardado real.
-- Dejé los pasos de prueba en `docs/ENTREGA-SCRUM-105.md` y el contrato propuesto para el backend en `docs/CONTRATO-COMPROMISOS.md`.
-- Pasaron 50 pruebas del frontend, 5 de navegador y la compilación. El chequeo de tipos mantiene dos errores previos ajenos a esta tarea.

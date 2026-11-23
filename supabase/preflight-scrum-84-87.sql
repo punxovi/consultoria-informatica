@@ -1,4 +1,3 @@
--- SCRUM-84/87: diagnóstico de solo lectura antes de actualizar una base existente.
 BEGIN TRANSACTION READ ONLY;
 
 SELECT id_plan, nombre, id_organizacion, id_programa, fecha_inicio, fecha_termino,

@@ -1,4 +1,3 @@
-// Conecta los servicios locales a Supabase real. No modifica ni resetea el esquema.
 import { existsSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import { createGatewayServer } from '../../../backend/gateway/src/server.ts';
@@ -31,7 +30,6 @@ export async function crearEntornoEvidenciasReal({origin='http://127.0.0.1:4335'
     const action=await fetch(`${gatewayUrl}/api/v1/actions/${encodeURIComponent(actionId)}`,{headers});
     if(!action.ok)throw new Error(`No se pudo consultar la Acción de QA (HTTP ${action.status}). Comprueba su ID, los permisos del usuario y la conexión con Supabase.`);
     const {data:{action:accion}}=await action.json();
-    // Preflight de la migración pública, sin descargar ni publicar datos existentes.
     const preflight=await fetch(`${gatewayUrl}/api/v1/public/evidences/ffffffff-ffff-4fff-8fff-ffffffffffff/file`);
     if(preflight.status!==404)throw new Error('Falta aplicar la migración de publicación o configurar SUPABASE_PUBLICATION_KEY.');
     return {gatewayUrl,supabaseUrl,anonKey,token,user,actionId,planId:accion.id_plan,cerrar};

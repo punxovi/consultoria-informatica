@@ -15,12 +15,10 @@ export function confirmarDescarte(mensaje = 'Los cambios que hiciste en este for
   });
 }
 
-/** Indica si el formulario tiene cambios hechos por la persona desde que se abrió o guardó. */
 export function tieneCambios(formulario: HTMLFormElement | null): boolean {
   return Boolean(formulario && formulariosConCambios.has(formulario));
 }
 
-/** Olvida los cambios registrados (por ejemplo, después de guardar o de cerrar el formulario). */
 export function olvidarCambios(formulario: HTMLFormElement | null) {
   if (formulario) formulariosConCambios.delete(formulario);
 }

@@ -29,7 +29,6 @@ export function crearClienteInvitados(base: string, token: () => Promise<string>
         method: 'POST', accessToken: await token(), body: { version_esperada: solicitud.version },
       });
       const resultado = validar(data?.guest);
-      // Reenviar el enlace (aprobar una solicitud ya aprobada) puede no cambiar la versión.
       const reenvio = accion === 'approve' && solicitud.estado === 'aprobado';
       if (resultado.id_invitado !== solicitud.id_invitado || resultado.estado !== estadoEsperado[accion]
         || (reenvio ? resultado.version < solicitud.version : resultado.version <= solicitud.version))

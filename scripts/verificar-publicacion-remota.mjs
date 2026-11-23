@@ -1,4 +1,3 @@
-// Diagnóstico de solo lectura. No imprime credenciales ni consulta registros reales.
 import { loadEnvFile } from 'node:process';
 import { createGatewayServer } from '../backend/gateway/src/server.ts';
 import { createInterventionsServer } from '../backend/services/interventions/src/server.ts';

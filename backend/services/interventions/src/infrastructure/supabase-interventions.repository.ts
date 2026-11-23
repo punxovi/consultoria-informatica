@@ -110,7 +110,6 @@ function meetingMinute(value: unknown): MeetingMinute {
   ) {
     throw new ServiceError('RESPUESTA_INVALIDA', 'La base de datos devolvió un acta inválida.', 502);
   }
-  // El esquema histórico almacena timestamptz; el contrato de Actas usa fecha civil.
   return { ...data, fecha_reunion: data.fecha_reunion.slice(0, 10) } as unknown as MeetingMinute;
 }
 
@@ -148,10 +147,6 @@ export function createSupabaseInterventionsRepositories(options: RepositoryOptio
     return (await completarOrganizacionesInvitado(token, body)).map(plan);
   }
 
-  // El Invitado no puede leer public.organizaciones (SCRUM-171), así que la
-  // organización embebida llega vacía. Se completa con la vista segura
-  // organizaciones_invitado (solo id, país y nombre). Para ADMIN y COORD la
-  // organización ya viene embebida y no se hace ninguna consulta adicional.
   async function completarOrganizacionesInvitado(token: string, filas: unknown[]): Promise<unknown[]> {
     const faltantes = [...new Set(filas.flatMap((fila) => {
       const dato = record(fila);

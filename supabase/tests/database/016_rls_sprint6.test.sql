@@ -1,28 +1,24 @@
 BEGIN;
 SELECT plan(6);
 
--- 1. Verificamos que existen las políticas requeridas en evidencias
 SELECT policies_are(
   'public', 'evidencias',
   ARRAY['evidencias_lectura', 'evidencias_creacion', 'evidencias_edicion'],
   'La tabla evidencias debe tener las políticas requeridas'
 );
 
--- 2. Verificamos que existen las políticas requeridas en indicadores
 SELECT policies_are(
   'public', 'indicadores',
   ARRAY['indicadores_lectura', 'indicadores_insert', 'indicadores_update'],
   'La tabla indicadores debe tener las políticas requeridas'
 );
 
--- 3. Verificamos que existen las políticas requeridas en resultados
 SELECT policies_are(
   'public', 'resultados',
   ARRAY['resultados_lectura', 'resultados_insert', 'resultados_update'],
   'La tabla resultados debe tener las políticas requeridas'
 );
 
--- 4. Pruebas de acceso "anon" denegado
 SET LOCAL ROLE anon;
 
 PREPARE anon_select_evidencias AS SELECT 1 FROM public.evidencias;

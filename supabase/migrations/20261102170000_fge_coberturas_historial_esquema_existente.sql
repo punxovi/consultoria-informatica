@@ -1,6 +1,3 @@
--- Compatibilidad con el esquema existente de Supabase.
--- permisos_temporales_historial usa id y created_at como nombres físicos.
--- Esta migration solo corrige la función instalada; no modifica registros.
 BEGIN;
 
 DO $$

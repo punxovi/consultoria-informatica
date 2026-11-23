@@ -1,5 +1,3 @@
-// Ejecuta la función real public.consultar_eventos_auditoria (migración 20261106120000) en
-// PostgreSQL embebido. El esquema es mínimo: solo las tablas y columnas que la consulta usa.
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -45,19 +43,14 @@ before(async () => {
       UNION ALL SELECT '${ASIG_AR}'::uuid, '${COORD_AR}'::uuid, id_rol, 'pais', '${ARGENTINA}'::uuid FROM public.roles WHERE codigo = 'COORD';
     INSERT INTO public.permisos_temporales VALUES ('${COBERTURA_AR}', '${ARGENTINA}');
   `);
-  // Eventos (horas UTC). Chile está en UTC-3 en noviembre de 2026.
   const eventos = [
-    // 5-nov 23:43 en Chile: el caso de la captura que aparecía al filtrar el 06/11.
     ['e1', 'acciones', 'UPDATE', COORD_AR, '2026-11-06T02:43:00Z', { nombre: 'Prueba' }, { nombre: 'Ola' }, ASIG_AR, null],
-    // 6-nov 20:53 en Chile: inicio de sesión del Administrador.
     ['e2', 'autenticacion', 'INSERT', ADMIN, '2026-11-06T23:53:00Z', null, { operacion: 'login' }, ASIG_ADMIN, null],
-    // 6-nov 21:30 en Chile: quedaba fuera del filtro del 06/11 por cortar en UTC.
     ['e3', 'organizaciones', 'INSERT', COORD_CL, '2026-11-07T00:30:00Z', null, { nombre: 'Comedor', id_pais: CHILE }, ASIG_CL, null],
     ['e4', 'informacion_legal', 'INSERT', ADMIN, '2026-11-06T15:00:00Z', null, { operacion: 'lectura_documento' }, ASIG_ADMIN, null],
     ['e5', 'planes', 'UPDATE', COORD_CL, '2026-11-06T15:10:00Z', { archived_at: null, id_pais: CHILE }, { archived_at: '2026-11-06T15:10:00Z', id_pais: CHILE }, ASIG_CL, null],
     ['e6', 'planes', 'UPDATE', COORD_CL, '2026-11-06T15:20:00Z', { archived_at: '2026-11-06T15:10:00Z', id_pais: CHILE }, { archived_at: null, id_pais: CHILE }, ASIG_CL, null],
     ['e7', 'archivos', 'DELETE', ADMIN, '2026-11-06T15:30:00Z', { nombre_original: 'a.pdf' }, null, ASIG_ADMIN, null],
-    // Coordinador de Chile que edita un registro de Argentina mediante cobertura temporal.
     ['e8', 'organizaciones', 'UPDATE', COORD_CL, '2026-11-06T16:00:00Z', { nombre: 'X', id_pais: ARGENTINA }, { nombre: 'Y', id_pais: ARGENTINA }, ASIG_CL, COBERTURA_AR],
     ['e9', 'autenticacion', 'INSERT', COORD_CL, '2026-11-06T16:10:00Z', null, { operacion: 'login' }, null, null, { exitoso: 'false' }],
     ['e10', 'organizaciones', 'INSERT', COORD_CL, '2026-11-06T16:20:00Z', null, { nombre: 'Lima', id_pais: PERU }, ASIG_CL, null],
@@ -83,10 +76,8 @@ test('fechas: el día se corta en la zona horaria de quien consulta', async () =
   const enChile = await refs({ ...dia, zona_horaria: 'America/Santiago' });
   assert.ok(!enChile.includes('e1'), 'el 5-nov 23:43 (Chile) no pertenece al 6-nov');
   assert.ok(enChile.includes('e2') && enChile.includes('e3'), 'el 6-nov 20:53 y 21:30 (Chile) sí pertenecen al 6-nov');
-  // Sin zona se mantiene UTC: es exactamente el desfase que se veía en pantalla.
   const enUtc = await refs(dia);
   assert.ok(enUtc.includes('e1') && !enUtc.includes('e3'));
-  // Solo «desde» o solo «hasta» también usan la zona.
   assert.ok(!(await refs({ desde: '2026-11-06', zona_horaria: 'America/Santiago' })).includes('e1'));
   assert.ok((await refs({ hasta: '2026-11-05', zona_horaria: 'America/Santiago' })).includes('e1'));
 });
@@ -116,7 +107,6 @@ test('persona y sección: búsqueda sin tildes y sección exacta', async () => {
   assert.deepEqual(await refs({ usuario: 'perez' }), ['e1']);
   assert.deepEqual(await refs({ usuario: 'COORDINADORAR@' }), ['e1']);
   assert.deepEqual(await refs({ entidad: 'planes' }), ['e5', 'e6']);
-  // Combinados: Chile + crear + día 6 en hora de Chile.
   assert.deepEqual(await refs({ pais: 'Chile', operacion: 'crear', desde: '2026-11-06', hasta: '2026-11-06', zona_horaria: 'America/Santiago' }), ['e3']);
 });
 
@@ -128,16 +118,11 @@ test('rechaza zona u operación inválidas y a quien no es Administrador', async
 });
 
 test('compatibilidad: acepta lo que envía hoy el backend en uso (valores técnicos, sin zona)', async () => {
-  // Misma forma que supabase-audit.repository.ts de sprint-9: todas las claves, nulos y sin zona_horaria.
   const actual = (operacion) => ({ usuario: null, pais: null, desde: null, hasta: null, operacion, entidad: null, limit: 50, cursor_fecha: null, cursor_id: null });
-  // «Creó o agregó» ya no trae inicios de sesión (e2, e9) ni lecturas de documentos (e4).
   assert.deepEqual(await refs(actual('INSERT')), ['e10', 'e3']);
-  // «Modificó o eliminó (archivó)»: modificaciones, archivados y restauraciones.
   assert.deepEqual(await refs(actual('UPDATE')), ['e1', 'e5', 'e6', 'e8']);
   assert.deepEqual(await refs(actual('DELETE')), ['e7']);
   assert.deepEqual(await refs(actual('insert')), ['e10', 'e3']);
-  // Sin filtros devuelve todo, igual que antes.
   assert.equal((await consultar(actual(null))).events.length, 10);
-  // Sin zona, las fechas siguen en UTC: la pantalla en uso no cambia su comportamiento de fechas.
   assert.ok((await refs({ ...actual(null), desde: '2026-11-06', hasta: '2026-11-06' })).includes('e1'));
 });

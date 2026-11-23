@@ -1,4 +1,3 @@
-
 import { routeIndicators } from './indicators.routes.ts';
 import type { IndicatorsRepository } from '../domain/indicators.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -130,7 +129,6 @@ export async function routeInterventions(
 
     const token = tokenFrom(request);
 
-    // Adjuntos de actas: listar y registrar metadatos.
     const meetingMinuteAttachmentsMatch = url.pathname.match(
       /^\/v1\/meeting-minutes\/([^/]+)\/attachments$/,
     );
@@ -192,7 +190,6 @@ export async function routeInterventions(
       }
     }
 
-    // Adjuntos de actas: eliminar archivo y metadatos.
     const meetingMinuteAttachmentMatch = url.pathname.match(
       /^\/v1\/meeting-minute-attachments\/([^/]+)$/,
     );
@@ -218,7 +215,6 @@ export async function routeInterventions(
 
       return;
     }
-    // Adjuntos de actas: cargar y descargar archivos.
     const meetingMinuteAttachmentFileMatch = url.pathname.match(
       /^\/v1\/meeting-minute-attachments\/([^/]+)\/file$/,
     );
@@ -297,7 +293,6 @@ export async function routeInterventions(
       return;
     }
 
-    // Evidencias actuales de acciones: se mantienen sin cambios.
     if (url.pathname === '/v1/evidences') {
       if (request.method === 'GET') {
         const evidences = await application.evidences.list(

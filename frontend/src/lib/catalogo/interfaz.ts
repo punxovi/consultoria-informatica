@@ -37,7 +37,6 @@ export async function iniciarCatalogo() {
     avisoTimer = window.setTimeout(() => aviso.toggleAttribute('data-visible', false), 3500);
   }
   function imagen(item: ItemPublico, url?: string | null, enTarjeta = false) {
-    // Marco neutro con la imagen contenida y centrada: los logos y fotos no se recortan.
     const marco = document.createElement('div');
     marco.className = enTarjeta
       ? 'flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-[#F7F6FA]'
@@ -71,7 +70,6 @@ export async function iniciarCatalogo() {
     b.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#DCD8EA] bg-white text-lg font-semibold text-primary transition hover:bg-[#F0EEF8] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40';
     return b;
   }
-  // Acciones de una tarjeta: agregar, o ajustar la cantidad si ya está en la solicitud.
   function pintarAcciones(contenedor: HTMLElement, item: ItemPublico, seleccion: Seleccion, enfocar = false) {
     const elegido = seleccion.find(i => i.id_producto === item.id_producto);
     contenedor.replaceChildren();
@@ -111,14 +109,12 @@ export async function iniciarCatalogo() {
     });
     contenedor.append(etiqueta, fila, quitar);
   }
-  // Repinta las acciones sin perder el foco del teclado: tras agregar o sumar queda en «+».
   function repintar(contenedor: HTMLElement, item: ItemPublico, seleccion: Seleccion) {
     const teniaFoco = contenedor.contains(document.activeElement);
     pintarAcciones(contenedor, item, seleccion);
     if (!teniaFoco) return;
     (contenedor.querySelector<HTMLButtonElement>('[data-sumar]') ?? contenedor.querySelector<HTMLButtonElement>('button'))?.focus();
   }
-  // Producto ya elegido: borde verde suave; el resto, borde neutro.
   function marcarElegido(tarjeta: HTMLElement, elegido: boolean) {
     tarjeta.classList.toggle('border-[#9ED3BC]', elegido);
     tarjeta.classList.toggle('shadow-[0_0_0_1px_#9ED3BC]', elegido);
@@ -139,7 +135,6 @@ export async function iniciarCatalogo() {
     origen = boton; q('detalle-titulo').textContent = item.nombre;
     q('detalle-tipo').textContent = item.tipo_item === 'servicio' ? 'Servicio' : 'Producto';
     q('detalle-descripcion').textContent = item.descripcion || 'Sin descripción registrada.';
-    // Galería: imagen principal y miniaturas para cambiarla cuando hay varias fotos.
     const galeria = q('detalle-galeria'); galeria.replaceChildren();
     const fotos = item.imagenes?.length ? item.imagenes : [{ url: null }];
     let principal = imagen(item, fuenteImagen(fotos[0], apiBase));
@@ -204,7 +199,6 @@ export async function iniciarCatalogo() {
         texto('p', contexto, 'truncate text-xs text-neutral-500'),
         texto('h3', item.nombre, 'line-clamp-2 break-words text-neutral-900'),
       );
-      // La descripción solo se muestra si aporta algo distinto del nombre.
       const descripcion = item.descripcion?.trim();
       if (descripcion && descripcion.toLocaleLowerCase('es') !== item.nombre.trim().toLocaleLowerCase('es')) {
         cuerpo.append(texto('p', descripcion, 'line-clamp-2 break-words text-sm leading-relaxed text-neutral-600'));

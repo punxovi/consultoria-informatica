@@ -1,6 +1,5 @@
 import { camposCompromisoSchema, type CamposCompromiso } from './modelo';
 
-// Extensión del formulario de Actas existente; sus borradores se envían juntos al guardar.
 export function iniciarCompromisosEnActas(raiz: HTMLElement) {
   const bloque = raiz.querySelector<HTMLElement>('#actas-compromisos');
   if (!bloque) return null;

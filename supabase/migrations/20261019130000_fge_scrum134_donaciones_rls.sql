@@ -1,10 +1,5 @@
--- SCRUM-134: refuerzo de autorización territorial, coberturas y respaldos de Donaciones.
--- Corrige la migración publicada de SCRUM-133 sin modificar su checksum/historial.
 BEGIN;
 
--- La lectura de Donaciones también admite una cobertura temporal vigente para
--- Coordinadores. La función es específica del módulo para no alterar el
--- comportamiento de lectura de otros módulos ya desplegados.
 CREATE OR REPLACE FUNCTION fge_private.usuario_puede_consultar_donacion(
   p_id_organizacion uuid
 ) RETURNS boolean
@@ -83,8 +78,6 @@ REVOKE ALL ON FUNCTION fge_private.acceso_archivo_donacion(uuid, boolean)
 GRANT EXECUTE ON FUNCTION fge_private.acceso_archivo_donacion(uuid, boolean)
   TO authenticated;
 
--- Evita que un UPDATE autorizado convierta el respaldo en un archivo de otra
--- Donación o lo saque de su prefijo privado en Storage.
 CREATE OR REPLACE FUNCTION fge_private.validar_archivo_donacion()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -120,8 +113,6 @@ CREATE TRIGGER validar_archivo_donacion
   BEFORE INSERT OR UPDATE ON public.archivos
   FOR EACH ROW EXECUTE FUNCTION fge_private.validar_archivo_donacion();
 
--- El acceso de Storage sigue dependiendo del registro privado de public.archivos
--- y del estado de carga; por tanto, una URL no puede saltarse el RLS de tablas.
 DROP POLICY IF EXISTS storage_donaciones_lectura ON storage.objects;
 CREATE POLICY storage_donaciones_lectura
 ON storage.objects FOR SELECT TO authenticated

@@ -1,12 +1,3 @@
--- Corrige los filtros de la consulta de auditoría:
--- 1. Las fechas «desde/hasta» se interpretan en la zona horaria de quien consulta
---    (antes se cortaban en UTC y el día no coincidía con la hora mostrada).
--- 2. «Qué hizo» filtra por la misma categoría que se muestra en pantalla: los inicios
---    de sesión y las lecturas de documentos ya no aparecen como «Creó».
---    Acepta también INSERT/UPDATE/DELETE de la pantalla anterior, para poder aplicarla
---    antes de desplegar el código nuevo.
--- 3. «País» filtra por el país que se muestra en la columna, y Persona/País ignoran
---    tildes y mayúsculas.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.texto_busqueda(p_texto text)
@@ -80,8 +71,6 @@ BEGIN
   IF length(v_usuario) > 150 OR length(v_pais) > 100 OR length(v_operacion) > 80 OR length(v_entidad) > 100 THEN
     RAISE EXCEPTION 'Filtro demasiado largo' USING ERRCODE = '22023';
   END IF;
-  -- Compatibilidad: la pantalla anterior enviaba el tipo técnico. Se traduce a lo que
-  -- decía su etiqueta para que la migración pueda aplicarse antes que el código nuevo.
   v_operaciones := CASE upper(v_operacion)
     WHEN 'INSERT' THEN ARRAY['crear']
     WHEN 'UPDATE' THEN ARRAY['modificar', 'archivar', 'restaurar']
@@ -94,7 +83,6 @@ BEGIN
     RAISE EXCEPTION 'Operación inválida' USING ERRCODE = '22023';
   END IF;
 
-  -- Zona horaria de quien consulta (IANA, p. ej. America/Santiago); sin ella se usa UTC.
   v_zona := coalesce(nullif(btrim(p_filtros ->> 'zona_horaria'), ''), 'UTC');
   IF length(v_zona) > 64 OR NOT EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = v_zona) THEN
     RAISE EXCEPTION 'Zona horaria inválida' USING ERRCODE = '22023';
@@ -137,7 +125,6 @@ BEGIN
       historial.id_historial_cambio,
       cuenta.email::text AS correo,
       perfil.nombre AS nombre_usuario,
-      -- Nombre legible del registro afectado, si la fila lo tiene.
       left(coalesce(
         historial.despues ->> 'nombre', historial.antes ->> 'nombre',
         historial.despues ->> 'titulo', historial.antes ->> 'titulo',
@@ -145,7 +132,6 @@ BEGIN
         historial.despues ->> 'nombre_solicitante', historial.antes ->> 'nombre_solicitante',
         historial.despues ->> 'nombre_original', historial.antes ->> 'nombre_original'
       ), 160) AS nombre_registro,
-      -- Campos que cambiaron en una modificación, sin columnas técnicas.
       CASE WHEN historial.tipo_accion = 'UPDATE' AND historial.antes IS NOT NULL AND historial.despues IS NOT NULL THEN (
         SELECT coalesce(jsonb_agg(campo.key ORDER BY campo.key), '[]'::jsonb)
         FROM jsonb_each(historial.despues) AS campo
@@ -156,7 +142,6 @@ BEGIN
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NULL AND historial.despues ->> 'archived_at' IS NOT NULL THEN 'archivado'
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NOT NULL AND historial.despues ->> 'archived_at' IS NULL THEN 'restaurado'
       END AS cambio_estado,
-      -- Eventos que no son cambios de una fila: inicio de sesión y consulta de documentos.
       CASE
         WHEN historial.tabla_afectada = 'autenticacion' THEN
           CASE WHEN historial.clave_registro ->> 'exitoso' = 'false' THEN 'inicio_sesion_fallido' ELSE 'inicio_sesion' END

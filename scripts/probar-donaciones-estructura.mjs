@@ -1,5 +1,3 @@
-// PostgreSQL embebido aislado: valida DDL/datos, no sustituye Supabase/RLS/Storage.
-// node scripts/probar-donaciones-estructura.mjs <ruta absoluta a @electric-sql/pglite/dist/index.js>
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';

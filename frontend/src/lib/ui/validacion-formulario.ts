@@ -63,7 +63,6 @@ export function limpiarErroresCampos(form: HTMLFormElement) {
   form.querySelectorAll('[data-error-campo]').forEach(nodo => nodo.remove());
 }
 
-/** Al corregir un campo, desaparece solo su mensaje. */
 export function quitarErroresAlEditar(form: HTMLFormElement) {
   const quitar = (evento: Event) => {
     if (evento.target instanceof Element && evento.target.getAttribute('type') !== 'file') {

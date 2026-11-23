@@ -2,7 +2,6 @@ export interface NavItem {
   label: string;
   href: string;
   roles?: string[];
-  /** Sección del menú lateral; los títulos se muestran solo si el usuario ve alguno de sus enlaces. */
   grupo?: 'Gestión' | 'Cotizaciones' | 'Administración';
 }
 

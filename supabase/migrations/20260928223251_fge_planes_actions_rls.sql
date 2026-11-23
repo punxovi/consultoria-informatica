@@ -1,5 +1,3 @@
--- Acceso de las Astro Actions de Planes. Las consultas respetan RLS y las
--- escrituras se limitan al Administrador o Coordinador autorizado por país.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.usuario_puede_gestionar_organizacion(

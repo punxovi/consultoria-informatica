@@ -1,4 +1,3 @@
--- SCRUM-145. RPC con JWT del administrador; Auth Admin solo crea identidades.
 BEGIN;
 CREATE TABLE fge_private.cuentas_coordinadores (
   id_usuario uuid PRIMARY KEY REFERENCES public.perfiles(id_usuario) ON DELETE RESTRICT,
@@ -42,7 +41,6 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
  AND r.codigo='ADMIN' AND r.activo AND r.archived_at IS NULL);
 $$;
 
--- Importa cuentas territoriales no ambiguas; no convierte usuarios con otros roles.
 INSERT INTO fge_private.cuentas_coordinadores(id_usuario,id_pais,id_pais_aplicado,solicitado_por)
 SELECT a.id_usuario, (array_agg(a.id_pais))[1], (array_agg(a.id_pais))[1], a.id_usuario
 FROM public.asignaciones_roles a JOIN public.roles r ON r.id_rol=a.id_rol
@@ -54,7 +52,6 @@ WHERE r.codigo='COORD' AND r.activo AND a.revocado_at IS NULL AND a.archived_at 
     AND (y.codigo<>'COORD' OR x.alcance<>'pais'))
 GROUP BY a.id_usuario HAVING count(*)=1;
 
--- Las cuentas previamente inactivas tampoco conservan acceso territorial.
 UPDATE auth.users u SET banned_until='9999-12-31'::timestamptz
 FROM fge_private.cuentas_coordinadores c JOIN public.perfiles p USING(id_usuario)
 WHERE u.id=c.id_usuario AND NOT p.activo;
@@ -85,7 +82,7 @@ BEGIN
  IF NOT fge_private.es_administrador_cuentas(actor) THEN
    INSERT INTO fge_private.intentos_administracion_coordinadores(id_usuario,operacion)
    VALUES(actor,left(coalesce(p_operacion,''),40));
-   RETURN jsonb_build_object('denied',true); -- devolver permite conservar auditoría
+   RETURN jsonb_build_object('denied',true);
  END IF;
  PERFORM 1 FROM public.perfiles WHERE id_usuario=actor FOR SHARE;
  IF jsonb_typeof(p_datos) IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'Objeto requerido' USING ERRCODE='22023'; END IF;
@@ -118,7 +115,6 @@ BEGIN
      IF reservation.solicitado_por<>actor OR reservation.nombre<>nombre OR reservation.id_pais<>country THEN
        RAISE EXCEPTION 'Correo registrado' USING ERRCODE='P0148';
      END IF;
-     -- Reintentar exactamente el alta recupera una identidad ya creada, nunca la duplica.
      RETURN jsonb_build_object('id_solicitud',reservation.id_solicitud,'id_usuario',reservation.id_usuario);
    END IF;
    IF EXISTS(SELECT 1 FROM auth.users WHERE lower(email)=mail) THEN RAISE EXCEPTION 'Correo registrado' USING ERRCODE='P0148'; END IF;
@@ -171,7 +167,7 @@ BEGIN
    IF p_operacion='deactivate' THEN
      UPDATE public.asignaciones_roles a SET revocado_at=clock_timestamp(),revocado_por=actor
      FROM public.roles r WHERE a.id_usuario=target AND a.id_rol=r.id_rol AND r.codigo='COORD' AND a.revocado_at IS NULL;
-     DELETE FROM auth.sessions WHERE user_id=target; -- solo sesiones; nunca usuarios ni datos de negocio
+     DELETE FROM auth.sessions WHERE user_id=target;
    ELSE
      IF NOT EXISTS(SELECT 1 FROM public.paises WHERE id_pais=account.id_pais_aplicado AND archived_at IS NULL) THEN
        RAISE EXCEPTION 'País inválido' USING ERRCODE='P0145';
@@ -192,7 +188,6 @@ $$;
 REVOKE ALL ON FUNCTION public.administrar_coordinadores(text,jsonb) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.administrar_coordinadores(text,jsonb) TO authenticated;
 
--- AFTER on_auth_user_created: el perfil existe antes de asociar país y rol.
 CREATE FUNCTION fge_private.completar_alta_coordinador() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE reservation fge_private.altas_coordinadores; prior_sub text;
@@ -222,12 +217,10 @@ $$;
 CREATE TRIGGER zz_fge_completar_alta_coordinador AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION fge_private.completar_alta_coordinador();
 
--- Una renovación actualiza una sesión existente; solo un inicio nuevo aplica país.
 CREATE FUNCTION fge_private.aplicar_pais_coordinador_login() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE account fge_private.cuentas_coordinadores; prior_sub text;
 BEGIN
- -- El mismo orden de bloqueo que la RPC evita actualizaciones concurrentes perdidas.
  PERFORM 1 FROM public.perfiles WHERE id_usuario=NEW.user_id FOR UPDATE;
  SELECT * INTO account FROM fge_private.cuentas_coordinadores WHERE id_usuario=NEW.user_id FOR UPDATE;
  IF NOT FOUND THEN RETURN NEW; END IF;

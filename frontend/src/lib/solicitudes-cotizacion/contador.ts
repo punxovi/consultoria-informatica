@@ -16,8 +16,6 @@ export function iniciarContadorCotizaciones() {
     if (!indicador || document.hidden) return;
     const turno = ++consulta;
     try {
-      // El Administrador no tiene país operativo: ve todas las solicitudes nuevas.
-      // El Coordinador solo cuenta las de su país activo.
       const [pais, roles] = await Promise.all([paisOperativo(), getUserRoles()]);
       const esAdmin = roles.some(r => r.codigo === 'ADMIN');
       const solicitudes = pais || esAdmin ? await cliente.listar() : [];

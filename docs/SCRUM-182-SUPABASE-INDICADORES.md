@@ -38,9 +38,7 @@ npm.cmd run dev
 npm.cmd run dev:interventions
 ```
 
-Reiniciar los procesos después de cambiar variables de entorno. Las migraciones
-necesarias y el procedimiento de prueba autenticada están en
-[PROBAR-SCRUM-118.md](PROBAR-SCRUM-118.md). Esta corrección no requiere una nueva
+Reiniciar los procesos después de cambiar variables de entorno. Esta corrección no requiere una nueva
 migración ni volver a ejecutar migraciones ya aplicadas. No ejecutar el seed global
 en un proyecto compartido para probar esta corrección: incluye otros módulos.
 

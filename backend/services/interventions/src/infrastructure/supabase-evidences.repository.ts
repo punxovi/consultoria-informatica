@@ -143,8 +143,6 @@ export function createSupabaseEvidencesRepository(options: Options): EvidencesRe
       }
       assertFileSignature(bytes, mimeType);
       const result = await storage(token, item, 'POST', bytes);
-      // Si Storage aceptó el archivo pero falló la confirmación en PostgREST,
-      // un reintento puede completar el estado sin reemplazar el objeto.
       if (!result.ok) {
         const error = object(await result.json().catch(() => null));
         const duplicate = result.status === 409 || (result.status === 400 &&

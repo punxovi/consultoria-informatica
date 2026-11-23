@@ -7,7 +7,6 @@
     Territorio de trabajo
   </p>
 
-  <!-- Tarjetas en vez de una lista desplegable: el nombre completo del país siempre se lee. -->
   <div
     id="selector-territorio-opciones"
     role="radiogroup"
@@ -58,11 +57,6 @@
   let coberturasRecibidas: Territorio[] = [];
   let firmaCoberturas: string | undefined;
 
-  /**
-   * El backend ya devuelve únicamente coberturas vigentes y no revocadas.
-   * El frontend usa esa respuesta para poblar la interfaz, pero no concede
-   * permisos ni sustituye las validaciones de autorización del servidor.
-   */
   function obtenerTerritorios(): Territorio[] {
     if (!principal) return [];
 
@@ -90,8 +84,6 @@
         detail: { id_pais: idPais },
       }),
     );
-    // Las vistas con sus propios observadores descartan solicitudes anteriores.
-    // En las demás, una navegación limpia evita conservar datos del país anterior.
     if (cambio && !['/organizaciones', '/planes', '/cotizaciones'].includes(location.pathname.replace(/\/$/, ''))) {
       const destino = location.pathname.startsWith('/organizaciones/') ? '/organizaciones'
         : location.pathname.startsWith('/planes/') ? '/planes' : location.pathname;
@@ -108,7 +100,6 @@
     return `Cobertura hasta ${dia}/${mes}/${anio}`;
   }
 
-  // Misma bandera circular que el perfil del encabezado; si no carga, se muestran las iniciales.
   function bandera(territorio: Territorio, activo: boolean) {
     const codigo = territorio.codigo_iso?.trim().toLowerCase() ?? '';
     const marco = document.createElement('span');
@@ -163,8 +154,6 @@
   }
 
   function seleccionar(idPais: string) {
-    // La comprobación de la interfaz evita selecciones accidentales; el
-    // backend sigue siendo la autoridad efectiva de los permisos.
     const autorizado = obtenerTerritorios().some((territorio) => territorio.id_pais === idPais);
     if (!autorizado || sessionStorage.getItem(CLAVE_TERRITORIO) === idPais) return;
     sessionStorage.setItem(CLAVE_TERRITORIO, idPais);
@@ -197,9 +186,6 @@
       ? 'Elige el país en el que vas a trabajar.'
       : 'Sin coberturas temporales vigentes.';
 
-    // Se notifica al inicializar para que las vistas operativas puedan leer
-    // el territorio activo; también se notifica si una selección anterior ya
-    // no está autorizada y debió volver al país principal.
     if (notificarInicializacion || activo !== almacenado) {
       notificarTerritorioActivo(activo);
     }
@@ -210,7 +196,6 @@
     if (boton && !boton.disabled && boton.dataset.pais) seleccionar(boton.dataset.pais);
   });
 
-  // Teclado de un grupo de opciones: las flechas recorren los territorios.
   opciones?.addEventListener('keydown', (evento) => {
     if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(evento.key)) return;
     const botones = [...(opciones?.querySelectorAll<HTMLButtonElement>('button[data-pais]:not(:disabled)') ?? [])];
@@ -233,7 +218,6 @@
           Boolean(rol.id_pais),
       );
 
-      // El selector solo corresponde a coordinadores con país principal.
       if (!rolCoordinador?.id_pais) {
         sessionStorage.removeItem(CLAVE_TERRITORIO);
         notificarTerritorioActivo('');
@@ -271,7 +255,6 @@
         }
 
         const pais = paisesPorId.get(cobertura.id_pais);
-        // Si el país no existe en el catálogo, no se muestra como opción.
         if (!pais) return [];
 
         return [{
@@ -296,8 +279,6 @@
 
       renderizarSelector(true);
     } catch (error) {
-      // Fallo cerrado: no mostrar opciones territoriales cuya autorización
-      // no se pudo verificar. El servidor valida igualmente cada operación.
       sessionStorage.removeItem(CLAVE_TERRITORIO);
       notificarTerritorioActivo('');
       contenedor.hidden = false;
@@ -323,9 +304,6 @@
   reintentar?.addEventListener('click', () => void iniciar());
   window.addEventListener('fge:alcance-gestion-cambiado', () => location.reload());
 
-  // Una cobertura puede vencer o ser revocada desde otra sesión. Al volver a
-  // enfocar la aplicación y, como respaldo, cada minuto visible, se vuelve a
-  // consultar el Backend. Si ya no está autorizada se borra el contexto local.
   window.addEventListener('focus', () => void iniciar());
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void iniciar();

@@ -20,7 +20,6 @@ const fecha = z.iso.date().refine(value => !value.startsWith('0000-'), 'Fecha ca
 const codigo = (patron: RegExp) => z.string().trim().regex(patron, 'Usa un código válido.').optional();
 const uuidFiltro = z.uuid().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 export const OPERACIONES_AUDITORIA = [
-  // El contrato admite códigos funcionales y códigos físicos persistidos.
   'INSERT', 'UPDATE', 'DELETE',
   'crear', 'modificar', 'archivar', 'restaurar', 'eliminar', 'inicio_sesion', 'inicio_sesion_fallido', 'lectura_documento',
 ] as const;

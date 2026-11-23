@@ -1,4 +1,3 @@
-/** SCRUM-152: DTO HTTP/RPC. Fechas de entrada: calendario YYYY-MM-DD del país. */
 export type OtorgarCoberturaInput = {
   id_usuario_beneficiario: string;
   id_pais: string;
@@ -15,7 +14,6 @@ export type RevocarCoberturaInput = {
   version_esperada: number;
   motivo_revocacion: string;
 };
-/** Respuesta administrativa; no es la fila física de permisos_temporales. */
 export type PermisoTemporalResponse = {
   id_permiso_temporal: string;
   id_usuario_beneficiario: string;

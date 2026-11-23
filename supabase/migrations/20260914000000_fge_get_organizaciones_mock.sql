@@ -1,4 +1,3 @@
---RPC pública mínima para validar la primera integración Frontend -> Supabase. Los datos son deliberadamente de demostración: la tabla organizaciones aún no contiene los campos rut ni estado requeridos por este contrato.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.get_organizaciones_mock(
@@ -37,8 +36,6 @@ BEGIN
 END;
 $$;
 
--- Las funciones reciben EXECUTE de PUBLIC por defecto. Se cierra ese acceso y
--- se habilita exclusivamente el rol anónimo usado por esta integración.
 REVOKE ALL ON FUNCTION public.get_organizaciones_mock(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_organizaciones_mock(text) TO anon;
 

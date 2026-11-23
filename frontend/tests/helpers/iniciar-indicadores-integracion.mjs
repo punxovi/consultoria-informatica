@@ -14,7 +14,6 @@ export default async function iniciar() {
     try {
       const code=await finished;
       if(code!==0)throw new Error('No se pudo cerrar y limpiar el entorno QA.\n'+output);
-      // Solo los identificadores de los datos sintéticos, nunca la configuración de sesión.
       for(const line of output.split(/\r?\n/))if(line.startsWith('Acción QA archivada:'))console.log(line);
     } finally {clearTimeout(limit);}
   }
@@ -25,7 +24,6 @@ export default async function iniciar() {
       server.once('exit',()=>{clearTimeout(limit);reject(new Error(output));});
       server.once('error',error=>{clearTimeout(limit);reject(error);});
     });
-    // Solo entorno de tests; no se escribe la sesión ni las claves en archivos/reports.
     process.env.QA_INDICADORES_CONFIG=JSON.stringify(config);
     return cerrar;
   } catch(error){await cerrar();throw error;}

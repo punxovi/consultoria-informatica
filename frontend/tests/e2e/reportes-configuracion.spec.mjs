@@ -163,7 +163,6 @@ test('quitar el país recarga organizaciones y editar el período invalida la so
   await page.locator('#rep-fecha-termino').fill('2026-12-31');
   await page.locator('#rep-solicitar').click();
   await expect(page.locator('#rep-consulta-vacio')).toBeVisible();
-  // La vista previa ocupa su propia pantalla: se vuelve a los filtros para editarlos.
   await page.locator('#rep-volver-configurar').click();
   await page.locator('#rep-fecha-inicio').fill('2026-06-01');
   await expect(page.locator('#rep-consulta-listo')).toBeHidden();
@@ -250,10 +249,6 @@ test('móvil sin desbordes', async ({ page }, info) => {
   await captura(page, info, 'reporte-configuracion-movil');
 });
 
-// --- Estados de la consulta y vista previa con RESPUESTAS SIMULADAS ----------
-// No se llama al Backend: un listener de prueba ocupa el lugar de la integración HTTP
-// posterior y responde a `reporte:solicitar`. Los documentos se generan con la función
-// real del Backend (tests/helpers/reporte-contrato.mjs) a partir de los parámetros recibidos.
 async function simularIntegracion(page) {
   await page.evaluate(() => {
     window.solicitudesSimuladas = [];
@@ -312,12 +307,10 @@ test('(respuesta simulada) vista previa: período, criterios, secciones de HU22 
   const vista = page.locator('#rep-vista-previa');
   await expect(vista).toBeVisible();
 
-  // Período y criterios aplicados, con los nombres elegidos por el usuario.
   await expect(vista.locator('[data-vp-periodo] dd')).toHaveText('01/01/2026 al 31/12/2026');
   await expect(vista.locator('[data-vp-criterio]')).toHaveText(['PaísChile', 'IndicadorAcción de prueba · Familias atendidas']);
   await expect(vista.locator('header')).toContainText('Uso interno');
 
-  // Las 8 secciones diferenciadas, en el orden del contrato, con su cantidad de registros.
   const secciones = vista.locator('.rep-vp-seccion');
   await expect(secciones.locator('h4')).toHaveText(titulosHU22);
   await expect(vista.locator('.rep-vp-indice-enlace')).toHaveCount(8);
@@ -327,22 +320,18 @@ test('(respuesta simulada) vista previa: período, criterios, secciones de HU22 
   await expect(vista.locator('#rep-seccion-commitments tbody tr')).toHaveCount(1);
   await expect(vista.locator('#rep-seccion-commitments')).not.toContainText('Gestionar refrigerador');
 
-  // Valores sin recalcular ni formatear, y celdas de varias líneas legibles.
   await expect(vista.locator('.rep-vp-resumen dd')).toHaveText(['155', '1', '150000.5']);
   await expect(vista.locator('#rep-seccion-donations td').nth(3)).toHaveText('150000.5');
   await expect(vista.locator('#rep-seccion-donations td').nth(4)).toHaveText('No informado');
   await expect(vista.locator('#rep-seccion-donations')).toContainText('no informa moneda');
   await expect(vista.locator('#rep-seccion-plans td').nth(1)).toHaveText('Comedor Las Palmas\nPrograma Alimentación', { useInnerText: true });
 
-  // Sección vacía con mensaje comprensible.
   await expect(vista.locator('#rep-seccion-results .rep-vp-vacio')).toHaveText('Esta sección no tiene registros para el período y los filtros seleccionados.');
   await expect(vista.locator('#rep-seccion-results table')).toHaveCount(0);
 
-  // Los textos recibidos se muestran como texto, nunca como HTML.
   await expect(vista.locator('#rep-seccion-organizations')).toContainText('<img src=x');
   expect(await page.evaluate(() => window.inyectado)).toBeUndefined();
 
-  // Navegación por el índice y secciones plegables.
   const plegar = vista.locator('#rep-seccion-actions .rep-vp-plegar');
   await plegar.click();
   await expect(vista.locator('#rep-seccion-actions-cuerpo')).toBeHidden();
@@ -366,7 +355,6 @@ test('(respuesta simulada) vista previa en móvil: filas como tarjetas legibles 
   const fila = page.locator('#rep-seccion-plans tbody tr').first();
   await expect(fila).toBeVisible();
   await expect(page.locator('#rep-seccion-plans thead')).toHaveCSS('position', 'absolute');
-  // Cada celda muestra su columna como etiqueta y no se superpone con la siguiente.
   const celdas = await fila.locator('td').evaluateAll((tds) => tds.map((td) => {
     const r = td.getBoundingClientRect();
     return { top: r.top, bottom: r.bottom, right: r.right, etiqueta: getComputedStyle(td, '::before').content };
@@ -494,7 +482,6 @@ test('(respuesta simulada) modificar criterios con la vista previa abierta la re
   await page.locator('#rep-solicitar').click();
   await responderSimulado(page, 0, consolidadoConDatos, resumenConDatos);
   await expect(page.locator('#rep-vista-previa .rep-vp-seccion')).toHaveCount(8);
-  // Paso 2 en su propia pantalla; «Modificar filtros» vuelve al formulario con los valores intactos.
   await expect(page.locator('#rep-paso-configurar')).toBeHidden();
   await expect(page).toHaveURL(/#vista-previa$/);
   await page.locator('#rep-volver-configurar').click();
@@ -543,7 +530,6 @@ test('integración HTTP: la vista previa usa el Gateway y el PDF descarga exacta
   await expect(page.locator('#rep-exportacion-exito')).toContainText('PDF descargado');
   expect(descargas).toBe(1);
   expect(consultas).toHaveLength(1);
-  // Tras descargar se vuelve a Reportes con la confirmación, sin quedarse en la vista previa.
   await expect(page).toHaveURL(/\/reportes$/);
   await expect(page.locator('#reportes-descargado')).toContainText('reporte-fge-2026-01-01_2026-12-31-interno.pdf');
 });

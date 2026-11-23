@@ -1,4 +1,3 @@
--- Auditoría interna. Sin funciones públicas ni concesiones a la aplicación.
 BEGIN;
 CREATE TABLE fge_private.historial_cambios (
  id_historial_cambio bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -9,7 +8,6 @@ CREATE TABLE fge_private.historial_cambios (
  id_usuario uuid REFERENCES public.perfiles(id_usuario) ON DELETE RESTRICT,
  id_permiso_temporal uuid REFERENCES public.permisos_temporales(id_permiso_temporal) ON DELETE RESTRICT,
  id_asignacion uuid REFERENCES public.asignaciones_roles(id_asignacion) ON DELETE RESTRICT,
- -- Se completarán desde la operación autorizada al implementar los roles.
  permiso_ejercido text,
  actor_sql text NOT NULL,
  antes jsonb,
@@ -19,9 +17,6 @@ ALTER TABLE fge_private.historial_cambios ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON fge_private.historial_cambios FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA fge_private FROM PUBLIC, anon, authenticated;
 
--- SECURITY INVOKER: actualmente solo los administradores SQL pueden escribir.
--- Antes de habilitar clientes, diseñar la escritura de auditoría desde funciones
--- controladas; no conceder INSERT libre en historial_cambios.
 CREATE FUNCTION fge_private.sellar_registro() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 BEGIN
@@ -168,7 +163,6 @@ CREATE TRIGGER sellar BEFORE INSERT OR UPDATE ON public.archivos
 CREATE TRIGGER auditar AFTER INSERT OR UPDATE OR DELETE ON public.archivos
  FOR EACH ROW EXECUTE FUNCTION fge_private.auditar_registro('id_archivo');
 
--- Índices para las FK, incluidas autoría y búsquedas de relaciones inversas.
 DO $$
 DECLARE r record;
 BEGIN

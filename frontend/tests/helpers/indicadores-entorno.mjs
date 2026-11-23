@@ -1,4 +1,3 @@
-// Comparte el entorno de Intervenciones: HTTP real, Postgres embebido y Auth simulado.
 import { crearEntornoEvidencias } from './evidencias-entorno.mjs';
 import { catalogoDemo } from './indicadores-fixtures.mjs';
 export async function crearEntornoIndicadores({origin='http://127.0.0.1:4336'}={}) {

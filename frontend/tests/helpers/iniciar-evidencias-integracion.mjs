@@ -15,7 +15,6 @@ export default async function iniciar() {
       server.once('exit',()=>{clearTimeout(limit);reject(new Error(output));});
       server.once('error',error=>{clearTimeout(limit);reject(error);});
     });
-    // Solo entorno de tests; no se escribe la sesión ni las claves en archivos/reports.
     process.env.QA_EVIDENCIAS_CONFIG=JSON.stringify(config);
     return cerrar;
   } catch(error){await cerrar();throw error;}

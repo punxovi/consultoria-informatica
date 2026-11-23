@@ -80,7 +80,6 @@ BEGIN
     OR coalesce(v_usuario,'') ~ '[[:cntrl:]]' OR coalesce(v_pais,'') ~ '[[:cntrl:]]' THEN
     RAISE EXCEPTION 'Filtro o cursor inválido' USING ERRCODE='22023';
   END IF;
-  -- Las fechas «Desde/Hasta» se interpretan en la zona horaria de quien consulta.
   v_zona := coalesce(nullif(btrim(p_filtros ->> 'zona_horaria'), ''), 'UTC');
   IF length(v_zona) > 64 OR NOT EXISTS (SELECT 1 FROM pg_catalog.pg_timezone_names WHERE name = v_zona) THEN
     RAISE EXCEPTION 'Zona horaria inválida' USING ERRCODE = '22023';
@@ -126,13 +125,11 @@ BEGIN
       ), '') AS referencia,
       historial.id_historial_cambio,
       perfil.nombre AS nombre_usuario,
-      -- Nombre legible del registro afectado, si la fila lo tiene.
       left(coalesce(
         historial.despues ->> 'nombre', historial.antes ->> 'nombre',
         historial.despues ->> 'titulo', historial.antes ->> 'titulo',
         historial.despues ->> 'nombre_producto', historial.antes ->> 'nombre_producto'
       ), 160) AS nombre_registro,
-      -- Campos que cambiaron en una modificación, sin columnas técnicas.
       CASE WHEN historial.tipo_accion = 'UPDATE' AND historial.antes IS NOT NULL AND historial.despues IS NOT NULL THEN (
         SELECT coalesce(jsonb_agg(campo.key ORDER BY campo.key), '[]'::jsonb)
         FROM jsonb_each(historial.despues) AS campo
@@ -143,7 +140,6 @@ BEGIN
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NULL AND historial.despues ->> 'archived_at' IS NOT NULL THEN 'archivado'
         WHEN historial.tipo_accion = 'UPDATE' AND historial.antes ->> 'archived_at' IS NOT NULL AND historial.despues ->> 'archived_at' IS NULL THEN 'restaurado'
       END AS cambio_estado,
-      -- Eventos que no son cambios de una fila: inicio de sesión y consulta de documentos.
       CASE
         WHEN historial.tabla_afectada = 'autenticacion' THEN
           CASE WHEN historial.tipo_evento IN ('auth:login','auth:login_backend') THEN 'inicio_sesion' WHEN historial.clave_registro->>'exitoso'='false' THEN 'inicio_sesion_fallido' ELSE NULL END

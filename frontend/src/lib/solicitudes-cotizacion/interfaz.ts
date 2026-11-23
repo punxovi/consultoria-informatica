@@ -10,7 +10,6 @@ export async function iniciarSolicitudes(){
  const cliente=crearClienteSolicitudes(import.meta.env.PUBLIC_API_BASE_URL??'http://127.0.0.1:4000',async()=>{
   const {data,error}=await getSupabaseClient().auth.getSession();if(error||!data.session)throw new ApiError('SESION_REQUERIDA','Sesión requerida',401);return data.session.access_token;
  });
- // Cantidad de evidencias disponibles por solicitud (para mostrarlo en la tarjeta).
  let evidencias=new Map<string,number>();let evidenciasCargadas=false;
  async function contarEvidencias(ids:string[]){
   evidencias=new Map();evidenciasCargadas=false;if(!ids.length){evidenciasCargadas=true;return;}
@@ -42,7 +41,6 @@ export async function iniciarSolicitudes(){
  }
  function pintar(){
   q('total').textContent=String(filas.length);q('nuevas').textContent=String(filas.filter(s=>s.estado==='solicitada').length);q('gestionadas').textContent=String(filas.filter(s=>s.estado!=='solicitada').length);
-  // «nuevas» y «gestionadas» agrupan; el resto filtra por un estado concreto.
   const visibles=filas.filter(s=>filtro.value==='todas'||(filtro.value==='nuevas'?s.estado==='solicitada':filtro.value==='gestionadas'?s.estado!=='solicitada':s.estado===filtro.value));
   q('lista').replaceChildren();q<HTMLButtonElement>('limpiar').disabled=filtro.value==='todas';
   q('carga').textContent=filas.length?`${visibles.length} de ${filas.length} ${filas.length===1?'solicitud registrada':'solicitudes registradas'}.`:'No hay solicitudes en tu alcance territorial.';
@@ -58,7 +56,6 @@ export async function iniciarSolicitudes(){
  function mostrarDetalle(s:Solicitud){
   actual=s;q('detalle').replaceChildren(nodo('h3',s.nombre_solicitante,'text-xl font-semibold break-words'),nodo('p',`Correo: ${s.correo}`,'break-all'),nodo('p',`Teléfono: ${s.telefono||'No informado'}`,'break-words'),nodo('p',`Recibida: ${fecha(s.created_at)}`),nodo('p',`Estado actual: ${etiquetas[s.estado]}`),nodo('h3','Productos solicitados','font-semibold'),items(s),nodo('h3','Mensaje del solicitante','font-semibold'),nodo('p',s.mensaje||'Sin mensaje.','whitespace-pre-wrap break-words'));
   const estados=q<HTMLSelectElement>('estado');estados.replaceChildren(new Option('Selecciona un nuevo estado',''));
-  // «Nueva» es solo el estado inicial: no se puede volver a ella (la base de datos también lo impide).
   for(const estado of [...new Set(s.estados_permitidos)].filter(e=>e!==s.estado&&e!=='solicitada'))estados.add(new Option(etiquetas[estado],estado));
   q('form').hidden=estados.options.length===1;q('solo-lectura').hidden=estados.options.length!==1;
   q('evidencias').hidden=false;q<HTMLFormElement>('evidencia-form').hidden=s.estados_permitidos.length===0;void cargarEvidencias(s.id_solicitud);
@@ -70,7 +67,6 @@ export async function iniciarSolicitudes(){
   try{const {data,error}=await getSupabaseClient().from('evidencias_solicitud_cotizacion').select('id_evidencia,nombre_original,mime_type,tamano_bytes,created_at').eq('id_solicitud',id).eq('estado_carga','disponible').order('created_at');if(error)throw error;
    for(const item of data??[]){const li=document.createElement('li');li.className='flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCD8EA] p-3';const info=nodo('span',`${item.nombre_original} · ${tiposEvidencia[item.mime_type]??'Archivo'} · ${(item.tamano_bytes/1048576).toFixed(1)} MB`,'min-w-0 break-all text-sm');const b=document.createElement('button');b.type='button';b.textContent='Descargar';b.className='min-h-10 rounded-lg border border-primary px-3 font-semibold text-primary';b.addEventListener('click',()=>void descargarEvidencia(item.id_evidencia,item.nombre_original));li.append(info,b);lista.append(li);}
    mensaje.textContent=(data?.length??0)?`${data!.length} archivo(s) adjunto(s).`:'Aún no hay evidencia adjunta.';
-   // Mantiene sincronizada la insignia de la tarjeta (p. ej. tras agregar evidencia).
    if(evidenciasCargadas&&(evidencias.get(id)??0)!==(data?.length??0)){evidencias.set(id,data?.length??0);if(!cargando)pintar();}
   }catch{mensaje.textContent='No fue posible cargar la evidencia.';}
  }
@@ -115,7 +111,6 @@ export async function iniciarSolicitudes(){
   try{
    const s=await cliente.actualizar(actual,estado);window.dispatchEvent(new Event('fge:cotizaciones-actualizadas'));if(turno!==epoca)return;
    filas=filas.map(f=>f.id_solicitud===s.id_solicitud?s:f);
-   // Al guardar se cierra el detalle y el listado queda actualizado con el nuevo estado.
    guardando=false;dialogo.close();pintar();
    q('confirmacion').textContent=`Se actualizó la solicitud de ${s.nombre_solicitante} a «${etiquetas[s.estado]}».`;q('confirmacion').hidden=false;
    q('confirmacion').scrollIntoView({block:'nearest'});
@@ -130,9 +125,6 @@ export async function iniciarSolicitudes(){
   filtro.addEventListener('change',()=>{if(!cargando)pintar();});
   q('limpiar').addEventListener('click',()=>{filtro.value='todas';if(!cargando)pintar();});
  for(const id of ['reintentar'])q(id).addEventListener('click',()=>{if(!guardando&&!cargando)void cargar();});
- // El selector territorial vuelve a notificar el país activo cada minuto y al
- // recuperar el foco (p. ej. al cerrar el selector de archivos). Solo se recarga
- // —y se cierra el detalle— cuando el territorio cambia de verdad.
  let territorioActivo:string|undefined;
  window.addEventListener('fge:territorio-cambiado',e=>{
   const id=String((e as CustomEvent<{id_pais?:string}>).detail?.id_pais??'');

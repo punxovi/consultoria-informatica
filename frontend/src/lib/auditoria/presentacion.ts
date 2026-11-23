@@ -44,7 +44,6 @@ export const opcionesSeccion: [string, string][] = [
   ['autenticacion', 'Inicios de sesión'],
 ];
 
-// Mismas categorías que muestra la columna «Qué hizo»; la consulta filtra por esta clasificación.
 export const opcionesAccion: [string, string][] = [
   ['crear', 'Creó o agregó'], ['modificar', 'Modificó'], ['archivar', 'Eliminó (queda archivado)'],
   ['restaurar', 'Restauró'], ['eliminar', 'Eliminó definitivamente'], ['inicio_sesion', 'Inició sesión'],

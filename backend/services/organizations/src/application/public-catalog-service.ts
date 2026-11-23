@@ -37,7 +37,7 @@ export function createPublicCatalogApplication(options: { supabaseUrl: string; a
       headers: { apikey: options.anonKey, 'content-type': 'application/json', ...init.headers },
     }); } catch { throw new ServiceError('SUPABASE_NO_DISPONIBLE', 'No fue posible consultar el catálogo.', 503); }
     let body: unknown = null;
-    try { body = await response.json(); } catch { /* respuesta vacía */ }
+    try { body = await response.json(); } catch {}
     if (!response.ok) {
       throw new ServiceError('SOLICITUD_NO_PROCESADA', 'No fue posible procesar la solicitud.', response.status >= 500 ? 503 : 400);
     }
@@ -48,14 +48,12 @@ export function createPublicCatalogApplication(options: { supabaseUrl: string; a
       const valid = parseCatalogFilters(new URLSearchParams(Object.entries(filters).filter(([,value]) => value !== undefined) as [string,string][]));
       const query = (select: string) => {
         const params = new URLSearchParams({ select, order: 'nombre.asc,id_producto.asc' });
-        // PostgREST aplica los predicados en SQL antes de max-rows/Range.
         if (valid.id_organizacion) params.set('organizacion->>id_organizacion', `eq.${valid.id_organizacion}`);
         if (valid.id_pais) params.set('organizacion->pais->>id_pais', `eq.${valid.id_pais}`);
         return `catalogo_cotizacion_publico?${params}`;
       };
       const campos = 'id_producto,nombre,descripcion,unidad_medida,tipo_item,caracteristicas,organizacion';
       let body: unknown;
-      // Sin la migración de imágenes la columna no existe: el catálogo sigue disponible sin fotos.
       try { body = await call(query(`${campos},imagenes`)); }
       catch (error) {
         if (!(error instanceof ServiceError) || error.status !== 400) throw error;

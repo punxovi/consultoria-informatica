@@ -30,4 +30,4 @@ Las escrituras requieren números finitos no negativos, hasta `Number.MAX_SAFE_I
 - Actualizar una meta no debe cambiar su resultado, ni actualizar un resultado debe modificar la meta.
 - No se calcula porcentaje de avance: la fórmula y agregación aún deben acordarse.
 
-Las validaciones de entrada están en `backend/services/interventions/src/domain/indicators.ts`; la respuesta se valida en `frontend/src/lib/indicadores/modelo.ts` y el cliente comprueba la pertenencia a la Acción y al indicador solicitados. Los pasos para aplicar y probar la integración están en [PROBAR-SCRUM-118.md](PROBAR-SCRUM-118.md).
+Las validaciones de entrada están en `backend/services/interventions/src/domain/indicators.ts`; la respuesta se valida en `frontend/src/lib/indicadores/modelo.ts` y el cliente comprueba la pertenencia a la Acción y al indicador solicitados.

@@ -1,7 +1,3 @@
--- Carga inicial para fge-dev, basada en las cinco definiciones de la interfaz SCRUM-112.
--- Ejecutar desde SQL Editor con el usuario administrador del proyecto.
--- Usa UUID nuevos y deja id_accion vacío: son definiciones del catálogo.
--- Repetir este archivo no duplica ni sobrescribe definiciones activas con el mismo nombre.
 BEGIN;
 DO $prerequisitos$
 BEGIN

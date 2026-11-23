@@ -1,4 +1,3 @@
--- SCRUM-152: validación en la frontera SQL, serialización del ciclo e historial protegido.
 BEGIN;
 CREATE OR REPLACE FUNCTION fge_private.cobertura_fecha(valor text) RETURNS date
 LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $$
@@ -11,7 +10,6 @@ EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
 END; $$;
 REVOKE ALL ON FUNCTION fge_private.cobertura_fecha(text) FROM PUBLIC,anon,authenticated;
 
--- La Data API no puede saltarse la RPC ni crear un cambio sin su evento.
 REVOKE ALL ON public.permisos_temporales,public.permisos_temporales_historial FROM PUBLIC,anon,authenticated;
 ALTER TABLE public.permisos_temporales_historial ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.permisos_temporales_historial
@@ -110,8 +108,6 @@ BEGIN
     IF p_datos <> '{}'::jsonb THEN
       RAISE EXCEPTION 'La consulta no admite datos adicionales' USING ERRCODE = '22023';
     END IF;
-    -- DISTINCT ON evita tarjetas duplicadas por coberturas revocadas y luego
-    -- reemplazadas. No elimina filas: el historial sigue ligado a cada ID.
     SELECT coalesce(jsonb_agg(fge_private.cobertura_administracion_json(actuales.cobertura)
       ORDER BY (actuales.cobertura).created_at DESC, (actuales.cobertura).id_permiso_temporal), '[]'::jsonb)
     INTO v_resultado

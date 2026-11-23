@@ -52,7 +52,6 @@ const parametros = (href) => Object.fromEntries(new URL(href, 'http://x').search
 
 test('Organización con varios Planes: contexto, enlaces con IDs correctos y retorno con filtros originales', async ({ page }) => {
   await page.goto(`/organizaciones/${ORG}?q=esperanza&id_pais=${PAIS}`);
-  // Se identifica el país y la Organización consultada.
   await expect(page.locator('#breadcrumb-organizacion')).toHaveText('Centro Esperanza');
   await expect(page.locator('#breadcrumb-pais')).toHaveText('Chile');
 
@@ -62,7 +61,6 @@ test('Organización con varios Planes: contexto, enlaces con IDs correctos y ret
   await accesoPlanes.click();
   await expect(page).toHaveURL(/\/planes\?/);
 
-  // Cada Plan muestra su propia Organización y su propio Programa, sin mezclar asociaciones.
   const tarjetas = page.locator('[data-detalle]');
   await expect(tarjetas).toHaveCount(2);
   const programas = page.locator('[data-programa]');
@@ -74,7 +72,6 @@ test('Organización con varios Planes: contexto, enlaces con IDs correctos y ret
     expect(await enlace.getAttribute('href')).toBe(`/organizaciones/${ORG}?q=esperanza&id_pais=${PAIS}`);
   }
 
-  // Detalle del segundo Plan: conserva el contexto y enlaza al registro correcto.
   await tarjetas.nth(1).click();
   await expect(page).toHaveURL(new RegExp(`/planes/${PLAN_2}\\?`));
   await expect(page.locator('#plan-breadcrumb')).toHaveText('Plan educación 2026');
@@ -82,11 +79,9 @@ test('Organización con varios Planes: contexto, enlaces con IDs correctos y ret
   const migaOrganizacion = page.locator('#plan-organizacion-breadcrumb');
   await expect(migaOrganizacion).toHaveText('Centro Esperanza');
   await expect(migaOrganizacion).toHaveAttribute('href', `/organizaciones/${ORG}?q=esperanza&id_pais=${PAIS}`);
-  // Volver al listado de Planes mantiene la Organización y los filtros de retorno.
   const volverPlanes = page.locator('header a', { hasText: 'Planes de Intervención' }).first();
   expect(parametros(await volverPlanes.getAttribute('href'))).toMatchObject({ id_organizacion: ORG, org_q: 'esperanza', org_pais: PAIS });
 
-  // De vuelta en la Organización, volver al listado restaura los filtros originales.
   await migaOrganizacion.click();
   await expect(page.locator('#breadcrumb-organizacion')).toHaveText('Centro Esperanza');
   await expect(page.locator('header a', { hasText: 'Organizaciones' }).first()).toHaveAttribute('href', `/organizaciones?q=esperanza&id_pais=${PAIS}`);
@@ -105,7 +100,6 @@ test('pestañas: ARIA coherente, teclado y fragmentos de URL seguros', async ({ 
   await page.goto(`/organizaciones/${ORG}`);
   await expect(page.locator('#breadcrumb-organizacion')).toHaveText('Centro Esperanza');
 
-  // Cada tabpanel está controlado por un tab real; las subsecciones son regiones, no tabpanels.
   const paneles = await page.locator('[role="tabpanel"]').evaluateAll((nodos) => nodos.map((n) => ({
     id: n.id, tab: document.getElementById(n.getAttribute('aria-labelledby') ?? '')?.getAttribute('aria-controls'),
   })));
@@ -115,7 +109,6 @@ test('pestañas: ARIA coherente, teclado y fragmentos de URL seguros', async ({ 
     await expect(page.locator(`#tab-${id}`)).toHaveAttribute('role', 'region');
   }
 
-  // Teclado: flechas, Inicio y Fin.
   const informacion = page.getByRole('tab', { name: 'Información' });
   await informacion.focus();
   await page.keyboard.press('End');
@@ -125,12 +118,10 @@ test('pestañas: ARIA coherente, teclado y fragmentos de URL seguros', async ({ 
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'Intervenciones' })).toHaveAttribute('aria-selected', 'true');
 
-  // Un fragmento válido abre su subsección dentro de la categoría correcta.
   await page.goto(`/organizaciones/${ORG}#donaciones`);
   await expect(page.locator('#tab-donaciones')).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Seguimiento' })).toHaveAttribute('aria-selected', 'true');
 
-  // Claves heredadas del prototipo no se toman como subsecciones: se muestra Información.
   for (const fragmento of ['toString', 'constructor', '__proto__']) {
     await page.goto(`/organizaciones/${ORG}#${fragmento}`);
     await expect(page.locator('#tab-informacion')).toBeVisible();

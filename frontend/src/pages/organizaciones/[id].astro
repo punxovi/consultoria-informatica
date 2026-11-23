@@ -25,7 +25,6 @@ const hrefVolverOrganizaciones = `/organizaciones${queryRetorno ? `?${queryRetor
 const parametrosPlanes = new URLSearchParams({ id_organizacion: idOrganizacion });
 const programaContextual = Astro.url.searchParams.get('id_programa');
 if (programaContextual) parametrosPlanes.set('id_programa', programaContextual);
-// Los filtros del listado viajan con Planes para restaurarlos al volver desde un Plan.
 for (const [clave, valor] of retornoHaciaPlanes(Astro.url.searchParams)) parametrosPlanes.set(clave, valor);
 const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 ---
@@ -63,11 +62,9 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     </Card>
   </section>
 
-  <!-- data-solo-lectura se quita solo si la sesión gestiona el país de la Organización. -->
   <section id="ficha-organizacion" class="organizaciones-ui hidden space-y-6" data-solo-lectura>
     <p id="organizacion-confirmacion" role="status" hidden class="rounded-xl border border-success/20 bg-success/10 p-4 text-sm text-success"></p>
 
-    <!-- Encabezado -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
       <figure class="relative mx-auto w-full max-w-[320px] shrink-0 sm:mx-0 sm:w-48 lg:w-56">
@@ -101,7 +98,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </div>
       </div>
 
-      <!-- Visible solo si la sesión gestiona el país de la Organización. -->
       <div id="gestion-organizacion" class="shrink-0" hidden data-gestion>
       <Button
         href={`/organizaciones/${encodeURIComponent(idOrganizacion)}/editar`}
@@ -152,7 +148,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
         </div>
       </div>
     </div>
-    <!-- Navegación principal: solo tres categorías -->
     <div class="pestanas rounded-2xl border border-[#E8E5EF] bg-white p-2">
       <nav
         id="organizacion-tabs"
@@ -204,9 +199,7 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       <OrganizacionDonaciones idOrganizacion={idOrganizacion} />
     </div>
 
-    <!-- Información -->
     <div id="tab-informacion" data-main-panel="informacion" role="tabpanel" aria-labelledby="tab-button-informacion" class="contenido-tab space-y-5">
-      <!-- Información general -->
       <Card class="tarjeta-acento acento-morado p-5 md:p-6">
         <div class="mb-5">
           <h2 class="text-lg font-bold text-neutral-900">
@@ -265,7 +258,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
         </div>
       </Card>
 
-      <!-- Información de contacto -->
       <Card class="tarjeta-acento acento-celeste p-5 md:p-6">
         <div class="mb-5">
           <h2 class="text-lg font-bold text-neutral-900">
@@ -324,7 +316,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
         </div>
       </Card>
 
-      <!-- Contexto -->
       <Card class="tarjeta-acento acento-verde p-5 md:p-6">
         <div class="mb-5">
           <h2 class="text-lg font-bold text-neutral-900">
@@ -357,12 +348,10 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
       </Card>
     </div>
 
-    <!-- Diagnóstico -->
     <div id="tab-diagnostico" data-main-panel="intervenciones" role="region" aria-label="Diagnóstico" class="contenido-tab hidden space-y-5">
       <OrganizacionDiagnostico />
     </div>
 
-    <!-- Actas de Reunión -->
     <div id="tab-actas" data-main-panel="intervenciones" role="region" aria-label="Actas de reunión" class="contenido-tab hidden space-y-5">
       <OrganizacionActas idOrganizacion={idOrganizacion} />
     </div>
@@ -388,12 +377,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 </AppLayout>
 
 <style is:global>
-  /*
-   * Un Coordinador consulta Organizaciones de cualquier país, pero solo
-   * registra o edita Diagnóstico, Compromisos, Donaciones y Expediente Legal
-   * en su país principal o con cobertura vigente. La regla prevalece aunque
-   * cada módulo vuelva a mostrar sus botones; RLS sigue validando en el servidor.
-   */
   #ficha-organizacion[data-solo-lectura] :is(
     #btn-registrar-diagnostico,
     #form-diagnostico,
@@ -656,7 +639,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     acceso.addEventListener('click', (evento) => {
       const subseccion = acceso.dataset.orgSeccion;
       if (!subseccion) return;
-      // Estos destinos son subsecciones internas; se abren sin agregar otra pestaña a la barra.
       evento.preventDefault();
       const categoria = categoriaPorSubseccion[subseccion];
       if (!categoria) return;
@@ -666,7 +648,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
 
   function aplicarFragmento() {
     const fragmento = window.location.hash.replace(/^#/, '');
-    // Object.hasOwn evita que claves heredadas (#toString, #constructor) se tomen como subsecciones.
     if (Object.hasOwn(categoriaPorSubseccion, fragmento)) {
       mostrarVista(categoriaPorSubseccion[fragmento], fragmento);
     } else if (['intervenciones', 'seguimiento'].includes(fragmento)) {
@@ -676,7 +657,6 @@ const hrefPlanes = `/planes?${parametrosPlanes.toString()}`;
     }
   }
   aplicarFragmento();
-  // Un enlace a otra subsección de esta misma ficha solo cambia el fragmento.
   window.addEventListener('hashchange', aplicarFragmento);
 
   void cargarOrganizacion();

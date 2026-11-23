@@ -1,7 +1,3 @@
-/**
- * Capitaliza únicamente la primera letra de los campos de texto editables.
- * Se usa en formularios de creación y edición de la aplicación.
- */
 function capitalizarPrimeraLetra(valor: string): string {
   const indice = valor.search(/[a-záéíóúüñ]/i);
   if (indice < 0) return valor;
@@ -22,13 +18,10 @@ function esCampoTextoEditable(
     return false;
   }
 
-  // Solo se procesan campos de texto y áreas de texto; nunca email, contraseña,
-  // búsqueda, URL, fechas, números, archivos ni controles similares.
   if (elemento instanceof HTMLInputElement && elemento.type !== 'text') {
     return false;
   }
 
-  // No intervenir en campos sueltos como búsquedas o filtros: deben pertenecer a un formulario.
   const formulario = elemento.closest('form');
   if (!formulario) return false;
 
@@ -46,7 +39,6 @@ function aplicarCapitalizacion(elemento: HTMLInputElement | HTMLTextAreaElement)
   if (capitalizado !== valor) elemento.value = capitalizado;
 }
 
-/** Inicializa listeners delegados para campos presentes y creados dinámicamente. */
 export function iniciarCapitalizacionCampos(): void {
   document.addEventListener('input', (evento) => {
     if (esCampoTextoEditable(evento.target)) {
@@ -54,8 +46,6 @@ export function iniciarCapitalizacionCampos(): void {
     }
   });
 
-  // Se ejecuta en fase de captura para que la capitalización ocurra antes de
-  // las validaciones y del guardado gestionado por cada formulario.
   document.addEventListener('submit', (evento) => {
     const formulario = evento.target;
     if (!(formulario instanceof HTMLFormElement)) return;

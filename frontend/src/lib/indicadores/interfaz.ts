@@ -34,7 +34,6 @@ export function iniciarIndicadores() {
     q<HTMLButtonElement>('guardar').disabled = valor || requiereRecarga;
     q<HTMLButtonElement>('nueva').disabled = valor || !cargado || requiereRecarga || !catalogo.some(c => !indicadores.some(i => i.id_catalogo === c.id_indicador));
   }
-  // Igual que en Actas: el listado es la vista principal y el catálogo se abre con «Agregar indicadores».
   function vista(formulario: boolean) {
     q('vista-lista').hidden = formulario; q('vista-form').hidden = !formulario; q('nueva').hidden = formulario;
   }
@@ -64,7 +63,6 @@ export function iniciarIndicadores() {
   function renderCatalogo() {
     q('catalogo').replaceChildren(); q('catalogo-vacio').hidden = catalogo.length > 0;
     const estaAsociado = (cat: IndicadorCatalogo) => indicadores.some(i => i.id_catalogo === cat.id_indicador);
-    // Primero los disponibles; los ya asociados quedan al final, atenuados.
     const ordenado = [...catalogo].sort((a, b) => Number(estaAsociado(a)) - Number(estaAsociado(b)));
     for (const cat of ordenado) {
       const asociado = estaAsociado(cat);
@@ -93,7 +91,6 @@ export function iniciarIndicadores() {
   }
   function boton(texto: string, accion: () => void) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'registro-boton registro-boton--secundario gap-2'; b.textContent = texto; b.dataset.gestion = '';
-    // Mismo ícono de «Editar» que en el resto de la aplicación.
     if (texto.startsWith('Editar')) b.insertAdjacentHTML('afterbegin', iconoSvg('editar'));
     b.addEventListener('click', accion); return b;
   }

@@ -1,4 +1,3 @@
--- KAN-173. Se ejecuta en Supabase local y revierte todos los datos de prueba.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;

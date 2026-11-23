@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { ApiError, createApiTransport } from '../api/transporte.ts';
 import { solicitudSchema, type Solicitud, type Estado } from './modelo.ts';
-// Contrato propuesto para la API interna pendiente. No usar la ruta pública para datos privados.
 export function crearClienteSolicitudes(base: string, token: () => Promise<string>, fetchImpl: typeof fetch = fetch) {
   const http=createApiTransport(base,fetchImpl);
   function validar(data: unknown,id?:string): Solicitud {

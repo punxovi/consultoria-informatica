@@ -32,9 +32,7 @@ test('tarjetas, datos recibidos, filtros combinados e individuales y limpieza', 
   const resultados = page.locator('#audit-resultados');
   await expect(resultados.locator('article')).toHaveCount(1);
   for(const valor of ['Ana Pérez','Chile','Modificó la organización','Administrador']) await expect(resultados).toContainText(valor);
-  // Lenguaje claro: no se muestran datos técnicos (IP, operación, tabla, registro ni código de rol).
   for(const tecnico of ['127.0.0.1','UPDATE','id_organizacion: abc','ADMIN','Ver detalles técnicos']) await expect(resultados).not.toContainText(tecnico);
-  // Los filtros se aplican solos: «Persona» al dejar de escribir.
   await page.locator('#audit-usuario').fill('Ana');
   await expect(page.locator('#audit-criterios')).toContainText('Persona: Ana');
   await page.locator('#audit-pais').selectOption('Chile');
@@ -45,7 +43,6 @@ test('tarjetas, datos recibidos, filtros combinados e individuales y limpieza', 
   await expect.poll(()=>new URL(estado.requests.at(-1).url()).searchParams.get('entidad')).toBe('organizaciones');
   const params = new URL(estado.requests.at(-1).url()).searchParams;
   expect(params.get('usuario')).toBe('Ana'); expect(params.get('pais')).toBe('Chile'); expect(params.get('hasta')).toBe('2026-10-28'); expect(params.get('entidad')).toBe('organizaciones'); expect(params.get('operacion')).toBe('modificar');
-  // Las fechas se envían con la zona del navegador (Chile en esta prueba).
   expect(params.get('zona_horaria')).toBe('America/Santiago');
   await expect(page.locator('#audit-criterios')).toContainText('Sección: Organizaciones');
   await expect(page.locator('#audit-criterios')).toContainText('Qué hizo: Modificó');

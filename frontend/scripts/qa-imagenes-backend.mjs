@@ -1,5 +1,3 @@
-// QA aislado: PostgreSQL embebido, migraciones reales, sin conexiones remotas.
-// Ejecutar desde frontend: node scripts/qa-imagenes-backend.mjs
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -12,7 +10,6 @@ async function comprobar(caso, operacion) {
   catch (error) { resultados.push({ caso, resultado: 'FALLA', detalle: error.message }); }
 }
 try {
-  // El helper no crea el bucket; se recrea antes de aplicar la configuración real.
   await db.query("INSERT INTO storage.buckets (id) VALUES ('fge-archivos')");
   const sql = await readFile(new URL('../../supabase/migrations/20260922111500_fge_programas_storage_rls.sql', import.meta.url), 'utf8');
   await db.exec(sql.match(/UPDATE storage\.buckets[\s\S]*?;/)[0]);

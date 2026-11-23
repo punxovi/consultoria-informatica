@@ -33,7 +33,7 @@ test('cliente HTTP envía multipart, token y versión; acepta expediente vacío 
   assert.equal(llamadas[2].options.method,'PATCH');
   assert.equal(llamadas[1].options.headers.Authorization,undefined);
   assert.equal(llamadas[1].options.headers.authorization,'Bearer token-prueba');
-  assert.equal(llamadas[1].options.headers['content-type'],undefined); // fetch genera el boundary.
+  assert.equal(llamadas[1].options.headers['content-type'],undefined);
   assert.equal(llamadas[1].options.body.get('estatutos').name,'estatutos.pdf');
   assert.equal(JSON.parse(llamadas[2].options.body.get('datos')).version_esperada,2);
   assert.equal(llamadas[0].url,`http://api.test/api/v1/organizations/${id}/legal-record`);

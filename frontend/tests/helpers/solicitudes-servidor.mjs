@@ -1,6 +1,5 @@
 import {dev} from 'astro';
 import {createServer} from 'node:http';
-// Autenticación simulada solo para probar el middleware SSR sin usar una cuenta real.
 const auth=createServer((req,res)=>{
   if (req.url === '/rest/v1/rpc/get_user_roles') {
     res.writeHead(200, {'content-type':'application/json'});

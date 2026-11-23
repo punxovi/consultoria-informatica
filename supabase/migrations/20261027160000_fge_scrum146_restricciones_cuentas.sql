@@ -1,4 +1,3 @@
--- SCRUM-146: garantias de seguridad que no dependen de la interfaz.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION fge_private.registrar_intento_rol_no_autorizado(

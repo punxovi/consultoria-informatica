@@ -144,12 +144,10 @@ test('cliente donaciones: ciclo de respaldo (reserva, subida binaria y descarga 
     });
   });
 
-  // 1. Listar respaldos
   const respaldos = await cliente.listarRespaldos(idOrg, idDonacion);
   assert.equal(respaldos.length, 1);
   assert.equal(respaldos[0].tipo_respaldo, 'comprobante');
 
-  // 2. Reservar respaldo
   const reservado = await cliente.reservarRespaldo(idOrg, idDonacion, {
     tipo_respaldo: 'comprobante',
     nombre_original: 'comprobante.pdf',
@@ -159,13 +157,11 @@ test('cliente donaciones: ciclo de respaldo (reserva, subida binaria y descarga 
   });
   assert.equal(reservado.estado_carga, 'reservado');
 
-  // 3. Subir archivo binario
   const file = new Blob(['%PDF-1.4\nfake content'], { type: 'application/pdf' });
   const confirmado = await cliente.subirRespaldo(idOrg, reservado, file);
   assert.equal(confirmado.estado_carga, 'disponible');
   assert.equal(confirmado.version, 2);
 
-  // 4. Descargar archivo privado (autenticado)
   const blob = await cliente.descargarRespaldo(idOrg, confirmado);
   assert.ok(blob.size > 0);
   assert.equal(llamadas[3].init.headers.authorization, 'Bearer jwt-token');
@@ -180,7 +176,7 @@ test('cliente donaciones: rechaza archivos asociados a otra donación o respuest
         files: [
           {
             ...respaldoEjemplo,
-            id_donacion: '99999999-9999-4999-8999-999999999999', // otra donación
+            id_donacion: '99999999-9999-4999-8999-999999999999',
           },
         ],
       },

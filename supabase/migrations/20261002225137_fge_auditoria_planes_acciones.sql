@@ -1,4 +1,3 @@
--- SCRUM-84/87: contexto de RF62 para las escrituras de Planes y Acciones.
 BEGIN;
 ALTER TABLE fge_private.historial_cambios
   ADD COLUMN codigo_rol text,
@@ -37,8 +36,6 @@ BEGIN
     AND (rol.codigo = 'ADMIN' OR (rol.codigo = 'COORD' AND (ar.alcance = 'global' OR ar.id_pais = pais)))
   ORDER BY CASE rol.codigo WHEN 'ADMIN' THEN 0 ELSE 1 END, ar.id_asignacion LIMIT 1;
 
-  -- La IP es contexto informativo de la petición; nunca interviene en RLS.
-  -- La aplicación envía la dirección obtenida del adaptador de servidor.
   BEGIN
     encabezados := coalesce(nullif(current_setting('request.headers', true), ''), '{}')::jsonb;
     ip := nullif(encabezados->>'x-fge-ip-origen', '')::inet;

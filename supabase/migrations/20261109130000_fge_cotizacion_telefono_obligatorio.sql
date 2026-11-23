@@ -1,4 +1,3 @@
--- Exigir teléfono en solicitudes nuevas sin alterar el historial previo.
 BEGIN;
 CREATE FUNCTION fge_private.exigir_telefono_cotizacion() RETURNS trigger
 LANGUAGE plpgsql SET search_path='' AS $$

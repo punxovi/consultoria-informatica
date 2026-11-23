@@ -17,7 +17,7 @@ export const crearIndicadorZodSchema = z.object({
 
 export const asociarIndicadorAccionZodSchema = z.object({
   id_accion: uuidSchema,
-  id_indicador: uuidSchema, // Valida que exista y pertenezca al catálogo estandarizado
+  id_indicador: uuidSchema,
   meta: z.number({ message: 'La meta es obligatoria y debe ser un valor numérico.' }).nonnegative({ message: 'La meta no puede ser un valor negativo.' }),
 }).strict();
 

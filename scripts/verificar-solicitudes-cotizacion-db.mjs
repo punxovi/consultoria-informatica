@@ -49,7 +49,7 @@ export async function verifyQuotes(db,f){
   check((await manage('list',{estado:'rechazada'})).requests,[]);
   check((await manage('list',{id_pais:f.ar})).requests,[]);
   await denied(manage('list',{limit:0}),'22023');await denied(manage('list',{id_pais:missing}),'P0169');
-  await user(f.admin);check((await manage('list')).requests.length,3); // incluye la solicitud histórica anterior a SCRUM-163
+  await user(f.admin);check((await manage('list')).requests.length,3);
   const first=await manage('list',{limit:1}),second=await manage('list',{limit:1,offset:1});check(first.hasMore,true);check(first.requests[0].id_solicitud===second.requests[0].id_solicitud,false);
   for(const uid of[f.guest,f.noRole]){await user(uid);await denied(manage('list'),'42501');check(await scalar('SELECT count(*)::int FROM public.solicitudes_cotizacion'),0);}
   await db.exec('RESET ROLE');await db.query('UPDATE public.perfiles SET activo=false WHERE id_usuario=$1',[coordAR]);
@@ -64,7 +64,7 @@ export async function verifyQuotes(db,f){
   await user(f.coord);clQuote=await manage('get',{id_solicitud:clId});check(clQuote.items.some(i=>i.nombre_producto==='Producto CL'),true);check(clQuote.items.some(i=>i.organizacion.nombre==='Organización CL QA'),true);
   await db.exec('RESET ROLE');const before=await scalar('SELECT count(*)::int FROM public.solicitudes_cotizacion');
   await anonymous();await denied(create(input),'P0166');
-  await db.exec('RESET ROLE');check(await scalar('SELECT count(*)::int FROM public.solicitudes_cotizacion'),before); // no alta parcial
+  await db.exec('RESET ROLE');check(await scalar('SELECT count(*)::int FROM public.solicitudes_cotizacion'),before);
   await denied(db.query('UPDATE public.solicitudes_cotizacion SET id_pais=$1 WHERE id_solicitud=$2',[f.ar,clId]),'23514');
   check(await scalar("SELECT count(*)::int>0 FROM fge_private.historial_cambios WHERE tabla_afectada='solicitud_cotizacion_destinatarios'"),true);
   const remote=await db.exec(await readFile(new URL('../supabase/tests/database/042_scrum163_verificacion_remota.sql',import.meta.url),'utf8'));

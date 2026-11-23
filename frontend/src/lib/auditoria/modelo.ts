@@ -30,7 +30,6 @@ export const paginaSchema = z.object({
 export type Evento = z.infer<typeof paginaSchema>['events'][number];
 const formatoZona = /^[A-Za-z]+(?:[_+-]?[A-Za-z0-9]+)*(?:\/[A-Za-z0-9]+(?:[_+-]?[A-Za-z0-9]+)*)*$/;
 
-// Zona horaria del navegador: las fechas «Desde/Hasta» se interpretan en la misma hora que se muestra.
 export function zonaHorariaLocal(): string | undefined {
   try {
     const zona = Intl.DateTimeFormat().resolvedOptions().timeZone;

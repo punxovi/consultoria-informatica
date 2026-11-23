@@ -2,7 +2,6 @@ import type { ReportFilters, ReportPreview } from './pdf.ts';
 
 export type SeccionReporte = ReportPreview['document']['sections'][number];
 
-// Secciones que HU22 exige consolidar, en el orden del contrato del Backend (report-document.ts).
 export const SECCIONES_ESPERADAS = [
   { key: 'organizations', titulo: 'Organizaciones y beneficiarios' },
   { key: 'plans', titulo: 'Planes de Intervención' },
@@ -18,8 +17,6 @@ export type SeccionVista =
   | { key: string; titulo: string; informada: true; seccion: SeccionReporte }
   | { key: string; titulo: string; informada: false };
 
-// Respeta el orden y los títulos recibidos; las secciones esperadas que no llegaron se
-// marcan como no informadas (nunca se rellenan con datos inventados).
 export function seccionesDeVista(vista: ReportPreview): SeccionVista[] {
   const recibidas = vista.document.sections;
   const resultado: SeccionVista[] = recibidas.map((seccion) => ({ key: seccion.key, titulo: seccion.title, informada: true, seccion }));
@@ -39,8 +36,6 @@ const filtrosContrato = [
   { prefijo: 'Resultados:', campo: 'resultados', todos: 'Resultados: sin selección adicional' },
 ] as const;
 
-// Comprueba que la respuesta corresponda a lo solicitado: período, destino y filtros
-// declarados por el servicio. Devuelve el motivo de la diferencia o null si coincide.
 export function verificarCorrespondencia(vista: ReportPreview, parametros: ReportFilters): string | null {
   const documento = vista.document;
   if (documento.period?.start !== parametros.fecha_inicio || documento.period?.end !== parametros.fecha_termino) {
@@ -60,8 +55,6 @@ export function verificarCorrespondencia(vista: ReportPreview, parametros: Repor
       continue;
     }
     if (declarado === filtro.todos) return `el filtro «${filtro.prefijo.slice(0, -1)}» no se aplicó`;
-    // En destino interno el servicio declara los identificadores aplicados; en los
-    // agregados solo indica que hubo selección (y su cantidad, en listas).
     const seleccion = declarado.slice(filtro.prefijo.length).trim();
     const recibidos = seleccion.split(',').map((id) => id.trim());
     const coincide = destino === 'interno'

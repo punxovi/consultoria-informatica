@@ -1,8 +1,5 @@
--- SCRUM-173: los Invitados no reciben datos de contacto de las Organizaciones.
 BEGIN;
 
--- La migración 20261108020000 añadió columnas fuera de la matriz de visibilidad.
--- Se reconstruye la vista para eliminar esas columnas del contrato PostgREST.
 DROP VIEW IF EXISTS public.organizaciones_invitado;
 
 CREATE VIEW public.organizaciones_invitado

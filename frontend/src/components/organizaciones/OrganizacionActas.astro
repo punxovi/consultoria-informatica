@@ -28,7 +28,6 @@ const { idOrganizacion } = Astro.props;
     </Button>
   </EncabezadoModulo>
 
-  <!-- Error general -->
   <p
     id="actas-error"
     hidden
@@ -42,7 +41,6 @@ const { idOrganizacion } = Astro.props;
     <Button id="actas-recargar" variant="outline">Reintentar</Button>
   </div>
 
-  <!-- Carga -->
   <div id="actas-carga" hidden role="status" aria-live="polite">
     <Card>
       <div class="py-8 text-center">
@@ -58,7 +56,6 @@ const { idOrganizacion } = Astro.props;
     </Card>
   </div>
 
-  <!-- Estado vacío compartido con Compromisos -->
   <EmptyState
     id="actas-vacio"
     hidden
@@ -66,13 +63,11 @@ const { idOrganizacion } = Astro.props;
     description="Cuando registres un acta de reunión para esta organización, aparecerá aquí con sus participantes y acuerdos."
   />
 
-  <!-- Historial -->
   <div id="actas-historial" hidden class="space-y-3">
     <p id="cantidad-actas" class="modulo-conteo"></p>
     <div id="lista-actas" class="space-y-3"></div>
   </div>
 
-  <!-- Formulario -->
   <div id="actas-formulario-contenedor" hidden>
     <form
       id="actas-formulario"
@@ -265,7 +260,6 @@ const { idOrganizacion } = Astro.props;
     </form>
   </div>
 
-  <!-- Ficha / detalle del acta -->
   <div id="actas-detalle" hidden class="space-y-5">
     <Card>
       <div class="space-y-6">
@@ -282,7 +276,6 @@ const { idOrganizacion } = Astro.props;
           </div>
 
           <div class="flex flex-col gap-2 sm:flex-row">
-            <!-- Solo se muestra si el acta tiene compromisos; genera el mismo PDF que el detalle del compromiso. -->
             <Button id="actas-pdf-compromisos" type="button" variant="outline">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mr-1.5 h-4 w-4" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" />
@@ -410,7 +403,6 @@ const { idOrganizacion } = Astro.props;
   }
 
 
-  /* Presentación verde para archivos adjuntos. No modifica Compromisos asociados. */
   #actas-reunion .actas-adjuntos-encabezado {
     display: flex;
     align-items: flex-start;
@@ -494,7 +486,6 @@ const { idOrganizacion } = Astro.props;
     color: #647084;
   }
 
-  /* Acciones con la misma forma y jerarquía visual que los botones del módulo. */
   :global(#actas-reunion .actas-adjunto-eliminar),
   :global(#actas-reunion .actas-adjunto-descargar) {
     display: inline-flex;

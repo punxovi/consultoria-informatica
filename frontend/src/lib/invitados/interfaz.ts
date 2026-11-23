@@ -3,7 +3,6 @@ import { getSupabaseClient, getUserRoles } from '../supabase';
 import { crearTarjetaRegistro, type AcentoRegistro, type OpcionesRegistro, type TonoInsignia } from '../ui/registro.ts';
 import { crearClienteInvitados, type AccionInvitado, type SolicitudInvitado } from './cliente.ts';
 
-/** Estado visible: la base mantiene 'aprobado' aunque el plazo de 24 h ya haya vencido. */
 type EstadoVisible = SolicitudInvitado['estado'] | 'expirado';
 const estados: Record<EstadoVisible, string> = { pendiente: 'Pendiente', aprobado: 'Aprobada', rechazado: 'Rechazada', revocado: 'Revocada', expirado: 'Expirada' };
 const tonos: Record<EstadoVisible, TonoInsignia> = { pendiente: 'amarillo', aprobado: 'verde', rechazado: 'rosado', revocado: 'neutro', expirado: 'neutro' };
@@ -51,13 +50,10 @@ function fecha(valor?: string | null) {
 }
 
 interface GrupoInvitado {
-  /** Solicitud que representa a la persona: la pendiente más reciente o, si no hay, la última. */
   actual: SolicitudInvitado;
-  /** Todas las solicitudes del mismo correo, de la más reciente a la más antigua. */
   todas: SolicitudInvitado[];
 }
 
-/** Agrupa las solicitudes por correo para mostrar una sola tarjeta por persona. */
 export function agruparPorCorreo(solicitudes: SolicitudInvitado[]): GrupoInvitado[] {
   const grupos = new Map<string, SolicitudInvitado[]>();
   for (const solicitud of solicitudes) {
@@ -196,7 +192,6 @@ export async function iniciarSolicitudesInvitado() {
       mensaje('invitados-exito', exitos[actual.reenvio ? 'resend' : actual.accion]);
     } catch (error) {
       mensaje('invitados-dialogo-error', error instanceof Error ? error.message : 'No se pudo confirmar la operación.');
-      // Una respuesta incierta o un conflicto exige recargar; no repetir una aprobación.
       if (error instanceof ApiError && (error.status === 409 || error.status >= 500 || error.status === 0)) seleccion = null;
     } finally {
       bloquear(false);

@@ -1,5 +1,3 @@
--- Ejecutar después de 20261105120000_fge_scrum163_solicitudes_cotizacion.sql.
--- Datos sintéticos y avisos de prueba se revierten. No envía correos.
 BEGIN;
 CREATE TEMP TABLE scrum163_verificacion(resultado jsonb) ON COMMIT DROP;
 DO $$

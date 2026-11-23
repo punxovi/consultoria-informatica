@@ -1,4 +1,3 @@
--- Ejecutar solamente en Supabase LOCAL de pruebas. Todo se revierte.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
@@ -57,7 +56,6 @@ SELECT throws_ok($q$INSERT INTO public.informacion_legal(id_organizacion,estado_
 SELECT ok(EXISTS(SELECT FROM fge_private.historial_cambios WHERE tabla_afectada='acciones' AND tipo_accion='UPDATE' AND antes->>'estado'='no_iniciada' AND despues->>'estado'='cancelada'),'Auditoría contiene antes y después');
 SELECT throws_ok($q$DELETE FROM fge_private.historial_cambios$q$,'42501',NULL,'Historial no admite borrado');
 
--- Comprobar cierre de TODAS las tablas de esta entrega, no solo una.
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.paises'::regclass),'RLS habilitada: paises');
 SELECT ok(NOT has_table_privilege('anon','public.paises','SELECT') AND NOT has_table_privilege('authenticated','public.paises','SELECT'),'Sin lectura cliente: paises');
 SELECT ok(NOT has_table_privilege('authenticated','public.paises','INSERT') AND NOT has_table_privilege('authenticated','public.paises','UPDATE') AND NOT has_table_privilege('authenticated','public.paises','DELETE'),'Sin escritura cliente: paises');
@@ -137,7 +135,6 @@ SELECT throws_ok($q$SELECT * FROM public.organizaciones$q$,'42501',NULL,'Authent
 SELECT throws_ok($q$INSERT INTO public.roles(codigo,nombre) VALUES ('intruso','Intruso')$q$,'42501',NULL,'No se puede crear un rol desde cliente');
 RESET ROLE;
 
--- Aun con GRANT accidental, RLS sin políticas mantiene lectura vacía.
 GRANT SELECT ON public.organizaciones TO authenticated;
 SET LOCAL ROLE authenticated;
 SELECT is((SELECT count(*) FROM public.organizaciones),0::bigint,'RLS deniega filas aunque exista SELECT');

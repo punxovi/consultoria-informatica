@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 export const cantidadSchema = z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER);
-// No convertir una entrada vacía en cero: cero es un resultado válido y distinto de «sin registrar».
 export const numeroFormularioSchema = z.string().trim()
   .min(1, 'Ingresa un valor.').regex(/^\d+(?:[.,]\d+)?$/, 'Ingresa un número mayor o igual a cero.')
   .transform(v => Number(v.replace(',', '.')))
@@ -13,7 +12,6 @@ export const fechaSchema = z.string().refine(v => {
   const fecha = new Date(`${v}T00:00:00Z`);
   const hoy = new Date();
   
-  // Validar formato, rango de años lógicos (2000-2100) y que no sea una fecha futura
   return (
     year >= 2000 &&
     year <= 2100 &&

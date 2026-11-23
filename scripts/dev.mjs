@@ -15,7 +15,7 @@ async function iniciarSupabaseLocalSiCorresponde() {
   try {
     const health = await fetch(`${url.replace(/\/$/, '')}/auth/v1/health`, { signal: AbortSignal.timeout(1500) });
     running = health.ok;
-  } catch { /* La instancia local aún no está iniciada. */ }
+  } catch {}
   if (!running) {
     console.log('Iniciando Supabase local configurado por backend/.env…');
     await ejecutarSupabase(['start']);

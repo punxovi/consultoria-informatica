@@ -39,7 +39,6 @@ export function crearClienteProductos(baseUrl: string, token: () => Promise<stri
     },
 
     async crear(datos: DatosProducto): Promise<Producto> {
-      // Todo producto nuevo nace sin publicar; publicarlo es una acción confirmada aparte.
       const respuesta = await http.request<{ product: unknown }>(ruta(), {
         method: 'POST',
         body: { ...datos, publicado: false },

@@ -4,7 +4,6 @@ import { camposCompromisoSchema, guardarCompromisoSchema, type CamposCompromiso,
 
 const registros = new Map<string, Compromiso>();
 const pausa = () => new Promise(resolve => setTimeout(resolve, 200));
-// Compartido únicamente en memoria con la demostración de Actas. Nunca se persiste.
 export function registrarCompromisosDelActa(org: string, idActa: string, campos: CamposCompromiso[]) {
   const entradas = campos.map(c => camposCompromisoSchema.parse(c));
   const ahora = new Date().toISOString();

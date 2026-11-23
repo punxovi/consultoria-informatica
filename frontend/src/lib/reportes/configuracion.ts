@@ -1,6 +1,5 @@
 import type { ReportFilters } from './pdf.ts';
 
-// Estructura de parámetros del reporte, alineada con GET /api/v1/reports/consolidated (docs/REPORTES-PDF.md).
 export const MAX_SELECCION = 100;
 
 export const DESTINOS = ['interno', 'donante', 'externo'] as const;
@@ -43,7 +42,6 @@ export function configuracionInicial(): ConfiguracionReporte {
   };
 }
 
-// Restablecer filtros conserva el período: las fechas no son filtros.
 export function restablecerFiltros(actual: ConfiguracionReporte): ConfiguracionReporte {
   return {
     ...configuracionInicial(),
@@ -114,7 +112,6 @@ export interface FiltroSeleccionado {
 
 export type NombresCatalogo = Record<FiltroSeleccionado['campo'], Map<string, string>>;
 
-// Filtros activos para mostrarlos como etiquetas; sin nombre conocido se informa con una etiqueta genérica.
 export function filtrosSeleccionados(config: ConfiguracionReporte, nombres: NombresCatalogo): FiltroSeleccionado[] {
   const lista: FiltroSeleccionado[] = [];
   const titulos = {

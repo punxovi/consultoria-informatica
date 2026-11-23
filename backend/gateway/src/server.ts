@@ -32,8 +32,6 @@ export function createGatewayServer(options: GatewayOptions = {}): Server {
     insights:
       options.targets?.insights ??
       readUrl('INSIGHTS_SERVICE_URL', 'http://127.0.0.1:4105'),
-    // Invitados vive actualmente dentro de Auth; este destino permite
-    // desplegarlo como servicio separado sin cambiar las rutas del Gateway.
     guests: options.targets?.guests,
   };
 

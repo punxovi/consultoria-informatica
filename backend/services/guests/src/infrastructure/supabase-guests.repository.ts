@@ -26,7 +26,6 @@ export function createSupabaseGuestRepository(options: Options): GuestRepository
 
     let data: any;
     try {
-      // Leemos como texto primero para evitar caídas si viene vacío, y luego parseamos
       const text = await response.text();
       data = text ? JSON.parse(text) : {};
     } catch {

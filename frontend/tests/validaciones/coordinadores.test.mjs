@@ -25,7 +25,6 @@ test('crear: nombre, correo y país principal son obligatorios y cada error apun
     correo: 'Ingresa el correo electrónico.',
     id_pais: 'Selecciona el país principal.',
   });
-  // HU01: sin país principal se rechaza e indica el campo faltante.
   assert.deepEqual(Object.keys(erroresDe(crearCoordinadorSchema, { ...valido, id_pais: '' })), ['id_pais']);
 });
 

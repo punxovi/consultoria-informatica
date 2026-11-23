@@ -46,7 +46,6 @@ export async function iniciarProductos() {
   let ocupado = false;
   let pendientePublicacion: { producto: Producto; publicar: boolean } | null = null;
 
-  // ---------- Estados generales ----------
   function confirmar(mensaje: string) {
     const aviso = q('confirmacion');
     aviso.textContent = mensaje;
@@ -152,7 +151,6 @@ export async function iniciarProductos() {
     }
   }
 
-  // ---------- Organizaciones ----------
   async function cargarOrganizaciones() {
     const select = q<HTMLSelectElement>('id_organizacion');
     const aviso = q('organizaciones-aviso');
@@ -181,7 +179,6 @@ export async function iniciarProductos() {
     q('pais').textContent = organizacion?.pais?.nombre ?? (editando?.id_organizacion === id ? editando.organizacion?.pais?.nombre : undefined) ?? '—';
   }
 
-  // ---------- Formulario ----------
   function limpiarErrores() {
     for (const campo of [...camposFormulario, 'imagenes']) {
       q(`error-${campo}`).hidden = true;
@@ -228,7 +225,6 @@ export async function iniciarProductos() {
     q('vista-previa-titulo').hidden = imagenesNuevas.length === 0;
   }
 
-  // Si un enlace firmado vence o falla, se muestra la imagen predeterminada.
   function usarImagenPredeterminadaSiFalla(raiz: HTMLElement) {
     for (const img of raiz.querySelectorAll<HTMLImageElement>('img[data-imagen-producto]')) {
       img.addEventListener('error', () => { img.src = imagenPredeterminada; }, { once: true });
@@ -401,7 +397,6 @@ export async function iniciarProductos() {
     renderizarVistaPrevia();
   }
 
-  // ---------- Publicación ----------
   function pedirConfirmacion(producto: Producto) {
     const publicar = !producto.publicado;
     pendientePublicacion = { producto, publicar };
@@ -445,7 +440,6 @@ export async function iniciarProductos() {
     }
   }
 
-  // ---------- Eventos ----------
   q('nuevo').addEventListener('click', () => abrirFormulario(null));
   q('cancelar').addEventListener('click', () => { if (!ocupado) cerrarFormulario(); });
   q('reintentar').addEventListener('click', () => void cargarListado());

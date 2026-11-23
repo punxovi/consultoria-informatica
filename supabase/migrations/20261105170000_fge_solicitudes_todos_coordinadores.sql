@@ -30,7 +30,6 @@ BEGIN
   END LOOP;
   IF (SELECT count(DISTINCT(value->>'id_producto')::uuid) FROM jsonb_array_elements(p_datos->'items'))<>jsonb_array_length(p_datos->'items') THEN
     RAISE EXCEPTION 'Productos repetidos' USING ERRCODE='22023'; END IF;
-  -- Bloqueo ordenado: se conserva la disponibilidad y el país durante el alta.
   PERFORM 1 FROM public.productos p JOIN public.organizaciones o ON o.id_organizacion=p.id_organizacion
     JOIN public.paises pais ON pais.id_pais=o.id_pais
     WHERE p.id_producto IN (SELECT(value->>'id_producto')::uuid FROM jsonb_array_elements(p_datos->'items'))
@@ -52,7 +51,6 @@ BEGIN
       JOIN public.productos p ON p.id_producto=(i.value->>'id_producto')::uuid
       JOIN public.organizaciones o ON o.id_organizacion=p.id_organizacion WHERE o.id_pais=pais ORDER BY p.id_producto;
     IF responsable IS NOT NULL THEN
-      -- Todos los Coordinadores activos del país reciben la solicitud como responsables.
       INSERT INTO public.solicitud_cotizacion_destinatarios(id_solicitud,id_coordinador,tipo)
       SELECT DISTINCT solicitud,c.id_usuario,'responsable' FROM fge_private.coordinadores_cotizacion() c WHERE c.id_pais=pais;
     ELSE

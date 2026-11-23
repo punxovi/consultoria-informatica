@@ -1,4 +1,3 @@
--- Bandeja privada por territorio y cambios de estado con control de versión.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.consultar_solicitudes_cotizacion()

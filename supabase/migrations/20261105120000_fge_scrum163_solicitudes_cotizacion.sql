@@ -1,4 +1,3 @@
--- SCRUM-163. Envíos públicos atómicos separados por país y bandejas privadas.
 BEGIN;
 ALTER TABLE public.solicitudes_cotizacion
   ADD COLUMN nombre text,
@@ -16,8 +15,6 @@ ALTER TABLE public.solicitud_cotizacion_detalles
   ADD COLUMN id_pais uuid REFERENCES public.paises(id_pais) ON DELETE RESTRICT,
   ADD COLUMN nombre_organizacion text,
   ADD COLUMN nombre_pais text;
--- No se inventan apellidos ni responsables históricos. Los detalles existentes
--- reciben la referencia territorial actual, sin alterar sus nombres de producto.
 UPDATE public.solicitud_cotizacion_detalles d SET id_organizacion=o.id_organizacion,id_pais=o.id_pais,
   nombre_organizacion=o.nombre,nombre_pais=pais.nombre
 FROM public.productos p JOIN public.organizaciones o ON o.id_organizacion=p.id_organizacion
@@ -130,7 +127,6 @@ BEGIN
   END LOOP;
   IF (SELECT count(DISTINCT(value->>'id_producto')::uuid) FROM jsonb_array_elements(p_datos->'items'))<>jsonb_array_length(p_datos->'items') THEN
     RAISE EXCEPTION 'Productos repetidos' USING ERRCODE='22023'; END IF;
-  -- Bloqueo ordenado: se conserva la disponibilidad y el país durante el alta.
   PERFORM 1 FROM public.productos p JOIN public.organizaciones o ON o.id_organizacion=p.id_organizacion
     JOIN public.paises pais ON pais.id_pais=o.id_pais
     WHERE p.id_producto IN (SELECT(value->>'id_producto')::uuid FROM jsonb_array_elements(p_datos->'items'))
@@ -217,7 +213,6 @@ BEGIN
   RETURN fge_private.detalle_solicitud_cotizacion(fila.id_solicitud);
 END;
 $$;
--- Cierra también las RPC previas: todas delegan en la misma autorización.
 CREATE OR REPLACE FUNCTION public.consultar_solicitudes_cotizacion() RETURNS SETOF jsonb
 LANGUAGE sql SECURITY DEFINER SET search_path='' AS $$ SELECT jsonb_array_elements(public.gestionar_solicitudes_cotizacion('list','{}')->'requests'); $$;
 CREATE OR REPLACE FUNCTION public.actualizar_estado_solicitud_cotizacion(p_id_solicitud uuid,p_version_esperada bigint,p_estado text) RETURNS jsonb

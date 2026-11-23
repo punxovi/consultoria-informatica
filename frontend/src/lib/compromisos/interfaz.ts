@@ -57,8 +57,6 @@ export function iniciarCompromisos() {
     raiz.setAttribute('aria-busy', String(valor));
     q('carga').hidden = !valor;
 
-    // Conserva el estado previo de cada botón para no dejar bloqueados
-    // los botones de detalle/listado al terminar una petición.
     raiz.querySelectorAll<HTMLButtonElement>('button').forEach((boton) => {
       if (valor) {
         if (boton.dataset.disabledAntesCarga === undefined) {
@@ -75,7 +73,6 @@ export function iniciarCompromisos() {
 
     if (!valor) {
       q<HTMLButtonElement>('nuevo').disabled = !cargado || actas.length === 0;
-      // El PDF se genera en el Backend con datos reales: no aplica a la demostración.
       q<HTMLButtonElement>('pdf-acta').disabled = demo;
       q<HTMLButtonElement>('guardar').disabled = conflicto;
     }
@@ -218,14 +215,10 @@ export function iniciarCompromisos() {
     const enlace = q<HTMLAnchorElement>('origen');
     const etiquetaOrigen = q<HTMLSpanElement>('origen-label');
     etiquetaOrigen.textContent = origen?.nombre ?? 'Consultar acta de origen';
-    // La ficha de organización reconoce #actas como subsección interna.
-    // El parámetro acta permite que el módulo abra directamente ese registro.
     enlace.href = `/organizaciones/${encodeURIComponent(org)}?acta=${encodeURIComponent(registro.id_acta)}#actas`;
     enlace.onclick = (evento) => {
       if (!demo) return;
       evento.preventDefault();
-      // En modo demo no navegamos a otra página: mostramos la subsección y
-      // enviamos el ID para abrir el acta seleccionada dentro del módulo.
       document.querySelector<HTMLElement>('[data-org-seccion="actas"]')?.click();
       window.dispatchEvent(new CustomEvent('compromisos:abrir-acta', { detail: { id: registro.id_acta, org } }));
     };
@@ -329,7 +322,6 @@ export function iniciarCompromisos() {
     }
   });
 
-  // Solo se descarga el PDF de un acta: sus compromisos se comparten con quienes participaron en esa reunión.
   async function descargarPdf(idActa: string) {
     if (ocupado || demo) return;
     limpiar();

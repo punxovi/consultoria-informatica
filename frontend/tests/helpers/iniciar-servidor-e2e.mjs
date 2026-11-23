@@ -1,7 +1,6 @@
 import { fork } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-// IPC evita depender de taskkill/cmd para cerrar Astro y PostgreSQL en Windows.
 export default async function iniciarServidor() {
   const servidor = fork(fileURLToPath(new URL('./programas-servidor.mjs', import.meta.url)), [], {
     cwd: fileURLToPath(new URL('../../', import.meta.url)), silent: true, execArgv: [],

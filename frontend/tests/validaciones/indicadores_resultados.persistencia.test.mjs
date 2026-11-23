@@ -6,7 +6,6 @@ import { crearBaseProgramas, comoUsuario, usuarios } from '../helpers/programas-
 test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones, alcance territorial y anon)', async t => {
   const db = await crearBaseProgramas();
   try {
-    // Aplicar migraciones pertinentes
     for (const name of [
       '20261002120000_fge_reforzar_rls_planes_acciones.sql',
       '20261015120000_fge_tabla_indicadores.sql',
@@ -16,7 +15,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
       await db.exec(await readFile(new URL('../../../supabase/migrations/' + name, import.meta.url), 'utf8'));
     }
 
-    // Configurar países y organizaciones
     await db.exec("INSERT INTO public.paises(codigo_iso,nombre) VALUES ('CL','Chile'),('AR','Argentina') ON CONFLICT DO NOTHING");
     const orgs = (await db.query(`INSERT INTO public.organizaciones
       (id_pais,nombre,nombre_representante,telefono,correo,region_departamento,comuna_municipio_ciudad,direccion,publico_objetivo,descripcion_breve,tipo_organizacion,numero_beneficiarios)
@@ -38,7 +36,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
     const accionCL = await crearAccion(cl);
     const accionAR = await crearAccion(ar);
 
-    // COORD limitado a Chile
     await db.query("UPDATE public.asignaciones_roles SET alcance='pais',id_pais=$1 WHERE id_usuario=$2", [cl.id_pais, usuarios.COORD]);
 
     let idIndicadorEstandar;
@@ -46,7 +43,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
     let idIndicadorAR;
 
     await t.test('Catálogo estándar de indicadores (id_accion IS NULL): ADMIN gestiona, COORD solo lee', async () => {
-      // 1. ADMIN puede crear indicador en el catálogo estándar
       const resAdmin = await comoUsuario(db, 'ADMIN', tx => tx.query(`
         INSERT INTO public.indicadores (nombre, descripcion, unidad_medida, meta)
         VALUES ('Tasa de asistencia estándar', 'Indicador institucional', 'porcentaje', 85)
@@ -56,14 +52,12 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
       idIndicadorEstandar = resAdmin.rows[0].id_indicador;
       assert.equal(resAdmin.rows[0].created_by, usuarios.ADMIN);
 
-      // 2. COORD puede leer el catálogo estándar
       const resReadCoord = await comoUsuario(db, 'COORD', tx => tx.query(`
         SELECT * FROM public.indicadores WHERE id_indicador = $1
       `, [idIndicadorEstandar]));
       assert.equal(resReadCoord.rows.length, 1);
       assert.equal(resReadCoord.rows[0].nombre, 'Tasa de asistencia estándar');
 
-      // 3. COORD NO puede crear un indicador en el catálogo estándar (rechazado por RLS)
       await assert.rejects(
         comoUsuario(db, 'COORD', tx => tx.query(`
           INSERT INTO public.indicadores (nombre, unidad_medida)
@@ -72,13 +66,11 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
         error => error.code === '42501' || error.message.includes('row-level security')
       );
 
-      // 4. COORD NO puede modificar el indicador del catálogo estándar (0 filas actualizadas o rechazo)
       const resUpdateCoord = await comoUsuario(db, 'COORD', tx => tx.query(`
         UPDATE public.indicadores SET nombre = 'Modificado por COORD' WHERE id_indicador = $1 RETURNING *
       `, [idIndicadorEstandar]));
       assert.equal(resUpdateCoord.rows.length, 0);
 
-      // 5. ADMIN sí puede actualizar el catálogo estándar
       const resUpdateAdmin = await comoUsuario(db, 'ADMIN', tx => tx.query(`
         UPDATE public.indicadores SET meta = 90 WHERE id_indicador = $1 RETURNING *
       `, [idIndicadorEstandar]));
@@ -87,7 +79,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
     });
 
     await t.test('Indicadores asociados a acciones: respeta alcance territorial por país', async () => {
-      // 1. COORD con alcance en CL puede crear indicador para acción en CL
       const resCL = await comoUsuario(db, 'COORD', tx => tx.query(`
         INSERT INTO public.indicadores (id_accion, nombre, unidad_medida, meta)
         VALUES ($1, 'Asistencia local CL', 'personas', 50)
@@ -97,7 +88,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
       idIndicadorCL = resCL.rows[0].id_indicador;
       assert.equal(resCL.rows[0].created_by, usuarios.COORD);
 
-      // 2. COORD con alcance en CL NO puede crear indicador para acción en AR
       await assert.rejects(
         comoUsuario(db, 'COORD', tx => tx.query(`
           INSERT INTO public.indicadores (id_accion, nombre, unidad_medida, meta)
@@ -106,7 +96,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
         error => error.code === '42501' || error.message.includes('row-level security')
       );
 
-      // ADMIN crea el indicador en AR para pruebas de lectura/modificación
       const resAR = await comoUsuario(db, 'ADMIN', tx => tx.query(`
         INSERT INTO public.indicadores (id_accion, nombre, unidad_medida, meta)
         VALUES ($1, 'Asistencia en AR por ADMIN', 'personas', 30)
@@ -114,13 +103,11 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
       `, [accionAR]));
       idIndicadorAR = resAR.rows[0].id_indicador;
 
-      // 3. COORD CL no puede actualizar indicador en AR
       const updateAR = await comoUsuario(db, 'COORD', tx => tx.query(`
         UPDATE public.indicadores SET meta = 999 WHERE id_indicador = $1 RETURNING *
       `, [idIndicadorAR]));
       assert.equal(updateAR.rows.length, 0);
 
-      // 4. COORD CL sí puede actualizar indicador en CL
       const updateCL = await comoUsuario(db, 'COORD', tx => tx.query(`
         UPDATE public.indicadores SET meta = 55 WHERE id_indicador = $1 RETURNING *
       `, [idIndicadorCL]));
@@ -129,7 +116,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
     });
 
     await t.test('Resultados de medición: respeta alcance territorial y permisos del indicador padre', async () => {
-      // 1. COORD CL puede registrar resultado en indicador de CL
       const resMedicionCL = await comoUsuario(db, 'COORD', tx => tx.query(`
         INSERT INTO public.resultados (id_indicador, valor_medido, fecha_medicion, observaciones)
         VALUES ($1, 48, '2026-06-15', 'Medición semestral CL')
@@ -138,7 +124,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
       assert.equal(resMedicionCL.rows.length, 1);
       assert.equal(Number(resMedicionCL.rows[0].valor_medido), 48);
 
-      // 2. COORD CL NO puede registrar resultado en indicador de AR
       await assert.rejects(
         comoUsuario(db, 'COORD', tx => tx.query(`
           INSERT INTO public.resultados (id_indicador, valor_medido, fecha_medicion)
@@ -147,7 +132,6 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
         error => error.code === '42501' || error.message.includes('row-level security')
       );
 
-      // 3. COORD CL puede leer resultados de CL
       const lecturasCL = await comoUsuario(db, 'COORD', tx => tx.query(`
         SELECT * FROM public.resultados WHERE id_indicador = $1
       `, [idIndicadorCL]));
@@ -173,23 +157,19 @@ test('Sprint 6 RLS: Indicadores y Resultados (catálogo estándar, asociaciones,
     });
 
     await t.test('Archivado seguro: control de versión y ocultamiento por RLS', async () => {
-      // Obtener versión vigente del indicador CL
       const ind = (await comoUsuario(db, 'COORD', tx => tx.query(
         'SELECT version FROM public.indicadores WHERE id_indicador = $1', [idIndicadorCL]
       ))).rows[0];
 
-      // Archivar mediante función segura
       await comoUsuario(db, 'COORD', tx => tx.query(
         'SELECT public.archivar_indicador_seguro($1, $2)', [idIndicadorCL, ind.version]
       ));
 
-      // Indicador archivado ya no es visible para SELECT estándar por RLS
       const despues = await comoUsuario(db, 'COORD', tx => tx.query(
         'SELECT * FROM public.indicadores WHERE id_indicador = $1', [idIndicadorCL]
       ));
       assert.equal(despues.rows.length, 0);
 
-      // Resultados asociados también quedan archivados y ocultos
       const resDespues = await comoUsuario(db, 'COORD', tx => tx.query(
         'SELECT * FROM public.resultados WHERE id_indicador = $1', [idIndicadorCL]
       ));

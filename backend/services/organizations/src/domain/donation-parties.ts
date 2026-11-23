@@ -8,13 +8,11 @@ export interface DonationParties { emisor: DonationParty; receptor: DonationPart
 
 const movementSchema = z.object({
   id_organizacion: z.uuid(),
-  // Compatibilidad con respuestas históricas; la base actual exige país por FK compuesta.
   id_pais: z.uuid().optional(),
   tipo_movimiento: z.enum(['recibida', 'entregada']),
   contraparte_nombre: z.string().trim().min(1),
 });
 
-/** El movimiento siempre se interpreta desde la organización de la fila. */
 export function identifyDonationParties(value: unknown): DonationParties {
   const parsed = movementSchema.safeParse(value);
   if (!parsed.success) {

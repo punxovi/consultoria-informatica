@@ -1,5 +1,3 @@
--- Restablece los privilegios de Data API requeridos por el guardado de
--- Programas. RLS continúa decidiendo qué filas puede leer o modificar cada rol.
 BEGIN;
 
 GRANT USAGE ON SCHEMA public, fge_private TO authenticated;

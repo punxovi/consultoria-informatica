@@ -33,7 +33,6 @@ test('estado permitido, validación, versión, confirmación y doble clic',async
  await page.locator('#sol-estado').selectOption('en_gestion');let liberar;actualizacion=new Promise(r=>liberar=r);await page.locator('#sol-guardar').click();await expect(page.locator('#sol-guardar')).toBeDisabled();
  await expect.poll(()=>requests.filter(r=>r.method()==='PATCH').length).toBe(1);expect(requests.find(r=>r.method()==='PATCH').postDataJSON()).toEqual({version_esperada:1,estado:'en_gestion'});
  liberar();
- // Al guardar se cierra el detalle y el listado queda actualizado.
  await expect(page.locator('#sol-dialogo')).not.toBeVisible();
  await expect(page.locator('#sol-confirmacion')).toContainText('Solicitante 1 a «En gestión»');
  await expect(page.locator('#sol-nuevas')).toHaveText('0');
