@@ -13,7 +13,7 @@ export function leerBorrador(storage: Pick<Storage, 'getItem'> = sessionStorage)
 }
 export function guardarBorrador(contacto: Contacto, storage: Pick<Storage, 'setItem' | 'removeItem'> = sessionStorage) {
   const data = schema.parse(contacto);
-  if (Object.values(data).some(value => value.length)) storage.setItem(clave, JSON.stringify(data));
+  if (Object.values(data).every(value => value.length)) storage.setItem(clave, JSON.stringify(data));
   else limpiarBorrador(storage);
 }
 export function limpiarBorrador(storage: Pick<Storage, 'removeItem'> = sessionStorage) { storage.removeItem(clave); }

@@ -48,7 +48,7 @@ function parseField(name: Field, value: unknown): PlanFields[Field] {
     case 'periodo_anual': {
       if (
         typeof value !== 'number' || !Number.isInteger(value)
-        || value < ANNUAL_PERIOD_MIN || value > ANNUAL_PERIOD_MAX
+        || value < ANNUAL_PERIOD_MIN || value >= ANNUAL_PERIOD_MAX
       ) {
         return invalid(`El período anual debe ser un año de 4 dígitos entre ${ANNUAL_PERIOD_MIN} y ${ANNUAL_PERIOD_MAX}.`);
       }
